@@ -61,6 +61,20 @@ XBEBE=$BEBE
                 ; written to during startup
 LFE8E=$fe8e
 
+; MasRef E.4-4
+STATE=$d0                       ;VDU status byte
+ZMASK=$d1                       ;Pixel mask
+ZORA=$d2                        ;Text OR mask
+ZEOR=$d3                        ;Text EOR mask
+ZGORA=$d4                       ;Graphics OR mask
+ZGEOR=$d5                       ;Graphics EOR mask
+ZMEMG=$d6                       ;Graphics pointer
+ZMEMT=$d8                       ;Text pointer
+ZTEMP=$da                       ;Temporary space
+ZTEMPB=$dc                      ;Temporary space
+ZTEMPC=$de                      ;Temporary space
+ZTEMPD=$e0                      ;Temporary space
+                
 L8000:                                       ; Language entry point
                 jmp LAF77
 L8003:                                       ; Service entry point
@@ -188,7 +202,7 @@ L80DF:
                 and #$07
                 tsb $028F                    ; Copy to OSBYTE 255
                 lda #$10                     ; Test shadow screen bit in VDU flags
-                bit $D0                      ; Not shadow screen
+                bit STATE                      ; Not shadow screen
                 beq L80F7
                 lda #$80                     ; Set shadow screen bit in OSBYTE 255
                 tsb $028F
@@ -874,7 +888,7 @@ L85C0:
 
 L85CA:
                 ldx #$09                     ; 85CA= A2 09       ".
-                lda $D0                      ; 85CC= A5 D0       %P
+                lda STATE                      ; 85CC= A5 D0       %P
                 pha                          ; 85CE= 48          H
                 lda #$0E                     ; 85CF= A9 0E       ).
                 jsr OSWRCH                   ; 85D1= 20 EE FF     n.
@@ -2505,7 +2519,7 @@ L90B6:
                 phx
                 phy
                 ldy #$80                     ; Top of available shadow memory at &8000
-                lda $D0                      ; Get VDU status
+                lda STATE                      ; Get VDU status
                 bit #$10                     ; Jump if not shadow screen, spare up to &8000
                 beq L90CE
 ; Shadow screen selected
@@ -11398,22 +11412,134 @@ LB900:
 ; VDU driver entry block
 ; ======================
 LC000:                                       ; Read from VDU memory
-                lda ($D6),Y
+                lda (ZMEMG),Y
                 rts
 LC003:                                       ; Write to VDU memory
-                sta ($D6),Y
+                sta (ZMEMG),Y
                 rts
-LC006:                                       ;
+
+; MasRef E.4-6
+;
+; JSR PLBYTE plots the mask held in ZMASK into the byte pointed to by
+; (ZMEMG),Y, using ZGORA and ZGEOR as colour masks. See GADDR below
+; for an example of its use.
+;
+; PLBYTE uses ZTEMP as workspace and preserves X, Y, V and C.
+PLBYTE: 
                 jmp LDB51
-LC009:                                       ;
+
+; MasRef E.4-6
+;
+; JSR HPLOT plots a fast horizontal line in the current graphics
+; colour or ECF and the current graphics mode (all as set by VDU 18)
+; between two specified points. It is the low level primitive used by
+; all the MOS area fill commands.
+;
+; On entry, two 4 byte areas at &300+X and &300+Y contain the
+; coordinates of the two endpoints, in the standard
+; lowX,highX,lowY,highY order. Should the Y coordinates differ, the Y
+; coordinate of the line plotted is taken from the leftmost of the two
+; points specified.
+;
+; Only portions of the line inside the graphics window are plotted.
+; Subject to this, both endpoints of the line are plotted.
+;
+; HPLOT uses ZGORA, ZGEOR, ZMASK, ZMEMG, ZTEMP (but not ZTEMP+1),
+; ZTEMPB, ZTEMPB+1, ZTEMPC and ZTEMPC+1 as workspace. No registers or
+; flags are preserved.
+HPLOT:                          
                 jmp LDAE8
-LC00C:                                       ;
+
+; MasRef E.4-6
+;
+; JSR EIGABS converts the 4 byte pair of external coordinates at
+; &300+X (in standard lowX,highX,lowY,highY order) into the
+; corresponding pair of pixel coordinates by offsetting by the
+; graphics origin, then dividing by an appropriate power of 2.
+;
+; EIGABS uses ZTEMP as workspace, and corrupts all registers and
+; flags.
+EIGABS:
                 jmp LD1DE
-LC00F:                                       ;
+
+; MasRef E.4-7
+;
+; JSR WIND windows the 4 byte pair of pixel coordinates (in standard
+; lowX,highX,lowY,highY order) at &300+X, and returns a result in A
+; according to its position with respect to the window:
+
+; 9 | 8 | 10
+; --+---+---
+; 1 | 0 | 2
+; --+---+---
+; 5 | 4 | 6
+
+; WIND uses ZTEMP as workspace, preserves X and sets N and Z according
+; to A.
+WIND:
                 jmp LD1A8
-LC012:                                       ;
+
+; MasRef E.4-7
+;
+; JSR GADDR addresses the pixel whose 4 byte pair of pixel coordinates
+; (in standard lowX,highX,lowY,highY order) is at &300+X. GADDR should
+; not be called without first ensuring (typically by means of WIND)
+; that the point concerned does lie within the screen.
+;
+; GADDR initialises the following variables:
+;
+; . ZMEMG to the start of the page of memory containing the pixel.
+;
+; . Y and VDU variable &1A (i.e. location &31A) to contain the offset
+; of the byte containing the pixel within this page – i.e. (ZMEMG),Y
+; points to the byte containing the pixel.
+;
+; . ZMASK to a mask indicating which bits of this byte constitute the
+; pixel.
+;
+; . ZGORA and ZGEOR to the correct colour masks for the current
+; graphics plot mode (found in VDU variable &5A) and colour/ECF
+;
+; . X to Y MOD 7, i.e. the scan line within a character row of the
+; pixel.
+;
+; Additionally, GADDR uses ZTEMP as workspace and returns A=0, Z=1.
+;
+; An example of the use of PLBYTE, WIND and GADDR is the following
+; code, which effectively re-implements the VDU 25 64–71 (plot a
+; point) calls. It assumes that the routine addresses have been
+; previously defined and that the graphics plot mode, etc. were set up
+; by the VDU 25 code before the unknown PLOT codes vector was entered:
+
+; .POINT
+;  LDX #&20   ;Addresses new point within VDU queue, as
+;             ;left on entry to the unknown PLOT codes
+;             ;vector.
+;  JSR WIND   ;Is the point inside the window?
+;  BNE END    ;Return if not.
+;  JSR GADDR  ;Address the point now we know it's on
+;             ;screen.
+;  JSR PLBYTE ;And plot the point.
+; .END
+;  RTS
+GADDR:
                 jmp LDEC8
-LC015:                                       ;
+
+; MasRef E.4-8
+;
+; JSR IEG takes the internal pixel coordinates of the graphics cursor
+; (in VDU variables &24–&27), converts it back to external coordinates
+; and stores the result in VDU variables &10–&13.
+;
+; It should be called whenever the graphics code generates a new
+; graphics cursor position (e.g. in the VDU drivers, it is called
+; after a character is printed in VDU 5 mode). Its purpose is to make
+; the two versions of the graphics cursor agree again, and thus
+; prevent errors occurring with relative plots.
+;
+; IEG uses no page zero locations and corrupts all registers and
+; flags.
+IEG:
                 jmp LC4DF
 LC018:                                       ; Fetch byte from ROM Y
                 ldx $F4                      ; Get current ROM
@@ -11439,7 +11565,7 @@ LC035:
                 rts                          ; C035= 60          `
 
 LC036:
-                bit $D0                      ; C036= 24 D0       $P
+                bit STATE                      ; C036= 24 D0       $P
                 bpl LC053                    ; C038= 10 19       ..
                 ldy $035E                    ; C03A= AC 5E 03    ,^.
                 cpy #$C0                     ; C03D= C0 C0       @@
@@ -11450,7 +11576,7 @@ LC03F:
                 bne LC034                    ; C046= D0 EC       Pl
 LC048:
                 tax                          ; C048= AA          *
-                lda $D0                      ; C049= A5 D0       %P
+                lda STATE                      ; C049= A5 D0       %P
                 lsr A                        ; C04B= 4A          J
                 bcc LC035                    ; C04C= 90 E7       .g
                 txa                          ; C04E= 8A          .
@@ -11471,7 +11597,7 @@ LC059:
                 bne LC06D                    ; C062= D0 09       P.
                 pha                          ; C064= 48          H
                 lda #$42                     ; C065= A9 42       )B
-                trb $D0                      ; C067= 14 D0       .P
+                trb STATE                      ; C067= 14 D0       .P
                 jsr LCF50                    ; C069= 20 50 CF     PO
                 pla                          ; C06C= 68          h
 LC06D:
@@ -11500,7 +11626,7 @@ LC077:
                 bra LC0CA                    ; C094= 80 34       .4
 
 LC096:
-                bit $D0                      ; C096= 24 D0       $P
+                bit STATE                      ; C096= 24 D0       $P
                 bmi LC0C7                    ; C098= 30 2D       0-
                 jsr LCE0C                    ; C09A= 20 0C CE     .N
                 lda #$20                     ; C09D= A9 20       )
@@ -11513,7 +11639,7 @@ LC0A9:
                 eor #$06                     ; C0A9= 49 06       I.
                 bne LC0C5                    ; C0AB= D0 18       P.
                 lda #$80                     ; C0AD= A9 80       ).
-                trb $D0                      ; C0AF= 14 D0       .P
+                trb STATE                      ; C0AF= 14 D0       .P
                 bra LC0CA                    ; C0B1= 80 17       ..
 
 LC0B3:
@@ -11522,7 +11648,7 @@ LC0B3:
                 eor #$F7                     ; C0B7= 49 F7       Iw
                 cmp #$FA                     ; C0B9= C9 FA       Iz
                 tya                          ; C0BB= 98          .
-                bit $D0                      ; C0BC= 24 D0       $P
+                bit STATE                      ; C0BC= 24 D0       $P
                 bmi LC0A9                    ; C0BE= 30 E9       0i
 LC0C0:
                 php                          ; C0C0= 08          .
@@ -11531,18 +11657,18 @@ LC0C0:
 LC0C5:
                 bcc LC0CA                    ; C0C5= 90 03       ..
 LC0C7:
-                lda $D0                      ; C0C7= A5 D0       %P
+                lda STATE                      ; C0C7= A5 D0       %P
                 lsr A                        ; C0C9= 4A          J
 LC0CA:
-                bit $D0                      ; C0CA= 24 D0       $P
+                bit STATE                      ; C0CA= 24 D0       $P
                 bvc LC0E1                    ; C0CC= 50 13       P.
                 jsr LC105                    ; C0CE= 20 05 C1     .A
 LC0D1:
                 php                          ; C0D1= 08          .
                 pha                          ; C0D2= 48          H
-                lda $D0                      ; C0D3= A5 D0       %P
+                lda STATE                      ; C0D3= A5 D0       %P
                 eor #$02                     ; C0D5= 49 02       I.
-                sta $D0                      ; C0D7= 85 D0       .P
+                sta STATE                      ; C0D7= 85 D0       .P
                 jsr LE2AE                    ; C0D9= 20 AE E2     .b
                 jsr LC6D8                    ; C0DC= 20 D8 C6     XF
                 pla                          ; C0DF= 68          h
@@ -11559,12 +11685,12 @@ LC0E1:
                 jsr LC0CA                    ; C0EB= 20 CA C0     J@
                 jsr LE93A                    ; C0EE= 20 3A E9     :i
                 lda #$01                     ; C0F1= A9 01       ).
-                tsb $D0                      ; C0F3= 04 D0       .P
+                tsb STATE                      ; C0F3= 04 D0       .P
                 pla                          ; C0F5= 68          h
                 and #$01                     ; C0F6= 29 01       ).
-                trb $D0                      ; C0F8= 14 D0       .P
+                trb STATE                      ; C0F8= 14 D0       .P
 LC0FA:
-                bit $D0                      ; C0FA= 24 D0       $P
+                bit STATE                      ; C0FA= 24 D0       $P
                 bvc LC0E1                    ; C0FC= 50 E3       Pc
                 jsr LC0D1                    ; C0FE= 20 D1 C0     Q@
                 php                          ; C101= 08          .
@@ -11947,7 +12073,7 @@ LC37B:
                 eor #$06                     ; C383= 49 06       I.
                 pha                          ; C385= 48          H
                 lda #$42                     ; C386= A9 42       )B
-                bit $D0                      ; C388= 24 D0       $P
+                bit STATE                      ; C388= 24 D0       $P
                 beq LC3A2                    ; C38A= F0 16       p.
                 bvs LC397                    ; C38C= 70 09       p.
                 pla                          ; C38E= 68          h
@@ -11987,7 +12113,7 @@ LC3C2:
                 bcc LC3A4                    ; C3C5= 90 DD       .]
                 jsr LC780                    ; C3C7= 20 80 C7     .G
                 lda #$08                     ; C3CA= A9 08       ).
-                tsb $D0                      ; C3CC= 04 D0       .P
+                tsb STATE                      ; C3CC= 04 D0       .P
                 ldx #$20                     ; C3CE= A2 20       "
                 ldy #$08                     ; C3D0= A0 08        .
                 jsr LC91E                    ; C3D2= 20 1E C9     .I
@@ -12000,13 +12126,13 @@ LC3E0:
                 jsr LCCDA                    ; C3E3= 20 DA CC     ZL
                 bcc LC407                    ; C3E6= 90 1F       ..
 LC3E8:
-                lda $D0                      ; C3E8= A5 D0       %P
+                lda STATE                      ; C3E8= A5 D0       %P
                 pha                          ; C3EA= 48          H
                 and #$DF                     ; C3EB= 29 DF       )_
-                sta $D0                      ; C3ED= 85 D0       .P
+                sta STATE                      ; C3ED= 85 D0       .P
                 jsr LC47C                    ; C3EF= 20 7C C4     |D
                 pla                          ; C3F2= 68          h
-                sta $D0                      ; C3F3= 85 D0       .P
+                sta STATE                      ; C3F3= 85 D0       .P
                 rts                          ; C3F5= 60          `
 
 LC3F6:
@@ -12059,10 +12185,10 @@ LC436:
                 ; ============
 LC44F:
                 lda #$20
-                bit $D0
+                bit STATE
                 bne LC410                    ; VDU 5 mode
                 lda #$08
-                bit $D0
+                bit STATE
                 bne LC45E                    ; Software CLS (window defined)
                 jmp LC866                    ; Do a hardware CLS
 
@@ -12169,7 +12295,7 @@ LC50A:
                 lda #$91                     ; C517= A9 91       ).
                 eor #$95                     ; C519= 49 95       I.
 LC51B:
-                tsb $D0                      ; C51B= 04 D0       .P
+                tsb STATE                      ; C51B= 04 D0       .P
                 rts                          ; C51D= 60          `
 
                 lda $0361                    ; C51E= AD 61 03    -a.
@@ -12177,7 +12303,7 @@ LC51B:
                 jsr LCF50                    ; C523= 20 50 CF     PO
                 lda #$2B                     ; C526= A9 2B       )+
                 eor #$0B                     ; C528= 49 0B       I.
-                trb $D0                      ; C52A= 14 D0       .P
+                trb STATE                      ; C52A= 14 D0       .P
 LC52C:
                 rts                          ; C52C= 60          `
 
@@ -12204,9 +12330,9 @@ LC541:
                 sta $0357,Y                  ; C554= 99 57 03    .W.
                 lda $0357                    ; C557= AD 57 03    -W.
                 eor #$FF                     ; C55A= 49 FF       I.
-                sta $D3                      ; C55C= 85 D3       .S
+                sta ZEOR                      ; C55C= 85 D3       .S
                 eor $0358                    ; C55E= 4D 58 03    MX.
-                sta $D2                      ; C561= 85 D2       .R
+                sta ZORA                      ; C561= 85 D2       .R
 LC563:
                 rts                          ; C563= 60          `
 
@@ -12284,8 +12410,8 @@ LC5C7:
 LC5E0:
                 sta $0357                    ; C5E0= 8D 57 03    .W.
                 eor #$FF                     ; C5E3= 49 FF       I.
-                sta $D2                      ; C5E5= 85 D2       .R
-                sta $D3                      ; C5E7= 85 D3       .S
+                sta ZORA                      ; C5E5= 85 D2       .R
+                sta ZEOR                      ; C5E7= 85 D3       .S
                 txa                          ; C5E9= 8A          .
                 and #$07                     ; C5EA= 29 07       ).
                 sta $036D                    ; C5EC= 8D 6D 03    .m.
@@ -12429,7 +12555,7 @@ LC6AC:
                 dec $0320                    ; C6CB= CE 20 03    N .
                 jsr LC71F                    ; C6CE= 20 1F C7     .G
                 lda #$08                     ; C6D1= A9 08       ).
-                trb $D0                      ; C6D3= 14 D0       .P
+                trb STATE                      ; C6D3= 14 D0       .P
                 jmp LC47C                    ; C6D5= 4C 7C C4    L|D
 
 LC6D8:
@@ -12549,7 +12675,7 @@ LC799:
 
 LC7AA:
                 ldx #$7F                     ; C7AA= A2 7F       ".
-                stz $D0                      ; C7AC= 64 D0       dP
+                stz STATE                      ; C7AC= 64 D0       dP
                 lda $0366                    ; C7AE= AD 66 03    -f.
 LC7B1:
                 stz $02FF,X                  ; C7B1= 9E FF 02    ...
@@ -12568,14 +12694,14 @@ LC7BC:
                 ldx $027F                    ; C7C5= AE 7F 02    ...
                 beq LC7D5                    ; C7C8= F0 0B       p.
                 lda #$10                     ; C7CA= A9 10       ).
-                trb $D0                      ; C7CC= 14 D0       .P
+                trb STATE                      ; C7CC= 14 D0       .P
                 lda #$03                     ; C7CE= A9 03       ).
                 trb ACCCON                    ; C7D0= 1C 34 FE    .4~
                 bra LC7DE                    ; C7D3= 80 09       ..
 
 LC7D5:
                 lda #$10                     ; C7D5= A9 10       ).
-                tsb $D0                      ; C7D7= 04 D0       .P
+                tsb STATE                      ; C7D7= 04 D0       .P
                 lda #$03                     ; C7D9= A9 03       ).
                 tsb ACCCON                    ; C7DB= 0C 34 FE    .4~
 LC7DE:
@@ -12614,7 +12740,7 @@ LC803:
                 lda LE17E,Y                  ; C824= B9 7E E1    9~a
                 sta $034E                    ; C827= 8D 4E 03    .N.
                 lda #$EE                     ; C82A= A9 EE       )n
-                trb $D0                      ; C82C= 14 D0       .P
+                trb STATE                      ; C82C= 14 D0       .P
                 ldx $0355                    ; C82E= AE 55 03    .U.
                 lda LE111,X                  ; C831= BD 11 E1    =.a
                 jsr LF250                    ; C834= 20 50 F2     Pr
@@ -12666,7 +12792,7 @@ LC88E:
                 bcc LC895                    ; Ctrl not pressed, exit loop
                 bmi LC88B                    ; Shift pressed, loop back
 LC895:
-                lda $D0                      ; C895= A5 D0       %P
+                lda STATE                      ; C895= A5 D0       %P
                 eor #$04                     ; C897= 49 04       I.
                 and #$46                     ; C899= 29 46       )F
                 bne LC8D6                    ; C89B= D0 39       P9
@@ -13459,7 +13585,7 @@ LCD7C:
 LCD7E:
                 jsr LDB51                    ; CD7E= 20 51 DB     Q[
 LCD81:
-                lsr $D1                      ; CD81= 46 D1       FQ
+                lsr ZMASK                      ; CD81= 46 D1       FQ
                 bcc LCD88                    ; CD83= 90 03       ..
                 jsr LDA67                    ; CD85= 20 67 DA     gZ
 LCD88:
@@ -13547,8 +13673,8 @@ LCE19:
                 bcs LCE7C                    ; CE1F= B0 5B       0[
 LCE21:
                 lda ($DE),Y                  ; CE21= B1 DE       1^
-                ora $D2                      ; CE23= 05 D2       .R
-                eor $D3                      ; CE25= 45 D3       ES
+                ora ZORA                      ; CE23= 05 D2       .R
+                eor ZEOR                      ; CE25= 45 D3       ES
                 sta ($D8),Y                  ; CE27= 91 D8       .X
                 dey                          ; CE29= 88          .
                 bpl LCE21                    ; CE2A= 10 F5       .u
@@ -13585,8 +13711,8 @@ LCE5A:
                 and #$0F                     ; CE5C= 29 0F       ).
                 tax                          ; CE5E= AA          *
                 lda LE013,X                  ; CE5F= BD 13 E0    =.`
-                ora $D2                      ; CE62= 05 D2       .R
-                eor $D3                      ; CE64= 45 D3       ES
+                ora ZORA                      ; CE62= 05 D2       .R
+                eor ZEOR                      ; CE64= 45 D3       ES
                 sta ($E0),Y                  ; CE66= 91 E0       .`
                 lda ($DE),Y                  ; CE68= B1 DE       1^
                 lsr A                        ; CE6A= 4A          J
@@ -13595,8 +13721,8 @@ LCE5A:
                 lsr A                        ; CE6D= 4A          J
                 tax                          ; CE6E= AA          *
                 lda LE013,X                  ; CE6F= BD 13 E0    =.`
-                ora $D2                      ; CE72= 05 D2       .R
-                eor $D3                      ; CE74= 45 D3       ES
+                ora ZORA                      ; CE72= 05 D2       .R
+                eor ZEOR                      ; CE74= 45 D3       ES
                 sta ($D8),Y                  ; CE76= 91 D8       .X
                 dey                          ; CE78= 88          .
                 bpl LCE5A                    ; CE79= 10 DF       ._
@@ -13635,8 +13761,8 @@ LCEA9:
                 and #$03                     ; CEA9= 29 03       ).
                 tax                          ; CEAB= AA          *
                 lda LE023,X                  ; CEAC= BD 23 E0    =#`
-                ora $D2                      ; CEAF= 05 D2       .R
-                eor $D3                      ; CEB1= 45 D3       ES
+                ora ZORA                      ; CEAF= 05 D2       .R
+                eor ZEOR                      ; CEB1= 45 D3       ES
                 rts                          ; CEB3= 60          `
 
 LCEB4:
@@ -13835,7 +13961,7 @@ LCFC7:
                 lda $031C                    ; CFE6= AD 1C 03    -..
                 bne LCFF5                    ; CFE9= D0 0A       P.
                 jsr LC910                    ; CFEB= 20 10 C9     .I
-                lda $D0                      ; CFEE= A5 D0       %P
+                lda STATE                      ; CFEE= A5 D0       %P
                 and #$08                     ; CFF0= 29 08       ).
                 asl A                        ; CFF2= 0A          .
                 bra LD006                    ; CFF3= 80 11       ..
@@ -13896,9 +14022,9 @@ LD051:
                 stx $032A                    ; D05B= 8E 2A 03    .*.
                 pla                          ; D05E= 68          h
                 lsr A                        ; D05F= 4A          J
-                eor $D0                      ; D060= 45 D0       EP
+                eor STATE                      ; D060= 45 D0       EP
                 and #$F7                     ; D062= 29 F7       )w
-                eor $D0                      ; D064= 45 D0       EP
+                eor STATE                      ; D064= 45 D0       EP
                 asl A                        ; D066= 0A          .
                 bra LD03D                    ; D067= 80 D4       .T
 
@@ -15218,14 +15344,14 @@ LD96E:
                 rol $0368                    ; D974= 2E 68 03    .h.
                 bcc LD989                    ; D977= 90 10       ..
 LD979:
-                lda $D1                      ; D979= A5 D1       %Q
-                and $D4                      ; D97B= 25 D4       %T
-                ora ($D6),Y                  ; D97D= 11 D6       .V
+                lda ZMASK                      ; D979= A5 D1       %Q
+                and ZGORA                      ; D97B= 25 D4       %T
+                ora (ZMEMG),Y                  ; D97D= 11 D6       .V
                 sta $DA                      ; D97F= 85 DA       .Z
-                lda $D1                      ; D981= A5 D1       %Q
-                and $D5                      ; D983= 25 D5       %U
+                lda ZMASK                      ; D981= A5 D1       %Q
+                and ZGEOR                      ; D983= 25 D5       %U
                 eor $DA                      ; D985= 45 DA       EZ
-                sta ($D6),Y                  ; D987= 91 D6       .V
+                sta (ZMEMG),Y                  ; D987= 91 D6       .V
 LD989:
                 lda $0331                    ; D989= AD 31 03    -1.
                 bpl LD9DC                    ; D98C= 10 4E       .N
@@ -15253,13 +15379,13 @@ LD9A1:
                 clc                          ; D9AB= 18          .
                 adc $0352                    ; D9AC= 6D 52 03    mR.
                 tay                          ; D9AF= A8          (
-                lda $D7                      ; D9B0= A5 D7       %W
+                lda ZMEMG+1                      ; D9B0= A5 D7       %W
                 adc $0353                    ; D9B2= 6D 53 03    mS.
                 bpl LD9BB                    ; D9B5= 10 04       ..
                 sec                          ; D9B7= 38          8
                 sbc $0354                    ; D9B8= ED 54 03    mT.
 LD9BB:
-                sta $D7                      ; D9BB= 85 D7       .W
+                sta ZMEMG+1                      ; D9BB= 85 D7       .W
                 ldx #$00                     ; D9BD= A2 00       ".
 LD9BF:
                 lda $0369                    ; D9BF= AD 69 03    -i.
@@ -15282,13 +15408,13 @@ LD9DC:
 LD9E4:
                 bit $0332                    ; D9E4= 2C 32 03    ,2.
                 bvs LD9F2                    ; D9E7= 70 09       p.
-                lsr $D1                      ; D9E9= 46 D1       FQ
+                lsr ZMASK                      ; D9E9= 46 D1       FQ
                 bcc LD9F9                    ; D9EB= 90 0C       ..
                 jsr LDA67                    ; D9ED= 20 67 DA     gZ
                 bra LD9F9                    ; D9F0= 80 07       ..
 
 LD9F2:
-                asl $D1                      ; D9F2= 06 D1       .Q
+                asl ZMASK                      ; D9F2= 06 D1       .Q
                 bcc LD9F9                    ; D9F4= 90 03       ..
                 jsr LDA34                    ; D9F6= 20 34 DA     4Z
 LD9F9:
@@ -15330,18 +15456,18 @@ LDA33:
 
 LDA34:
                 lda $0363                    ; DA34= AD 63 03    -c.
-                sta $D1                      ; DA37= 85 D1       .Q
+                sta ZMASK                      ; DA37= 85 D1       .Q
                 tya                          ; DA39= 98          .
                 sbc #$08                     ; DA3A= E9 08       i.
                 tay                          ; DA3C= A8          (
                 bcs LDA4B                    ; DA3D= B0 0C       0.
-                lda $D7                      ; DA3F= A5 D7       %W
+                lda ZMEMG+1                      ; DA3F= A5 D7       %W
                 dec A                        ; DA41= 3A          :
                 cmp $034E                    ; DA42= CD 4E 03    MN.
                 bcs LDA49                    ; DA45= B0 02       0.
                 lda #$7F                     ; DA47= A9 7F       ).
 LDA49:
-                sta $D7                      ; DA49= 85 D7       .W
+                sta ZMEMG+1                      ; DA49= 85 D7       .W
 LDA4B:
                 rts                          ; DA4B= 60          `
 
@@ -15352,28 +15478,28 @@ LDA4C:
                 sec                          ; DA50= 38          8
                 sbc $0352                    ; DA51= ED 52 03    mR.
                 tay                          ; DA54= A8          (
-                lda $D7                      ; DA55= A5 D7       %W
+                lda ZMEMG+1                      ; DA55= A5 D7       %W
                 sbc $0353                    ; DA57= ED 53 03    mS.
                 cmp $034E                    ; DA5A= CD 4E 03    MN.
                 bcs LDA62                    ; DA5D= B0 03       0.
                 adc $0354                    ; DA5F= 6D 54 03    mT.
 LDA62:
-                sta $D7                      ; DA62= 85 D7       .W
+                sta ZMEMG+1                      ; DA62= 85 D7       .W
                 ldx #$07                     ; DA64= A2 07       ".
                 rts                          ; DA66= 60          `
 
 LDA67:
                 lda $0362                    ; DA67= AD 62 03    -b.
-                sta $D1                      ; DA6A= 85 D1       .Q
+                sta ZMASK                      ; DA6A= 85 D1       .Q
 LDA6C:
                 tya                          ; DA6C= 98          .
                 adc #$07                     ; DA6D= 69 07       i.
                 tay                          ; DA6F= A8          (
                 bcc LDA7B                    ; DA70= 90 09       ..
-                inc $D7                      ; DA72= E6 D7       fW
+                inc ZMEMG+1                      ; DA72= E6 D7       fW
                 bpl LDA7B                    ; DA74= 10 05       ..
                 lda $034E                    ; DA76= AD 4E 03    -N.
-                sta $D7                      ; DA79= 85 D7       .W
+                sta ZMEMG+1                      ; DA79= 85 D7       .W
 LDA7B:
                 rts                          ; DA7B= 60          `
 
@@ -15387,11 +15513,11 @@ LDA7C:
                 pha                          ; DA88= 48          H
                 ora LE144,X                  ; DA89= 1D 44 E1    .Da
                 eor LE145,X                  ; DA8C= 5D 45 E1    ]Ea
-                sta $D4                      ; DA8F= 85 D4       .T
+                sta ZGORA                      ; DA8F= 85 D4       .T
                 pla                          ; DA91= 68          h
                 ora LE143,X                  ; DA92= 1D 43 E1    .Ca
                 eor LE148,X                  ; DA95= 5D 48 E1    ]Ha
-                sta $D5                      ; DA98= 85 D5       .U
+                sta ZGEOR                      ; DA98= 85 D5       .U
                 plx                          ; DA9A= FA          z
                 rts                          ; DA9B= 60          `
 
@@ -15412,7 +15538,7 @@ LDA9C:
                 adc $0361                    ; DABA= 6D 61 03    ma.
                 tay                          ; DABD= A8          (
                 lda LE120,Y                  ; DABE= B9 20 E1    9 a
-                sta $D1                      ; DAC1= 85 D1       .Q
+                sta ZMASK                      ; DAC1= 85 D1       .Q
                 sec                          ; DAC3= 38          8
                 pla                          ; DAC4= 68          h
                 ora $0361                    ; DAC5= 0D 61 03    .a.
@@ -15473,28 +15599,28 @@ LDB10:
                 bra LDB2E                    ; DB24= 80 08       ..
 
 LDB26:
-                lda ($D6),Y                  ; DB26= B1 D6       1V
-                ora $D4                      ; DB28= 05 D4       .T
-                eor $D5                      ; DB2A= 45 D5       EU
-                sta ($D6),Y                  ; DB2C= 91 D6       .V
+                lda (ZMEMG),Y                  ; DB26= B1 D6       1V
+                ora ZGORA                      ; DB28= 05 D4       .T
+                eor ZGEOR                      ; DB2A= 45 D5       EU
+                sta (ZMEMG),Y                  ; DB2C= 91 D6       .V
 LDB2E:
                 tya                          ; DB2E= 98          .
                 clc                          ; DB2F= 18          .
                 adc #$08                     ; DB30= 69 08       i.
                 tay                          ; DB32= A8          (
                 bcc LDB3E                    ; DB33= 90 09       ..
-                inc $D7                      ; DB35= E6 D7       fW
+                inc ZMEMG+1                      ; DB35= E6 D7       fW
                 bpl LDB3E                    ; DB37= 10 05       ..
                 lda $034E                    ; DB39= AD 4E 03    -N.
-                sta $D7                      ; DB3C= 85 D7       .W
+                sta ZMEMG+1                      ; DB3C= 85 D7       .W
 LDB3E:
                 dex                          ; DB3E= CA          J
                 bne LDB26                    ; DB3F= D0 E5       Pe
                 dex                          ; DB41= CA          J
-                stx $D1                      ; DB42= 86 D1       .Q
+                stx ZMASK                      ; DB42= 86 D1       .Q
 LDB44:
                 lda $DC                      ; DB44= A5 DC       %\
-                trb $D1                      ; DB46= 14 D1       .Q
+                trb ZMASK                      ; DB46= 14 D1       .Q
                 bra LDB51                    ; DB48= 80 07       ..
 
                 ldx #$20                     ; DB4A= A2 20       "
@@ -15502,15 +15628,15 @@ LDB4C:
                 jsr LDEC3                    ; DB4C= 20 C3 DE     C^
                 bne LDB61                    ; DB4F= D0 10       P.
 LDB51:
-                lda $D1                      ; DB51= A5 D1       %Q
-                and $D4                      ; DB53= 25 D4       %T
-                ora ($D6),Y                  ; DB55= 11 D6       .V
+                lda ZMASK                      ; DB51= A5 D1       %Q
+                and ZGORA                      ; DB53= 25 D4       %T
+                ora (ZMEMG),Y                  ; DB55= 11 D6       .V
                 sta $DA                      ; DB57= 85 DA       .Z
-                lda $D5                      ; DB59= A5 D5       %U
-                and $D1                      ; DB5B= 25 D1       %Q
+                lda ZGEOR                      ; DB59= A5 D5       %U
+                and ZMASK                      ; DB5B= 25 D1       %Q
                 eor $DA                      ; DB5D= 45 DA       EZ
 LDB5F:
-                sta ($D6),Y                  ; DB5F= 91 D6       .V
+                sta (ZMEMG),Y                  ; DB5F= 91 D6       .V
 LDB61:
                 rts                          ; DB61= 60          `
 
@@ -15556,12 +15682,12 @@ LDB96:
                 sbc #$08                     ; DBA2= E9 08       i.
                 tay                          ; DBA4= A8          (
                 bcs LDBA9                    ; DBA5= B0 02       0.
-                dec $D7                      ; DBA7= C6 D7       FW
+                dec ZMEMG+1                      ; DBA7= C6 D7       FW
 LDBA9:
                 lda $0344                    ; DBA9= AD 44 03    -D.
                 sta $DD                      ; DBAC= 85 DD       .]
 LDBAE:
-                lda ($D6),Y                  ; DBAE= B1 D6       1V
+                lda (ZMEMG),Y                  ; DBAE= B1 D6       1V
                 ldx $0342                    ; DBB0= AE 42 03    .B.
                 beq LDBB9                    ; DBB3= F0 04       p.
 LDBB5:
@@ -15572,7 +15698,7 @@ LDBB9:
                 sta $DA                      ; DBB9= 85 DA       .Z
                 sec                          ; DBBB= 38          8
                 jsr LDA6C                    ; DBBC= 20 6C DA     lZ
-                lda ($D6),Y                  ; DBBF= B1 D6       1V
+                lda (ZMEMG),Y                  ; DBBF= B1 D6       1V
                 ldx $0343                    ; DBC1= AE 43 03    .C.
                 beq LDBCA                    ; DBC4= F0 04       p.
 LDBC6:
@@ -15607,7 +15733,7 @@ LDBE8:
 
 LDC00:
                 lda L8830,X                  ; DC00= BD 30 88    =0.
-                sta ($D6),Y                  ; DC03= 91 D6       .V
+                sta (ZMEMG),Y                  ; DC03= 91 D6       .V
 LDC05:
                 sec                          ; DC05= 38          8
                 jsr LDA6C                    ; DC06= 20 6C DA     lZ
@@ -15618,10 +15744,10 @@ LDC0C:
                 trb $DA                      ; DC0E= 14 DA       .Z
 LDC10:
                 lda L8830,X                  ; DC10= BD 30 88    =0.
-                eor ($D6),Y                  ; DC13= 51 D6       QV
+                eor (ZMEMG),Y                  ; DC13= 51 D6       QV
                 and $DA                      ; DC15= 25 DA       %Z
-                eor ($D6),Y                  ; DC17= 51 D6       QV
-                sta ($D6),Y                  ; DC19= 91 D6       .V
+                eor (ZMEMG),Y                  ; DC17= 51 D6       QV
+                sta (ZMEMG),Y                  ; DC19= 91 D6       .V
                 rts                          ; DC1B= 60          `
 
 LDC1C:
@@ -15738,7 +15864,7 @@ LDCD9:
                 jsr LDD35                    ; DCE0= 20 35 DD     5]
                 bne LDD0A                    ; DCE3= D0 25       P%
 LDCE5:
-                lsr $D1                      ; DCE5= 46 D1       FQ
+                lsr ZMASK                      ; DCE5= 46 D1       FQ
                 bcc LDCF1                    ; DCE7= 90 08       ..
 LDCE9:
                 jsr LDA67                    ; DCE9= 20 67 DA     gZ
@@ -15765,7 +15891,7 @@ LDD0B:
                 jsr LDD35                    ; DD0D= 20 35 DD     5]
                 bne LDD0A                    ; DD10= D0 F8       Px
 LDD12:
-                asl $D1                      ; DD12= 06 D1       .Q
+                asl ZMASK                      ; DD12= 06 D1       .Q
                 bcc LDD1E                    ; DD14= 90 08       ..
 LDD16:
                 jsr LDA34                    ; DD16= 20 34 DA     4Z
@@ -15798,10 +15924,10 @@ LDD48:
                 jsr LDEC3                    ; DD4E= 20 C3 DE     C^
                 clc                          ; DD51= 18          .
                 bne LDD64                    ; DD52= D0 10       P.
-                lda ($D6),Y                  ; DD54= B1 D6       1V
+                lda (ZMEMG),Y                  ; DD54= B1 D6       1V
                 eor L8830,X                  ; DD56= 5D 30 88    ]0.
                 sta $DA                      ; DD59= 85 DA       .Z
-                and $D1                      ; DD5B= 25 D1       %Q
+                and ZMASK                      ; DD5B= 25 D1       %Q
                 beq LDD61                    ; DD5D= F0 02       p.
                 lda #$08                     ; DD5F= A9 08       ).
 LDD61:
@@ -15811,7 +15937,7 @@ LDD64:
                 rts                          ; DD64= 60          `
 
 LDD65:
-                lda ($D6),Y                  ; DD65= B1 D6       1V
+                lda (ZMEMG),Y                  ; DD65= B1 D6       1V
                 eor L8830,X                  ; DD67= 5D 30 88    ]0.
                 sta $DA                      ; DD6A= 85 DA       .Z
                 ora $E1                      ; DD6C= 05 E1       .a
@@ -15835,7 +15961,7 @@ LDD84:
 
 LDD85:
                 lda $DA                      ; DD85= A5 DA       %Z
-                and $D1                      ; DD87= 25 D1       %Q
+                and ZMASK                      ; DD87= 25 D1       %Q
                 beq LDD8D                    ; DD89= F0 02       p.
                 lda #$08                     ; DD8B= A9 08       ).
 LDD8D:
@@ -15880,18 +16006,18 @@ LDDB7:
                 plx                          ; DDC4= FA          z
                 jsr LDEC3                    ; DDC5= 20 C3 DE     C^
                 bne LDDE0                    ; DDC8= D0 16       P.
-                lda ($D6),Y                  ; DDCA= B1 D6       1V
+                lda (ZMEMG),Y                  ; DDCA= B1 D6       1V
                 stz $DA                      ; DDCC= 64 DA       dZ
                 bra LDDD1                    ; DDCE= 80 01       ..
 
 LDDD0:
                 asl A                        ; DDD0= 0A          .
 LDDD1:
-                asl $D1                      ; DDD1= 06 D1       .Q
+                asl ZMASK                      ; DDD1= 06 D1       .Q
                 bcc LDDD0                    ; DDD3= 90 FB       .{
                 asl A                        ; DDD5= 0A          .
                 rol $DA                      ; DDD6= 26 DA       &Z
-                ldx $D1                      ; DDD8= A6 D1       &Q
+                ldx ZMASK                      ; DDD8= A6 D1       &Q
                 bne LDDD1                    ; DDDA= D0 F5       Pu
                 lda $DA                      ; DDDC= A5 DA       %Z
                 bra LDDE2                    ; DDDE= 80 02       ..
@@ -15918,7 +16044,7 @@ LDDF7:
 
 LDDF8:
                 cli                          ; DDF8= 58          X
-                bit $D0                      ; DDF9= 24 D0       $P
+                bit STATE                      ; DDF9= 24 D0       $P
                 bvc LDE03                    ; DDFB= 50 06       P.
                 jsr LC0FA                    ; DDFD= 20 FA C0     z@
                 jsr LC0D1                    ; DE00= 20 D1 C0     Q@
@@ -15929,7 +16055,7 @@ LDE03:
                 jsr LDDE5                    ; DE0A= 20 E5 DD     e]
                 jsr LDDE5                    ; DE0D= 20 E5 DD     e]
 LDE10:
-                bit $D0                      ; DE10= 24 D0       $P
+                bit STATE                      ; DE10= 24 D0       $P
                 bvc LDE1A                    ; DE12= 50 06       P.
                 jsr LC0D1                    ; DE14= 20 D1 C0     Q@
                 jsr LC0CA                    ; DE17= 20 CA C0     J@
@@ -16058,27 +16184,27 @@ LDECB:
                 tya                          ; DED2= 98          .
                 and #$F8                     ; DED3= 29 F8       )x
                 lsr A                        ; DED5= 4A          J
-                sta $D7                      ; DED6= 85 D7       .W
+                sta ZMEMG+1                      ; DED6= 85 D7       .W
                 lsr A                        ; DED8= 4A          J
                 lsr A                        ; DED9= 4A          J
-                adc $D7                      ; DEDA= 65 D7       eW
+                adc ZMEMG+1                      ; DEDA= 65 D7       eW
                 lsr A                        ; DEDC= 4A          J
-                sta $D7                      ; DEDD= 85 D7       .W
+                sta ZMEMG+1                      ; DEDD= 85 D7       .W
                 lda #$00                     ; DEDF= A9 00       ).
                 ror A                        ; DEE1= 6A          j
                 ldy $0356                    ; DEE2= AC 56 03    ,V.
                 beq LDEEA                    ; DEE5= F0 03       p.
-                lsr $D7                      ; DEE7= 46 D7       FW
+                lsr ZMEMG+1                      ; DEE7= 46 D7       FW
                 ror A                        ; DEE9= 6A          j
 LDEEA:
                 ora $DA                      ; DEEA= 05 DA       .Z
                 adc $0350                    ; DEEC= 6D 50 03    mP.
                 sta $031A                    ; DEEF= 8D 1A 03    ...
-                lda $D7                      ; DEF2= A5 D7       %W
+                lda ZMEMG+1                      ; DEF2= A5 D7       %W
                 adc $0351                    ; DEF4= 6D 51 03    mQ.
-                sta $D7                      ; DEF7= 85 D7       .W
+                sta ZMEMG+1                      ; DEF7= 85 D7       .W
                 lda $0301,X                  ; DEF9= BD 01 03    =..
-                sta $D6                      ; DEFC= 85 D6       .V
+                sta ZMEMG+0                      ; DEFC= 85 D6       .V
                 lda $0300,X                  ; DEFE= BD 00 03    =..
 LDF01:
                 and $0361                    ; DF01= 2D 61 03    -a.
@@ -16087,7 +16213,7 @@ LDF04:
                 tay                          ; DF07= A8          (
 LDF08:
                 lda LE12E,Y                  ; DF08= B9 2E E1    9.a
-                sta $D1                      ; DF0B= 85 D1       .Q
+                sta ZMASK                      ; DF0B= 85 D1       .Q
                 lda $0300,X                  ; DF0D= BD 00 03    =..
 LDF10:
                 ldy $0361                    ; DF10= AC 61 03    ,a.
@@ -16095,23 +16221,23 @@ LDF10:
                 beq LDF1C                    ; DF15= F0 05       p.
                 bcs LDF1F                    ; DF17= B0 06       0.
                 asl A                        ; DF19= 0A          .
-                rol $D6                      ; DF1A= 26 D6       &V
+                rol ZMEMG+0                      ; DF1A= 26 D6       &V
 LDF1C:
                 asl A                        ; DF1C= 0A          .
-                rol $D6                      ; DF1D= 26 D6       &V
+                rol ZMEMG+0                      ; DF1D= 26 D6       &V
 LDF1F:
                 and #$F8                     ; DF1F= 29 F8       )x
                 clc                          ; DF21= 18          .
                 adc $031A                    ; DF22= 6D 1A 03    m..
                 sta $031A                    ; DF25= 8D 1A 03    ...
-                lda $D6                      ; DF28= A5 D6       %V
-                adc $D7                      ; DF2A= 65 D7       eW
+                lda ZMEMG+0                      ; DF28= A5 D6       %V
+                adc ZMEMG+1                      ; DF2A= 65 D7       eW
                 bpl LDF32                    ; DF2C= 10 04       ..
                 sec                          ; DF2E= 38          8
                 sbc $0354                    ; DF2F= ED 54 03    mT.
 LDF32:
-                sta $D7                      ; DF32= 85 D7       .W
-                stz $D6                      ; DF34= 64 D6       dV
+                sta ZMEMG+1                      ; DF32= 85 D7       .W
+                stz ZMEMG+0                      ; DF34= 64 D6       dV
                 ldx $DA                      ; DF36= A6 DA       &Z
                 jsr LDA7C                    ; DF38= 20 7C DA     |Z
                 ldy $031A                    ; DF3B= AC 1A 03    ,..
@@ -16137,7 +16263,7 @@ LDF59:
 
 LDF5E:
                 lda #$20                     ; DF5E= A9 20       )
-                bit $D0                      ; DF60= 24 D0       $P
+                bit STATE                      ; DF60= 24 D0       $P
                 bvc LDF3E                    ; DF62= 50 DA       PZ
                 bne LDF3E                    ; DF64= D0 D8       PX
                 jsr LDDF8                    ; DF66= 20 F8 DD     x]
@@ -16165,7 +16291,7 @@ LDF78:
                 jsr LC90C                    ; DF8C= 20 0C C9     .I
                 jsr LC105                    ; DF8F= 20 05 C1     .A
                 lda #$02                     ; DF92= A9 02       ).
-                tsb $D0                      ; DF94= 04 D0       .P
+                tsb STATE                      ; DF94= 04 D0       .P
 LDF96:
                 pla                          ; DF96= 68          h
                 and #$7F                     ; DF97= 29 7F       ).
@@ -16193,7 +16319,7 @@ LDFBA:
 LDFBC:
                 tay                          ; DFBC= A8          (
                 lda #$40                     ; DFBD= A9 40       )@
-                trb $D0                      ; DFBF= 14 D0       .P
+                trb STATE                      ; DFBF= 14 D0       .P
                 tya                          ; DFC1= 98          .
 LDFC2:
                 ldx $036C                    ; DFC2= AE 6C 03    .l.
@@ -16208,7 +16334,7 @@ LDFCC:
 LDFCD:
                 sta $036C                    ; DFCD= 8D 6C 03    .l.
                 lda #$40                     ; DFD0= A9 40       )@
-                tsb $D0                      ; DFD2= 04 D0       .P
+                tsb STATE                      ; DFD2= 04 D0       .P
 LDFD4:
                 rts                          ; DFD4= 60          `
 
@@ -16219,7 +16345,7 @@ LDFD8:
 LDFDA:
                 lda #$A0                     ; DFDA= A9 A0       )
 LDFDC:
-                bit $D0                      ; DFDC= 24 D0       $P
+                bit STATE                      ; DFDC= 24 D0       $P
 LDFDE:
                 rts                          ; DFDE= 60          `
 
@@ -16784,7 +16910,7 @@ LE23A:
 
 LE23D:
                 jsr LF3AB                    ; E23D= 20 AB F3     +s
-                bit $D0                      ; E240= 24 D0       $P
+                bit STATE                      ; E240= 24 D0       $P
                 bvc LE252                    ; E242= 50 0E       P.
                 jsr LE2AE                    ; E244= 20 AE E2     .b
                 jsr LE252                    ; E247= 20 52 E2     Rb
@@ -16813,7 +16939,7 @@ LE25C:
                 bra LE279                    ; E267= 80 10       ..
 
 LE269:
-                bit $D0                      ; E269= 24 D0       $P
+                bit STATE                      ; E269= 24 D0       $P
                 bvc LE23D                    ; E26B= 50 D0       PP
 LE26D:
                 lda #$02                     ; E26D= A9 02       ).
@@ -16888,7 +17014,7 @@ LE2BC:
                 rts                          ; E2D1= 60          `
 
 LE2D2:
-                lda $D0                      ; E2D2= A5 D0       %P
+                lda STATE                      ; E2D2= A5 D0       %P
                 and #$20                     ; E2D4= 29 20       )
 LE2D6:
                 rts                          ; E2D6= 60          `
@@ -18656,7 +18782,7 @@ LED70:
                 txa                          ; ED71= 8A          .
                 sta $021A,Y                  ; ED72= 99 1A 02    ...
                 bne LED80                    ; ED75= D0 09       P.
-                lda $D0                      ; ED77= A5 D0       %P
+                lda STATE                      ; ED77= A5 D0       %P
                 and #$10                     ; ED79= 29 10       ).
                 beq LED83                    ; ED7B= F0 06       p.
 LED7D:
@@ -19069,7 +19195,7 @@ LEF90:
                 pla                          ; EFB1= 68          h
                 plp                          ; EFB2= 28          (
 LEFB3:
-                ldx $D0                      ; EFB3= A6 D0       &P
+                ldx STATE                      ; EFB3= A6 D0       &P
                 rts                          ; EFB5= 60          `
 
 LEFB6:
@@ -19419,7 +19545,7 @@ LF1B0:
 ; Read address of bottom of screen/top of user memory
 ; ===================================================
 LF1BA:
-                lda $D0                      ; Get VDU status
+                lda STATE                      ; Get VDU status
                 bit #$10                     ; If shadow screen, jump to return &8000
                 bne LF1D8
 LF1C0:
@@ -19776,6 +19902,7 @@ LF373:
                 ldx #$26                     ; F375= 4C 72 EE    Lrn
                 jmp LEE72
 
+LF378:
                 php                          ; F378= 08          .
                 pha                          ; F379= 48          H
                 phx                          ; F37A= DA          Z
@@ -19798,9 +19925,9 @@ LF384:
                 sta $0105,X                  ; F394= 9D 05 01    ...
                 lda $F4                      ; F397= A5 F4       %t
                 sta $0108,X                  ; F399= 9D 08 01    ...
-                lda #$F3                     ; F39C= A9 F3       )s
+                lda #>LF378-1                ; F39C= A9 F3       )s
                 sta $0107,X                  ; F39E= 9D 07 01    ...
-                lda #$77                     ; F3A1= A9 77       )w
+                lda #<LF378-1                ; F3A1= A9 77       )w
                 sta $0106,X                  ; F3A3= 9D 06 01    ...
                 jsr LE590                    ; F3A6= 20 90 E5     .e
                 bra LF3D3                    ; F3A9= 80 28       .(
@@ -19817,20 +19944,21 @@ LF3AB:
                 sta $0105,X                  ; F3B5= 9D 05 01    ...
                 lda $0107,X                  ; F3B8= BD 07 01    =..
                 sta $0104,X                  ; F3BB= 9D 04 01    ...
-                lda #$F3                     ; F3BE= A9 F3       )s
+                lda #>LF3D7-1                ; F3BE= A9 F3       )s
                 sta $0107,X                  ; F3C0= 9D 07 01    ...
-                lda #$D6                     ; F3C3= A9 D6       )V
+                lda #<LF3D7-1                ; F3C3= A9 D6       )V
                 sta $0106,X                  ; F3C5= 9D 06 01    ...
-                lda ACCCON                    ; F3C8= AD 34 FE    -4~
+                lda ACCCON                   ; F3C8= AD 34 FE    -4~
                 sta $0108,X                  ; F3CB= 9D 08 01    ...
                 lda #$08                     ; F3CE= A9 08       ).
-                trb ACCCON                    ; F3D0= 1C 34 FE    .4~
+                trb ACCCON                   ; F3D0= 1C 34 FE    .4~
 LF3D3:
                 plx                          ; F3D3= FA          z
                 pla                          ; F3D4= 68          h
                 plp                          ; F3D5= 28          (
                 rts                          ; F3D6= 60          `
 
+LF3D7:
                 php                          ; F3D7= 08          .
                 pha                          ; F3D8= 48          H
                 phx                          ; F3D9= DA          Z

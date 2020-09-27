@@ -21,6 +21,10 @@ all: $(BUILD)/mos.orig
 clean:
 	rm -Rf $(BUILD)
 
+.PHONY:diff
+diff: all
+	vbindiff $(BUILD)/mos.orig $(BUILD)/mos320.rom
+
 $(BUILD)/mos.orig: orig/MOS320.rom
 	$(MKDIR) $(BUILD)
 	dd if=$< skip=114688 count=16384 bs=1 > $@

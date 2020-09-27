@@ -9155,1222 +9155,2245 @@ LB8FB:
 ; Default font
 ; ============
 LB900:
-                .dword $00000000             ; CHR$32  -
-                .dword $00000000
-                .dword $18181818             ; CHR$33  - !
-                .dword $00180018
-                .dword $006C6C6C             ; CHR$34  - "
-                .dword $00000000
-                .dword $367F3636             ; CHR$35  - #
-                .dword $0036367F
-                .dword $3E683F0C             ; CHR$36  - $
-                .dword $00187E0B
-                .dword $180C6660             ; CHR$37  - %
-                .dword $00066630
-                .dword $386C6C38             ; CHR$38  - &
-                .dword $003B666D
-                .dword $0030180C             ; CHR$39  - '
-                .dword $00000000
-                .dword $3030180C             ; CHR$40  - (
-                .dword $000C1830
-                .dword $0C0C1830             ; CHR$41  - )
-                .dword $0030180C
-                .dword $3C7E1800             ; CHR$42  - *
-                .dword $0000187E
-                .dword $7E181800             ; CHR$43  - +
-                .dword $00001818
-                .dword $00000000             ; CHR$44  - ,
-                .dword $30181800
-                .dword $7E000000             ; CHR$45  - -
-                .dword $00000000
-                .dword $00000000             ; CHR$46  - .
-                .dword $00181800
-                .dword $180C0600             ; CHR$47  - /
-                .dword $00006030
-                .dword $7E6E663C             ; CHR$48  - 0
-                .dword $003C6676
-                .dword $18183818             ; CHR$49  - 1
-                .dword $007E1818
-                .dword $0C06663C             ; CHR$50  - 2
-                .dword $007E3018
-                .dword $1C06663C             ; CHR$51  - 3
-                .dword $003C6606
-                .dword $6C3C1C0C             ; CHR$52  - 4
-                .dword $000C0C7E
-                .dword $067C607E             ; CHR$53  - 5
-                .dword $003C6606
-                .dword $7C60301C             ; CHR$54  - 6
-                .dword $003C6666
-                .dword $180C067E             ; CHR$55  - 7
-                .dword $00303030
-                .dword $3C66663C             ; CHR$56  - 8
-                .dword $003C6666
-                .dword $3E66663C             ; CHR$57  - 9
-                .dword $00380C06
-                .dword $18180000             ; CHR$58  - :
-                .dword $00181800
-                .dword $18180000             ; CHR$59  - ;
-                .dword $30181800
-                .dword $6030180C             ; CHR$60  - <
-                .dword $000C1830
-                .dword $007E0000             ; CHR$61  - =
-                .dword $0000007E
-                .dword $060C1830             ; CHR$62  - >
-                .dword $0030180C
-                .dword $180C663C             ; CHR$63  - ?
-                .dword $00180018
-                .dword $6A6E663C             ; CHR$64  - @
-                .dword $003C606E
-                .dword $7E66663C             ; CHR$65  - A
-                .dword $00666666
-                .dword $7C66667C             ; CHR$66  - B
-                .dword $007C6666
-                .dword $6060663C             ; CHR$67  - C
-                .dword $003C6660
-                .dword $66666C78             ; CHR$68  - D
-                .dword $00786C66
-                .dword $7C60607E             ; CHR$69  - E
-                .dword $007E6060
-                .dword $7C60607E             ; CHR$70  - F
-                .dword $00606060
-                .dword $6E60663C             ; CHR$71  - G
-                .dword $003C6666
-                .dword $7E666666             ; CHR$72  - H
-                .dword $00666666
-                .dword $1818187E             ; CHR$73  - I
-                .dword $007E1818
-                .dword $0C0C0C3E             ; CHR$74  - J
-                .dword $00386C0C
-                .dword $70786C66             ; CHR$75  - K
-                .dword $00666C78
-                .dword $60606060             ; CHR$76  - L
-                .dword $007E6060
-                .dword $6B7F7763             ; CHR$77  - M
-                .dword $0063636B
-                .dword $7E766666             ; CHR$78  - N
-                .dword $0066666E
-                .dword $6666663C             ; CHR$79  - O
-                .dword $003C6666
-                .dword $7C66667C             ; CHR$80  - P
-                .dword $00606060
-                .dword $6666663C             ; CHR$81  - Q
-                .dword $00366C6A
-                .dword $7C66667C             ; CHR$82  - R
-                .dword $0066666C
-                .dword $3C60663C             ; CHR$83  - S
-                .dword $003C6606
-                .dword $1818187E             ; CHR$84  - T
-                .dword $00181818
-                .dword $66666666             ; CHR$85  - U
-                .dword $003C6666
-                .dword $66666666             ; CHR$86  - V
-                .dword $00183C66
-                .dword $6B6B6363             ; CHR$87  - W
-                .dword $0063777F
-                .dword $183C6666             ; CHR$88  - X
-                .dword $0066663C
-                .dword $3C666666             ; CHR$89  - Y
-                .dword $00181818
-                .dword $180C067E             ; CHR$90  - Z
-                .dword $007E6030
-                .dword $6060607C             ; CHR$91  - [
-                .dword $007C6060
-                .dword $18306000             ; CHR$92  - \
-                .dword $0000060C
-                .dword $0606063E             ; CHR$93  - ]
-                .dword $003E0606
-                .dword $42663C18             ; CHR$94  - ^
-                .dword $00000000
-                .dword $00000000             ; CHR$95  - _
-                .dword $FF000000
-                .dword $7C30361C             ; CHR$96  - `
-                .dword $007E3030
-                .dword $063C0000             ; CHR$97  - a
-                .dword $003E663E
-                .dword $667C6060             ; CHR$98  - b
-                .dword $007C6666
-                .dword $663C0000             ; CHR$99  - c
-                .dword $003C6660
-                .dword $663E0606             ; CHR$100 - d
-                .dword $003E6666
-                .dword $663C0000             ; CHR$101 - e
-                .dword $003C607E
-                .dword $7C30301C             ; CHR$102 - f
-                .dword $00303030
-                .dword $663E0000             ; CHR$103 - g
-                .dword $3C063E66
-                .dword $667C6060             ; CHR$104 - h
-                .dword $00666666
-                .dword $18380018             ; CHR$105 - i
-                .dword $003C1818
-                .dword $18380018             ; CHR$106 - j
-                .dword $70181818
-                .dword $6C666060             ; CHR$107 - k
-                .dword $00666C78
-                .dword $18181838             ; CHR$108 - l
-                .dword $003C1818
-                .dword $7F360000             ; CHR$109 - m
-                .dword $00636B6B
-                .dword $667C0000             ; CHR$110 - n
-                .dword $00666666
-                .dword $663C0000             ; CHR$111 - o
-                .dword $003C6666
-                .dword $667C0000             ; CHR$112 - p
-                .dword $60607C66
-                .dword $663E0000             ; CHR$113 - q
-                .dword $07063E66
-                .dword $766C0000             ; CHR$114 - r
-                .dword $00606060
-                .dword $603E0000             ; CHR$115 - s
-                .dword $007C063C
-                .dword $307C3030             ; CHR$116 - t
-                .dword $001C3030
-                .dword $66660000             ; CHR$117 - u
-                .dword $003E6666
-                .dword $66660000             ; CHR$118 - v
-                .dword $00183C66
-                .dword $6B630000             ; CHR$119 - w
-                .dword $00367F6B
-                .dword $3C660000             ; CHR$120 - x
-                .dword $00663C18
-                .dword $66660000             ; CHR$121 - y
-                .dword $3C063E66
-                .dword $0C7E0000             ; CHR$122 - z
-                .dword $007E3018
-                .dword $7018180C             ; CHR$123 - {
-                .dword $000C1818
-                .dword $00181818             ; CHR$124 - |
-                .dword $00181818
-                .dword $0E181830             ; CHR$125 - }
-                .dword $00301818
-                .dword $00466B31             ; CHR$126 - ~
-                .dword $00000000
-                .dword $FFFFFFFF             ; CHR$127 -
-                .dword $FFFFFFFF
-                .byte $66
-                .byte $00
-                .byte $3C
-                .byte $66
-                .byte $7E
-                .byte $66
-                .byte $66
-                .byte $00 ; 128
-                .byte $3C
-                .byte $66
-                .byte $3C
-                .byte $66
-                .byte $7E
-                .byte $66
-                .byte $66
-                .byte $00 ; 129
-                .byte $3F
-                .byte $66
-                .byte $66
-                .byte $7F
-                .byte $66
-                .byte $66
-                .byte $67
-                .byte $00 ; 130
-                .byte $3C
-                .byte $66
-                .byte $60
-                .byte $60
-                .byte $60
-                .byte $66
-                .byte $3C
-                .byte $60 ; 131
-                .byte $0C
-                .byte $18
-                .byte $7E
-                .byte $60
-                .byte $7C
-                .byte $60
-                .byte $7E
-                .byte $00 ; 132
-                .byte $66
-                .byte $3C
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $3C
-                .byte $00 ; 133
-                .byte $66
-                .byte $00
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $3C
-                .byte $00 ; 134
-                .byte $7E
-                .byte $C3
-                .byte $9D
-                .byte $B1
-                .byte $9D
-                .byte $C3
-                .byte $7E
-                .byte $00 ; 135
-                .byte $00
-                .byte $18
-                .byte $38
-                .byte $7F
-                .byte $38
-                .byte $18
-                .byte $00
-                .byte $00 ; 136
-                .byte $00
-                .byte $18
-                .byte $1C
-                .byte $FE
-                .byte $1C
-                .byte $18
-                .byte $00
-                .byte $00 ; 137
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $7E
-                .byte $3C
-                .byte $18
-                .byte $00 ; 138
-                .byte $00
-                .byte $18
-                .byte $3C
-                .byte $7E
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18 ; 139
-                .byte $30
-                .byte $18
-                .byte $3C
-                .byte $06
-                .byte $3E
-                .byte $66
-                .byte $3E
-                .byte $00 ; 140
-                .byte $30
-                .byte $18
-                .byte $3C
-                .byte $66
-                .byte $7E
-                .byte $60
-                .byte $3C
-                .byte $00 ; 141
-                .byte $66
-                .byte $00
-                .byte $3C
-                .byte $66
-                .byte $7E
-                .byte $60
-                .byte $3C
-                .byte $00 ; 142
-                .byte $3C
-                .byte $66
-                .byte $3C
-                .byte $66
-                .byte $7E
-                .byte $60
-                .byte $3C
-                .byte $00 ; 143
-                .byte $66
-                .byte $00
-                .byte $3C
-                .byte $06
-                .byte $3E
-                .byte $66
-                .byte $3E
-                .byte $00 ; 144
-                .byte $3C
-                .byte $66
-                .byte $3C
-                .byte $06
-                .byte $3E
-                .byte $66
-                .byte $3E
-                .byte $00 ; 145
-                .byte $00
-                .byte $00
-                .byte $3F
-                .byte $0D
-                .byte $3F
-                .byte $6C
-                .byte $3F
-                .byte $00 ; 146
-                .byte $00
-                .byte $00
-                .byte $3C
-                .byte $66
-                .byte $60
-                .byte $66
-                .byte $3C
-                .byte $60 ; 147
-                .byte $0C
-                .byte $18
-                .byte $3C
-                .byte $66
-                .byte $7E
-                .byte $60
-                .byte $3C
-                .byte $00 ; 148
-                .byte $66
-                .byte $00
-                .byte $3C
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $3C
-                .byte $00 ; 149
-                .byte $66
-                .byte $00
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $3E
-                .byte $00 ; 150
-                .byte $30
-                .byte $18
-                .byte $00
-                .byte $38
-                .byte $18
-                .byte $18
-                .byte $3C
-                .byte $00 ; 151
-                .byte $3C
-                .byte $66
-                .byte $00
-                .byte $38
-                .byte $18
-                .byte $18
-                .byte $3C
-                .byte $00 ; 152
-                .byte $30
-                .byte $18
-                .byte $00
-                .byte $3C
-                .byte $66
-                .byte $66
-                .byte $3C
-                .byte $00 ; 153
-                .byte $3C
-                .byte $66
-                .byte $00
-                .byte $3C
-                .byte $66
-                .byte $66
-                .byte $3C
-                .byte $00 ; 154
-                .byte $30
-                .byte $18
-                .byte $00
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $3E
-                .byte $00 ; 155
-                .byte $3C
-                .byte $66
-                .byte $00
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $3E
-                .byte $00 ; 156
-                .byte $66
-                .byte $00
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $3E
-                .byte $06
-                .byte $3C ; 157
-                .byte $00
-                .byte $66
-                .byte $3C
-                .byte $66
-                .byte $66
-                .byte $3C
-                .byte $66
-                .byte $00 ; 158
-                .byte $3C
-                .byte $60
-                .byte $3C
-                .byte $66
-                .byte $3C
-                .byte $06
-                .byte $3C
-                .byte $00 ; 159
-                .byte $3C
-                .byte $66
-                .byte $3C
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00 ; 160
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18 ; 161
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $1F
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00 ; 162
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $1F
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18 ; 163
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $F8
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00 ; 164
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $F8
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18 ; 165
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $FF
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00 ; 166
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $FF
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18 ; 167
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00 ; 168
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18 ; 169
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $1F
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00 ; 170
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $1F
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18 ; 171
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $F8
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00 ; 172
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $F8
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18 ; 173
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $FF
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00 ; 174
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $FF
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18 ; 175
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $07
-                .byte $0C
-                .byte $18
-                .byte $18
-                .byte $18 ; 176
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $E0
-                .byte $30
-                .byte $18
-                .byte $18
-                .byte $18 ; 177
-                .byte $18
-                .byte $18
-                .byte $0C
-                .byte $07
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00 ; 178
-                .byte $18
-                .byte $18
-                .byte $30
-                .byte $E0
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00 ; 179
-                .byte $18
-                .byte $00
-                .byte $18
-                .byte $18
-                .byte $30
-                .byte $66
-                .byte $3C
-                .byte $00 ; 180
-                .byte $18
-                .byte $00
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $00 ; 181
-                .byte $36
-                .byte $6C
-                .byte $00
-                .byte $66
-                .byte $76
-                .byte $6E
-                .byte $66
-                .byte $00 ; 182
-                .byte $36
-                .byte $6C
-                .byte $00
-                .byte $7C
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $00 ; 183
-                .byte $18
-                .byte $7E
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $00 ; 184
-                .byte $18
-                .byte $7E
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $7E
-                .byte $18
-                .byte $00 ; 185
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00 ; 186
-                .byte $30
-                .byte $18
-                .byte $0C
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00 ; 187
-                .byte $3F
-                .byte $7B
-                .byte $7B
-                .byte $3B
-                .byte $1B
-                .byte $1B
-                .byte $1F
-                .byte $00 ; 188
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $18
-                .byte $18
-                .byte $00
-                .byte $00
-                .byte $00 ; 189
-                .byte $03
-                .byte $03
-                .byte $06
-                .byte $06
-                .byte $76
-                .byte $1C
-                .byte $0C
-                .byte $00 ; 190
-                .byte $AA
-                .byte $55
-                .byte $AA
-                .byte $55
-                .byte $AA
-                .byte $55
-                .byte $AA
-                .byte $55 ; 191
-                .byte $3E
-                .byte $63
-                .byte $67
-                .byte $6B
-                .byte $73
-                .byte $63
-                .byte $3E
-                .byte $00 ; 192
-                .byte $1C
-                .byte $36
-                .byte $63
-                .byte $63
-                .byte $7F
-                .byte $63
-                .byte $63
-                .byte $00 ; 193
-                .byte $7E
-                .byte $33
-                .byte $33
-                .byte $3E
-                .byte $33
-                .byte $33
-                .byte $7E
-                .byte $00 ; 194
-                .byte $7F
-                .byte $63
-                .byte $60
-                .byte $60
-                .byte $60
-                .byte $60
-                .byte $60
-                .byte $00 ; 195
-                .byte $1C
-                .byte $1C
-                .byte $36
-                .byte $36
-                .byte $63
-                .byte $63
-                .byte $7F
-                .byte $00 ; 196
-                .byte $7F
-                .byte $33
-                .byte $30
-                .byte $3E
-                .byte $30
-                .byte $33
-                .byte $7F
-                .byte $00 ; 197
-                .byte $7E
-                .byte $66
-                .byte $0C
-                .byte $18
-                .byte $30
-                .byte $66
-                .byte $7E
-                .byte $00 ; 198
-                .byte $77
-                .byte $33
-                .byte $33
-                .byte $3F
-                .byte $33
-                .byte $33
-                .byte $77
-                .byte $00 ; 199
-                .byte $3E
-                .byte $63
-                .byte $63
-                .byte $7F
-                .byte $63
-                .byte $63
-                .byte $3E
-                .byte $00 ; 200
-                .byte $3C
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $3C
-                .byte $00 ; 201
-                .byte $63
-                .byte $66
-                .byte $6C
-                .byte $78
-                .byte $6C
-                .byte $66
-                .byte $63
-                .byte $00 ; 202
-                .byte $1C
-                .byte $1C
-                .byte $36
-                .byte $36
-                .byte $63
-                .byte $63
-                .byte $63
-                .byte $00 ; 203
-                .byte $63
-                .byte $77
-                .byte $7F
-                .byte $6B
-                .byte $63
-                .byte $63
-                .byte $63
-                .byte $00 ; 204
-                .byte $63
-                .byte $73
-                .byte $7B
-                .byte $6F
-                .byte $67
-                .byte $63
-                .byte $63
-                .byte $00 ; 205
-                .byte $7E
-                .byte $00
-                .byte $00
-                .byte $3C
-                .byte $00
-                .byte $00
-                .byte $7E
-                .byte $00 ; 206
-                .byte $3E
-                .byte $63
-                .byte $63
-                .byte $63
-                .byte $63
-                .byte $63
-                .byte $3E
-                .byte $00 ; 207
-                .byte $7F
-                .byte $36
-                .byte $36
-                .byte $36
-                .byte $36
-                .byte $36
-                .byte $36
-                .byte $00 ; 208
-                .byte $7E
-                .byte $33
-                .byte $33
-                .byte $3E
-                .byte $30
-                .byte $30
-                .byte $78
-                .byte $00 ; 209
-                .byte $7F
-                .byte $63
-                .byte $30
-                .byte $18
-                .byte $30
-                .byte $63
-                .byte $7F
-                .byte $00 ; 210
-                .byte $7E
-                .byte $5A
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $00 ; 211
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $3C
-                .byte $18
-                .byte $18
-                .byte $3C
-                .byte $00 ; 212
-                .byte $3E
-                .byte $08
-                .byte $3E
-                .byte $6B
-                .byte $3E
-                .byte $08
-                .byte $3E
-                .byte $00 ; 213
-                .byte $63
-                .byte $63
-                .byte $36
-                .byte $1C
-                .byte $36
-                .byte $63
-                .byte $63
-                .byte $00 ; 214
-                .byte $3E
-                .byte $08
-                .byte $6B
-                .byte $6B
-                .byte $3E
-                .byte $08
-                .byte $3E
-                .byte $00 ; 215
-                .byte $3E
-                .byte $63
-                .byte $63
-                .byte $63
-                .byte $36
-                .byte $36
-                .byte $63
-                .byte $00 ; 216
-                .byte $7F
-                .byte $63
-                .byte $63
-                .byte $36
-                .byte $36
-                .byte $1C
-                .byte $1C
-                .byte $00 ; 217
-                .byte $18
-                .byte $18
-                .byte $7E
-                .byte $18
-                .byte $18
-                .byte $00
-                .byte $7E
-                .byte $00 ; 218
-                .byte $00
-                .byte $7E
-                .byte $00
-                .byte $18
-                .byte $18
-                .byte $7E
-                .byte $18
-                .byte $18 ; 219
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $00 ; 220
-                .byte $36
-                .byte $36
-                .byte $36
-                .byte $36
-                .byte $36
-                .byte $36
-                .byte $36
-                .byte $00 ; 221
-                .byte $00
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $3C
-                .byte $00 ; 222
-                .byte $00
-                .byte $3C
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $00 ; 223
-                .byte $00
-                .byte $03
-                .byte $3E
-                .byte $67
-                .byte $6B
-                .byte $73
-                .byte $3E
-                .byte $60 ; 224
-                .byte $00
-                .byte $00
-                .byte $3B
-                .byte $6E
-                .byte $66
-                .byte $6E
-                .byte $3B
-                .byte $00 ; 225
-                .byte $1E
-                .byte $33
-                .byte $33
-                .byte $3E
-                .byte $33
-                .byte $33
-                .byte $3E
-                .byte $60 ; 226
-                .byte $00
-                .byte $00
-                .byte $66
-                .byte $36
-                .byte $1C
-                .byte $18
-                .byte $30
-                .byte $30 ; 227
-                .byte $3C
-                .byte $60
-                .byte $30
-                .byte $3C
-                .byte $66
-                .byte $66
-                .byte $3C
-                .byte $00 ; 228
-                .byte $00
-                .byte $00
-                .byte $1E
-                .byte $30
-                .byte $1C
-                .byte $30
-                .byte $1E
-                .byte $00 ; 229
-                .byte $3E
-                .byte $0C
-                .byte $18
-                .byte $30
-                .byte $60
-                .byte $60
-                .byte $3E
-                .byte $06 ; 230
-                .byte $00
-                .byte $00
-                .byte $7C
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $06
-                .byte $06 ; 231
-                .byte $3C
-                .byte $66
-                .byte $66
-                .byte $7E
-                .byte $66
-                .byte $66
-                .byte $3C
-                .byte $00 ; 232
-                .byte $00
-                .byte $00
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $0C
-                .byte $00 ; 233
-                .byte $00
-                .byte $00
-                .byte $66
-                .byte $6C
-                .byte $78
-                .byte $6C
-                .byte $66
-                .byte $00 ; 234
-                .byte $60
-                .byte $30
-                .byte $18
-                .byte $1C
-                .byte $36
-                .byte $63
-                .byte $63
-                .byte $00 ; 235
-                .byte $00
-                .byte $00
-                .byte $33
-                .byte $33
-                .byte $33
-                .byte $33
-                .byte $3E
-                .byte $60 ; 236
-                .byte $00
-                .byte $00
-                .byte $63
-                .byte $33
-                .byte $1B
-                .byte $1E
-                .byte $1C
-                .byte $00 ; 237
-                .byte $3C
-                .byte $60
-                .byte $60
-                .byte $3C
-                .byte $60
-                .byte $60
-                .byte $3E
-                .byte $06 ; 238
-                .byte $00
-                .byte $00
-                .byte $3E
-                .byte $63
-                .byte $63
-                .byte $63
-                .byte $3E
-                .byte $00 ; 239
-                .byte $00
-                .byte $00
-                .byte $7F
-                .byte $36
-                .byte $36
-                .byte $36
-                .byte $36
-                .byte $00 ; 240
-                .byte $00
-                .byte $00
-                .byte $3C
-                .byte $66
-                .byte $66
-                .byte $7C
-                .byte $60
-                .byte $60 ; 241
-                .byte $00
-                .byte $00
-                .byte $3F
-                .byte $66
-                .byte $66
-                .byte $66
-                .byte $3C
-                .byte $00 ; 242
-                .byte $00
-                .byte $00
-                .byte $7E
-                .byte $18
-                .byte $18
-                .byte $18
-                .byte $0C
-                .byte $00 ; 243
-                .byte $00
-                .byte $00
-                .byte $73
-                .byte $33
-                .byte $33
-                .byte $33
-                .byte $1E
-                .byte $00 ; 244
-                .byte $00
-                .byte $00
-                .byte $3E
-                .byte $6B
-                .byte $6B
-                .byte $3E
-                .byte $18
-                .byte $18 ; 245
-                .byte $00
-                .byte $00
-                .byte $66
-                .byte $36
-                .byte $1C
-                .byte $1C
-                .byte $36
-                .byte $33 ; 246
-                .byte $00
-                .byte $00
-                .byte $63
-                .byte $6B
-                .byte $6B
-                .byte $3E
-                .byte $18
-                .byte $18 ; 247
-                .byte $00
-                .byte $00
-                .byte $36
-                .byte $63
-                .byte $6B
-                .byte $7F
-                .byte $36
-                .byte $00 ; 248
-                .byte $38
-                .byte $0C
-                .byte $06
-                .byte $3E
-                .byte $66
-                .byte $66
-                .byte $3C
-                .byte $00 ; 249
-                .byte $00
-                .byte $31
-                .byte $6B
-                .byte $46
-                .byte $00
-                .byte $7F
-                .byte $00
-                .byte $00 ; 250
-                .byte $00
-                .byte $7E
-                .byte $00
-                .byte $7E
-                .byte $00
-                .byte $7E
-                .byte $00
-                .byte $00 ; 251
-                .byte $07
-                .byte $1C
-                .byte $70
-                .byte $1C
-                .byte $07
-                .byte $00
-                .byte $7F
-                .byte $00 ; 252
-                .byte $06
-                .byte $0C
-                .byte $7E
-                .byte $18
-                .byte $7E
-                .byte $30
-                .byte $60
-                .byte $00 ; 253
-                .byte $70
-                .byte $1C
-                .byte $07
-                .byte $1C
-                .byte $70
-                .byte $00
-                .byte $7F
-                .byte $00 ; 254
-                .byte $FF
-                .byte $FF
-                .byte $FF
-                .byte $FF
-                .byte $FF
-                .byte $FF
-                .byte $FF
-                .byte $FF ; 255
+                ; CHR$32 -  
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$33 - !
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$34 - "
+                .byte %01101100
+                .byte %01101100
+                .byte %01101100
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$35 - #
+                .byte %00110110
+                .byte %00110110
+                .byte %01111111
+                .byte %00110110
+                .byte %01111111
+                .byte %00110110
+                .byte %00110110
+                .byte %00000000
+
+                ; CHR$36 - $
+                .byte %00001100
+                .byte %00111111
+                .byte %01101000
+                .byte %00111110
+                .byte %00001011
+                .byte %01111110
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$37 - %
+                .byte %01100000
+                .byte %01100110
+                .byte %00001100
+                .byte %00011000
+                .byte %00110000
+                .byte %01100110
+                .byte %00000110
+                .byte %00000000
+
+                ; CHR$38 - &
+                .byte %00111000
+                .byte %01101100
+                .byte %01101100
+                .byte %00111000
+                .byte %01101101
+                .byte %01100110
+                .byte %00111011
+                .byte %00000000
+
+                ; CHR$39 - '
+                .byte %00001100
+                .byte %00011000
+                .byte %00110000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$40 - (
+                .byte %00001100
+                .byte %00011000
+                .byte %00110000
+                .byte %00110000
+                .byte %00110000
+                .byte %00011000
+                .byte %00001100
+                .byte %00000000
+
+                ; CHR$41 - )
+                .byte %00110000
+                .byte %00011000
+                .byte %00001100
+                .byte %00001100
+                .byte %00001100
+                .byte %00011000
+                .byte %00110000
+                .byte %00000000
+
+                ; CHR$42 - *
+                .byte %00000000
+                .byte %00011000
+                .byte %01111110
+                .byte %00111100
+                .byte %01111110
+                .byte %00011000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$43 - +
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %01111110
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$44 - ,
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %00110000
+
+                ; CHR$45 - -
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %01111110
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$46 - .
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$47 - /
+                .byte %00000000
+                .byte %00000110
+                .byte %00001100
+                .byte %00011000
+                .byte %00110000
+                .byte %01100000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$48 - 0
+                .byte %00111100
+                .byte %01100110
+                .byte %01101110
+                .byte %01111110
+                .byte %01110110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$49 - 1
+                .byte %00011000
+                .byte %00111000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$50 - 2
+                .byte %00111100
+                .byte %01100110
+                .byte %00000110
+                .byte %00001100
+                .byte %00011000
+                .byte %00110000
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$51 - 3
+                .byte %00111100
+                .byte %01100110
+                .byte %00000110
+                .byte %00011100
+                .byte %00000110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$52 - 4
+                .byte %00001100
+                .byte %00011100
+                .byte %00111100
+                .byte %01101100
+                .byte %01111110
+                .byte %00001100
+                .byte %00001100
+                .byte %00000000
+
+                ; CHR$53 - 5
+                .byte %01111110
+                .byte %01100000
+                .byte %01111100
+                .byte %00000110
+                .byte %00000110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$54 - 6
+                .byte %00011100
+                .byte %00110000
+                .byte %01100000
+                .byte %01111100
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$55 - 7
+                .byte %01111110
+                .byte %00000110
+                .byte %00001100
+                .byte %00011000
+                .byte %00110000
+                .byte %00110000
+                .byte %00110000
+                .byte %00000000
+
+                ; CHR$56 - 8
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$57 - 9
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000110
+                .byte %00001100
+                .byte %00111000
+                .byte %00000000
+
+                ; CHR$58 - :
+                .byte %00000000
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$59 - ;
+                .byte %00000000
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %00110000
+
+                ; CHR$60 - <
+                .byte %00001100
+                .byte %00011000
+                .byte %00110000
+                .byte %01100000
+                .byte %00110000
+                .byte %00011000
+                .byte %00001100
+                .byte %00000000
+
+                ; CHR$61 - =
+                .byte %00000000
+                .byte %00000000
+                .byte %01111110
+                .byte %00000000
+                .byte %01111110
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$62 - >
+                .byte %00110000
+                .byte %00011000
+                .byte %00001100
+                .byte %00000110
+                .byte %00001100
+                .byte %00011000
+                .byte %00110000
+                .byte %00000000
+
+                ; CHR$63 - ?
+                .byte %00111100
+                .byte %01100110
+                .byte %00001100
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$64 - @
+                .byte %00111100
+                .byte %01100110
+                .byte %01101110
+                .byte %01101010
+                .byte %01101110
+                .byte %01100000
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$65 - A
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01111110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$66 - B
+                .byte %01111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01111100
+                .byte %00000000
+
+                ; CHR$67 - C
+                .byte %00111100
+                .byte %01100110
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$68 - D
+                .byte %01111000
+                .byte %01101100
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01101100
+                .byte %01111000
+                .byte %00000000
+
+                ; CHR$69 - E
+                .byte %01111110
+                .byte %01100000
+                .byte %01100000
+                .byte %01111100
+                .byte %01100000
+                .byte %01100000
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$70 - F
+                .byte %01111110
+                .byte %01100000
+                .byte %01100000
+                .byte %01111100
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %00000000
+
+                ; CHR$71 - G
+                .byte %00111100
+                .byte %01100110
+                .byte %01100000
+                .byte %01101110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$72 - H
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01111110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$73 - I
+                .byte %01111110
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$74 - J
+                .byte %00111110
+                .byte %00001100
+                .byte %00001100
+                .byte %00001100
+                .byte %00001100
+                .byte %01101100
+                .byte %00111000
+                .byte %00000000
+
+                ; CHR$75 - K
+                .byte %01100110
+                .byte %01101100
+                .byte %01111000
+                .byte %01110000
+                .byte %01111000
+                .byte %01101100
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$76 - L
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$77 - M
+                .byte %01100011
+                .byte %01110111
+                .byte %01111111
+                .byte %01101011
+                .byte %01101011
+                .byte %01100011
+                .byte %01100011
+                .byte %00000000
+
+                ; CHR$78 - N
+                .byte %01100110
+                .byte %01100110
+                .byte %01110110
+                .byte %01111110
+                .byte %01101110
+                .byte %01100110
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$79 - O
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$80 - P
+                .byte %01111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01111100
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %00000000
+
+                ; CHR$81 - Q
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01101010
+                .byte %01101100
+                .byte %00110110
+                .byte %00000000
+
+                ; CHR$82 - R
+                .byte %01111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01111100
+                .byte %01101100
+                .byte %01100110
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$83 - S
+                .byte %00111100
+                .byte %01100110
+                .byte %01100000
+                .byte %00111100
+                .byte %00000110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$84 - T
+                .byte %01111110
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$85 - U
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$86 - V
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$87 - W
+                .byte %01100011
+                .byte %01100011
+                .byte %01101011
+                .byte %01101011
+                .byte %01111111
+                .byte %01110111
+                .byte %01100011
+                .byte %00000000
+
+                ; CHR$88 - X
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00011000
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$89 - Y
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$90 - Z
+                .byte %01111110
+                .byte %00000110
+                .byte %00001100
+                .byte %00011000
+                .byte %00110000
+                .byte %01100000
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$91 - [
+                .byte %01111100
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %01111100
+                .byte %00000000
+
+                ; CHR$92 - \
+                .byte %00000000
+                .byte %01100000
+                .byte %00110000
+                .byte %00011000
+                .byte %00001100
+                .byte %00000110
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$93 - ]
+                .byte %00111110
+                .byte %00000110
+                .byte %00000110
+                .byte %00000110
+                .byte %00000110
+                .byte %00000110
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$94 - ^
+                .byte %00011000
+                .byte %00111100
+                .byte %01100110
+                .byte %01000010
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$95 - _
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %11111111
+
+                ; CHR$96
+                .byte %00011100
+                .byte %00110110
+                .byte %00110000
+                .byte %01111100
+                .byte %00110000
+                .byte %00110000
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$97 - a
+                .byte %00000000
+                .byte %00000000
+                .byte %00111100
+                .byte %00000110
+                .byte %00111110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$98 - b
+                .byte %01100000
+                .byte %01100000
+                .byte %01111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01111100
+                .byte %00000000
+
+                ; CHR$99 - c
+                .byte %00000000
+                .byte %00000000
+                .byte %00111100
+                .byte %01100110
+                .byte %01100000
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$100 - d
+                .byte %00000110
+                .byte %00000110
+                .byte %00111110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$101 - e
+                .byte %00000000
+                .byte %00000000
+                .byte %00111100
+                .byte %01100110
+                .byte %01111110
+                .byte %01100000
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$102 - f
+                .byte %00011100
+                .byte %00110000
+                .byte %00110000
+                .byte %01111100
+                .byte %00110000
+                .byte %00110000
+                .byte %00110000
+                .byte %00000000
+
+                ; CHR$103 - g
+                .byte %00000000
+                .byte %00000000
+                .byte %00111110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000110
+                .byte %00111100
+
+                ; CHR$104 - h
+                .byte %01100000
+                .byte %01100000
+                .byte %01111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$105 - i
+                .byte %00011000
+                .byte %00000000
+                .byte %00111000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$106 - j
+                .byte %00011000
+                .byte %00000000
+                .byte %00111000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %01110000
+
+                ; CHR$107 - k
+                .byte %01100000
+                .byte %01100000
+                .byte %01100110
+                .byte %01101100
+                .byte %01111000
+                .byte %01101100
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$108 - l
+                .byte %00111000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$109 - m
+                .byte %00000000
+                .byte %00000000
+                .byte %00110110
+                .byte %01111111
+                .byte %01101011
+                .byte %01101011
+                .byte %01100011
+                .byte %00000000
+
+                ; CHR$110 - n
+                .byte %00000000
+                .byte %00000000
+                .byte %01111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$111 - o
+                .byte %00000000
+                .byte %00000000
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$112 - p
+                .byte %00000000
+                .byte %00000000
+                .byte %01111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01111100
+                .byte %01100000
+                .byte %01100000
+
+                ; CHR$113 - q
+                .byte %00000000
+                .byte %00000000
+                .byte %00111110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000110
+                .byte %00000111
+
+                ; CHR$114 - r
+                .byte %00000000
+                .byte %00000000
+                .byte %01101100
+                .byte %01110110
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %00000000
+
+                ; CHR$115 - s
+                .byte %00000000
+                .byte %00000000
+                .byte %00111110
+                .byte %01100000
+                .byte %00111100
+                .byte %00000110
+                .byte %01111100
+                .byte %00000000
+
+                ; CHR$116 - t
+                .byte %00110000
+                .byte %00110000
+                .byte %01111100
+                .byte %00110000
+                .byte %00110000
+                .byte %00110000
+                .byte %00011100
+                .byte %00000000
+
+                ; CHR$117 - u
+                .byte %00000000
+                .byte %00000000
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$118 - v
+                .byte %00000000
+                .byte %00000000
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$119 - w
+                .byte %00000000
+                .byte %00000000
+                .byte %01100011
+                .byte %01101011
+                .byte %01101011
+                .byte %01111111
+                .byte %00110110
+                .byte %00000000
+
+                ; CHR$120 - x
+                .byte %00000000
+                .byte %00000000
+                .byte %01100110
+                .byte %00111100
+                .byte %00011000
+                .byte %00111100
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$121 - y
+                .byte %00000000
+                .byte %00000000
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000110
+                .byte %00111100
+
+                ; CHR$122 - z
+                .byte %00000000
+                .byte %00000000
+                .byte %01111110
+                .byte %00001100
+                .byte %00011000
+                .byte %00110000
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$123 - {
+                .byte %00001100
+                .byte %00011000
+                .byte %00011000
+                .byte %01110000
+                .byte %00011000
+                .byte %00011000
+                .byte %00001100
+                .byte %00000000
+
+                ; CHR$124 - |
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$125 - }
+                .byte %00110000
+                .byte %00011000
+                .byte %00011000
+                .byte %00001110
+                .byte %00011000
+                .byte %00011000
+                .byte %00110000
+                .byte %00000000
+
+                ; CHR$126 - ~
+                .byte %00110001
+                .byte %01101011
+                .byte %01000110
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$127
+                .byte %11111111
+                .byte %11111111
+                .byte %11111111
+                .byte %11111111
+                .byte %11111111
+                .byte %11111111
+                .byte %11111111
+                .byte %11111111
+
+                ; CHR$128
+                .byte %01100110
+                .byte %00000000
+                .byte %00111100
+                .byte %01100110
+                .byte %01111110
+                .byte %01100110
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$129
+                .byte %00111100
+                .byte %01100110
+                .byte %00111100
+                .byte %01100110
+                .byte %01111110
+                .byte %01100110
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$130
+                .byte %00111111
+                .byte %01100110
+                .byte %01100110
+                .byte %01111111
+                .byte %01100110
+                .byte %01100110
+                .byte %01100111
+                .byte %00000000
+
+                ; CHR$131
+                .byte %00111100
+                .byte %01100110
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %01100110
+                .byte %00111100
+                .byte %01100000
+
+                ; CHR$132
+                .byte %00001100
+                .byte %00011000
+                .byte %01111110
+                .byte %01100000
+                .byte %01111100
+                .byte %01100000
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$133
+                .byte %01100110
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$134
+                .byte %01100110
+                .byte %00000000
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$135
+                .byte %01111110
+                .byte %11000011
+                .byte %10011101
+                .byte %10110001
+                .byte %10011101
+                .byte %11000011
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$136
+                .byte %00000000
+                .byte %00011000
+                .byte %00111000
+                .byte %01111111
+                .byte %00111000
+                .byte %00011000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$137
+                .byte %00000000
+                .byte %00011000
+                .byte %00011100
+                .byte %11111110
+                .byte %00011100
+                .byte %00011000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$138
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %01111110
+                .byte %00111100
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$139
+                .byte %00000000
+                .byte %00011000
+                .byte %00111100
+                .byte %01111110
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$140
+                .byte %00110000
+                .byte %00011000
+                .byte %00111100
+                .byte %00000110
+                .byte %00111110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$141
+                .byte %00110000
+                .byte %00011000
+                .byte %00111100
+                .byte %01100110
+                .byte %01111110
+                .byte %01100000
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$142
+                .byte %01100110
+                .byte %00000000
+                .byte %00111100
+                .byte %01100110
+                .byte %01111110
+                .byte %01100000
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$143
+                .byte %00111100
+                .byte %01100110
+                .byte %00111100
+                .byte %01100110
+                .byte %01111110
+                .byte %01100000
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$144
+                .byte %01100110
+                .byte %00000000
+                .byte %00111100
+                .byte %00000110
+                .byte %00111110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$145
+                .byte %00111100
+                .byte %01100110
+                .byte %00111100
+                .byte %00000110
+                .byte %00111110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$146
+                .byte %00000000
+                .byte %00000000
+                .byte %00111111
+                .byte %00001101
+                .byte %00111111
+                .byte %01101100
+                .byte %00111111
+                .byte %00000000
+
+                ; CHR$147
+                .byte %00000000
+                .byte %00000000
+                .byte %00111100
+                .byte %01100110
+                .byte %01100000
+                .byte %01100110
+                .byte %00111100
+                .byte %01100000
+
+                ; CHR$148
+                .byte %00001100
+                .byte %00011000
+                .byte %00111100
+                .byte %01100110
+                .byte %01111110
+                .byte %01100000
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$149
+                .byte %01100110
+                .byte %00000000
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$150
+                .byte %01100110
+                .byte %00000000
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$151
+                .byte %00110000
+                .byte %00011000
+                .byte %00000000
+                .byte %00111000
+                .byte %00011000
+                .byte %00011000
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$152
+                .byte %00111100
+                .byte %01100110
+                .byte %00000000
+                .byte %00111000
+                .byte %00011000
+                .byte %00011000
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$153
+                .byte %00110000
+                .byte %00011000
+                .byte %00000000
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$154
+                .byte %00111100
+                .byte %01100110
+                .byte %00000000
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$155
+                .byte %00110000
+                .byte %00011000
+                .byte %00000000
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$156
+                .byte %00111100
+                .byte %01100110
+                .byte %00000000
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$157
+                .byte %01100110
+                .byte %00000000
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111110
+                .byte %00000110
+                .byte %00111100
+
+                ; CHR$158
+                .byte %00000000
+                .byte %01100110
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$159
+                .byte %00111100
+                .byte %01100000
+                .byte %00111100
+                .byte %01100110
+                .byte %00111100
+                .byte %00000110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$160
+                .byte %00111100
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$161
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$162
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00011111
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$163
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00011111
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$164
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %11111000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$165
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %11111000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$166
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %11111111
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$167
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %11111111
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$168
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$169
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$170
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011111
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$171
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011111
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$172
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %11111000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$173
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %11111000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$174
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %11111111
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$175
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %11111111
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$176
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000111
+                .byte %00001100
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$177
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %11100000
+                .byte %00110000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$178
+                .byte %00011000
+                .byte %00011000
+                .byte %00001100
+                .byte %00000111
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$179
+                .byte %00011000
+                .byte %00011000
+                .byte %00110000
+                .byte %11100000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$180
+                .byte %00011000
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %00110000
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$181
+                .byte %00011000
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$182
+                .byte %00110110
+                .byte %01101100
+                .byte %00000000
+                .byte %01100110
+                .byte %01110110
+                .byte %01101110
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$183
+                .byte %00110110
+                .byte %01101100
+                .byte %00000000
+                .byte %01111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$184
+                .byte %00011000
+                .byte %01111110
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$185
+                .byte %00011000
+                .byte %01111110
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %01111110
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$186
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$187
+                .byte %00110000
+                .byte %00011000
+                .byte %00001100
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$188
+                .byte %00111111
+                .byte %01111011
+                .byte %01111011
+                .byte %00111011
+                .byte %00011011
+                .byte %00011011
+                .byte %00011111
+                .byte %00000000
+
+                ; CHR$189
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$190
+                .byte %00000011
+                .byte %00000011
+                .byte %00000110
+                .byte %00000110
+                .byte %01110110
+                .byte %00011100
+                .byte %00001100
+                .byte %00000000
+
+                ; CHR$191
+                .byte %10101010
+                .byte %01010101
+                .byte %10101010
+                .byte %01010101
+                .byte %10101010
+                .byte %01010101
+                .byte %10101010
+                .byte %01010101
+
+                ; CHR$192
+                .byte %00111110
+                .byte %01100011
+                .byte %01100111
+                .byte %01101011
+                .byte %01110011
+                .byte %01100011
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$193
+                .byte %00011100
+                .byte %00110110
+                .byte %01100011
+                .byte %01100011
+                .byte %01111111
+                .byte %01100011
+                .byte %01100011
+                .byte %00000000
+
+                ; CHR$194
+                .byte %01111110
+                .byte %00110011
+                .byte %00110011
+                .byte %00111110
+                .byte %00110011
+                .byte %00110011
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$195
+                .byte %01111111
+                .byte %01100011
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %01100000
+                .byte %00000000
+
+                ; CHR$196
+                .byte %00011100
+                .byte %00011100
+                .byte %00110110
+                .byte %00110110
+                .byte %01100011
+                .byte %01100011
+                .byte %01111111
+                .byte %00000000
+
+                ; CHR$197
+                .byte %01111111
+                .byte %00110011
+                .byte %00110000
+                .byte %00111110
+                .byte %00110000
+                .byte %00110011
+                .byte %01111111
+                .byte %00000000
+
+                ; CHR$198
+                .byte %01111110
+                .byte %01100110
+                .byte %00001100
+                .byte %00011000
+                .byte %00110000
+                .byte %01100110
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$199
+                .byte %01110111
+                .byte %00110011
+                .byte %00110011
+                .byte %00111111
+                .byte %00110011
+                .byte %00110011
+                .byte %01110111
+                .byte %00000000
+
+                ; CHR$200
+                .byte %00111110
+                .byte %01100011
+                .byte %01100011
+                .byte %01111111
+                .byte %01100011
+                .byte %01100011
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$201
+                .byte %00111100
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$202
+                .byte %01100011
+                .byte %01100110
+                .byte %01101100
+                .byte %01111000
+                .byte %01101100
+                .byte %01100110
+                .byte %01100011
+                .byte %00000000
+
+                ; CHR$203
+                .byte %00011100
+                .byte %00011100
+                .byte %00110110
+                .byte %00110110
+                .byte %01100011
+                .byte %01100011
+                .byte %01100011
+                .byte %00000000
+
+                ; CHR$204
+                .byte %01100011
+                .byte %01110111
+                .byte %01111111
+                .byte %01101011
+                .byte %01100011
+                .byte %01100011
+                .byte %01100011
+                .byte %00000000
+
+                ; CHR$205
+                .byte %01100011
+                .byte %01110011
+                .byte %01111011
+                .byte %01101111
+                .byte %01100111
+                .byte %01100011
+                .byte %01100011
+                .byte %00000000
+
+                ; CHR$206
+                .byte %01111110
+                .byte %00000000
+                .byte %00000000
+                .byte %00111100
+                .byte %00000000
+                .byte %00000000
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$207
+                .byte %00111110
+                .byte %01100011
+                .byte %01100011
+                .byte %01100011
+                .byte %01100011
+                .byte %01100011
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$208
+                .byte %01111111
+                .byte %00110110
+                .byte %00110110
+                .byte %00110110
+                .byte %00110110
+                .byte %00110110
+                .byte %00110110
+                .byte %00000000
+
+                ; CHR$209
+                .byte %01111110
+                .byte %00110011
+                .byte %00110011
+                .byte %00111110
+                .byte %00110000
+                .byte %00110000
+                .byte %01111000
+                .byte %00000000
+
+                ; CHR$210
+                .byte %01111111
+                .byte %01100011
+                .byte %00110000
+                .byte %00011000
+                .byte %00110000
+                .byte %01100011
+                .byte %01111111
+                .byte %00000000
+
+                ; CHR$211
+                .byte %01111110
+                .byte %01011010
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$212
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00011000
+                .byte %00011000
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$213
+                .byte %00111110
+                .byte %00001000
+                .byte %00111110
+                .byte %01101011
+                .byte %00111110
+                .byte %00001000
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$214
+                .byte %01100011
+                .byte %01100011
+                .byte %00110110
+                .byte %00011100
+                .byte %00110110
+                .byte %01100011
+                .byte %01100011
+                .byte %00000000
+
+                ; CHR$215
+                .byte %00111110
+                .byte %00001000
+                .byte %01101011
+                .byte %01101011
+                .byte %00111110
+                .byte %00001000
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$216
+                .byte %00111110
+                .byte %01100011
+                .byte %01100011
+                .byte %01100011
+                .byte %00110110
+                .byte %00110110
+                .byte %01100011
+                .byte %00000000
+
+                ; CHR$217
+                .byte %01111111
+                .byte %01100011
+                .byte %01100011
+                .byte %00110110
+                .byte %00110110
+                .byte %00011100
+                .byte %00011100
+                .byte %00000000
+
+                ; CHR$218
+                .byte %00011000
+                .byte %00011000
+                .byte %01111110
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+                .byte %01111110
+                .byte %00000000
+
+                ; CHR$219
+                .byte %00000000
+                .byte %01111110
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %01111110
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$220
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00000000
+
+                ; CHR$221
+                .byte %00110110
+                .byte %00110110
+                .byte %00110110
+                .byte %00110110
+                .byte %00110110
+                .byte %00110110
+                .byte %00110110
+                .byte %00000000
+
+                ; CHR$222
+                .byte %00000000
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$223
+                .byte %00000000
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$224
+                .byte %00000000
+                .byte %00000011
+                .byte %00111110
+                .byte %01100111
+                .byte %01101011
+                .byte %01110011
+                .byte %00111110
+                .byte %01100000
+
+                ; CHR$225
+                .byte %00000000
+                .byte %00000000
+                .byte %00111011
+                .byte %01101110
+                .byte %01100110
+                .byte %01101110
+                .byte %00111011
+                .byte %00000000
+
+                ; CHR$226
+                .byte %00011110
+                .byte %00110011
+                .byte %00110011
+                .byte %00111110
+                .byte %00110011
+                .byte %00110011
+                .byte %00111110
+                .byte %01100000
+
+                ; CHR$227
+                .byte %00000000
+                .byte %00000000
+                .byte %01100110
+                .byte %00110110
+                .byte %00011100
+                .byte %00011000
+                .byte %00110000
+                .byte %00110000
+
+                ; CHR$228
+                .byte %00111100
+                .byte %01100000
+                .byte %00110000
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$229
+                .byte %00000000
+                .byte %00000000
+                .byte %00011110
+                .byte %00110000
+                .byte %00011100
+                .byte %00110000
+                .byte %00011110
+                .byte %00000000
+
+                ; CHR$230
+                .byte %00111110
+                .byte %00001100
+                .byte %00011000
+                .byte %00110000
+                .byte %01100000
+                .byte %01100000
+                .byte %00111110
+                .byte %00000110
+
+                ; CHR$231
+                .byte %00000000
+                .byte %00000000
+                .byte %01111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00000110
+                .byte %00000110
+
+                ; CHR$232
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01111110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$233
+                .byte %00000000
+                .byte %00000000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00001100
+                .byte %00000000
+
+                ; CHR$234
+                .byte %00000000
+                .byte %00000000
+                .byte %01100110
+                .byte %01101100
+                .byte %01111000
+                .byte %01101100
+                .byte %01100110
+                .byte %00000000
+
+                ; CHR$235
+                .byte %01100000
+                .byte %00110000
+                .byte %00011000
+                .byte %00011100
+                .byte %00110110
+                .byte %01100011
+                .byte %01100011
+                .byte %00000000
+
+                ; CHR$236
+                .byte %00000000
+                .byte %00000000
+                .byte %00110011
+                .byte %00110011
+                .byte %00110011
+                .byte %00110011
+                .byte %00111110
+                .byte %01100000
+
+                ; CHR$237
+                .byte %00000000
+                .byte %00000000
+                .byte %01100011
+                .byte %00110011
+                .byte %00011011
+                .byte %00011110
+                .byte %00011100
+                .byte %00000000
+
+                ; CHR$238
+                .byte %00111100
+                .byte %01100000
+                .byte %01100000
+                .byte %00111100
+                .byte %01100000
+                .byte %01100000
+                .byte %00111110
+                .byte %00000110
+
+                ; CHR$239
+                .byte %00000000
+                .byte %00000000
+                .byte %00111110
+                .byte %01100011
+                .byte %01100011
+                .byte %01100011
+                .byte %00111110
+                .byte %00000000
+
+                ; CHR$240
+                .byte %00000000
+                .byte %00000000
+                .byte %01111111
+                .byte %00110110
+                .byte %00110110
+                .byte %00110110
+                .byte %00110110
+                .byte %00000000
+
+                ; CHR$241
+                .byte %00000000
+                .byte %00000000
+                .byte %00111100
+                .byte %01100110
+                .byte %01100110
+                .byte %01111100
+                .byte %01100000
+                .byte %01100000
+
+                ; CHR$242
+                .byte %00000000
+                .byte %00000000
+                .byte %00111111
+                .byte %01100110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$243
+                .byte %00000000
+                .byte %00000000
+                .byte %01111110
+                .byte %00011000
+                .byte %00011000
+                .byte %00011000
+                .byte %00001100
+                .byte %00000000
+
+                ; CHR$244
+                .byte %00000000
+                .byte %00000000
+                .byte %01110011
+                .byte %00110011
+                .byte %00110011
+                .byte %00110011
+                .byte %00011110
+                .byte %00000000
+
+                ; CHR$245
+                .byte %00000000
+                .byte %00000000
+                .byte %00111110
+                .byte %01101011
+                .byte %01101011
+                .byte %00111110
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$246
+                .byte %00000000
+                .byte %00000000
+                .byte %01100110
+                .byte %00110110
+                .byte %00011100
+                .byte %00011100
+                .byte %00110110
+                .byte %00110011
+
+                ; CHR$247
+                .byte %00000000
+                .byte %00000000
+                .byte %01100011
+                .byte %01101011
+                .byte %01101011
+                .byte %00111110
+                .byte %00011000
+                .byte %00011000
+
+                ; CHR$248
+                .byte %00000000
+                .byte %00000000
+                .byte %00110110
+                .byte %01100011
+                .byte %01101011
+                .byte %01111111
+                .byte %00110110
+                .byte %00000000
+
+                ; CHR$249
+                .byte %00111000
+                .byte %00001100
+                .byte %00000110
+                .byte %00111110
+                .byte %01100110
+                .byte %01100110
+                .byte %00111100
+                .byte %00000000
+
+                ; CHR$250
+                .byte %00000000
+                .byte %00110001
+                .byte %01101011
+                .byte %01000110
+                .byte %00000000
+                .byte %01111111
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$251
+                .byte %00000000
+                .byte %01111110
+                .byte %00000000
+                .byte %01111110
+                .byte %00000000
+                .byte %01111110
+                .byte %00000000
+                .byte %00000000
+
+                ; CHR$252
+                .byte %00000111
+                .byte %00011100
+                .byte %01110000
+                .byte %00011100
+                .byte %00000111
+                .byte %00000000
+                .byte %01111111
+                .byte %00000000
+
+                ; CHR$253
+                .byte %00000110
+                .byte %00001100
+                .byte %01111110
+                .byte %00011000
+                .byte %01111110
+                .byte %00110000
+                .byte %01100000
+                .byte %00000000
+
+                ; CHR$254
+                .byte %01110000
+                .byte %00011100
+                .byte %00000111
+                .byte %00011100
+                .byte %01110000
+                .byte %00000000
+                .byte %01111111
+                .byte %00000000
+
+                ; CHR$255
+                .byte %11111111
+                .byte %11111111
+                .byte %11111111
+                .byte %11111111
+                .byte %11111111
+                .byte %11111111
+                .byte %11111111
+                .byte %11111111
 
 ; VDU driver entry block
 ; ======================

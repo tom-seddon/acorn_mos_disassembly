@@ -33,6 +33,33 @@ OSBPUT=$FFD4
 OSFILE=$FFDD
 OSARGS=$FFDA
 
+USERV=$200
+BRKV=$202
+IRQ1V=$204
+IRQ2V=$206
+CLIV=$208
+BYTEV=$20a
+WORDV=$20c
+WRCHV=$20e
+RDCHV=$210
+FILEV=$212
+ARGSV=$214
+BGETV=$216
+BPUTV=$218
+GBPBV=$21a
+FINDV=$21c
+FSCV=$21e
+EVENTV=$220
+UPTV=$222
+VDUV=$226
+KEYV=$228
+INSV=$22a
+REMV=$22c
+CNPV=$22e
+IND1V=$230
+IND2V=$232
+IND3V=$234
+                
 CRTC=$FE00
 ACIA=$fe08
 SERPROC=$fe10
@@ -853,35 +880,37 @@ L865A:
 
 ; OSWORD 0 control block for *commands
 ; ====================================
-                .word $DC00			; address
+L865C:
+                .word LDC00			; address
                 .byte $F0			; max # chars
                 .byte $20			; min ASCII char
                 .byte $7E			; max ASCII char
 
 L8661:
-                lda #$8D                     ; 8661= A9 8D       ).
-                sta $0202                    ; 8663= 8D 02 02    ...
-                lda #$86                     ; 8666= A9 86       ).
-                sta $0203                    ; 8668= 8D 03 02    ...
-                lda #$1F                     ; 866B= A9 1F       ).
-                sta $028C                    ; 866D= 8D 8C 02    ...
+                lda #<L868D     ; 8661= A9 8D       ).
+                sta BRKV+0      ; 8663= 8D 02 02    ...
+                lda #>L868D     ; 8666= A9 86       ).
+                sta BRKV+1      ; 8668= 8D 03 02    ...
+                lda #$1F        ; 866B= A9 1F       ).
+                sta $028C       ; 866D= 8D 8C 02    ...
 L8670:
                 ldx #$FF                     ; 8670= A2 FF       ".
                 txs                          ; 8672= 9A          .
                 cli                          ; 8673= 58          X
                 jsr LEDBA                    ; 8674= 20 BA ED     :m
-                lda #$2A                     ; 8677= A9 2A       )*
+                lda #'*'                     ; 8677= A9 2A       )*
                 jsr OSWRCH                   ; 8679= 20 EE FF     n.
                 jsr L869D                    ; 867C= 20 9D 86     ..
                 bcc L8684                    ; 867F= 90 03       ..
                 jmp LA891                    ; 8681= 4C 91 A8    L.(
 
 L8684:
-                ldx #$00                     ; 8684= A2 00       ".
-                ldy #$DC                     ; 8686= A0 DC        \
-                jsr OS_CLI                   ; 8688= 20 F7 FF     w.
-                bra L8670                    ; 868B= 80 E3       .c
+                ldx #<LDC00     ; 8684= A2 00       ".
+                ldy #>LDC00     ; 8686= A0 DC        \
+                jsr OS_CLI      ; 8688= 20 F7 FF     w.
+                bra L8670       ; 868B= 80 E3       .c
 
+L868D:
                 jsr OSNEWL                   ; 868D= 20 E7 FF     g.
                 ldy #$00                     ; 8690= A0 00        .
                 jsr LE7A7                    ; 8692= 20 A7 E7     'g
@@ -893,8 +922,8 @@ L869A:
 
 L869D:
                 lda #$00                     ; 869D= A9 00       ).
-                ldx #$5C                     ; 869F= A2 5C       "\
-                ldy #$86                     ; 86A1= A0 86        .
+                ldx #<L865C                  ; 869F= A2 5C       "\
+                ldy #>L865C                  ; 86A1= A0 86        .
                 jmp OSWORD                   ; 86A3= 4C F1 FF    Lq.
 
 L86A6:
@@ -965,7 +994,7 @@ L8710:
                 rts                          ; 8717= 60          `
 
 L8718:
-                lda #$3F                     ; 8718= A9 3F       )?
+                lda #'?'                     ; 8718= A9 3F       )?
                 jsr OSWRCH                   ; 871A= 20 EE FF     n.
                 bra L86F5                    ; 871D= 80 D6       .V
 
@@ -2141,14 +2170,7 @@ L8FF8:
 L8FFB:
                 jsr L8F0F                    ; 8FFB= 20 0F 8F     ..
                 jsr LAAED                    ; 8FFE= 20 ED AA     m*
-                .byte $B7                    ; 9001= B7          7
-                .byte $4F                    ; 9002= 4F          O
-                adc $74,X                    ; 9003= 75 74       ut
-                .byte $73                    ; 9005= 73          s
-                adc #$64                     ; 9006= 69 64       id
-                adc $20                      ; 9008= 65 20       e
-                ror $69                      ; 900A= 66 69       fi
-                jmp ($0065)                  ; 900C= 6C 65 00    le.
+                .text $b7,"Outside file",0
 
 ; *BUILD
 ; ======
@@ -2672,14 +2694,7 @@ L9339:
                 beq L9366                    ; 9349= F0 1B       p.
 L934B:
                 jsr LAAED                    ; 934B= 20 ED AA     m*
-                .byte $FC                    ; 934E= FC          |
-                .byte $42                    ; 934F= 42          B
-                adc ($64,X)                  ; 9350= 61 64       ad
-                jsr $6461                    ; 9352= 20 61 64     ad
-                stz $72                      ; 9355= 64 72       dr
-                adc $73                      ; 9357= 65 73       es
-                .byte $73                    ; 9359= 73          s
-                brk                          ; 935A= 00          .
+                .text $fc,"Bad address",0
 L935B:
                 jsr L92C9                    ; Read hex address
                 bcc L934B                    ; Jump with bad address
@@ -2943,8 +2958,7 @@ L950E:
                 bcc L9545                    ; 9518= 90 2B       .+
                 bne L952B                    ; 951A= D0 0F       P.
                 jsr LAAED                    ; 951C= 20 ED AA     m*
-                plx                          ; 951F= FA          z
-                .text "Key in use",0
+                .text $fa,"Key in use",0
                 ; EQUB $4B                   ; 9520= 4B          K
                 ; ADC $79                    ; 9521= 65 79       ey
                 ; JSR $6E69                  ; 9523= 20 69 6E     in
@@ -4606,12 +4620,7 @@ L9FD9:
 L9FE3:
                 jsr LA9BB                    ; 9FE3= 20 BB A9     ;)
                 jsr LAAED                    ; 9FE6= 20 ED AA     m*
-                cmp $4C,X                    ; 9FE9= D5 4C       UL
-                .byte $6F                    ; 9FEB= 6F          o
-                .byte $63                    ; 9FEC= 63          c
-                .byte $6B                    ; 9FED= 6B          k
-                adc $64                      ; 9FEE= 65 64       ed
-                brk                          ; 9FF0= 00          .
+                .text $d5,"Locked",0
 L9FF1:
                 bcc L9FF8                    ; 9FF1= 90 05       ..
                 lda #$03                     ; 9FF3= A9 03       ).
@@ -5109,9 +5118,7 @@ LA33D:
 
 LA343:
                 jsr LAAED                    ; A343= 20 ED AA     m*
-                .byte $DF                    ; A346= DF          _
-                eor $4F                      ; A347= 45 4F       EO
-                lsr $00                      ; A349= 46 00       F.
+                .text $df,"EOF",0
 LA34B:
                 sta $C4                      ; A34B= 85 C4       .D
                 phx                          ; A34D= DA          Z
@@ -5492,12 +5499,7 @@ LA545:
                 bne LA544                    ; A54B= D0 F7       Pw
 LA54D:
                 jsr LAAED                    ; A54D= 20 ED AA     m*
-                dec $4E,X                    ; A550= D6 4E       VN
-                .byte $6F                    ; A552= 6F          o
-                stz $20,X                    ; A553= 74 20       t
-                ror $6F                      ; A555= 66 6F       fo
-                adc $6E,X                    ; A557= 75 6E       un
-                stz $00                      ; A559= 64 00       d.
+                .text $d6,"Not found",0
 LA55B:
                 lda $C1                      ; A55B= A5 C1       %A
                 bne LA564                    ; A55D= D0 05       P.
@@ -6448,29 +6450,15 @@ LAAFF:
                 jmp $0100                    ; AB01= 4C 00 01    L..
 
                 jsr LAAED                    ; AB04= 20 ED AA     m*
-                cld                          ; AB07= D8          X
-                ora $6144                    ; AB08= 0D 44 61    .Da
-                stz $61,X                    ; AB0B= 74 61       ta
-                .byte $3F                    ; AB0D= 3F          ?
-                brk                          ; AB0E= 00          .
+                .text $d8,13,"Data?",0
                 bra LAB2A                    ; AB0F= 80 19       ..
 
                 jsr LAAED                    ; AB11= 20 ED AA     m*
-                .byte $DB                    ; AB14= DB          [
-                ora $6946                    ; AB15= 0D 46 69    .Fi
-                jmp ($3F65)                  ; AB18= 6C 65 3F    le?
-
-                brk                          ; AB1B= 00          .
+                .text $db,13,"File?",0
                 bra LAB2A                    ; AB1C= 80 0C       ..
 
                 jsr LAAED                    ; AB1E= 20 ED AA     m*
-                phx                          ; AB21= DA          Z
-                ora $6C42                    ; AB22= 0D 42 6C    .Bl
-                .byte $6F                    ; AB25= 6F          o
-                .byte $63                    ; AB26= 63          c
-                .byte $6B                    ; AB27= 6B          k
-                .byte $3F                    ; AB28= 3F          ?
-                brk                          ; AB29= 00          .
+                .text $da,13,"Block?",0
 LAB2A:
                 jmp LA978                    ; AB2A= 4C 78 A9    Lx)
 

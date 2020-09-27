@@ -8,7 +8,7 @@
                 
 *=$8000
                 .dsection terminal
-                .cerror *>$c000,'Terminal ROM is too large'
+                .cwarn *>$c000,'Terminal ROM is too large'
                 
 *=$c000
                 .dsection mos
@@ -80,7 +80,13 @@ L8400=$8400
 L8500=$8500
 L8600=$8600
 L8820=$8820
+L8786=$8786
+L8787=$8787
+L8788=$8788
+L8789=$8789
+L87F8=$87f8
 L87FF=$87FF
+L8800=$8800
 L8803=$8803
 L8804=$8804
 L8836=$8836
@@ -1006,120 +1012,37 @@ L8752:
                 rts                          ; 875B= 60          `
 
 L875C:
-                rol $4280                    ; 875C= 2E 80 42    ..B
-                eor ($55,X)                  ; 875F= 41 55       AU
-                .byte $44                    ; 8761= 44          D
-                sty $42                      ; 8762= 84 42       .B
-                .byte $4F                    ; 8764= 4F          O
-                .byte $4F                    ; 8765= 4F          O
-                .byte $54                    ; 8766= 54          T
-                dey                          ; 8767= 88          .
-                .byte $43                    ; 8768= 43          C
-                eor ($50,X)                  ; 8769= 41 50       AP
-                .byte $53                    ; 876B= 53          S
-                sty $4144                    ; 876C= 8C 44 41    .DA
-                .byte $54                    ; 876F= 54          T
-                eor ($90,X)                  ; 8770= 41 90       A.
-                .byte $44                    ; 8772= 44          D
-                eor $4C                      ; 8773= 45 4C       EL
-                eor ($59,X)                  ; 8775= 41 59       AY
-                sty $44,X                    ; 8777= 94 44       .D
-                eor #$52                     ; 8779= 49 52       IR
-                tya                          ; 877B= 98          .
-                eor $58                      ; 877C= 45 58       EX
-                .byte $54                    ; 877E= 54          T
-                eor $42,X                    ; 877F= 55 42       UB
-                eor $9C                      ; 8781= 45 9C       E.
-                lsr $44                      ; 8783= 46 44       FD
-;EOR (&49)        :\ 8785= 52 49       RI
-                .text "R"
-L8786:
-                .text "I"
-L8787:
-;LSR &45,X        :\ 8787= 56 45       VE
-                .text "V"
-L8788:
-                .text "E"
-L8789:
-                ldy #$46                     ; 8789= A0 46        F
-                eor #$4C                     ; 878B= 49 4C       IL
-                eor $A4                      ; 878D= 45 A4       E$
-                lsr $4C                      ; 878F= 46 4C       FL
-                .byte $4F                    ; 8791= 4F          O
-                bvc L87E4                    ; 8792= 50 50       PP
-                eor $48A8,Y                  ; 8794= 59 A8 48    Y(H
-                eor ($52,X)                  ; 8797= 41 52       AR
-                .byte $44                    ; 8799= 44          D
-                ldy $4749                    ; 879A= AC 49 47    ,IG
-                lsr $524F                    ; 879D= 4E 4F 52    NOR
-                eor $B0                      ; 87A0= 45 B0       E0
-                eor #$4E                     ; 87A2= 49 4E       IN
-                .byte $54                    ; 87A4= 54          T
-                eor $42,X                    ; 87A5= 55 42       UB
-                eor $B4                      ; 87A7= 45 B4       E4
-                jmp $4E41                    ; 87A9= 4C 41 4E    LAN
-
-                .byte $47                    ; 87AC= 47          G
-                clv                          ; 87AD= B8          8
-                jmp $554F                    ; 87AE= 4C 4F 55    LOU
-
-                .byte $44                    ; 87B1= 44          D
-                ldy $4F4D,X                  ; 87B2= BC 4D 4F    <MO
-                .byte $44                    ; 87B5= 44          D
-                eor $C0                      ; 87B6= 45 C0       E@
-                lsr $424F                    ; 87B8= 4E 4F 42    NOB
-                .byte $4F                    ; 87BB= 4F          O
-                .byte $4F                    ; 87BC= 4F          O
-                .byte $54                    ; 87BD= 54          T
-                cpy $4E                      ; 87BE= C4 4E       DN
-                .byte $4F                    ; 87C0= 4F          O
-                .byte $43                    ; 87C1= 43          C
-                eor ($50,X)                  ; 87C2= 41 50       AP
-                .byte $53                    ; 87C4= 53          S
-                iny                          ; 87C5= C8          H
-                lsr $444F                    ; 87C6= 4E 4F 44    NOD
-                eor #$52                     ; 87C9= 49 52       IR
-                cpy $4F4E                    ; 87CB= CC 4E 4F    LNO
-                .byte $53                    ; 87CE= 53          S
-                .byte $43                    ; 87CF= 43          C
-                eor ($4F)                    ; 87D0= 52 4F       RO
-                .text "LL"                   ; 87D2= 4C 4C D0    LLP
-                .byte $D0
-
-                lsr $544F                    ; 87D5= 4E 4F 54    NOT
-                eor $42,X                    ; 87D8= 55 42       UB
-                eor $D4                      ; 87DA= 45 D4       ET
-                .text "PR"                   ; 87DC= 50 52       PR
-                eor #$4E                     ; 87DE= 49 4E       IN
-                .byte $54                    ; 87E0= 54          T
-                cld                          ; 87E1= D8          X
-                eor ($55),Y                  ; 87E2= 51 55       QU
-L87E4:
-                eor #$45                     ; 87E4= 49 45       IE
-                .byte $54                    ; 87E6= 54          T
-                .byte $DC                    ; 87E7= DC          \
-                eor ($45)                    ; 87E8= 52 45       RE
-                bvc L8831                    ; 87EA= 50 45       PE
-                eor ($54,X)                  ; 87EC= 41 54       AT
-                cpx #$53                     ; 87EE= E0 53       `S
-                .byte $43                    ; 87F0= 43          C
-                eor ($4F)                    ; 87F1= 52 4F       RO
-                jmp LE44C                    ; 87F3= 4C 4C E4    LLd
-
-                .byte $53                    ; 87F6= 53          S
-                pha                          ; 87F7= 48          H
-L87F8:
-                .byte $43                    ; 87F8= 43          C
-                eor ($50,X)                  ; 87F9= 41 50       AP
-                .byte $53                    ; 87FB= 53          S
-                inx                          ; 87FC= E8          h
-                .byte $54                    ; 87FD= 54          T
-                eor $42,X                    ; 87FE= 55 42       UB
-L8800:
-                eor $EC                      ; 8800= 45 EC       El
-                .byte $54                    ; 8802= 54          T
-                lsr $F0,X                    ; 8803= 56 F0       Vp
-                brk                          ; 8805= 00          .
+                .text "."
+                .text $80,"BAUD"
+                .text $84,"BOOT"
+                .text $88,"CAPS"
+                .text $8c,"DATA"
+                .text $90,"DELAY"
+                .text $94,"DIR"
+                .text $98,"EXTUBE"
+                .text $9c,"FDRIVE"
+                .text $a0,"FILE"
+                .text $a4,"FLOPPY"
+                .text $a8,"HARD"
+                .text $ac,"IGNORE"
+                .text $b0,"INTUBE"
+                .text $b4,"LANG"
+                .text $b8,"LOUD"
+                .text $bc,"MODE"
+                .text $c0,"NOBOOT"
+                .text $c4,"NOCAPS"
+                .text $c8,"NODIR"
+                .text $cc,"NOSCROLL"
+                .text $d0,"NOTUBE"
+                .text $d4,"PRINT"
+                .text $d8,"QUIET"
+                .text $dc,"REPEAT"
+                .text $e0,"SCROLL"
+                .text $e4,"SHCAPS"
+                .text $e8,"TUBE"
+                .text $ec,"TV"
+                .text $f0,0
+                
                 .byte $8B                    ; 8806= 8B          .
                 .byte $EF                    ; 8807= EF          o
 ;STA L897E        :\ 8808= 8D 7E 89    .~.
@@ -1615,12 +1538,7 @@ L8A89:
                 jsr L8EB1                    ; 8A90= 20 B1 8E     1.
 L8A93:
                 jsr LA958                    ; 8A93= 20 58 A9     X)
-                .byte $53                    ; 8A96= 53          S
-                .byte $63                    ; 8A97= 63          c
-                adc ($6F)                    ; 8A98= 72 6F       ro
-                jmp ($0D6C)                  ; 8A9A= 6C 6C 0D    ll.
-
-                brk                          ; 8A9D= 00          .
+                .text "Scroll",13,0
                 rts                          ; 8A9E= 60          `
 
 L8A9F:
@@ -1628,18 +1546,12 @@ L8A9F:
                 bit #$02                     ; 8AA2= 89 02       ..
                 bne L8AB1                    ; 8AA4= D0 0B       P.
                 jsr LA958                    ; 8AA6= 20 58 A9     X)
-                eor ($75),Y                  ; 8AA9= 51 75       Qu
-                adc #$65                     ; 8AAB= 69 65       ie
-                stz $0D,X                    ; 8AAD= 74 0D       t.
-                brk                          ; 8AAF= 00          .
+                .text "Quiet",13,0
                 rts                          ; 8AB0= 60          `
 
 L8AB1:
                 jsr LA958                    ; 8AB1= 20 58 A9     X)
-                jmp $756F                    ; 8AB4= 4C 6F 75    Lou
-
-                stz $0D                      ; 8AB7= 64 0D       d.
-                brk                          ; 8AB9= 00          .
+                .text "Loud",13,0
                 rts                          ; 8ABA= 60          `
 
 L8ABB:
@@ -1647,23 +1559,15 @@ L8ABB:
                 bit #$04                     ; 8ABE= 89 04       ..
                 bne L8ACA                    ; 8AC0= D0 08       P.
                 jsr LA958                    ; 8AC2= 20 58 A9     X)
-                eor #$6E                     ; 8AC5= 49 6E       In
-                brk                          ; 8AC7= 00          .
+                .text "In",0
                 bra L8AD0                    ; 8AC8= 80 06       ..
 
 L8ACA:
                 jsr LA958                    ; 8ACA= 20 58 A9     X)
-                eor $78                      ; 8ACD= 45 78       Ex
-                brk                          ; 8ACF= 00          .
+                .text "Ex",0
 L8AD0:
                 jsr LA958                    ; 8AD0= 20 58 A9     X)
-                stz $65,X                    ; 8AD3= 74 65       te
-                adc ($6E)                    ; 8AD5= 72 6E       rn
-                adc ($6C,X)                  ; 8AD7= 61 6C       al
-                jsr $7554                    ; 8AD9= 20 54 75     Tu
-                .byte $62                    ; 8ADC= 62          b
-                adc $0D                      ; 8ADD= 65 0D       e.
-                brk                          ; 8ADF= 00          .
+                .text "ternal Tube",13,0
                 rts                          ; 8AE0= 60          `
 
 L8AE1:
@@ -1673,11 +1577,7 @@ L8AE1:
                 jsr L8EB1                    ; 8AE8= 20 B1 8E     1.
 L8AEB:
                 jsr LA958                    ; 8AEB= 20 58 A9     X)
-                .byte $42                    ; 8AEE= 42          B
-                .byte $6F                    ; 8AEF= 6F          o
-                .byte $6F                    ; 8AF0= 6F          o
-                stz $0D,X                    ; 8AF1= 74 0D       t.
-                brk                          ; 8AF3= 00          .
+                .text "Boot",13,0
                 rts                          ; 8AF4= 60          `
 
 L8AF5:
@@ -1687,10 +1587,7 @@ L8AF5:
                 jsr L8EB1                    ; 8AFB= 20 B1 8E     1.
 L8AFE:
                 jsr LA958                    ; 8AFE= 20 58 A9     X)
-                .byte $54                    ; 8B01= 54          T
-                adc $62,X                    ; 8B02= 75 62       ub
-                adc $0D                      ; 8B04= 65 0D       e.
-                brk                          ; 8B06= 00          .
+                .text "Tube",13,0
                 rts                          ; 8B07= 60          `
 
 L8B08:
@@ -1743,10 +1640,7 @@ L8B3F:
 L8B4B:
                 jsr L8EB1                    ; 8B4B= 20 B1 8E     1.
                 jsr LA958                    ; 8B4E= 20 58 A9     X)
-                eor #$67                     ; 8B51= 49 67       Ig
-                ror $726F                    ; 8B53= 6E 6F 72    nor
-                adc $0D                      ; 8B56= 65 0D       e.
-                brk                          ; 8B58= 00          .
+                .text "Ignore",13,0
                 rts                          ; 8B59= 60          `
 
 L8B5A:
@@ -1759,10 +1653,7 @@ L8B62:
                 bit #$02                     ; 8B65= 89 02       ..
                 bne L8B4B                    ; 8B67= D0 E2       Pb
                 jsr LA958                    ; 8B69= 20 58 A9     X)
-                eor #$67                     ; 8B6C= 49 67       Ig
-                ror $726F                    ; 8B6E= 6E 6F 72    nor
-                adc $20                      ; 8B71= 65 20       e
-                jsr $0020                    ; 8B73= 20 20 00      .
+                .text "Ignore   ",0
                 bra L8B5A                    ; 8B76= 80 E2       .b
 
 L8B78:
@@ -1787,10 +1678,7 @@ L8B8E:
                 asl A                        ; 8B91= 0A          .
                 bcs L8B9E                    ; 8B92= B0 0A       0.
                 jsr LA958                    ; 8B94= 20 58 A9     X)
-                pha                          ; 8B97= 48          H
-                adc ($72,X)                  ; 8B98= 61 72       ar
-                stz $0D                      ; 8B9A= 64 0D       d.
-                brk                          ; 8B9C= 00          .
+                .text "Hard",13,0
                 rts                          ; 8B9D= 60          `
 
 L8B9E:
@@ -1812,12 +1700,8 @@ L8BAA:
                 jsr L8EB1                    ; 8BB1= 20 B1 8E     1.
 L8BB4:
                 jsr LA958                    ; 8BB4= 20 58 A9     X)
-                .byte $44                    ; 8BB7= 44          D
-                adc #$72                     ; 8BB8= 69 72       ir
-                adc $63                      ; 8BBA= 65 63       ec
-                stz $6F,X                    ; 8BBC= 74 6F       to
-                adc ($79)                    ; 8BBE= 72 79       ry
-                ora $6000                    ; 8BC0= 0D 00 60    ..`
+                .text "Directory",13,0
+                rts
 L8BC3:
                 tya                          ; 8BC3= 98          .
 L8BC4:
@@ -1980,11 +1864,7 @@ L8DA9:
                 jsr L8B34                    ; 8E3E= 20 34 8B     4.
                 jsr L8A89                    ; 8E41= 20 89 8A     ..
                 jsr LA958                    ; 8E44= 20 58 A9     X)
-                .byte $54                    ; 8E47= 54          T
-                lsr $20,X                    ; 8E48= 56 20       V
-                jsr $2020                    ; 8E4A= 20 20 20
-                jsr $2020                    ; 8E4D= 20 20 20
-                brk                          ; 8E50= 00          .
+                .text "TV       ",0
                 jsr L8B17                    ; 8E51= 20 17 8B     ..
                 ply                          ; 8E54= 7A          z
                 ldx #$29                     ; 8E55= A2 29       ")
@@ -2069,8 +1949,7 @@ L8EAD:
 
 L8EB1:
                 jsr LA958                    ; 8EB1= 20 58 A9     X)
-                lsr $206F                    ; 8EB4= 4E 6F 20    No
-                brk                          ; 8EB7= 00          .
+                .text "No ",0
                 rts                          ; 8EB8= 60          `
 
 L8EB9:
@@ -2219,8 +2098,7 @@ L8FA3:
 L8FB7:
                 phy                          ; 8FB7= 5A          Z
                 jsr LA958                    ; 8FB8= 20 58 A9     X)
-                jsr $2020                    ; 8FBB= 20 20 20
-                brk                          ; 8FBE= 00          .
+                .text "   ",0
                 ply                          ; 8FBF= 7A          z
                 lda #$20                     ; 8FC0= A9 20       )
                 sta $02F5,X                  ; 8FC2= 9D F5 02    .u.
@@ -2641,8 +2519,7 @@ L9259:
                 cpx #$08                     ; 9259= E0 08       `.
                 beq L9267                    ; 925B= F0 0A       p.
                 jsr LA958                    ; 925D= 20 58 A9     X)
-                jsr $2020                    ; 9260= 20 20 20
-                brk                          ; 9263= 00          .
+                .text "   ",0
                 inx                          ; 9264= E8          h
                 bra L9259                    ; 9265= 80 F2       .r
 
@@ -4449,17 +4326,11 @@ L9E38:
                 bne L9E61                    ; 9E41= D0 1E       P.
                 jsr L9EFC                    ; 9E43= 20 FC 9E     |.
                 jsr LA958                    ; 9E46= 20 58 A9     X)
-                jsr $4D20                    ; 9E49= 20 20 4D      M
-                .byte $4F                    ; 9E4C= 4F          O
-                .byte $53                    ; 9E4D= 53          S
-                ora $540D                    ; 9E4E= 0D 0D 54    ..T
-                eor $52                      ; 9E51= 45 52       ER
-                eor $4E49                    ; 9E53= 4D 49 4E    MIN
-                eor ($4C,X)                  ; 9E56= 41 4C       AL
-                jsr $2E31                    ; 9E58= 20 31 2E     1.
-                and ($30)                    ; 9E5B= 32 30       20
-                ora L8000                    ; 9E5D= 0D 00 80    ...
-                rol A                        ; 9E60= 2A          *
+                .text "  MOS",13
+                .text 13
+                .text "TERMINAL 1.20",13
+                .text 0
+                bra L9E8B
 L9E61:
                 ldx #$02                     ; 9E61= A2 02       ".
 L9E63:
@@ -4563,10 +4434,8 @@ L9EF4:
 L9EFC:
                 phy                          ; 9EFC= 5A          Z
                 jsr LA958                    ; 9EFD= 20 58 A9     X)
-                ora $534F                    ; 9F00= 0D 4F 53    .OS
-                jsr $2E33                    ; 9F03= 20 33 2E     3.
-                and ($30)                    ; 9F06= 32 30       20
-                ora $7A00                    ; 9F08= 0D 00 7A    ..z
+                .text 13,"OS 3.20",13,0
+                ply
                 rts                          ; 9F0B= 60          `
 
 L9F0C:

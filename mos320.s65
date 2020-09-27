@@ -4370,10 +4370,7 @@ L9DA7:
                 ldx #$41                     ; 9DBF= A2 41       "A
 L9DC1:
                 lda LAB2D,X                  ; 9DC1= BD 2D AB    =-+
-                .byte $9D                    ;STA &0016,X      :\ 9DC4= 9D 16 00    ...
-                .byte $16
-                .byte $00
-                .warn "fix STA abs,X"
+                sta @w$16,x                  ; 9DC4= 9D 16 00    ...
                 dex                          ; 9DC7= CA          J
                 bpl L9DC1                    ; 9DC8= 10 F7       .w
 

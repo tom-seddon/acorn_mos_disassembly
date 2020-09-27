@@ -16,11 +16,14 @@ OSFILE=$FFDD
 OSARGS=$FFDA
 
 CRTC=$FE00
+ACIA=$fe08
+SERPROC=$fe10
 HADC=$fe18
 SYSTEM_VIA=$fe40
 USER_VIA=$fe60
 TUBE=$fee0
 ROMSEL=$fe30
+ACCCON=$fe34
 VCONTROL=$fe20
 VPALETTE=$fe21
 
@@ -81,7 +84,7 @@ L8012:
 ; =======
 L8020:
                 lda #$FE                     ; 8022= 1C 34 FE    .4~
-                trb LFE34
+                trb ACCCON
                 stz HAZEL_WORKSPACE+$DD
                 trb $0366
                 cld
@@ -95,7 +98,7 @@ L8020:
                 jsr L98E4                    ; 803B= 20 E4 98     d.
                 jsr L9729                    ; 803E= 20 29 97     ).
                 lda #$0C                     ; 8041= A9 0C       ).
-                tsb LFE34                    ; 8043= 0C 34 FE    .4~
+                tsb ACCCON                    ; 8043= 0C 34 FE    .4~
                 lda SYSTEM_VIA+$E            ; 8046= AD 4E FE    -N~
                 asl A                        ; 8049= 0A          .
                 pha                          ; 804A= 48          H
@@ -121,7 +124,7 @@ L805A:
                 cpx #$E0                     ; 8068= E0 E0       ``
                 bcc L805A                    ; 806A= 90 EE       .n
                 lda #$04                     ; 806C= A9 04       ).
-                trb LFE34                    ; 806E= 1C 34 FE    .4~
+                trb ACCCON                    ; 806E= 1C 34 FE    .4~
                 bne L8055                    ; 8071= D0 E2       Pb
 L8073:
                 lda #$11                     ; 8075= 8D 04 DF    .._
@@ -129,7 +132,7 @@ L8073:
                 lda #$E8                     ; 807A= 8D 05 DF    .._
                 sta HAZEL_WORKSPACE+$05
                 lda #$0C                     ; 807F= 1C 34 FE    .4~
-                trb LFE34
+                trb ACCCON
                 lda #$0F                     ; 8084= 8D 8E 02    ...
                 sta $028E
 L8087:
@@ -394,16 +397,16 @@ L829D:
                 bit #$04                     ; 82A6= 89 04       ..
                 php                          ; 82A8= 08          .
                 lda #$10                     ; 82A9= A9 10       ).
-                trb LFE34                    ; 82AB= 1C 34 FE    .4~
+                trb ACCCON                    ; 82AB= 1C 34 FE    .4~
                 plp                          ; 82AE= 28          (
                 bne L82B4                    ; 82AF= D0 03       P.
-                tsb LFE34                    ; 82B1= 0C 34 FE    .4~
+                tsb ACCCON                    ; 82B1= 0C 34 FE    .4~
 L82B4:
                 jsr LE375                    ; If Tube hardware present, jump to Tube PreInit
                 bcs L82C6
-                lda LFE34                    ; Toggle Internal/External Tube
+                lda ACCCON                    ; Toggle Internal/External Tube
                 eor #$10
-                sta LFE34
+                sta ACCCON
                 jsr LE375                    ; No Tube, skip past Tube PreInit
                 bcc L82D0
 L82C6:
@@ -2496,7 +2499,7 @@ L90AB:
 ; *MOVE
 ; =====
 L90B6:
-                lda LFE34                    ; Save ACCCON
+                lda ACCCON                    ; Save ACCCON
                 sta HAZEL_WORKSPACE+$DC
                 pha                          ; Save ACCCON and command line pointer
                 phx
@@ -2516,7 +2519,7 @@ L90CE:
                 lda #$30                     ; &3000=start of shadow memory
                 sta HAZEL_WORKSPACE+$D6
                 lda #$04
-                tsb LFE34
+                tsb ACCCON
                 sta HAZEL_WORKSPACE+$DD      ; set 'ACCCON changed'
                 tya                          ; A=length of space in shadow memory
                 sec
@@ -2649,7 +2652,7 @@ L91B3:
 L91B5:
                 pla                          ; Clear 'ACCCON changed', restore ACCCON
                 stz HAZEL_WORKSPACE+$DD
-                sta LFE34
+                sta ACCCON
                 rts
 
 L91BD:
@@ -4527,7 +4530,7 @@ L9DEA:
                 beq L9DFC
                 stz HAZEL_WORKSPACE+$DD      ; Clear ACCCON changed flag
                 lda HAZEL_WORKSPACE+$DC      ; Restore ACCCON
-                sta LFE34
+                sta ACCCON
 L9DFC:
                 phy                          ; 9DFC= 5A          Z
                 ldy HAZEL_WORKSPACE+$D4      ; 9DFD= AC D4 DF    ,T_
@@ -5595,7 +5598,7 @@ LA45D:
                 bra LA485                    ; A469= 80 1A       ..
 
 LA46B:
-                lda LFE08                    ; A46B= AD 08 FE    -.~
+                lda ACIA+0                    ; A46B= AD 08 FE    -.~
                 pha                          ; A46E= 48          H
                 and #$02                     ; A46F= 29 02       ).
                 beq LA47E                    ; A471= F0 0B       p.
@@ -5603,11 +5606,11 @@ LA46B:
                 beq LA47E                    ; A475= F0 07       p.
                 pla                          ; A477= 68          h
                 lda $BD                      ; A478= A5 BD       %=
-                sta LFE09                    ; A47A= 8D 09 FE    ..~
+                sta ACIA+1                    ; A47A= 8D 09 FE    ..~
                 rts                          ; A47D= 60          `
 
 LA47E:
-                ldy LFE09                    ; A47E= AC 09 FE    ,.~
+                ldy ACIA+1                    ; A47E= AC 09 FE    ,.~
                 pla                          ; A481= 68          h
                 lsr A                        ; A482= 4A          J
                 lsr A                        ; A483= 4A          J
@@ -6470,7 +6473,7 @@ LA9CA:
                 php                          ; A9CA= 08          .
                 sei                          ; A9CB= 78          x
                 lda $0282                    ; A9CC= AD 82 02    -..
-                sta LFE10                    ; A9CF= 8D 10 FE    ..~
+                sta SERPROC+0                    ; A9CF= 8D 10 FE    ..~
                 stz $EA                      ; A9D2= 64 EA       dj
                 bra LA9D7                    ; A9D4= 80 01       ..
 
@@ -6531,7 +6534,7 @@ LAA16:
 
 LAA1C:
                 lda #$05                     ; AA1C= A9 05       ).
-                sta LFE10                    ; AA1E= 8D 10 FE    ..~
+                sta SERPROC+0                    ; AA1E= 8D 10 FE    ..~
                 ldx #$FF                     ; AA21= A2 FF       ".
 LAA23:
                 dex                          ; AA23= CA          J
@@ -6540,11 +6543,11 @@ LAA23:
                 lda #$D0                     ; AA28= A9 D0       )P
 LAA2A:
                 ldy #$85                     ; AA2A= A0 85        .
-                sty LFE10                    ; AA2C= 8C 10 FE    ..~
+                sty SERPROC+0                    ; AA2C= 8C 10 FE    ..~
 LAA2F:
                 ora $C6                      ; AA2F= 05 C6       .F
 LAA31:
-                sta LFE08                    ; AA31= 8D 08 FE    ..~
+                sta ACIA+0                    ; AA31= 8D 08 FE    ..~
                 rts                          ; AA34= 60          `
 
 LAA35:
@@ -11544,14 +11547,14 @@ LC7BC:
                 lda #$10                     ; C7CA= A9 10       ).
                 trb $D0                      ; C7CC= 14 D0       .P
                 lda #$03                     ; C7CE= A9 03       ).
-                trb LFE34                    ; C7D0= 1C 34 FE    .4~
+                trb ACCCON                    ; C7D0= 1C 34 FE    .4~
                 bra LC7DE                    ; C7D3= 80 09       ..
 
 LC7D5:
                 lda #$10                     ; C7D5= A9 10       ).
                 tsb $D0                      ; C7D7= 04 D0       .P
                 lda #$03                     ; C7D9= A9 03       ).
-                tsb LFE34                    ; C7DB= 0C 34 FE    .4~
+                tsb ACCCON                    ; C7DB= 0C 34 FE    .4~
 LC7DE:
                 tya                          ; C7DE= 98          .
                 and #$07                     ; C7DF= 29 07       ).
@@ -16371,7 +16374,7 @@ LE5E6:
                 jmp LE912                    ; E5E6= 4C 12 E9    L.i
 
 LE5E9:
-                ldy LFE09                    ; E5E9= AC 09 FE    ,.~
+                ldy ACIA+1                    ; E5E9= AC 09 FE    ,.~
                 and #$3A                     ; E5EC= 29 3A       ):
                 bne LE628                    ; E5EE= D0 38       P8
                 ldx $025C                    ; E5F0= AE 5C 02    .\.
@@ -16398,7 +16401,7 @@ LE5FE:
                 rti                          ; E60E= 40          @
 
 LE60F:
-                lda LFE08                    ; E60F= AD 08 FE    -.~
+                lda ACIA+0                    ; E60F= AD 08 FE    -.~
                 bvs LE616                    ; E612= 70 02       p.
                 bpl LE672                    ; E614= 10 5C       .\
 LE616:
@@ -16410,7 +16413,7 @@ LE616:
                 jmp LA45D                    ; E620= 4C 5D A4    L]$
 
 LE623:
-                ldy LFE09                    ; E623= AC 09 FE    ,.~
+                ldy ACIA+1                    ; E623= AC 09 FE    ,.~
                 rol A                        ; E626= 2A          *
                 asl A                        ; E627= 0A          .
 LE628:
@@ -16431,7 +16434,7 @@ LE62F:
                 ror $02D1                    ; E641= 6E D1 02    nQ.
                 bmi LE5D4                    ; E644= 30 8E       0.
 LE646:
-                sta LFE09                    ; E646= 8D 09 FE    ..~
+                sta ACIA+1                    ; E646= 8D 09 FE    ..~
                 lda #$E7                     ; E649= A9 E7       )g
                 sta $EA                      ; E64B= 85 EA       .j
 LE64D:
@@ -16731,10 +16734,10 @@ LE833:
                 pla                          ; E83A= 68          h
                 pha                          ; E83B= 48          H
                 tax                          ; E83C= AA          *
-                lda LFE34                    ; E83D= AD 34 FE    -4~
+                lda ACCCON                    ; E83D= AD 34 FE    -4~
                 pha                          ; E840= 48          H
                 lda #$08                     ; E841= A9 08       ).
-                trb LFE34                    ; E843= 1C 34 FE    .4~
+                trb ACCCON                    ; E843= 1C 34 FE    .4~
                 lda $F4                      ; E846= A5 F4       %t
                 pha                          ; E848= 48          H
                 lda #$8F                     ; E849= A9 8F       ).
@@ -16747,7 +16750,7 @@ LE833:
                 sta ROMSEL                   ; E857= 8D 30 FE    .0~
                 pla                          ; E85A= 68          h
                 and #$08                     ; E85B= 29 08       ).
-                tsb LFE34                    ; E85D= 0C 34 FE    .4~
+                tsb ACCCON                    ; E85D= 0C 34 FE    .4~
                 bcs LE869                    ; E860= B0 07       0.
 LE862:
                 lda #$08                     ; E862= A9 08       ).
@@ -16867,7 +16870,7 @@ LE914:
                 ldx $0250                    ; E91E= AE 50 02    .P.
 LE921:
                 sta $0250                    ; E921= 8D 50 02    .P.
-                sta LFE08                    ; E924= 8D 08 FE    ..~
+                sta ACIA+0                    ; E924= 8D 08 FE    ..~
                 plp                          ; E927= 28          (
 LE928:
                 rts                          ; E928= 60          `
@@ -17457,7 +17460,7 @@ LEC6D:
                 eor $025D                    ; EC86= 4D 5D 02    M].
 LEC89:
                 sta $0282                    ; EC89= 8D 82 02    ...
-                sta LFE10                    ; EC8C= 8D 10 FE    ..~
+                sta SERPROC+0                    ; EC8C= 8D 10 FE    ..~
 LEC8F:
                 tya                          ; EC8F= 98          .
 LEC90:
@@ -17496,11 +17499,11 @@ LECB4:
                 cmp $0250                    ; ECBF= CD 50 02    MP.
                 php                          ; ECC2= 08          .
                 sta $0250                    ; ECC3= 8D 50 02    .P.
-                sta LFE08                    ; ECC6= 8D 08 FE    ..~
+                sta ACIA+0                    ; ECC6= 8D 08 FE    ..~
                 jsr LE90B                    ; ECC9= 20 0B E9     .i
                 plp                          ; ECCC= 28          (
                 beq LECD2                    ; ECCD= F0 03       p.
-                bit LFE09                    ; ECCF= 2C 09 FE    ,.~
+                bit ACIA+1                    ; ECCF= 2C 09 FE    ,.~
 LECD2:
                 ldx $0241                    ; ECD2= AE 41 02    .A.
                 pla                          ; ECD5= 68          h
@@ -17610,13 +17613,13 @@ LED58:
                 asl A                        ; ED5B= 0A          .
                 beq LED62                    ; ED5C= F0 04       p.
 LED5E:
-                tsb LFE34                    ; ED5E= 0C 34 FE    .4~
+                tsb ACCCON                    ; ED5E= 0C 34 FE    .4~
                 rts                          ; ED61= 60          `
 
 LED62:
                 lda #$02                     ; ED62= A9 02       ).
 LED64:
-                trb LFE34                    ; ED64= 1C 34 FE    .4~
+                trb ACCCON                    ; ED64= 1C 34 FE    .4~
                 rts                          ; ED67= 60          `
 
 LED68:
@@ -17665,7 +17668,7 @@ LED94:
 ; ==============================
 LED9A:
                 jsr LEDC0
-                lda LFE34                    ; Save ACCON register
+                lda ACCCON                    ; Save ACCON register
                 pha
                 jsr LEDBA                    ; Page Hazel workspace in
                 ldx HAZEL_WORKSPACE+$01      ;
@@ -17677,13 +17680,13 @@ LEDB0:
                 and #$08
                 bne LEDBC
                 lda #$08
-                trb LFE34
+                trb ACCCON
                 rts
 
 LEDBA:
                 lda #$08                     ; EDBA= A9 08       ).
 LEDBC:
-                tsb LFE34                    ; EDBC= 0C 34 FE    .4~
+                tsb ACCCON                    ; EDBC= 0C 34 FE    .4~
                 rts                          ; EDBF= 60          `
 
 ; Select ROM or TAPE
@@ -17756,7 +17759,7 @@ LEE14:
 LEE1C:
                 ply                          ; EE1C= 7A          z
                 pha                          ; EE1D= 48          H
-                lda LFE34                    ; EE1E= AD 34 FE    -4~
+                lda ACCCON                    ; EE1E= AD 34 FE    -4~
                 pha                          ; EE21= 48          H
                 jsr LEDBA                    ; EE22= 20 BA ED     :m
                 sec                          ; EE25= 38          8
@@ -17781,7 +17784,7 @@ LEE3B:
 LEE43:
                 ply                          ; EE43= 7A          z
                 pha                          ; EE44= 48          H
-                lda LFE34                    ; EE45= AD 34 FE    -4~
+                lda ACCCON                    ; EE45= AD 34 FE    -4~
                 pha                          ; EE48= 48          H
                 jsr LEDBA                    ; EE49= 20 BA ED     :m
                 lda $021E                    ; Save FSC
@@ -17815,7 +17818,7 @@ LEE64:
 LEE72:
                 lda $F4                      ; Save current ROM
                 pha
-                lda LFE34                    ; Save current paging state
+                lda ACCCON                    ; Save current paging state
                 pha
                 jsr LEDBA                    ; Page in Hazel
                 txa                          ; Pass service call number to A
@@ -17855,11 +17858,11 @@ LEEA2:
                 ldy #$04                     ; Y=&04 to change RAM bit
 LEEA4:
                 tya                          ; Clear RAM or 1MHz bit
-                trb LFE34
+                trb ACCCON
                 txa                          ; If X=0, exit with normal RAM/1MHz selected
                 beq LEEB0
                 lda #$04                     ; BUG! This should be TYA
-                tsb LFE34                    ; Page in shadow RAM
+                tsb ACCCON                    ; Page in shadow RAM
 LEEB0:
                 rts                          ; X preserved, Y=&04 or &20
 
@@ -18795,10 +18798,10 @@ LF3AB:
                 sta $0107,X                  ; F3C0= 9D 07 01    ...
                 lda #$D6                     ; F3C3= A9 D6       )V
                 sta $0106,X                  ; F3C5= 9D 06 01    ...
-                lda LFE34                    ; F3C8= AD 34 FE    -4~
+                lda ACCCON                    ; F3C8= AD 34 FE    -4~
                 sta $0108,X                  ; F3CB= 9D 08 01    ...
                 lda #$08                     ; F3CE= A9 08       ).
-                trb LFE34                    ; F3D0= 1C 34 FE    .4~
+                trb ACCCON                    ; F3D0= 1C 34 FE    .4~
 LF3D3:
                 plx                          ; F3D3= FA          z
                 pla                          ; F3D4= 68          h
@@ -20116,433 +20119,59 @@ LFBED:
                 .byte $FF                    ; FBFD= FF          .
                 .byte $FF                    ; FBFE= FF          .
                 .byte $FF                    ; FBFF= FF          .
-LFC00:
-                plp                          ; FC00= 28          (
-                .byte $43                    ; FC01= 43          C
-                and #$20                     ; FC02= 29 20       )
-                and ($39),Y                  ; FC04= 31 39       19
-                sec                          ; FC06= 38          8
-                bit $20,X                    ; FC07= 34 20       4
-                eor ($63,X)                  ; FC09= 41 63       Ac
-                .byte $6F                    ; FC0B= 6F          o
-                adc ($6E)                    ; FC0C= 72 6E       rn
-                jsr $6F43                    ; FC0E= 20 43 6F     Co
-                adc $7570                    ; FC11= 6D 70 75    mpu
-                stz $65,X                    ; FC14= 74 65       te
-                adc ($73)                    ; FC16= 72 73       rs
-                jsr $744C                    ; FC18= 20 4C 74     Lt
-                stz $2E                      ; FC1B= 64 2E       d.
-                .byte $54                    ; FC1D= 54          T
-                pla                          ; FC1E= 68          h
-                adc ($6E,X)                  ; FC1F= 61 6E       an
-                .byte $6B                    ; FC21= 6B          k
-                .byte $73                    ; FC22= 73          s
-                jsr $7261                    ; FC23= 20 61 72     ar
-                adc $20                      ; FC26= 65 20       e
-                stz $75                      ; FC28= 64 75       du
-                adc $20                      ; FC2A= 65 20       e
-                stz $6F,X                    ; FC2C= 74 6F       to
-                jsr $6874                    ; FC2E= 20 74 68     th
-                adc $20                      ; FC31= 65 20       e
-                ror $6F                      ; FC33= 66 6F       fo
-                jmp ($6F6C)                  ; FC35= 6C 6C 6F    llo
 
-                .byte $77                    ; FC38= 77          w
-                adc #$6E                     ; FC39= 69 6E       in
-                .byte $67                    ; FC3B= 67          g
-                jsr $6F63                    ; FC3C= 20 63 6F     co
-                ror $7274                    ; FC3F= 6E 74 72    ntr
-                adc #$62                     ; FC42= 69 62       ib
-                adc $74,X                    ; FC44= 75 74       ut
-                .byte $6F                    ; FC46= 6F          o
-                adc ($73)                    ; FC47= 72 73       rs
-                jsr $6F74                    ; FC49= 20 74 6F     to
-                jsr $6874                    ; FC4C= 20 74 68     th
-                adc $20                      ; FC4F= 65 20       e
-                .byte $42                    ; FC51= 42          B
-                .byte $42                    ; FC52= 42          B
-                .byte $43                    ; FC53= 43          C
-                jsr $6F43                    ; FC54= 20 43 6F     Co
-                adc $7570                    ; FC57= 6D 70 75    mpu
-                stz $65,X                    ; FC5A= 74 65       te
-                adc ($20)                    ; FC5C= 72 20       r
-                plp                          ; FC5E= 28          (
-                adc ($6D,X)                  ; FC5F= 61 6D       am
-                .byte $6F                    ; FC61= 6F          o
-                ror $2067                    ; FC62= 6E 67 20    ng
-                .byte $6F                    ; FC65= 6F          o
-                stz $68,X                    ; FC66= 74 68       th
-                adc $72                      ; FC68= 65 72       er
-                .byte $73                    ; FC6A= 73          s
-                jsr $6F74                    ; FC6B= 20 74 6F     to
-                .byte $6F                    ; FC6E= 6F          o
-                jsr $756E                    ; FC6F= 20 6E 75     nu
-                adc $7265                    ; FC72= 6D 65 72    mer
-                .byte $6F                    ; FC75= 6F          o
-                adc $73,X                    ; FC76= 75 73       us
-                jsr $6F74                    ; FC78= 20 74 6F     to
-                jsr $656D                    ; FC7B= 20 6D 65     me
-                ror $6974                    ; FC7E= 6E 74 69    nti
-                .byte $6F                    ; FC81= 6F          o
-                ror $3A29                    ; FC82= 6E 29 3A    n):
-                and $4420                    ; FC85= 2D 20 44    - D
-                adc ($76,X)                  ; FC88= 61 76       av
-                adc #$64                     ; FC8A= 69 64       id
-                jsr $6C41                    ; FC8C= 20 41 6C     Al
-                jmp ($6E65)                  ; FC8F= 6C 65 6E    len
+                .text "(C) 1984 Acorn Computers Ltd."
+                .text "Thanks are due to the following contributors to the BBC Computer (among others too numerous to mention):- "
+                .text "David Allen,"
+                .text "Clive Angel,"
+                .text "David Bell,"
+                .text "Paul Bond,"
+                .text "Allen Boothroyd,"
+                .text "Julian Brown,"
+                .text "Tudor Brown,"
+                .text "Brian Cockburn,"
+                .text "Pete Cockerell,"
+                .text "Mark Colton,"
+                .text "Chris Curry,"
+                .text "Joe Dunn,"
+                .text "Paul Freakley,"
+                .text "Steve Furber,"
+                .text "Martyn Gilbert,"
+                .text "John Harrison,"
+                .text "Hermann Hauser,"
+                .text "Mike Hill,"
+                .text "John Horton,"
+                .text "Neil Johnson,"
+                .text "Richard King,"
+                .text "David Kitson,"
+                .text "Julian Lomberg,"
+                .text "Rob Macmillan,"
+                .text "Richard Manby,"
+                .text "Peter McKenna,"
+                .text "Andrew McKernan,"
+                .text "Mick Neil,"
+                .text "Ian Niblock,"
+                .text "Glen Nicholls,"
+                .text "Robert Nokes,"
+                .text "Richard Page,"
+                .text "Steve Parsons,"
+                .text "Ed Phipps,"
+                .text "John Radcliffe,"
+                .text "Rick Rand,"
+                .text "Brian Robertson,"
+                .text "Richard Russell,"
+                .text "Gordon Sage,"
+                .text "Terry Scotcher,"
+                .text "David Seal,"
+                .text "Paul Swindell,"
+                .text "Jon Thackray,"
+                .text "Hugo Tyson,"
+                .text "Adrian Warner,"
+                .text "Jess Wills,"
+                .text "Roger Wilson,"
+                .text "Graham Winterflood."
+                .text "   "
 
-                bit $6C43                    ; FC92= 2C 43 6C    ,Cl
-                adc #$76                     ; FC95= 69 76       iv
-                adc $20                      ; FC97= 65 20       e
-                eor ($6E,X)                  ; FC99= 41 6E       An
-                .byte $67                    ; FC9B= 67          g
-                adc $6C                      ; FC9C= 65 6C       el
-                bit $6144                    ; FC9E= 2C 44 61    ,Da
-                ror $69,X                    ; FCA1= 76 69       vi
-                stz $20                      ; FCA3= 64 20       d
-                .byte $42                    ; FCA5= 42          B
-                adc $6C                      ; FCA6= 65 6C       el
-                jmp ($502C)                  ; FCA8= 6C 2C 50    l,P
-
-                adc ($75,X)                  ; FCAB= 61 75       au
-                jmp ($4220)                  ; FCAD= 6C 20 42    l B
-
-                .byte $6F                    ; FCB0= 6F          o
-                ror $2C64                    ; FCB1= 6E 64 2C    nd,
-                eor ($6C,X)                  ; FCB4= 41 6C       Al
-                jmp ($6E65)                  ; FCB6= 6C 65 6E    len
-
-                jsr $6F42                    ; FCB9= 20 42 6F     Bo
-                .byte $6F                    ; FCBC= 6F          o
-                stz $68,X                    ; FCBD= 74 68       th
-                adc ($6F)                    ; FCBF= 72 6F       ro
-                adc $2C64,Y                  ; FCC1= 79 64 2C    yd,
-                lsr A                        ; FCC4= 4A          J
-                adc $6C,X                    ; FCC5= 75 6C       ul
-                adc #$61                     ; FCC7= 69 61       ia
-                ror $4220                    ; FCC9= 6E 20 42    n B
-                adc ($6F)                    ; FCCC= 72 6F       ro
-                .byte $77                    ; FCCE= 77          w
-                ror $542C                    ; FCCF= 6E 2C 54    n,T
-                adc $64,X                    ; FCD2= 75 64       ud
-                .byte $6F                    ; FCD4= 6F          o
-                adc ($20)                    ; FCD5= 72 20       r
-                .byte $42                    ; FCD7= 42          B
-                adc ($6F)                    ; FCD8= 72 6F       ro
-                .byte $77                    ; FCDA= 77          w
-                ror $422C                    ; FCDB= 6E 2C 42    n,B
-                adc ($69)                    ; FCDE= 72 69       ri
-                adc ($6E,X)                  ; FCE0= 61 6E       an
-                jsr $6F43                    ; FCE2= 20 43 6F     Co
-                .byte $63                    ; FCE5= 63          c
-                .byte $6B                    ; FCE6= 6B          k
-                .byte $62                    ; FCE7= 62          b
-                adc $72,X                    ; FCE8= 75 72       ur
-                ror $502C                    ; FCEA= 6E 2C 50    n,P
-                adc $74                      ; FCED= 65 74       et
-                adc $20                      ; FCEF= 65 20       e
-                .byte $43                    ; FCF1= 43          C
-                .byte $6F                    ; FCF2= 6F          o
-                .byte $63                    ; FCF3= 63          c
-                .byte $6B                    ; FCF4= 6B          k
-                adc $72                      ; FCF5= 65 72       er
-                adc $6C                      ; FCF7= 65 6C       el
-                jmp ($4D2C)                  ; FCF9= 6C 2C 4D    l,M
-
-                adc ($72,X)                  ; FCFC= 61 72       ar
-                .byte $6B                    ; FCFE= 6B          k
-                jsr $6F43                    ; FCFF= 20 43 6F     Co
-                jmp ($6F74)                  ; FD02= 6C 74 6F    lto
-
-                ror $432C                    ; FD05= 6E 2C 43    n,C
-                pla                          ; FD08= 68          h
-                adc ($69)                    ; FD09= 72 69       ri
-                .byte $73                    ; FD0B= 73          s
-                jsr $7543                    ; FD0C= 20 43 75     Cu
-                adc ($72)                    ; FD0F= 72 72       rr
-                adc $4A2C,Y                  ; FD11= 79 2C 4A    y,J
-                .byte $6F                    ; FD14= 6F          o
-                adc $20                      ; FD15= 65 20       e
-                .byte $44                    ; FD17= 44          D
-                adc $6E,X                    ; FD18= 75 6E       un
-                ror $502C                    ; FD1A= 6E 2C 50    n,P
-                adc ($75,X)                  ; FD1D= 61 75       au
-                jmp ($4620)                  ; FD1F= 6C 20 46    l F
-
-                adc ($65)                    ; FD22= 72 65       re
-                adc ($6B,X)                  ; FD24= 61 6B       ak
-                jmp ($7965)                  ; FD26= 6C 65 79    ley
-
-                bit $7453                    ; FD29= 2C 53 74    ,St
-                adc $76                      ; FD2C= 65 76       ev
-                adc $20                      ; FD2E= 65 20       e
-                lsr $75                      ; FD30= 46 75       Fu
-                adc ($62)                    ; FD32= 72 62       rb
-                adc $72                      ; FD34= 65 72       er
-                bit $614D                    ; FD36= 2C 4D 61    ,Ma
-                adc ($74)                    ; FD39= 72 74       rt
-                adc $206E,Y                  ; FD3B= 79 6E 20    yn
-                .byte $47                    ; FD3E= 47          G
-                adc #$6C                     ; FD3F= 69 6C       il
-                .byte $62                    ; FD41= 62          b
-                adc $72                      ; FD42= 65 72       er
-                stz $2C,X                    ; FD44= 74 2C       t,
-                lsr A                        ; FD46= 4A          J
-                .byte $6F                    ; FD47= 6F          o
-                pla                          ; FD48= 68          h
-                ror $4820                    ; FD49= 6E 20 48    n H
-                adc ($72,X)                  ; FD4C= 61 72       ar
-                adc ($69)                    ; FD4E= 72 69       ri
-                .byte $73                    ; FD50= 73          s
-                .byte $6F                    ; FD51= 6F          o
-                ror $482C                    ; FD52= 6E 2C 48    n,H
-                adc $72                      ; FD55= 65 72       er
-                adc $6E61                    ; FD57= 6D 61 6E    man
-                ror $4820                    ; FD5A= 6E 20 48    n H
-                adc ($75,X)                  ; FD5D= 61 75       au
-                .byte $73                    ; FD5F= 73          s
-                adc $72                      ; FD60= 65 72       er
-                bit $694D                    ; FD62= 2C 4D 69    ,Mi
-                .byte $6B                    ; FD65= 6B          k
-                adc $20                      ; FD66= 65 20       e
-                pha                          ; FD68= 48          H
-                adc #$6C                     ; FD69= 69 6C       il
-                jmp ($4A2C)                  ; FD6B= 6C 2C 4A    l,J
-
-                .byte $6F                    ; FD6E= 6F          o
-                pla                          ; FD6F= 68          h
-                ror $4820                    ; FD70= 6E 20 48    n H
-                .byte $6F                    ; FD73= 6F          o
-                adc ($74)                    ; FD74= 72 74       rt
-                .byte $6F                    ; FD76= 6F          o
-                ror $4E2C                    ; FD77= 6E 2C 4E    n,N
-                adc $69                      ; FD7A= 65 69       ei
-                jmp ($4A20)                  ; FD7C= 6C 20 4A    l J
-
-                .byte $6F                    ; FD7F= 6F          o
-                pla                          ; FD80= 68          h
-                ror $6F73                    ; FD81= 6E 73 6F    nso
-                ror $522C                    ; FD84= 6E 2C 52    n,R
-                adc #$63                     ; FD87= 69 63       ic
-                pla                          ; FD89= 68          h
-                adc ($72,X)                  ; FD8A= 61 72       ar
-                stz $20                      ; FD8C= 64 20       d
-                .byte $4B                    ; FD8E= 4B          K
-                adc #$6E                     ; FD8F= 69 6E       in
-                .byte $67                    ; FD91= 67          g
-                bit $6144                    ; FD92= 2C 44 61    ,Da
-                ror $69,X                    ; FD95= 76 69       vi
-                stz $20                      ; FD97= 64 20       d
-                .byte $4B                    ; FD99= 4B          K
-                adc #$74                     ; FD9A= 69 74       it
-                .byte $73                    ; FD9C= 73          s
-                .byte $6F                    ; FD9D= 6F          o
-                ror $4A2C                    ; FD9E= 6E 2C 4A    n,J
-                adc $6C,X                    ; FDA1= 75 6C       ul
-                adc #$61                     ; FDA3= 69 61       ia
-                ror $4C20                    ; FDA5= 6E 20 4C    n L
-                .byte $6F                    ; FDA8= 6F          o
-                adc $6562                    ; FDA9= 6D 62 65    mbe
-                adc ($67)                    ; FDAC= 72 67       rg
-                bit $6F52                    ; FDAE= 2C 52 6F    ,Ro
-                .byte $62                    ; FDB1= 62          b
-                jsr $614D                    ; FDB2= 20 4D 61     Ma
-                .byte $63                    ; FDB5= 63          c
-                adc $6C69                    ; FDB6= 6D 69 6C    mil
-                jmp ($6E61)                  ; FDB9= 6C 61 6E    lan
-
-                bit $6952                    ; FDBC= 2C 52 69    ,Ri
-                .byte $63                    ; FDBF= 63          c
-                pla                          ; FDC0= 68          h
-                adc ($72,X)                  ; FDC1= 61 72       ar
-                stz $20                      ; FDC3= 64 20       d
-                eor $6E61                    ; FDC5= 4D 61 6E    Man
-                .byte $62                    ; FDC8= 62          b
-                adc $502C,Y                  ; FDC9= 79 2C 50    y,P
-                adc $74                      ; FDCC= 65 74       et
-                adc $72                      ; FDCE= 65 72       er
-                jsr $634D                    ; FDD0= 20 4D 63     Mc
-                .byte $4B                    ; FDD3= 4B          K
-                adc $6E                      ; FDD4= 65 6E       en
-                ror $2C61                    ; FDD6= 6E 61 2C    na,
-                eor ($6E,X)                  ; FDD9= 41 6E       An
-                stz $72                      ; FDDB= 64 72       dr
-                adc $77                      ; FDDD= 65 77       ew
-                jsr $634D                    ; FDDF= 20 4D 63     Mc
-                .byte $4B                    ; FDE2= 4B          K
-                adc $72                      ; FDE3= 65 72       er
-                ror $6E61                    ; FDE5= 6E 61 6E    nan
-                bit $694D                    ; FDE8= 2C 4D 69    ,Mi
-                .byte $63                    ; FDEB= 63          c
-                .byte $6B                    ; FDEC= 6B          k
-                jsr $654E                    ; FDED= 20 4E 65     Ne
-                adc #$6C                     ; FDF0= 69 6C       il
-                bit $6149                    ; FDF2= 2C 49 61    ,Ia
-                ror $4E20                    ; FDF5= 6E 20 4E    n N
-                adc #$62                     ; FDF8= 69 62       ib
-                jmp ($636F)                  ; FDFA= 6C 6F 63    loc
-
-                .byte $6B                    ; FDFD= 6B          k
-                bit $6C47                    ; FDFE= 2C 47 6C    ,Gl
-                adc $6E                      ; FE01= 65 6E       en
-                jsr $694E                    ; FE03= 20 4E 69     Ni
-                .byte $63                    ; FE06= 63          c
-                pla                          ; FE07= 68          h
-LFE08:
-                .byte $6F                    ; FE08= 6F          o
-LFE09:
-                jmp ($736C)                  ; FE09= 6C 6C 73    lls
-
-                bit $6F52                    ; FE0C= 2C 52 6F    ,Ro
-                .byte $62                    ; FE0F= 62          b
-LFE10:
-                adc $72                      ; FE10= 65 72       er
-                stz $20,X                    ; FE12= 74 20       t
-                lsr $6B6F                    ; FE14= 4E 6F 6B    Nok
-                adc $73                      ; FE17= 65 73       es
-LFE19:
-                bit $6952                    ; FE19= 2C 52 69    ,Ri
-                .byte $63                    ; FE1C= 63          c
-                pla                          ; FE1D= 68          h
-                adc ($72,X)                  ; FE1E= 61 72       ar
-                stz $20                      ; FE20= 64 20       d
-                bvc LFE85                    ; FE22= 50 61       Pa
-                .byte $67                    ; FE24= 67          g
-                adc $2C                      ; FE25= 65 2C       e,
-                .byte $53                    ; FE27= 53          S
-                stz $65,X                    ; FE28= 74 65       te
-                ror $65,X                    ; FE2A= 76 65       ve
-                jsr $6150                    ; FE2C= 20 50 61     Pa
-                adc ($73)                    ; FE2F= 72 73       rs
-                .byte $6F                    ; FE31= 6F          o
-                .text "ns"                   ; FE32= 6E 73 2C    ns
-LFE34:
-                .text ","                    ; FE34= 2C          ,
-                eor $64                      ; FE35= 45 64       Ed
-                jsr $6850                    ; FE37= 20 50 68     Ph
-                adc #$70                     ; FE3A= 69 70       ip
-                bvs LFEB1                    ; FE3C= 70 73       ps
-                bit $6F4A                    ; FE3E= 2C 4A 6F    ,Jo
-                pla                          ; FE41= 68          h
-LFE42:
-                ror $5220                    ; FE42= 6E 20 52    n R
-LFE45:
-                adc ($64,X)                  ; FE45= 61 64       ad
-LFE47:
-                .byte $63                    ; FE47= 63          c
-                jmp ($6669)                  ; FE48= 6C 69 66    lif
-
-LFE4B:
-                ror $65                      ; FE4B= 66 65       fe
-LFE4D:
-                .byte $2C                    ; FE4D= 2C 52 69    ,Ri
-LFE4E:
-                .byte $52
-                .byte $69
-                .byte $63                    ; FE50= 63          c
-                .byte $6B                    ; FE51= 6B          k
-                jsr $6152                    ; FE52= 20 52 61     Ra
-                ror $2C64                    ; FE55= 6E 64 2C    nd,
-                .byte $42                    ; FE58= 42          B
-                adc ($69)                    ; FE59= 72 69       ri
-                adc ($6E,X)                  ; FE5B= 61 6E       an
-                jsr $6F52                    ; FE5D= 20 52 6F     Ro
-                .byte $62                    ; FE60= 62          b
-LFE61:
-                adc $72                      ; FE61= 65 72       er
-LFE63:
-                stz $73,X                    ; FE63= 74 73       ts
-                .byte $6F                    ; FE65= 6F          o
-                ror $522C                    ; FE66= 6E 2C 52    n,R
-                adc #$63                     ; FE69= 69 63       ic
-                pla                          ; FE6B= 68          h
-LFE6C:
-                adc ($72,X)                  ; FE6C= 61 72       ar
-LFE6E:
-                stz $20                      ; FE6E= 64 20       d
-                eor ($75)                    ; FE70= 52 75       Ru
-                .byte $73                    ; FE72= 73          s
-                .byte $73                    ; FE73= 73          s
-                adc $6C                      ; FE74= 65 6C       el
-                jmp ($472C)                  ; FE76= 6C 2C 47    l,G
-
-                .byte $6F                    ; FE79= 6F          o
-                adc ($64)                    ; FE7A= 72 64       rd
-                .byte $6F                    ; FE7C= 6F          o
-                ror $5320                    ; FE7D= 6E 20 53    n S
-                adc ($67,X)                  ; FE80= 61 67       ag
-                adc $2C                      ; FE82= 65 2C       e,
-                .byte $54                    ; FE84= 54          T
-LFE85:
-                adc $72                      ; FE85= 65 72       er
-                adc ($79)                    ; FE87= 72 79       ry
-                jsr $6353                    ; FE89= 20 53 63     Sc
-                .byte $6F                    ; FE8C= 6F          o
-                stz $63,X                    ; FE8D= 74 63       tc
-                pla                          ; FE8F= 68          h
-                adc $72                      ; FE90= 65 72       er
-                bit $6144                    ; FE92= 2C 44 61    ,Da
-                ror $69,X                    ; FE95= 76 69       vi
-                stz $20                      ; FE97= 64 20       d
-                .byte $53                    ; FE99= 53          S
-                adc $61                      ; FE9A= 65 61       ea
-                jmp ($502C)                  ; FE9C= 6C 2C 50    l,P
-
-                adc ($75,X)                  ; FE9F= 61 75       au
-                jmp ($5320)                  ; FEA1= 6C 20 53    l S
-
-                .byte $77                    ; FEA4= 77          w
-                adc #$6E                     ; FEA5= 69 6E       in
-                stz $65                      ; FEA7= 64 65       de
-                jmp ($2C6C)                  ; FEA9= 6C 6C 2C    ll,
-
-                lsr A                        ; FEAC= 4A          J
-                .byte $6F                    ; FEAD= 6F          o
-                ror $5420                    ; FEAE= 6E 20 54    n T
-LFEB1:
-                pla                          ; FEB1= 68          h
-                adc ($63,X)                  ; FEB2= 61 63       ac
-                .byte $6B                    ; FEB4= 6B          k
-                adc ($61)                    ; FEB5= 72 61       ra
-                adc $482C,Y                  ; FEB7= 79 2C 48    y,H
-                adc $67,X                    ; FEBA= 75 67       ug
-                .byte $6F                    ; FEBC= 6F          o
-                jsr $7954                    ; FEBD= 20 54 79     Ty
-                .byte $73                    ; FEC0= 73          s
-                .byte $6F                    ; FEC1= 6F          o
-                ror $412C                    ; FEC2= 6E 2C 41    n,A
-                stz $72                      ; FEC5= 64 72       dr
-                adc #$61                     ; FEC7= 69 61       ia
-                ror $5720                    ; FEC9= 6E 20 57    n W
-                adc ($72,X)                  ; FECC= 61 72       ar
-                ror $7265                    ; FECE= 6E 65 72    ner
-                bit $654A                    ; FED1= 2C 4A 65    ,Je
-                .byte $73                    ; FED4= 73          s
-                .byte $73                    ; FED5= 73          s
-                jsr $6957                    ; FED6= 20 57 69     Wi
-                jmp ($736C)                  ; FED9= 6C 6C 73    lls
-
-                bit $6F52                    ; FEDC= 2C 52 6F    ,Ro
-                .byte $67                    ; FEDF= 67          g
-LFEE0:
-                adc $72                      ; FEE0= 65 72       er
-LFEE2:
-                jsr $6957                    ; FEE2= 20 57 69     Wi
-LFEE5:
-                jmp ($6F73)                  ; FEE5= 6C 73 6F    lso
-
-LFEE8:
-                ror $472C                    ; FEE8= 6E 2C 47    n,G
-                adc ($61)                    ; FEEB= 72 61       ra
-                pla                          ; FEED= 68          h
-                adc ($6D,X)                  ; FEEE= 61 6D       am
-                jsr $6957                    ; FEF0= 20 57 69     Wi
-                ror $6574                    ; FEF3= 6E 74 65    nte
-                adc ($66)                    ; FEF6= 72 66       rf
-                jmp ($6F6F)                  ; FEF8= 6C 6F 6F    loo
-
-                stz $2E                      ; FEFB= 64 2E       d.
-                jsr $2020                    ; FEFD= 20 20 20
 LFF00:
                 jsr LFF51                    ; FF00= 20 51 FF     Q.
                 jsr LFF51                    ; FF03= 20 51 FF     Q.
@@ -20594,7 +20223,7 @@ LFF51:
                 sta $0106,X                  ; FF72= 9D 06 01    ...
                 lda $F4                      ; FF75= A5 F4       %t
                 sta $010A,X                  ; FF77= 9D 0A 01    ...
-                lda LFE34                    ; FF7A= AD 34 FE    -4~
+                lda ACCCON                    ; FF7A= AD 34 FE    -4~
                 sta $0109,X                  ; FF7D= 9D 09 01    ...
                 jsr LEDBA                    ; FF80= 20 BA ED     :m
                 lda $0D9F,Y                  ; FF83= B9 9F 0D    9..

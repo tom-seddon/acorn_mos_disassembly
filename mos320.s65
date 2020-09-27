@@ -3345,55 +3345,28 @@ L9762:
                 rts                          ; 9763= 60          `
 
 L9764:
-                jsr $2020                    ; 9764= 20 20 20
-                brk                          ; 9767= 00          .
+                .text "   ",0
 L9768:
-                .byte $53                    ; 9768= 53          S
-                adc $6E,X                    ; 9769= 75 6E       un
-                ora ($4D,X)                  ; 976B= 01 4D       .M
-                .byte $6F                    ; 976D= 6F          o
-                ror $5402                    ; 976E= 6E 02 54    n.T
-                adc $65,X                    ; 9771= 75 65       ue
-                .byte $03                    ; 9773= 03          .
-                .byte $57                    ; 9774= 57          W
-                adc $64                      ; 9775= 65 64       ed
-                tsb $54                      ; 9777= 04 54       .T
-                pla                          ; 9779= 68          h
-                adc $05,X                    ; 977A= 75 05       u.
-                lsr $72                      ; 977C= 46 72       Fr
-                adc #$06                     ; 977E= 69 06       i.
-                .byte $53                    ; 9780= 53          S
-                adc ($74,X)                  ; 9781= 61 74       at
-                .byte $07                    ; 9783= 07          .
+                .text "Sun",$01
+                .text "Mon",$02
+                .text "Tue",$03
+                .text "Wed",$04
+                .text "Thu",$05
+                .text "Fri",$06
+                .text "Sat",$07
 L9784:
-                lsr A                        ; 9784= 4A          J
-                adc ($6E,X)                  ; 9785= 61 6E       an
-                ora ($46,X)                  ; 9787= 01 46       .F
-                adc $62                      ; 9789= 65 62       eb
-                .byte $02                    ; 978B= 02          .
-                eor $7261                    ; 978C= 4D 61 72    Mar
-                .byte $03                    ; 978F= 03          .
-                eor ($70,X)                  ; 9790= 41 70       Ap
-                adc ($04)                    ; 9792= 72 04       r.
-                eor $7961                    ; 9794= 4D 61 79    May
-                ora $4A                      ; 9797= 05 4A       .J
-                adc $6E,X                    ; 9799= 75 6E       un
-                asl $4A                      ; 979B= 06 4A       .J
-                adc $6C,X                    ; 979D= 75 6C       ul
-                .byte $07                    ; 979F= 07          .
-                eor ($75,X)                  ; 97A0= 41 75       Au
-                .byte $67                    ; 97A2= 67          g
-                php                          ; 97A3= 08          .
-                .byte $53                    ; 97A4= 53          S
-                adc $70                      ; 97A5= 65 70       ep
-                ora #$4F                     ; 97A7= 09 4F       .O
-                .byte $63                    ; 97A9= 63          c
-                stz $10,X                    ; 97AA= 74 10       t.
-                lsr $766F                    ; 97AC= 4E 6F 76    Nov
-                ora ($44),Y                  ; 97AF= 11 44       .D
-                adc $63                      ; 97B1= 65 63       ec
-;ORA (&48)        :\ 97B3= 12 48       .H
-                .byte $12
+                .text "Jan",$01
+                .text "Feb",$02
+                .text "Mar",$03
+                .text "Apr",$04
+                .text "May",$05
+                .text "Jun",$06
+                .text "Jul",$07
+                .text "Aug",$08
+                .text "Sep",$09
+                .text "Oct",$10
+                .text "Nov",$11
+                .text "Dec",$12
 L97B4:
                 pha
                 eor #$02                     ; 97B5= 49 02       I.
@@ -4489,6 +4462,11 @@ L9F29:
                 bit $0247                    ; If TAPE/ROM switch
                 bne L9F3A
                 and $C6                      ; Mask with speed to give A=2 or A=1
+
+; TAPE/ROM FSC 6 - shut down FS
+; TAPE/ROM FSC 8 - OS command
+; TAPE/ROM FSC 10 - *INFO
+; -----------------------------
 L9F3A:
                 rts
 
@@ -4534,27 +4512,26 @@ L9F60:
 
 ; TAPE/ROM FSC dispatch table
 ; ---------------------------
+
+tape_and_rom_dispatch_fsc_routines=[
+                LA422,          ;0 - *OPT
+                LA4F1,          ;1 - EOF
+                LA110,          ;2 - */
+                LA129,          ;3 - unknown * command
+                LA110,          ;4 - *RUN
+                LA168,          ;5 - *CAT
+                L9F3A,          ;6 - shut down FS
+                L9F9E,          ;7 - obtain file handle range
+                L9F3A,          ;8 - OS command
+                LA155,          ;9 - *EX
+                L9F3A,          ;10 - *INFO
+                LA113,          ;11 - *RUN command for library
+]
+
 L9F74:
-                and ($F0,X)                  ; 9F74= 21 F0       !p
-                .byte $0F                    ; 9F76= 0F          .
-                plp                          ; 9F77= 28          (
-                .byte $0F                    ; 9F78= 0F          .
-                .byte $67                    ; 9F79= 67          g
-                and $399D,Y                  ; 9F7A= 39 9D 39    9.9
-                .byte $54                    ; 9F7D= 54          T
-;AND LA412,Y      :\ 9F7E= 39 12 A4    9.$
-                .byte $39
-                .byte $12
+                .byte <tape_and_rom_dispatch_fsc_routines-1
 L9F80:
-                .byte $A4
-                ldy $A1                      ; 9F81= A4 A1       $!
-                lda ($A1,X)                  ; 9F83= A1 A1       !!
-                lda ($9F,X)                  ; 9F85= A1 9F       !.
-                .byte $9F                    ; 9F87= 9F          .
-                .byte $9F                    ; 9F88= 9F          .
-                lda ($9F,X)                  ; 9F89= A1 9F       !.
-;LDA (&C9,X)      :\ 9F8B= A1 C9       !I
-                .byte $A1
+                .byte >tape_and_rom_dispatch_fsc_routines-1
 
 ; TAPE/ROM FSC
 ; ============
@@ -4570,6 +4547,8 @@ L9F8C:
                 ldx $BC
                 rts
 
+; TAPE/ROM FSC 7 - obtain file handle range
+; -----------------------------------------
 L9F9E:
                 ldx #$03                     ; 9F9E= A2 03       ".
                 ldy #$03                     ; 9FA0= A0 03        .
@@ -4792,8 +4771,15 @@ LA0FB:
                 inc $03C7                    ; A10B= EE C7 03    nG.
                 bra LA0D3                    ; A10E= 80 C3       .C
 
+; TAPE/ROM FSC 2 - */
+; TAPE/ROM FSC 4 - *RUN
+; ---------------------
+LA110:
                 sec                          ; A110= 38          8
                 ror $CE                      ; A111= 66 CE       fN
+; TAPE/ROM FSC 11 - *RUN command for library
+; ------------------------------------------
+LA113:
                 phx                          ; A113= DA          Z
                 phy                          ; A114= 5A          Z
                 jsr LA06B                    ; A115= 20 6B A0     k
@@ -4805,6 +4791,10 @@ LA0FB:
                 plx                          ; A123= FA          z
                 bcc LA12E                    ; A124= 90 08       ..
                 jsr LA9CA                    ; A126= 20 CA A9     J)
+
+; TAPE/ROM FSC 3 - unknown * command
+; ----------------------------------
+LA129:
                 lda #$0B                     ; A129= A9 0B       ).
                 jmp ($021E)                  ; A12B= 6C 1E 02    l..
 
@@ -4829,6 +4819,9 @@ LA14C:
                 lda #$04                     ; A150= A9 04       ).
                 jmp LAAB0                    ; A152= 4C B0 AA    L0*
 
+; TAPE/ROM FSC 9 - *EX
+; --------------------
+LA155:
                 lda #$08                     ; A155= A9 08       ).
                 tsb $E2                      ; A157= 04 E2       .b
                 lda $E3                      ; A159= A5 E3       %c
@@ -4840,6 +4833,9 @@ LA14C:
                 sta $E3                      ; A164= 85 E3       .c
                 bra LA16F                    ; A166= 80 07       ..
 
+; TAPE/ROM FSC 5 - *CAT
+; ---------------------
+LA168:
                 lda #$08                     ; A168= A9 08       ).
                 tsb $E2                      ; A16A= 04 E2       .b
                 jsr LA9F3                    ; A16C= 20 F3 A9     s)
@@ -5273,6 +5269,7 @@ LA41A:
 
 ; TAPE/ROM FSC 0 - *OPT
 ; ---------------------
+LA422:
                 txa                          ; *OPT 0
                 beq LA453
                 cpx #$03                     ; *OPT 3
@@ -5439,6 +5436,7 @@ LA4F0:
 
 ; TAPE/ROM FSC 1 - =EOF
 ; ---------------------
+LA4F1:
                 pha
                 phy
                 txa
@@ -20896,26 +20894,22 @@ LFB7D:
 ; FileSwitch FSC table
 ; --------------------
 LFB81:
-                ldx $FB                      ; FB81= A6 FB       &{  &00 &FBA6 - *OPT
-                .byte $9F                    ; FB83= 9F          .   &01 &FB9F - =EOF
-                .byte $FB                    ; FB84= FB          {
-                .byte $B3                    ; FB85= B3          3   &02 &FBB3 - */filename
-                .byte $FB                    ; FB86= FB          {
-                sta LB3FB,Y                  ; FB87= 99 FB B3    .{3 &03 &FB99 - *command
-                .byte $FB                    ; FB8A= FB          {   &04 &FBB3 - *RUN
-                clv                          ; FB8B= B8          8   &05 &FBB8 - *CAT
-                .byte $FB                    ; FB8C= FB          {
-                jmp ($7CFB,X)                ; FB8D= 7C FB 7C    |{| &06 &FB7C - New fs taking over - pass to fs FSC
-                .byte $FB                    ; FB90= FB          {   &07 &FB7C - Handle request     - pass to fs FSC
-                jmp (LB8FB,X)                ; FB91= 7C FB B8    |{8 &08 &FC7C - Enable flag        - pass to fs FSC
-                .byte $FB                    ; FB94= FB          {   &09 &FBB8 - *EX
-                clv                          ; FB95= B8          8   &0A &FBB8 - *INFO
-                .byte $FB                    ; FB96= FB          {
-                inx                          ; FB97= E8          h   &0B &FBE8 - *RUN from libfs
-                .byte $FB                    ; FB98= FB          {
+                .word LFBA6     ; &00 &FBA6 - *OPT
+                .word LFB9F     ; &01 &FB9F - =EOF
+                .word LFBB3     ; &02 &FBB3 - */filename
+                .word LFB99     ; &03 &FB99 - *command
+                .word LFBB3     ; &04 &FBB3 - *RUN
+                .word LFBB8     ; &05 &FBB8 - *CAT
+                .word LFB7C     ; &06 &FB7C - New fs taking over - pass to fs FSC
+                .word LFB7C     ; &07 &FB7C - Handle request     - pass to fs FSC
+                .word LFB7C     ; &08 &FB7C - Enable flag        - pass to fs FSC
+                .word LFBB8     ; &09 &FBB8 - *EX
+                .word LFBB8     ; &0A &FBB8 - *INFO
+                .word LFBE8     ; &0B &FBE8 - *RUN from libfs
 
 ; FSC 3 - *command
 ; ================
+LFB99:
                 plx                          ; FB99= FA          z
                 jsr LFBC1                    ; FB9A= 20 C1 FB     A{
                 bra LFB7D                    ; FB9D= 80 DE       .^
@@ -20940,12 +20934,14 @@ LFBAE:
 
 ; FSC 2, 4 - *filename, *RUN filename
 ; ===================================
+LFBB3:
                 plx
                 jsr LFBC1                    ; Skip '*'s and spaces, set command line address
                 phx                          ; Continue on to pass to filing system
 
 ; FSC 5, 9, 10 - *CAT, *EX, *INFO
 ; ===============================
+LFBB8:
                 plx
                 asl HAZEL_WORKSPACE+$C6      ;
                 jsr LFA6E                    ; ? Check for temporary fs ?
@@ -20978,6 +20974,7 @@ LFBD2:
 
 ; FSC 11 - RUN from libfs
 ; =======================
+LFBE8:
                 lda HAZEL_WORKSPACE+$02      ; Is a libfs set?
                 bpl LFBAE                    ; Yes, jump to run from libfs
 LFBED:

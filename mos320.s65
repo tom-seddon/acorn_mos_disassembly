@@ -543,244 +543,66 @@ L8347:
 
 ; MOS command table
 ; =================
-L8368:
-                .text "CAT"                  ; XY=>parameters, FSC &05
-                .byte >LF1E5
-                .byte <LF1E5
-                .byte $80
-                .byte $05
-                .text "ADFS"                 ;
-                .byte >L85AF
-                .byte <L85AF
-                .byte $00
-                .byte $00
-                .text "APPEND"               ; XY=>parameters
-                .byte >L9014
-                .byte <L9014
-                .byte $80
-                .byte $00
-                .text "BASIC"                ;
-                .byte >L85A6
-                .byte <L85A6
-                .byte $00
-                .byte $00
-                .text "BUILD"                ; XY=>parameters
-                .byte >L900F
-                .byte <L900F
-                .byte $80
-                .byte $00
-                .text "CLOSE"                ;
-                .byte >L937C
-                .byte <L937C
-                .byte $00
-                .byte $FF
-                .text "CONFIGURE"            ;
-                .byte >L887A
-                .byte <L887A
-                .byte $00
-                .byte $FF
-                .text "CODE"                 ; X,Y=parameters, OSBYTE &88
-                .byte >L93EB
-                .byte <L93EB
-                .byte $00
-                .byte $88
-                .text "CREATE"               ; XY=>parameters, OSFILE &07
-                .byte >L9318
-                .byte <L9318
-                .byte $80
-                .byte $07
-                .text "DUMP"                 ; XY=>parameters
-                .byte >L8F42
-                .byte <L8F42
-                .byte $80
-                .byte $00
-                .text "DELETE"               ; XY=>parameters
-                .byte >L946A
-                .byte <L946A
-                .byte $80
-                .byte $00
-                .text "EXEC"                 ; XY=>parameters
-                .byte >LA591
-                .byte <LA591
-                .byte $80
-                .byte $00
-                .text "EX"                   ; XY=>parameters, FSC &09
-                .byte >LF1E5
-                .byte <LF1E5
-                .byte $80
-                .byte $09
-                .text "FX"                   ;
-                .byte >L93E5
-                .byte <L93E5
-                .byte $00
-                .byte $FF
-                .text "GOIO"                 ;
-                .byte >L92FD
-                .byte <L92FD
-                .byte $00
-                .byte $FF
-                .text "GO"                   ;
-                .byte >L92F5
-                .byte <L92F5
-                .byte $00
-                .byte $FF
-                .text "HELP"                 ;
-                .byte >L85CA
-                .byte <L85CA
-                .byte $00
-                .byte $FF
-                .text "INFO"                 ; XY=>parameters, FSC &0A
-                .byte >LF1E5
-                .byte <LF1E5
-                .byte $80
-                .byte $0A
-                .text "IGNORE"               ;
-                .byte >L9387
-                .byte <L9387
-                .byte $00
-                .byte $FF
-                .text "INSERT"               ;
-                .byte >L871F
-                .byte <L871F
-                .byte $00
-                .byte $FF
-                .text "KEY"                  ;
-                .byte >L94C7
-                .byte <L94C7
-                .byte $00
-                .byte $FF
-                .text "LOAD"                 ; XY=>parameters
-                .byte >L9316
-                .byte <L9316
-                .byte $80
-                .byte $00
-                .text "LIST"                 ; XY=>parameters
-                .byte >L8EC0
-                .byte <L8EC0
-                .byte $80
-                .byte $00
-                .text "LINE"                 ;
-                .byte >LEC39
-                .byte <LEC39
-                .byte $00
-                .byte $01
-                .text "LIBFS"                ;
-                .byte >LE7F6
-                .byte <LE7F6
-                .byte $00
-                .byte $00
-                .text "MOTOR"                ; X,Y=parameters, OSBYTE &89
-                .byte >L93EB
-                .byte <L93EB
-                .byte $00
-                .byte $89
-                .text "MOVE"                 ; XY=>parameters
-                .byte >L90B6
-                .byte <L90B6
-                .byte $80
-                .byte $00
-                .text "OPT"                  ; X,Y=parameters, OSBYTE &8B
-                .byte >L93EB
-                .byte <L93EB
-                .byte $80
-                .byte $8B
-                .text "PRINT"                ; XY=>parameters
-                .byte >L8EB9
-                .byte <L8EB9
-                .byte $80
-                .byte $00
-                .text "RUN"                  ; XY=>parameters, FSC &04
-                .byte >LF1E5
-                .byte <LF1E5
-                .byte $80
-                .byte $04
-                .text "REMOVE"               ; XY=>parameters
-                .byte >L9371
-                .byte <L9371
-                .byte $80
-                .byte $00
-                .text "ROM"                  ; X,Y=parameters, OSBYTE &8D
-                .byte >L93EB
-                .byte <L93EB
-                .byte $00
-                .byte $8D
-                .text "ROMS"                 ;
-                .byte >L86A6
-                .byte <L86A6
-                .byte $00
-                .byte $FF
-                .text "SAVE"                 ; XY=>parameters, OSFILE &00
-                .byte >L9318
-                .byte <L9318
-                .byte $80
-                .byte $00
-                .text "SHADOW"               ;
-                .byte >L9466
-                .byte <L9466
-                .byte $00
-                .byte $FF
-                .text "SHOW"                 ;
-                .byte >L9488
-                .byte <L9488
-                .byte $00
-                .byte $FF
-                .text "SHUT"                 ;
-                .byte >LF373
-                .byte <LF373
-                .byte $00
-                .byte $00
-                .text "SPOOL"                ; XY=>parameters
-                .byte >L9433
-                .byte <L9433
-                .byte $80
-                .byte $00
-                .text "SPOOLON"              ; XY=>parameters
-                .byte >L9420
-                .byte <L9420
-                .byte $80
-                .byte $00
-                .text "STATUS"               ;
-                .byte >L8895
-                .byte <L8895
-                .byte $00
-                .byte $FF
-                .text "TAPE"                 ; X,Y=parameters, OSBYTE &8C
-                .byte >L93EB
-                .byte <L93EB
-                .byte $00
-                .byte $8C
-                .text "TV"                   ; X,Y=parameters, OSBYTE &90
-                .byte >L93EB
-                .byte <L93EB
-                .byte $00
-                .byte $90
-                .text "TIME"                 ;
-                .byte >L8744
-                .byte <L8744
-                .byte $00
-                .byte $00
-                .text "TYPE"                 ; XY=>parameters
-                .byte >L8ECB
-                .byte <L8ECB
-                .byte $80
-                .byte $00
-                .text "UNPLUG"               ;
-                .byte >L8722
-                .byte <L8722
-                .byte $00
-                .byte $FF
-                .text "X"                    ;
-                .byte >LE7FD
-                .byte <LE7FD
-                .byte $00
-                .byte $00
-                .text ""                     ; FSC &03
-                .byte >LF1E5
-                .byte <LF1E5
-                .byte $00
-                .byte $03
-                .byte $00
 
+mos_command .macro name,routine,byte1,byte2
+                .text \name
+                .byte >\routine
+                .byte <\routine
+                .byte \byte1
+                .byte \byte2
+                .endm
+                
+L8368:
+
+                .mos_command "CAT",LF1E5,$80,$05 ; XY=>parameters, FSC &05
+                .mos_command "ADFS",L85AF,$00,$00   ;
+                .mos_command "APPEND",L9014,$80,$00 ; XY=>parameters
+                .mos_command "BASIC",L85A6,$00,$00  ;
+                .mos_command "BUILD",L900F,$80,$00  ; XY=>parameters
+                .mos_command "CLOSE",L937C,$00,$FF  ;
+                .mos_command "CONFIGURE",L887A,$00,$FF ;
+                .mos_command "CODE",L93EB,$00,$88 ; X,Y=parameters, OSBYTE &88
+                .mos_command "CREATE",L9318,$80,$07 ; XY=>parameters, OSFILE &07
+                .mos_command "DUMP",L8F42,$80,$00   ; XY=>parameters
+                .mos_command "DELETE",L946A,$80,$00 ; XY=>parameters
+                .mos_command "EXEC",LA591,$80,$00   ; XY=>parameters
+                .mos_command "EX",LF1E5,$80,$09 ; XY=>parameters, FSC &09
+                .mos_command "FX",L93E5,$00,$FF ;
+                .mos_command "GOIO",L92FD,$00,$FF ;
+                .mos_command "GO",L92F5,$00,$FF   ;
+                .mos_command "HELP",L85CA,$00,$FF ;
+                .mos_command "INFO",LF1E5,$80,$0A ; XY=>parameters, FSC &0A
+                .mos_command "IGNORE",L9387,$00,$FF ;
+                .mos_command "INSERT",L871F,$00,$FF ;
+                .mos_command "KEY",L94C7,$00,$FF    ;
+                .mos_command "LOAD",L9316,$80,$00   ; XY=>parameters
+                .mos_command "LIST",L8EC0,$80,$00   ; XY=>parameters
+                .mos_command "LINE",LEC39,$00,$01   ;
+                .mos_command "LIBFS",LE7F6,$00,$00  ;
+                .mos_command "MOTOR",L93EB,$00,$89 ; X,Y=parameters, OSBYTE &89
+                .mos_command "MOVE",L90B6,$80,$00  ; XY=>parameters
+                .mos_command "OPT",L93EB,$80,$8B ; X,Y=parameters, OSBYTE &8B
+                .mos_command "PRINT",L8EB9,$80,$00 ; XY=>parameters
+                .mos_command "RUN",LF1E5,$80,$04 ; XY=>parameters, FSC &04
+                .mos_command "REMOVE",L9371,$80,$00 ; XY=>parameters
+                .mos_command "ROM",L93EB,$00,$8D ; X,Y=parameters, OSBYTE &8D
+                .mos_command "ROMS",L86A6,$00,$FF ;
+                .mos_command "SAVE",L9318,$80,$00 ; XY=>parameters, OSFILE &00
+                .mos_command "SHADOW",L9466,$00,$FF  ;
+                .mos_command "SHOW",L9488,$00,$FF    ;
+                .mos_command "SHUT",LF373,$00,$00    ;
+                .mos_command "SPOOL",L9433,$80,$00   ; XY=>parameters
+                .mos_command "SPOOLON",L9420,$80,$00 ; XY=>parameters
+                .mos_command "STATUS",L8895,$00,$FF  ;
+                .mos_command "TAPE",L93EB,$00,$8C ; X,Y=parameters, OSBYTE &8C
+                .mos_command "TV",L93EB,$00,$90 ; X,Y=parameters, OSBYTE &90
+                .mos_command "TIME",L8744,$00,$00   ;
+                .mos_command "TYPE",L8ECB,$80,$00   ; XY=>parameters
+                .mos_command "UNPLUG",L8722,$00,$FF ;
+                .mos_command "X",LE7FD,$00,$00      ;
+                .mos_command "",LF1E5,$00,$03       ; FSC &03
+                .byte $00
+                
 L84EE:
                 lda ($B0)                    ; 84EE= B2 B0       20
 L84F0:

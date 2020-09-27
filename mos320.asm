@@ -23,7 +23,7 @@ HAZEL_WORKSPACE=$df00
 
 L8001=&8001
 L8002=&8002
-L8004=&8003
+L8004=&8004
 L8010=&8010
 ;L8011=&8011
 ;L8012=&8012
@@ -32,7 +32,7 @@ L8400=&8400
 L8500=&8500
 L8600=&8600
 L8820=&8820
-L87FF=&887F
+L87FF=&87FF
 L8803=&8803
 L8804=&8804
 L8836=&8836
@@ -309,24 +309,12 @@ JSR L98DC        :\ 8246= 20 DC 98     \.
 LDX #&07         :\ 8249= A2 07       ".
 JSR L98DC        :\ 824B= 20 DC 98     \.
 JSR LA958        :\ 824E= 20 58 A9     X)
-ORA &430A        :\ 8251= 0D 0A 43    ..C
-EOR &534F        :\ 8254= 4D 4F 53    MOS
-JSR &4152        :\ 8257= 20 52 41     RA
-EOR &7220        :\ 825A= 4D 20 72    M r
-ADC &73          :\ 825D= 65 73       es
-ADC &74          :\ 825F= 65 74       et
-ORA &500A        :\ 8261= 0D 0A 50    ..P
-ADC (&65)        :\ 8264= 72 65       re
-EQUB &73         :\ 8266= 73          s
-EQUB &73         :\ 8267= 73          s
-JSR &7262        :\ 8268= 20 62 72     br
-ADC &61          :\ 826B= 65 61       ea
-EQUB &6B         :\ 826D= 6B          k
-JSR &6F74        :\ 826E= 20 74 6F     to
-JSR &6F63        :\ 8271= 20 63 6F     co
-ROR &6974        :\ 8274= 6E 74 69    nti
-ROR &6575        :\ 8277= 6E 75 65    nue
-ORA &000A        :\ 827A= 0D 0A 00    ...
+EQUB &0D:EQUB &0A
+EQUS "CMOS RAM reset"
+EQUB &0D:EQUB &0A
+EQUS "Press break to continue"
+EQUB &0D:EQUB &0A
+EQUB &00
 LDA #&03         :\ 827D= A9 03       ).
 STA &0258        :\ 827F= 8D 58 02    .X.
 .L8282
@@ -752,8 +740,8 @@ LDY #&0F         :\ 86AB= A0 0F        .
 .L86AD
 INY              :\ 86AD= C8          H
 JSR LA927        :\ 86AE= 20 27 A9     ')
-EOR (&4F)        :\ 86B1= 52 4F       RO
-EOR &0020        :\ 86B3= 4D 20 00    M .
+EQUS "ROM "
+EQUB &00
 TYA              :\ 86B6= 98          .
 DEC A            :\ 86B7= 3A          :
 PHA              :\ 86B8= 48          H
@@ -936,7 +924,7 @@ CPY &4F4E        :\ 87CB= CC 4E 4F    LNO
 EQUB &53         :\ 87CE= 53          S
 EQUB &43         :\ 87CF= 43          C
 EOR (&4F)        :\ 87D0= 52 4F       RO
-EQUS "LLP"       :\ 87D2= 4C 4C D0    LLP
+EQUS "LL":EQUB &D0 :\ 87D2= 4C 4C D0    LLP
  
 LSR &544F        :\ 87D5= 4E 4F 54    NOT
 EOR &42,X        :\ 87D8= 55 42       UB
@@ -1005,7 +993,7 @@ DEY              :\ 882E= 88          .
 \LDY &8B,X        :\ 882F= B4 8B       4.
 EQUB &B4
 .L8830
-EQUB &B8
+EQUB &8B
 .L8831
 \STA LAE88        :\ 8831= 8D 88 AE    ...
 EQUB &8D
@@ -1076,7 +1064,7 @@ ADC &89          :\ 8871= 65 89       e.
 SBC LF48A        :\ 8873= ED 8A F4    m.t
 BIT #&05         :\ 8876= 89 05       ..
 EQUB &8B         :\ 8878= 8B          .
-ASL &20,X        :\ 8879= 16
+EQUB &16         :\ 8879= 16
 
 .L887A
 JSR L8934        :\ 887A 20 34 89
@@ -1437,17 +1425,11 @@ BMI L8A7A        :\ 8A6B= 30 0D       0.
 ASL A            :\ 8A6D= 0A          .
 BMI L8A84        :\ 8A6E= 30 14       0.
 JSR LA958        :\ 8A70= 20 58 A9     X)
-EQUB &53         :\ 8A73= 53          S
-PLA              :\ 8A74= 68          h
-ADC #&66         :\ 8A75= 69 66       if
-STZ &20,X        :\ 8A77= 74 20       t 
-BRK              :\ 8A79= 00          .
+EQUS "Shift ":EQUB &00
 .L8A7A
 JSR LA958        :\ 8A7A= 20 58 A9     X)
-EQUB &43         :\ 8A7D= 43          C
-ADC (&70,X)      :\ 8A7E= 61 70       ap
-EQUB &73         :\ 8A80= 73          s
-ORA &6000        :\ 8A81= 0D 00 60    ..`
+EQUS "Caps":EQUB &0D:EQUB &00
+RTS
 .L8A84
 JSR L8EB1        :\ 8A84= 20 B1 8E     1.
 BRA L8A7A        :\ 8A87= 80 F1       .q
@@ -1555,13 +1537,15 @@ LDA #&2C         :\ 8B1D= A9 2C       ),
 JSR OSWRCH       :\ 8B1F= 20 EE FF     n.
 TXA              :\ 8B22= 8A          .
 BRA L8B28        :\ 8B23= 80 03       ..
- 
+
+.L8B25
 JSR L8E76        :\ 8B25= 20 76 8E     v. Read configured MODE
 .L8B28
 JSR L8BC4        :\ 8B28= 20 C4 8B     D.
 .L8B2B
 JMP OSNEWL       :\ 8B2B= 4C E7 FF    Lg.
- 
+
+.L8B2E
 JSR L8B3A        :\ 8B2E= 20 3A 8B     :.
 TYA              :\ 8B31= 98          .
 BRA L8B28        :\ 8B32= 80 F4       .t
@@ -1614,7 +1598,8 @@ BRA L8B28        :\ 8B7B= 80 AB       .+
 .L8B7D
 JSR L8E84        :\ 8B7D= 20 84 8E     ..
 BRA L8B28        :\ 8B80= 80 A6       .&
- 
+
+.L8B82
 JSR L8E97        :\ 8B82= 20 97 8E     ..
 BRA L8B28        :\ 8B85= 80 A1       .!
  
@@ -1640,9 +1625,10 @@ JSR LA958        :\ 8B9E= 20 58 A9     X)
 ; EQUB &6F         :\ 8BA3= 6F          o
 ; BVS L8C16        :\ 8BA4= 70 70       pp
 ; ADC &000D,Y      :\ 8BA6= 79 0D 00    y..
-EQUS "Floppy":EQUB 0
+EQUS "Floppy":EQUB &0D:EQUB &00
 RTS              :\ 8BA9= 60          `
- 
+
+.L8BAA
 JSR L8EAD        :\ 8BAA= 20 AD 8E     -.
 ASL A            :\ 8BAD= 0A          .
 ASL A            :\ 8BAE= 0A          .
@@ -1705,7 +1691,7 @@ EQUS "Delay    <D>":EQUB &0D
 EQUS "Dir":EQUB &0D
 EQUS "ExTube":EQUB &0D
 EQUS "FDrive   <D>",13
-EQUS "File    <D>",13
+EQUS "File     <D>",13
 EQUS "Floppy",13
 EQUS "Hard",13
 EQUS "Ignore   [<D>]",13
@@ -1714,142 +1700,82 @@ EQUS "Lang     <D>",13
 EQUS "Loud",13
 EQUS "Mode     <D>",13
 EQUS "NoBoot",13
-EQUS "NoCAps",13
+EQUS "NoCaps",13
 EQUS "NoDir",13
 EQUS "NoScroll",13
 EQUS "NoTube",13
-EQUS "Print   <D>",13
+EQUS "Print    <D>",13
 EQUS "Quiet",13
 EQUS "Repeat   <D>",13
 EQUS "Scroll",13
 EQUS "ShCaps",13
 EQUS "Tube",13
-EQUS "TV      [<D>[,<D>]]",13
+EQUS "TV       [<D>[,<D>]]",13
 EQUB 0
 PLY 		 :\ 8D12= 7A
 LDX #&28         :\ 8D13= A2 28       "(
 JSR LEE72        :\ 8D15= 20 72 EE     rn
 JSR LA958        :\ 8D18= 20 58 A9     X)
-EQUB &57         :\ 8D1B= 57          W
-PLA              :\ 8D1C= 68          h
-ADC &72          :\ 8D1D= 65 72       er
-ADC &3A          :\ 8D1F= 65 3A       e:
-ORA &2044        :\ 8D21= 0D 44 20    .D 
-ADC #&73         :\ 8D24= 69 73       is
-JSR &2061        :\ 8D26= 20 61 20     a 
-STZ &65          :\ 8D29= 64 65       de
-EQUB &63         :\ 8D2B= 63          c
-ADC #&6D         :\ 8D2C= 69 6D       im
-ADC (&6C,X)      :\ 8D2E= 61 6C       al
-JSR &756E        :\ 8D30= 20 6E 75     nu
-ADC &6562        :\ 8D33= 6D 62 65    mbe
-ADC (&2C)        :\ 8D36= 72 2C       r,
-JSR &726F        :\ 8D38= 20 6F 72     or
-ORA &2061        :\ 8D3B= 0D 61 20    .a 
-PLA              :\ 8D3E= 68          h
-ADC &78          :\ 8D3F= 65 78       ex
-ADC (&64,X)      :\ 8D41= 61 64       ad
-ADC &63          :\ 8D43= 65 63       ec
-.L8D45
-ADC #&6D         :\ 8D45= 69 6D       im
-ADC (&6C,X)      :\ 8D47= 61 6C       al
-JSR &756E        :\ 8D49= 20 6E 75     nu
-ADC &6562        :\ 8D4C= 6D 62 65    mbe
-ADC (&20)        :\ 8D4F= 72 20       r 
-BVS L8DC5        :\ 8D51= 70 72       pr
-ADC &63          :\ 8D53= 65 63       ec
-ADC &64          :\ 8D55= 65 64       ed
-ADC &64          :\ 8D57= 65 64       ed
-JSR &7962        :\ 8D59= 20 62 79     by
-JSR &0D26        :\ 8D5C= 20 26 0D     &.
-EOR #&74         :\ 8D5F= 49 74       It
-ADC &6D          :\ 8D61= 65 6D       em
-EQUB &73         :\ 8D63= 73          s
-JSR &6977        :\ 8D64= 20 77 69     wi
-STZ &68,X        :\ 8D67= 74 68       th
-ADC #&6E         :\ 8D69= 69 6E       in
-JSR &205B        :\ 8D6B= 20 5B 20     [ 
-EOR &6120,X      :\ 8D6E= 5D 20 61    ] a
-ADC (&65)        :\ 8D71= 72 65       re
-JSR &706F        :\ 8D73= 20 6F 70     op
-STZ &69,X        :\ 8D76= 74 69       ti
-EQUB &6F         :\ 8D78= 6F          o
-ROR &6C61        :\ 8D79= 6E 61 6C    nal
-ORA &6000        :\ 8D7C= 0D 00 60    ..`
+EQUS "Where:":EQUB &0D
+EQUS "D is a "
+EQUS "decimal number, or":EQUB &0D
+EQUS "a hexadecimal number preceded by &":EQUB &0D
+EQUS "Items within [ ] are optional":EQUB &0D
+EQUB &00
+RTS
 JSR L8987        :\ 8D7F= 20 87 89     ..
 PHY              :\ 8D82= 5A          Z
 JSR LA958        :\ 8D83= 20 58 A9     X)
-EQUB &43         :\ 8D86= 43          C
-EQUB &6F         :\ 8D87= 6F          o
-ROR &6966        :\ 8D88= 6E 66 69    nfi
-EQUB &67         :\ 8D8B= 67          g
-ADC &72,X        :\ 8D8C= 75 72       ur
-ADC (&74,X)      :\ 8D8E= 61 74       at
-ADC #&6F         :\ 8D90= 69 6F       io
-ROR &7320        :\ 8D92= 6E 20 73    n s
-STZ &61,X        :\ 8D95= 74 61       ta
-STZ &75,X        :\ 8D97= 74 75       tu
-EQUB &73         :\ 8D99= 73          s
-DEC A            :\ 8D9A= 3A          :
-ORA &6142        :\ 8D9B= 0D 42 61    .Ba
-ADC &64,X        :\ 8D9E= 75 64       ud
-JSR &2020        :\ 8DA0= 20 20 20       
-JSR &0020        :\ 8DA3= 20 20 00      .
+EQUS "Configuration status:":EQUB &0D
+EQUS "Baud     ":EQUB &00
 JSR L8B7D        :\ 8DA6= 20 7D 8B     }.
 .L8DA9
 JSR L8AE1        :\ 8DA9= 20 E1 8A     a.
 JSR L8A66        :\ 8DAC= 20 66 8A     f.
 JSR LA958        :\ 8DAF= 20 58 A9     X)
-EQUB &44         :\ 8DB2= 44          D
-ADC (&74,X)      :\ 8DB3= 61 74       at
-ADC (&20,X)      :\ 8DB5= 61 20       a 
-JSR &2020        :\ 8DB7= 20 20 20       
-JSR &2000        :\ 8DBA= 20 00 20     . 
-EQUB &82         :\ 8DBD= 82          .
-EQUB &8B         :\ 8DBE= 8B          .
+; EQUB &44         :\ 8DB2= 44          D
+; ADC (&74,X)      :\ 8DB3= 61 74       at
+; ADC (&20,X)      :\ 8DB5= 61 20       a 
+; JSR &2020        :\ 8DB7= 20 20 20       
+; JSR &2000        :\ 8DBA= 20 00 20     . 
+; EQUB &82         :\ 8DBD= 82          .
+; EQUB &8B         :\ 8DBE= 8B          .
+EQUS "Data     ":EQUB &00
+JSR L8B82
 JSR LA958        :\ 8DBF= 20 58 A9     X)
-EQUB &44         :\ 8DC2= 44          D
-ADC &6C          :\ 8DC3= 65 6C       el
-.L8DC5
-ADC (&79,X)      :\ 8DC5= 61 79       ay
-JSR &2020        :\ 8DC7= 20 20 20       
-JSR &2000        :\ 8DCA= 20 00 20     . 
-ROL &208B        :\ 8DCD= 2E 8B 20    .. 
-TAX              :\ 8DD0= AA          *
-EQUB &8B         :\ 8DD1= 8B          .
+EQUS "Delay    ":EQUB &00
+;JSR &2000        :\ 8DCA= 20 00 20     .
+JSR L8B2E
+JSR L8BAA
 JSR L8ABB        :\ 8DD2= 20 BB 8A     ;.
 JSR LA958        :\ 8DD5= 20 58 A9     X)
-LSR &44          :\ 8DD8= 46 44       FD
-ADC (&69)        :\ 8DDA= 72 69       ri
-ROR &65,X        :\ 8DDC= 76 65       ve
-JSR &2020        :\ 8DDE= 20 20 20       
-BRK              :\ 8DE1= 00          .
+EQUS "FDrive   ":EQUB 0
 JSR L8B87        :\ 8DE2= 20 87 8B     ..
 JSR LA958        :\ 8DE5= 20 58 A9     X)
-LSR &69          :\ 8DE8= 46 69       Fi
-JMP (&2065)      :\ 8DEA= 6C 65 20    le 
-JSR &2020        :\ 8DED= 20 20 20       
-JSR &2000        :\ 8DF0= 20 00
+EQUS "File     ":EQUB 0
 JSR L8B10	 :\ 8DF2= 20 10 8B
 JSR L8B8E        :\ 8DF5= 20 8E 8B     ..
 JSR L8B62        :\ 8DF8= 20 62 8B     b.
 JSR LA958        :\ 8DFB= 20 58 A9     X)
-JMP &6E61        :\ 8DFE= 4C 61 6E    Lan
+EQUS "Lang     ":EQUB 0
+; JMP &6E61        :\ 8DFE= 4C 61 6E    Lan
  
-EQUB &67         :\ 8E01= 67          g
-JSR &2020        :\ 8E02= 20 20 20       
-JSR &0020        :\ 8E05= 20 20 00      .
+; EQUB &67         :\ 8E01= 67          g
+; JSR &2020        :\ 8E02= 20 20 20       
+; JSR &0020        :\ 8E05= 20 20 00      .
 JSR L8B08        :\ 8E08= 20 08 8B     ..
 JSR LA958        :\ 8E0B= 20 58 A9     X)
-EOR &646F        :\ 8E0E= 4D 6F 64    Mod
-ADC &20          :\ 8E11= 65 20       e 
-JSR &2020        :\ 8E13= 20 20 20       
-JSR &2000        :\ 8E16= 20 00 20     . 
-AND &8B          :\ 8E19= 25 8B       %.
+EQUS "Mode     ":EQUB 0
+; EOR &646F        :\ 8E0E= 4D 6F 64    Mod
+; ADC &20          :\ 8E11= 65 20       e 
+; JSR &2020        :\ 8E13= 20 20 20       
+; JSR &2000        :\ 8E16= 20 00 20     .
+\AND &8B          :\ 8E19= 25 8B       %.
+JSR L8B25
 JSR L8AF5        :\ 8E1B= 20 F5 8A     u.
 JSR L8A9F        :\ 8E1E= 20 9F 8A     ..
 JSR LA958        :\ 8E21= 20 58 A9     X)
-EQUS "Print   ":EQUB 0
+EQUS "Print    ":EQUB 0
 JSR L8B78        :\ 8E2E= 20 78 8B     x.
 JSR LA958        :\ 8E31= 20 58 A9     X)
 EQUS "Repeat   ":EQUB 0
@@ -2781,10 +2707,7 @@ BCC L941F        :\ 947A= 90 A3       .#
 .L947C
 JSR LAAED        :\ 947C= 20 ED AA     m*
 EQUB &FB         :\ 947F= FB          {
-EQUB &42         :\ 9480= 42          B
-ADC (&64,X)      :\ 9481= 61 64       ad
-JSR &656B        :\ 9483= 20 6B 65     ke
-ADC &2000,Y      :\ 9486= 79 00       y.
+EQUS "Bad key":EQUB 0
 
 .L9488
 JSR L9473        :\ 9488 20 73 94
@@ -4155,7 +4078,7 @@ JSR &041F        :\ 9DBC= 20 1F 04     ..
 LDX #&41         :\ 9DBF= A2 41       "A
 .L9DC1
 LDA LAB2D,X      :\ 9DC1= BD 2D AB    =-+
-STA &0016,X      :\ 9DC4= 9D 16 00    ...
+EQUB &9D:EQUB &16:EQUB &00:PRINT "fix STA abs,X":\STA &0016,X      :\ 9DC4= 9D 16 00    ...
 DEX              :\ 9DC7= CA          J
 BPL L9DC1        :\ 9DC8= 10 F7       .w
 
@@ -4434,7 +4357,8 @@ LDA (&9F,X)      :\ 9F85= A1 9F       !.
 EQUB &9F         :\ 9F87= 9F          .
 EQUB &9F         :\ 9F88= 9F          .
 LDA (&9F,X)      :\ 9F89= A1 9F       !.
-LDA (&C9,X)      :\ 9F8B= A1 C9       !I
+\LDA (&C9,X)      :\ 9F8B= A1 C9       !I
+EQUB &A1
 
 \ TAPE/ROM FSC
 \ ============
@@ -5856,7 +5780,7 @@ EQUB &11:EQUS "Escape":EQUB &00
 TYA              :\ A8A1= 98          .
 BEQ LA8B1        :\ A8A2= F0 0D       p.
 JSR LA923        :\ A8A4= 20 23 A9     #)
-EQUB &0D:EQUS "Loading":EQUB &00
+EQUB &0D:EQUS "Loading":EQUB &0D:EQUB &00
 ; ORA &6F4C        :\ A8A7= 0D 4C 6F    .Lo
 ; ADC (&64,X)      :\ A8AA= 61 64       ad
 ; ADC #&6E         :\ A8AC= 69 6E       in
@@ -6013,13 +5937,7 @@ BEQ LA99D        :\ A983= F0 18       p.
 JSR LAA12        :\ A985= 20 12 AA     .*
 TAY              :\ A988= A8          (
 JSR LA927        :\ A989= 20 27 A9     ')
-ORA &5207        :\ A98C= 0D 07 52    ..R
-ADC &77          :\ A98F= 65 77       ew
-ADC #&6E         :\ A991= 69 6E       in
-STZ &20          :\ A993= 64 20       d 
-STZ &61,X        :\ A995= 74 61       ta
-BVS LA9FE        :\ A997= 70 65       pe
-ORA &000D        :\ A999= 0D 0D 00    ...
+EQUB &0D:EQUB &07:EQUS "Rewind tape":EQUB &0D:EQUB &0D:EQUB &00
 RTS              :\ A99C= 60          `
  
 .LA99D
@@ -12078,11 +11996,11 @@ BRK              :\ D4C3= 00          .
 EQUB &01
 .LD4C5
 STY L883C        :\ D4C5= 8C 3C 88
-BCC LD4CF        :\ D4C8= 90 04
+BCC LD4CE        :\ D4C8= 90 04
 ASL L883C        :\ D4CA= 0E 3C 88
-ROL L883D        :\ D4CD= 2A 8D 3D
-.LD4CF
-DEY              :\ D4D0= 88
+ROL A		 :\ D4CD= 2A
+.LD4CE
+STA L883D	 :\ D4CE= 8D 3D 88
 LDY L883C        :\ D4D1= AC 3C 88    ,<.
 TAX              :\ D4D4= AA          *
 BPL LD4DA        :\ D4D5= 10 03       ..
@@ -19089,3 +19007,5 @@ JMP (&0208)          :\ FFF7
 .LFFFA:EQUW &0D00    :\ FFFA NMIV
 .LFFFC:EQUW LE364    :\ FFFB RESETV
 .LFFFE:EQUW LE59E    :\ FFFE IRQV
+
+SAVE "build/mos.new",&8000,&10000

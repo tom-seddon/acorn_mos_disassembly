@@ -21,7 +21,7 @@ all: $(BUILD)/mos.orig
 clean:
 	rm -Rf $(BUILD)
 
-$(BUILD)/mos.orig: MOS320.rom
+$(BUILD)/mos.orig: orig/MOS320.rom
 	$(MKDIR) $(BUILD)
 	dd if=$< skip=114688 count=16384 bs=1 > $@
 	dd if=$< skip=0 count=16384 bs=1 >> $@

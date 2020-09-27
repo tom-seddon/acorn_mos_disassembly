@@ -1,6 +1,6 @@
-\ -*- mode:beebasm -*-
-org &8000
-cpu 1
+\ -*- mode:beebasm -*- ; not 64tass
+org &8000 ; not 64tass
+cpu 1 ; not 64tass
 
 OS_CLI=&FFF7:OSBYTE=&FFF4:OSWORD=&FFF1:OSWRCH=&FFEE
 OSWRCR=&FFEC:OSNEWL=&FFE7:OSASCI=&FFE3:OSRDCH=&FFE0
@@ -8,7 +8,7 @@ OSBGET=&FFD7:OSFIND=&FFCE:OSGBPB=&FFD1:OSBPUT=&FFD4
 OSFILE=&FFDD:OSARGS=&FFDA
 
 CRTC=&FE00
-ADC=$fe18
+HADC=$fe18
 SYSTEM_VIA=$fe40
 USER_VIA=$fe60
 TUBE=&fee0
@@ -249,7 +249,7 @@ LDX #&D2:STX SYSTEM_VIA+&E
 LDX #&04:STX SYSTEM_VIA+&C    
 LDA #&40:STA SYSTEM_VIA+&B    
 LDA #&0E:STA SYSTEM_VIA+&6    
-STA USER_VIA+&C:STA ADC+0
+STA USER_VIA+&C:STA HADC+0
 LDA #&27:STA SYSTEM_VIA+&7    
 STA SYSTEM_VIA+&5
 LDX #&08   
@@ -15020,7 +15020,7 @@ LDY &0243        :\ E73E= AC 43 02    ,C.
 BEQ LE748        :\ E741= F0 05       p.
 LDX #&15:JSR LEE72        :\ E745= 20 72 EE     rn
 .LE748
-BIT ADC+0        :\ E748= 2C 18 FE    ,.~
+BIT HADC+0        :\ E748= 2C 18 FE    ,.~
 BVS LE752        :\ E74B= 70 05       p.
 RTS              :\ E74D= 60          `
  
@@ -15030,9 +15030,9 @@ BEQ LE78E        :\ E750= F0 3C       p<
 .LE752
 LDX &024C        :\ E752= AE 4C 02    .L.
 BEQ LE788        :\ E755= F0 31       p1
-LDA ADC+2        :\ E757= AD 1A FE    -.~
+LDA HADC+2        :\ E757= AD 1A FE    -.~
 STA &02B5,X      :\ E75A= 9D B5 02    .5.
-LDA ADC+1        :\ E75D= AD 19 FE    -.~
+LDA HADC+1        :\ E75D= AD 19 FE    -.~
 STA &02B9,X      :\ E760= 9D B9 02    .9.
 STX &02BE        :\ E763= 8E BE 02    .>.
 LDY #&03         :\ E766= A0 03        .
@@ -15052,7 +15052,7 @@ AND #&08         :\ E77E= 29 08       ).
 CLC              :\ E780= 18          .
 ADC &024C        :\ E781= 6D 4C 02    mL.
 DEC A            :\ E784= 3A          :
-STA ADC+0        :\ E785= 8D 18 FE    ..~
+STA HADC+0        :\ E785= 8D 18 FE    ..~
 .LE788
 LDA #&10         :\ E788= A9 10       ).
 .LE78A
@@ -19008,4 +19008,4 @@ JMP (&0208)          :\ FFF7
 .LFFFC:EQUW LE364    :\ FFFB RESETV
 .LFFFE:EQUW LE59E    :\ FFFE IRQV
 
-SAVE "build/mos.new",&8000,&10000
+SAVE "build/mos.new",&8000,&10000 ; not 64tass

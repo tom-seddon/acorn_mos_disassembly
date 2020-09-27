@@ -12,23 +12,14 @@ BUILD:=build
 
 .PHONY:all
 all: $(BUILD)/mos.orig
-	beebasm -i mos320.asm
+	$(TASS) mos320.s65 -L$(BUILD)/mos320.lst -o$(BUILD)/mos320.rom
 
 	@sha1sum $(BUILD)/mos.orig
-	@sha1sum $(BUILD)/mos.new
+	@sha1sum $(BUILD)/mos320.rom
 
-	$(PYTHON) fixup.py -o $(BUILD)/mos320_1stmt.asm mos320.asm
-
-	beebasm -i $(BUILD)/mos320_1stmt.asm
-
-	@sha1sum $(BUILD)/mos.new
-
-	$(PYTHON) fixup.py --64tass -o $(BUILD)/mos320_64tass.s65 mos320.asm
-
-	$(TASS) $(BUILD)/mos320_64tass.s65 -L$(BUILD)/mos320.lst -o$(BUILD)/mos320-64tass.rom
-
-	@sha1sum $(BUILD)/mos320-64tass.rom
-
+.PHONY:clean
+clean:
+	rm -Rf $(BUILD)
 
 $(BUILD)/mos.orig: MOS320.rom
 	$(MKDIR) $(BUILD)

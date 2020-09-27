@@ -1,4 +1,22 @@
+;-------------------------------------------------------------------------
+
+; The number of sections will probably increase, as a longer term goal
+; is to have a bit of flexibility here. Stuff that's got documented
+; addresses ($FFxx, default font, VDU driver entry points, etc.) needs
+; to stay fixed, but, space permitting, other stuff could be
+; rearranged.
+                
 *=$8000
+                .dsection terminal
+                .cerror *>$c000,'Terminal ROM is too large'
+                
+*=$c000
+                .dsection mos
+                ; there's no need for a size check here - 64tass gives
+                ; you an error if the code would go past the 64 K
+                ; barrier.
+
+;-------------------------------------------------------------------------
 
 OS_CLI=$FFF7
 OSBYTE=$FFF4
@@ -29,9 +47,28 @@ VPALETTE=$fe21
 
 HAZEL_WORKSPACE=$df00
 
-                ; Presumed addresses in ANDY that don't happen to coincide with other
-                ;labels.
-
+; Presumed addresses in ANDY that don't happen to coincide with other
+; labels.
+; 
+; MasRef E.4-5
+;
+; &8400–87FF  RAM  VDU workspace.
+; &8800–07    RAM  ECF pattern 1 definition.
+; &8808–0F    RAM  ECF pattern 2 definition.
+; &8810–17    RAM  ECF pattern 3 definition.
+; &8818–1F    RAM  ECF pattern 4 definition.
+; &8820–27    RAM  Current foreground ECF pattern or solid colour.
+; &8828–2F    RAM  Current background ECF pattern or solid colour.
+; &8830–BF    RAM  VDU workspace.
+; &88C0–FF    RAM  Reserved for future expansion.
+; &8900–FF    RAM  Current definitions of characters &20–3F.
+; &8A00–FF    RAM  Current definitions of characters &40–5F.
+; &8B00–FF    RAM  Current definitions of characters &60–7F.
+; &8C00–FF    RAM  Current definitions of characters &80–9F.
+; &8D00–FF    RAM  Current definitions of characters &A0–BF.
+; &8E00–FF    RAM  Current definitions of characters &C0–DF.
+; &8F00–FF    RAM  Current definitions of characters &E0–FF.
+                
 L8001=$8001
 L8002=$8002
 L8004=$8004
@@ -74,7 +111,10 @@ ZTEMP=$da                       ;Temporary space
 ZTEMPB=$dc                      ;Temporary space
 ZTEMPC=$de                      ;Temporary space
 ZTEMPD=$e0                      ;Temporary space
-                
+
+;-------------------------------------------------------------------------
+
+               .section terminal 
 L8000:                                       ; Language entry point
                 jmp LAF77
 L8003:                                       ; Service entry point
@@ -92,8 +132,7 @@ L8011:
 L8012:
                 .text "(C)1984 Acorn"
                 .byte 0
-
-
+                
 ; STARTUP
 ; =======
 L8020:
@@ -11409,6 +11448,12 @@ LB900:
                 .byte %11111111
                 .byte %11111111
 
+                .send terminal
+
+;-------------------------------------------------------------------------
+
+                .section mos
+
 ; VDU driver entry block
 ; ======================
 LC000:                                       ; Read from VDU memory
@@ -21449,3 +21494,5 @@ LFFFC:                                       ; FFFB RESETV
 LFFFE:                                       ; FFFE IRQV
                 .word LE59E
 
+                .send mos
+                

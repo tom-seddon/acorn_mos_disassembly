@@ -1,4 +1,9 @@
 ;-------------------------------------------------------------------------
+;
+; Names are intended to match the ones in
+; https://tobylobster.github.io/mos/mos/index.html
+;
+;-------------------------------------------------------------------------
 
 ; The number of sections will probably increase, as a longer term goal
 ; is to have a bit of flexibility here. Stuff that's got documented
@@ -359,7 +364,7 @@ L8164:
                 ldx #$A0                     ; 8172= A2 A0       "
 L8174:
                 stx $025A                    ; 8174= 8E 5A 02    .Z.
-                jsr LE590                    ; 8177= 20 90 E5     .e
+                jsr selectTerminalROM                    ; 8177= 20 90 E5     .e
                 jsr LF107                    ; 817A= 20 07 F1     .q
                 lda $028D                    ; 817D= AD 8D 02    -..
                 beq L8196                    ; 8180= F0 14       p.
@@ -430,7 +435,7 @@ L81DD:
                 lda #$F0                     ; 820C= A9 F0       )p
                 sta $0264                    ; 820E= 8D 64 02    .d.
 L8211:
-                jsr LE590                    ; 8211= 20 90 E5     .e
+                jsr selectTerminalROM                    ; 8211= 20 90 E5     .e
                 ldx $0284                    ; 8214= AE 84 02    ...
                 beq L821C                    ; 8217= F0 03       p.
                 jsr LF11A                    ; 8219= 20 1A F1     .q
@@ -2577,7 +2582,7 @@ L9291:
                 bne L9291                    ; 929D= D0 F2       Pr
                 ply                          ; 929F= 7A          z
                 plp                          ; 92A0= 28          (
-                jmp LE590                    ; 92A1= 4C 90 E5    L.e
+                jmp selectTerminalROM                    ; 92A1= 4C 90 E5    L.e
 
 L92A4:
                 ldx #$03                     ; 92A4= A2 03       ".
@@ -2899,7 +2904,7 @@ L94B8:
                 bne L94AD                    ; 94B9= D0 F2       Pr
 L94BB:
                 pla                          ; 94BB= 68          h
-                jsr LE592                    ; 94BC= 20 92 E5     .e
+                jsr selectROMA                    ; 94BC= 20 92 E5     .e
                 lda #$22                     ; 94BF= A9 22       )"
                 jsr OSWRCH                   ; 94C1= 20 EE FF     n.
                 jmp OSNEWL                   ; 94C4= 4C E7 FF    Lg.
@@ -2908,7 +2913,7 @@ L94C7:
                 jsr L9473                    ; 94C7= 20 73 94     s.
                 lda $F4                      ; 94CA= A5 F4       %t
                 pha                          ; 94CC= 48          H
-                jsr LE57F                    ; 94CD= 20 7F E5     .e
+                jsr selectTerminalROMAndANDY                    ; 94CD= 20 7F E5     .e
                 jsr LF2FF                    ; 94D0= 20 FF F2     .r
                 stz $B0                      ; 94D3= 64 B0       d0
                 beq L94EC                    ; 94D5= F0 15       p.
@@ -3079,7 +3084,7 @@ L95F5:
 L95FF:
                 inc $0284                    ; 95FF= EE 84 02    n..
                 pla                          ; 9602= 68          h
-                jmp LE592                    ; 9603= 4C 92 E5    L.e
+                jmp selectROMA                    ; 9603= 4C 92 E5    L.e
 
 L9606:
                 tax                          ; 9606= AA          *
@@ -11266,7 +11271,7 @@ LC018:                                       ; Fetch byte from ROM Y
                 sty $F4                      ; Select ROM in Y
                 sty ROMSEL
                 lda ($F6)                    ; Get byte with ROM Y paged in
-                jmp LE581                    ; Page in ROM X and return
+                jmp selectROMX                    ; Page in ROM X and return
 
 LC024:
                 jmp ($035D)                  ; C024= 6C 5D 03    l].
@@ -12407,10 +12412,10 @@ LC799:
                 lda $F4                      ; C79B= A5 F4       %t
                 pha                          ; C79D= 48          H
                 ora #$80                     ; C79E= 09 80       ..
-                jsr LE592                    ; C7A0= 20 92 E5     .e
+                jsr selectROMA                    ; C7A0= 20 92 E5     .e
                 jsr LC7AA                    ; C7A3= 20 AA C7     *G
                 pla                          ; C7A6= 68          h
-                jmp LE592                    ; C7A7= 4C 92 E5    L.e
+                jmp selectROMA                    ; C7A7= 4C 92 E5    L.e
 
 LC7AA:
                 ldx #$7F                     ; C7AA= A2 7F       ".
@@ -15828,7 +15833,7 @@ LDE1F:
                 jsr LDE56                    ; DE1F= 20 56 DE     V^
                 lda $F4                      ; DE22= A5 F4       %t
                 pha                          ; DE24= 48          H
-                jsr LE57F                    ; DE25= 20 7F E5     .e
+                jsr selectTerminalROMAndANDY                    ; DE25= 20 7F E5     .e
                 lda #$20                     ; DE28= A9 20       )
                 tax                          ; DE2A= AA          *
                 jsr LE22C                    ; DE2B= 20 2C E2     ,b
@@ -15843,7 +15848,7 @@ LDE30:
                 txa                          ; DE3A= 8A          .
 LDE3B:
                 plx                          ; DE3B= FA          z
-                jsr LE581                    ; DE3C= 20 81 E5     .e
+                jsr selectROMX                    ; DE3C= 20 81 E5     .e
                 bra LDE10                    ; DE3F= 80 CF       .O
 
 LDE41:
@@ -16111,20 +16116,20 @@ LDFDE:
 
 LDFDF:
                 ldx #$8E                     ; DFDF= A2 8E       ".  ; select VIEW+ANDY
-                jsr LE581                    ; DFE1= 20 81 E5     .e
+                jsr selectROMX                    ; DFE1= 20 81 E5     .e
                 jsr XBEBE                    ; DFE4= 20 BE BE     >>
                 bra LDFF1                    ; DFE7= 80 08       ..
 
 LDFE9:
                 ldx #$8E                     ; DFE9= A2 8E       ".
-                jsr LE581                    ; DFEB= 20 81 E5     .e
+                jsr selectROMX                    ; DFEB= 20 81 E5     .e
                 jsr XBA00                    ; DFEE= 20 00 BA     .:
 LDFF1:
-                jmp LE57F                    ; DFF1= 4C 7F E5    L.e
+                jmp selectTerminalROMAndANDY                    ; DFF1= 4C 7F E5    L.e
 
 LDFF4:
                 ldx #$8E                     ; DFF4= A2 8E       ".
-                jsr LE581                    ; DFF6= 20 81 E5     .e
+                jsr selectROMX                    ; DFF6= 20 81 E5     .e
                 jsr XBA67                    ; DFF9= 20 67 BA     g:
                 bra LDFF1                    ; DFFC= 80 F3       .s
 
@@ -16715,13 +16720,13 @@ LE2D7:
                 .word LE822 ; WRCHV=$20e
                 .word LE7BC ; RDCHV=$210
 LE2E9:
-                .word LFF1B ; FILEV=$212
-                .word LFF1E ; ARGSV=$214
-                .word LFF21 ; BGETV=$216
-                .word LFF24 ; BPUTV=$218
-                .word LFF27 ; GBPBV=$21a
-                .word LFF2A ; FINDV=$21c
-                .word LFF2D ; FSCV=$21e
+                .word E_FILEV ; FILEV=$212
+                .word E_ARGSV ; ARGSV=$214
+                .word E_BGETV ; BGETV=$216
+                .word E_BPUTV ; BPUTV=$218
+                .word E_GBPBV ; GBPBV=$21a
+                .word E_FINDV ; FINDV=$21c
+                .word E_FSCV ; FSCV=$21e
                 .word LFFAA ; EVENTV=$220
                 .word LFFAA ; UPTV=$222
                 .word LFFAA ; NETV=$224
@@ -16814,7 +16819,7 @@ LE364:
                 sei
                 lda #$53                     ;
                 sta LFE8E
-                jsr LE590                    ; Page in ROM 15 and continue
+                jsr selectTerminalROM                    ; Page in ROM 15 and continue
                 jmp L8020
 
 ; Check if a coprocessor is attached to the Tube
@@ -16835,14 +16840,14 @@ LE389:
                 phx                          ; E38A= DA          Z
                 jsr LE9BB                    ; E38B= 20 BB E9     ;i
                 sta $FC                      ; E38E= 85 FC       .|
-                jsr LE590                    ; E390= 20 90 E5     .e
+                jsr selectTerminalROM                    ; E390= 20 90 E5     .e
                 jsr L98B7                    ; E393= 20 B7 98     7.
                 tya                          ; E396= 98          .
                 and $FC                      ; E397= 25 FC       %|
                 cmp #$01                     ; E399= C9 01       I.
                 plx                          ; E39B= FA          z
                 ply                          ; E39C= 7A          z
-                jmp LE581                    ; E39D= 4C 81 E5    L.e
+                jmp selectROMX                    ; E39D= 4C 81 E5    L.e
 
 LE3A0:
                 txa                          ; E3A0= 8A          .
@@ -16850,7 +16855,7 @@ LE3A1:
                 tay                          ; E3A1= A8          (
                 jsr LE389                    ; E3A2= 20 89 E3     .c
                 bcc LE3DB                    ; E3A5= 90 34       .4
-                jsr LE3F7                    ; E3A7= 20 F7 E3     wc
+                jsr isROMValid                    ; E3A7= 20 F7 E3     wc
                 bcc LE3DB                    ; E3AA= 90 2F       ./
                 ldx $F4                      ; E3AC= A6 F4       &t
                 ldy $F4                      ; E3AE= A4 F4       $t
@@ -16891,24 +16896,39 @@ LE3EC:
                 inx                          ; E3EC= E8          h
                 cpx #$10                     ; E3ED= E0 10       `.
                 bcc LE3A0                    ; E3EF= 90 AF       ./
-                jsr LE590                    ; E3F1= 20 90 E5     .e
+                jsr selectTerminalROM                    ; E3F1= 20 90 E5     .e
                 jmp L8224                    ; E3F4= 4C 24 82    L$.
 
-LE3F7:
-                jsr LE581                    ; E3F7= 20 81 E5     .e
-                ldx #$03                     ; E3FA= A2 03       ".
-                ldy L8007                    ; E3FC= AC 07 80    ,..
-                clc                          ; E3FF= 18          .
-LE400:
-                lda L8000,Y                  ; E400= B9 00 80    9..
-                eor LE513,X                  ; E403= 5D 13 E5    ].e
-                bne LE40D                    ; E406= D0 05       P.
-                iny                          ; E408= C8          H
-                dex                          ; E409= CA          J
-                bpl LE400                    ; E40A= 10 F4       .t
-                sec                          ; E40C= 38          8
-LE40D:
-                rts                          ; E40D= 60          `
+;-------------------------------------------------------------------------
+;
+; Checks a ROM is valid - i.e., has a valid-looking copyright string.
+;
+; Entry:
+;
+; X = ROM to check
+;
+; Exit:
+;
+; C=0 if ROM invalid; C=1 if ROM valid
+
+isROMValid: .proc ;e3f7
+                jsr selectROMX
+                ldx #$03
+                ldy L8007       ; fetch ROM copyright offset pointer
+                clc             ; assume no match
+-
+                lda L8000,Y     ; fetch possible ROM copyright char
+                eor LE513,X     ; Z=1 if it matches "\x0(C)"
+                bne +           ; branch taken if no match
+                iny             ; next copyright byte
+                dex             ; count 4 chars
+                bpl -
+                sec             ; C=1 means a match
++
+                rts
+                .pend
+
+;-------------------------------------------------------------------------
 
 ; End of STARTUP code
 ; ===================
@@ -16942,7 +16962,7 @@ LE431:
                 ldx HAZEL_WORKSPACE+$03      ; Get current filing system
                 lda $028D                    ; Soft Break, use current filing system
                 beq LE454
-                jsr LE590                    ; E449= 20 90 E5     .e
+                jsr selectTerminalROM                    ; E449= 20 90 E5     .e
 LE44C:
                 phy                          ; E44C= 5A          Z
                 jsr L8EA4                    ; E44D= 20 A4 8E     $.
@@ -16952,7 +16972,7 @@ LE44C:
 LE454:
                 bit $02A1,X                  ; E454= 3C A1 02    <!.
                 bpl LE478                    ; E457= 10 1F       ..
-                jsr LE581                    ; E459= 20 81 E5     .e
+                jsr selectROMX                    ; E459= 20 81 E5     .e
                 cpx #$0F                     ; E45C= E0 0F       `.
                 bne LE46C                    ; E45E= D0 0C       P.
                 jsr LF910                    ; E460= 20 10 F9     .y
@@ -16966,7 +16986,7 @@ LE46C:
                 lda #$03                     ; Filing System selection
                 jsr L8003
                 tax                          ; E471= AA          *
-                jsr LE590                    ; E472= 20 90 E5     .e
+                jsr selectTerminalROM                    ; E472= 20 90 E5     .e
                 txa                          ; E475= 8A          .
                 beq LE4A3                    ; E476= F0 2B       p+
 LE478:
@@ -17005,7 +17025,7 @@ LE4A3:
                 cpx #$1F                     ; 16+UTILS ROM, re-enter Supervisor or Tube CLI
                 beq LE509
 LE4BB:
-                jsr LE590                    ; Page in ROM 15 - UTILS ROM
+                jsr selectTerminalROM                    ; Page in ROM 15 - UTILS ROM
                 jsr L8E9C                    ; Read configured LANG
                 tax
 LE4C2:
@@ -17015,7 +17035,7 @@ LE4C3:
                 bvc LE516
                 php                          ; E4C8= 08          .
                 bcc LE4E1                    ; E4C9= 90 16       ..
-                jsr LE581                    ; E4CB= 20 81 E5     .e
+                jsr selectROMX                    ; E4CB= 20 81 E5     .e
                 lda L8006                    ; E4CE= AD 06 80    -..
                 and #$0D                     ; E4D1= 29 0D       ).
                 beq LE4DA                    ; E4D3= F0 05       p.
@@ -17028,7 +17048,7 @@ LE4DA:
                 plx                          ; E4E0= FA          z
 LE4E1:
                 stx $028C                    ; E4E1= 8E 8C 02    ...
-                jsr LE581                    ; E4E4= 20 81 E5     .e
+                jsr selectROMX                    ; E4E4= 20 81 E5     .e
                 lda #$80                     ; E4E7= A9 80       ).
                 ldy #$08                     ; E4E9= A0 08        .
                 jsr LE7A3                    ; E4EB= 20 A3 E7     #g
@@ -17053,8 +17073,7 @@ LE510:
                 jmp $0400                    ; E510= 4C 00 04    L..
 
 LE513:
-                and #$43                     ; E513= 29 43       )C
-                plp                          ; E515= 28          (
+                .text ")C("
 LE516:
                 brk                          ; E516= 00          .
                 .text 0,"This is not a language"
@@ -17093,33 +17112,69 @@ LE565:
                 jmp LE496                    ; E576= 4C 96 E4    L.d
 
 LE579:
-                jsr LE590                    ; E579= 20 90 E5     .e
+                jsr selectTerminalROM                    ; E579= 20 90 E5     .e
                 jmp L8661                    ; E57C= 4C 61 86    La.
 
-LE57F:
-                ldx #$8F                     ; E57F= A2 8F       ".
-LE581:
-                stx $F4                      ; E581= 86 F4       .t
-                stx ROMSEL                   ; E583= 8E 30 FE    .0~
-                rts                          ; E586= 60          `
+;-------------------------------------------------------------------------
+;-------------------------------------------------------------------------
+;
+; Select paged ROM bank 15 - TERMINAL - with ANDY paged in,
+;
+; Preserves A/Y
+selectTerminalROMAndANDY:   ;e57f
+                ldx #$8F
+                ; fall through into selectROMX
 
+;-------------------------------------------------------------------------
+;-------------------------------------------------------------------------
+;
+; Select paged ROM bank.
+;
+; Entry:
+;
+; X = bank to select.
+;
+; Preserves A/X/Y/P
+selectROMX:   ;e581
+                stx $F4
+                stx ROMSEL
+                rts
+
+;-------------------------------------------------------------------------
+;
 LE587:
                 phy                          ; E587= 5A          Z
-                jsr LE3F7                    ; E588= 20 F7 E3     wc
-                jsr LE590                    ; E58B= 20 90 E5     .e
+                jsr isROMValid                    ; E588= 20 F7 E3     wc
+                jsr selectTerminalROM                    ; E58B= 20 90 E5     .e
                 ply                          ; E58E= 7A          z
                 rts                          ; E58F= 60          `
 
-LE590:
-                lda #$0F                     ; E590= A9 0F       ).
-LE592:
-                sta $F4                      ; E592= 85 F4       .t
-                sta ROMSEL                   ; E594= 8D 30 FE    .0~
-                rts                          ; E597= 60          `
+;-------------------------------------------------------------------------
+;
+; Select paged ROM bank 15 - TERMINAL.
+;
+; Preserves X/Y
+selectTerminalROM:            ;e590
+                lda #$0F
+                ; fall through into selectROMA
+                
+;-------------------------------------------------------------------------
+;
+; Select paged ROM bank.
+;
+; A = bank to select.
+;
+; Preserves A/X/Y/P
+selectROMA:                   ;e592
+                sta $F4         ;update ROMSEL copy
+                sta ROMSEL
+                rts
+
+;-------------------------------------------------------------------------
 
 LE598:
                 phx                          ; E598= DA          Z
-                jsr LE57F                    ; E599= 20 7F E5     .e
+                jsr selectTerminalROMAndANDY                    ; E599= 20 7F E5     .e
                 plx                          ; E59C= FA          z
                 rts                          ; E59D= 60          `
 
@@ -17148,7 +17203,7 @@ LE5A9:
                 ldx #$06                     ; E5C4= 20 72 EE     rn
                 jsr LEE72
                 ldx $028C                    ; E5C7= AE 8C 02    ...
-                jsr LE581                    ; E5CA= 20 81 E5     .e
+                jsr selectROMX                    ; E5CA= 20 81 E5     .e
                 plx                          ; E5CD= FA          z
                 lda $FC                      ; E5CE= A5 FC       %|
                 cli                          ; E5D0= 58          X
@@ -18040,7 +18095,7 @@ LEB07:
                 jsr LE598                    ; EB15= 20 98 E5     .e
                 lda ($F8)                    ; EB18= B2 F8       2x
                 plx                          ; EB1A= FA          z
-                jsr LE581                    ; EB1B= 20 81 E5     .e
+                jsr selectROMX                    ; EB1B= 20 81 E5     .e
                 dec $0268                    ; EB1E= CE 68 02    Nh.
                 inc $F8                      ; EB21= E6 F8       fx
                 bne LEB27                    ; EB23= D0 02       P.
@@ -18073,7 +18128,7 @@ LEB32:
                 lda L8011,Y                  ; EB4A= B9 11 80    9..
                 sta $F9                      ; EB4D= 85 F9       .y
                 pla                          ; EB4F= 68          h
-                jsr LE592                    ; EB50= 20 92 E5     .e
+                jsr selectROMA                    ; EB50= 20 92 E5     .e
                 bra LEAFD                    ; EB53= 80 A8       .(
 
 LEB55:
@@ -18628,7 +18683,7 @@ LEE81:
                 bit $02A1,X                  ; No service entry, step to next ROM
                 bpl LEE91
 LEE86:
-                jsr LE581                    ; Page in ROM X
+                jsr selectROMX                    ; Page in ROM X
                 jsr L8003                    ; Call ROM service entry point
                 tax                          ; Exit if call claimed
                 beq LEE94
@@ -18641,7 +18696,7 @@ LEE94:
                 pla                          ; Restore paging state
                 jsr LEDB0
                 pla                          ; Restore current ROM
-                jsr LE592
+                jsr selectROMA
                 txa                          ; Pass claim/noclaim to A
                 rts
 
@@ -19103,7 +19158,7 @@ LF11A:
                 ror $0284                    ; F11B= 6E 84 02    n..
                 lda $F4                      ; F11E= A5 F4       %t
                 pha                          ; F120= 48          H
-                jsr LE57F                    ; F121= 20 7F E5     .e
+                jsr selectTerminalROMAndANDY                    ; F121= 20 7F E5     .e
                 ldx #$10                     ; F124= A2 10       ".
 LF126:
                 lda #$22                     ; F126= A9 22       )"
@@ -19113,7 +19168,7 @@ LF126:
                 dex                          ; F130= CA          J
                 bpl LF126                    ; F131= 10 F3       .s
                 pla                          ; F133= 68          h
-                jsr LE592                    ; F134= 20 92 E5     .e
+                jsr selectROMA                    ; F134= 20 92 E5     .e
                 stz $0268                    ; F137= 9C 68 02    .h.
                 stz $0284                    ; F13A= 9C 84 02    ...
                 inx                          ; F13D= E8          h
@@ -19157,7 +19212,7 @@ LF169:
                 ldy #$00                     ; F178= A0 00        .
                 lda $F4                      ; F17A= A5 F4       %t
                 pha                          ; F17C= 48          H
-                jsr LE57F                    ; F17D= 20 7F E5     .e
+                jsr selectTerminalROMAndANDY                    ; F17D= 20 7F E5     .e
 LF180:
                 lda ($DE),Y                  ; F180= B1 DE       1^
                 iny                          ; F182= C8          H
@@ -19165,7 +19220,7 @@ LF180:
                 cpy #$08                     ; F185= C0 08       @.
                 bne LF180                    ; F187= D0 F7       Pw
                 plx                          ; F189= FA          z
-                jmp LE581                    ; F18A= 4C 81 E5    L.e
+                jmp selectROMX                    ; F18A= 4C 81 E5    L.e
 
                 jsr LF3AB                    ; F18D= 20 AB F3     +s
                 php                          ; F190= 08          .
@@ -19560,7 +19615,7 @@ LF378:
                 phx                          ; F37A= DA          Z
                 tsx                          ; F37B= BA          :
                 lda $0104,X                  ; F37C= BD 04 01    =..
-                jsr LE592                    ; F37F= 20 92 E5     .e
+                jsr selectROMA                    ; F37F= 20 92 E5     .e
                 bra LF3E1                    ; F382= 80 5D       .]
 
 LF384:
@@ -19581,7 +19636,7 @@ LF384:
                 sta $0107,X                  ; F39E= 9D 07 01    ...
                 lda #<LF378-1                ; F3A1= A9 77       )w
                 sta $0106,X                  ; F3A3= 9D 06 01    ...
-                jsr LE590                    ; F3A6= 20 90 E5     .e
+                jsr selectTerminalROM      ; F3A6= 20 90 E5     .e
                 bra LF3D3                    ; F3A9= 80 28       .(
 
 LF3AB:
@@ -19630,10 +19685,10 @@ LF3EC:
                 jsr LF3AB                    ; F3EC= 20 AB F3     +s
                 ldx $F4                      ; F3EF= A6 F4       &t
                 phx                          ; F3F1= DA          Z
-                jsr LE57F                    ; F3F2= 20 7F E5     .e
+                jsr selectTerminalROMAndANDY                    ; F3F2= 20 7F E5     .e
                 jsr LC027                    ; F3F5= 20 27 C0     '@
                 plx                          ; F3F8= FA          z
-                jmp LE581                    ; F3F9= 4C 81 E5    L.e
+                jmp selectROMX                    ; F3F9= 4C 81 E5    L.e
 
 LF3FC:
                 jsr LF3AB                    ; F3FC= 20 AB F3     +s
@@ -20975,42 +21030,62 @@ LFBED:
                 .text "Graham Winterflood."
                 .text "   "
 
-LFF00:
-                jsr LFF51                    ; FF00= 20 51 FF     Q.
-                jsr LFF51                    ; FF03= 20 51 FF     Q.
-                jsr LFF51                    ; FF06= 20 51 FF     Q.
-                jsr LFF51                    ; FF09= 20 51 FF     Q.
-                jsr LFF51                    ; FF0C= 20 51 FF     Q.
-                jsr LFF51                    ; FF0F= 20 51 FF     Q.
-                jsr LFF51                    ; FF12= 20 51 FF     Q.
-                jsr LFF51                    ; FF15= 20 51 FF     Q.
-                jsr LFF51                    ; FF18= 20 51 FF     Q.
-LFF1B:
-                jsr LFF51                    ; FF1B= 20 51 FF     Q.
-LFF1E:
-                jsr LFF51                    ; FF1E= 20 51 FF     Q.
-LFF21:
-                jsr LFF51                    ; FF21= 20 51 FF     Q.
-LFF24:
-                jsr LFF51                    ; FF24= 20 51 FF     Q.
-LFF27:
-                jsr LFF51                    ; FF27= 20 51 FF     Q.
-LFF2A:
-                jsr LFF51                    ; FF2A= 20 51 FF     Q.
-LFF2D:
-                jsr LFF51                    ; FF2D= 20 51 FF     Q.
-                jsr LFF51                    ; FF30= 20 51 FF     Q.
-                jsr LFF51                    ; FF33= 20 51 FF     Q.
-                jsr LFF51                    ; FF36= 20 51 FF     Q.
-                jsr LFF51                    ; FF39= 20 51 FF     Q.
-                jsr LFF51                    ; FF3C= 20 51 FF     Q.
-                jsr LFF51                    ; FF3F= 20 51 FF     Q.
-                jsr LFF51                    ; FF42= 20 51 FF     Q.
-                jsr LFF51                    ; FF45= 20 51 FF     Q.
-                jsr LFF51                    ; FF48= 20 51 FF     Q.
-                jsr LFF51                    ; FF4B= 20 51 FF     Q.
-                jsr LFF51                    ; FF4E= 20 51 FF     Q.
-LFF51:
+E_USERV: ; ff00
+                jsr extendedVectorEntryPoint
+E_BRKV: ; ff03
+                jsr extendedVectorEntryPoint
+E_IRQ1V: ; ff06
+                jsr extendedVectorEntryPoint
+E_IRQ2V: ; ff09
+                jsr extendedVectorEntryPoint
+E_CLIV: ; ff0c
+                jsr extendedVectorEntryPoint
+E_BYTEV: ; ff0f
+                jsr extendedVectorEntryPoint
+E_WORDV: ; ff12
+                jsr extendedVectorEntryPoint
+E_WRCHV: ; ff15
+                jsr extendedVectorEntryPoint
+E_RDCHV: ; ff18
+                jsr extendedVectorEntryPoint
+E_FILEV: ; ff1b
+                jsr extendedVectorEntryPoint
+E_ARGSV: ; ff1e
+                jsr extendedVectorEntryPoint
+E_BGETV: ; ff21
+                jsr extendedVectorEntryPoint
+E_BPUTV: ; ff24
+                jsr extendedVectorEntryPoint
+E_GBPBV: ; ff27
+                jsr extendedVectorEntryPoint
+E_FINDV: ; ff2a
+                jsr extendedVectorEntryPoint
+E_FSCV: ; ff2d
+                jsr extendedVectorEntryPoint
+E_EVENTV: ; ff30
+                jsr extendedVectorEntryPoint
+E_UPTV: ; ff33
+                jsr extendedVectorEntryPoint
+E_NETV: ; ff36
+                jsr extendedVectorEntryPoint
+E_VDUV: ; ff39
+                jsr extendedVectorEntryPoint
+E_KEYV: ; ff3c
+                jsr extendedVectorEntryPoint
+E_INSV: ; ff3f
+                jsr extendedVectorEntryPoint
+E_REMV: ; ff42
+                jsr extendedVectorEntryPoint
+E_CNPV: ; ff45
+                jsr extendedVectorEntryPoint
+E_IND1V: ; ff48
+                jsr extendedVectorEntryPoint
+E_IND2V: ; ff4b
+                jsr extendedVectorEntryPoint
+E_IND3V: ; ff4e
+                jsr extendedVectorEntryPoint
+                
+extendedVectorEntryPoint:
                 pha                          ; FF51= 48          H
                 pha                          ; FF52= 48          H
                 pha                          ; FF53= 48          H
@@ -21037,7 +21112,7 @@ LFF51:
                 sta $0109,X                  ; FF7D= 9D 09 01    ...
                 jsr LEDBA                    ; FF80= 20 BA ED     :m
                 lda $0D9F,Y                  ; FF83= B9 9F 0D    9..
-                jsr LE592                    ; FF86= 20 92 E5     .e
+                jsr selectROMA                    ; FF86= 20 92 E5     .e
                 ply                          ; FF89= 7A          z
                 plx                          ; FF8A= FA          z
                 pla                          ; FF8B= 68          h
@@ -21057,7 +21132,7 @@ LFF51:
                 pla                          ; FFA0= 68          h
                 jsr LEDB0                    ; FFA1= 20 B0 ED     0m
                 pla                          ; FFA4= 68          h
-                jsr LE592                    ; FFA5= 20 92 E5     .e
+                jsr selectROMA                    ; FFA5= 20 92 E5     .e
                 pla                          ; FFA8= 68          h
                 plp                          ; FFA9= 28          (
 LFFAA:

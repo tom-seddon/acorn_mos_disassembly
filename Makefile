@@ -3,7 +3,7 @@
 BEEBASM?=beebasm
 PYTHON?=python
 MKDIR:=mkdir -p
-TASS:=64tass --m65c02 --nostart -Wall -q
+TASS:=64tass --m65c02 --nostart -Wall -q --case-sensitive
 
 BUILD:=build
 

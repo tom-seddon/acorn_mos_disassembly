@@ -18,21 +18,7 @@
 
 ;-------------------------------------------------------------------------
 
-OS_CLI=$FFF7
-OSBYTE=$FFF4
-OSWORD=$FFF1
-OSWRCH=$FFEE
-OSWRCR=$FFEC
-OSNEWL=$FFE7
-OSASCI=$FFE3
-OSRDCH=$FFE0
-OSBGET=$FFD7
-OSFIND=$FFCE
-OSGBPB=$FFD1
-OSBPUT=$FFD4
-OSFILE=$FFDD
-OSARGS=$FFDA
-
+vectors=$200
 USERV=$200
 BRKV=$202
 IRQ1V=$204
@@ -51,6 +37,7 @@ FINDV=$21c
 FSCV=$21e
 EVENTV=$220
 UPTV=$222
+NETV=$224
 VDUV=$226
 KEYV=$228
 INSV=$22a
@@ -334,15 +321,15 @@ L8113:
                 pha
                 ldx $0256                    ; 812D= AE 56 02    .V.
 L8130:
-                lda LE2D6,Y                  ; 8130= B9 D6 E2    9Vb
-                sta $01FF,Y                  ; 8133= 99 FF 01    ...
-                dey                          ; 8136= 88          .
-                cpy #$21                     ; 8137= C0 21       @!
-                bcs L8130                    ; 8139= B0 F5       0u
-                ldy #$12                     ; 813B= A0 12        .
+                lda LE2D7-1,Y         ; 8130= B9 D6 E2    9Vb
+                sta vectors-1,Y       ; 8133= 99 FF 01    ...
+                dey                   ; 8136= 88          .
+                cpy #EVENTV+1-vectors ; 8137= C0 21       @!
+                bcs L8130             ; 8139= B0 F5       0u
+                ldy #FILEV-vectors    ; 813B= A0 12        .
 L813D:
-                lda LE2D6,Y                  ; 813D= B9 D6 E2    9Vb
-                sta $01FF,Y                  ; 8140= 99 FF 01    ...
+                lda LE2D7-1,Y   ; 813D= B9 D6 E2    9Vb
+                sta vectors-1,Y   ; 8140= 99 FF 01    ...
                 dey                          ; 8143= 88          .
                 bne L813D                    ; 8144= D0 F7       Pw
                 lda $028D                    ; 8146= AD 8D 02    -..
@@ -930,7 +917,7 @@ L8670:
 L8684:
                 ldx #<LDC00     ; 8684= A2 00       ".
                 ldy #>LDC00     ; 8686= A0 DC        \
-                jsr OS_CLI      ; 8688= 20 F7 FF     w.
+                jsr OSCLI      ; 8688= 20 F7 FF     w.
                 bra L8670       ; 868B= 80 E3       .c
 
 L868D:
@@ -2729,7 +2716,7 @@ L937C:
                 bne L93E2                    ; 937F= D0 61       Pa
                 lda #$00                     ; 9381= A9 00       ).
                 tay                          ; 9383= A8          (
-                jmp ($021C)                  ; 9384= 6C 1C 02    l..
+                jmp (FINDV)                  ; 9384= 6C 1C 02    l..
 
 L9387:
                 bne L938E                    ; 9387= D0 05       P.
@@ -4808,7 +4795,7 @@ LA113:
 ; ----------------------------------
 LA129:
                 lda #$0B                     ; A129= A9 0B       ).
-                jmp ($021E)                  ; A12B= 6C 1E 02    l..
+                jmp (FSCV)                  ; A12B= 6C 1E 02    l..
 
 LA12E:
                 bit $027A                    ; A12E= 2C 7A 02    ,z.
@@ -6741,7 +6728,7 @@ LACEA:
                 rts                          ; ACEC= 60          `
 
                 jsr $0574                    ; ACED= 20 74 05     t.
-                jsr OS_CLI                   ; ACF0= 20 F7 FF     w.
+                jsr OSCLI                   ; ACF0= 20 F7 FF     w.
 LACF3:
                 lda #$7F                     ; ACF3= A9 7F       ).
 LACF5:
@@ -7086,7 +7073,7 @@ LAF0B:
 
 LAF0F:
                 clv                          ; AF0F= B8          8
-                jmp ($022E)                  ; AF10= 6C 2E 02    l..
+                jmp (CNPV)                  ; AF10= 6C 2E 02    l..
 
                 php                          ; AF13= 08          .
                 sei                          ; AF14= 78          x
@@ -7908,7 +7895,7 @@ LB3BC:
                 bcs LB389                    ; B3BF= B0 C8       0H
 LB3C1:
                 sec                          ; B3C1= 38          8
-                jmp ($0232)                  ; B3C2= 6C 32 02    l2.
+                jmp (IND2V)                  ; B3C2= 6C 32 02    l2.
 
 LB3C5:
                 sec                          ; B3C5= 38          8
@@ -7969,7 +7956,7 @@ LB40C:
                 dex                          ; B411= CA          J
                 bne LB40C                    ; B412= D0 F8       Px
                 sec                          ; B414= 38          8
-                jmp ($0230)                  ; B415= 6C 30 02    l0.
+                jmp (IND1V)                  ; B415= 6C 30 02    l0.
 
 LB418:
                 txa                          ; B418= 8A          .
@@ -8321,7 +8308,7 @@ LB628:
                 jsr LB823                    ; B62A= 20 23 B8     #8
                 ldx #$00                     ; B62D= A2 00       ".
                 ldy #$05                     ; B62F= A0 05        .
-                jsr OS_CLI                   ; B631= 20 F7 FF     w.
+                jsr OSCLI                   ; B631= 20 F7 FF     w.
 LB634:
                 lda #$E5                     ; B634= A9 E5       )e
                 ldx #$01                     ; B636= A2 01       ".
@@ -12284,7 +12271,7 @@ LC6A3:
                 lda $031F                    ; C6A3= AD 1F 03    -..
                 clc                          ; C6A6= 18          .
 LC6A7:
-                jmp ($0226)                  ; C6A7= 6C 26 02    l&.
+                jmp (VDUV)                  ; C6A7= 6C 26 02    l&.
 
 LC6AA:
                 ldx #$2C                     ; C6AA= A2 2C       ",
@@ -16713,52 +16700,40 @@ LE2BC:
 LE2D2:
                 lda STATE                      ; E2D2= A5 D0       %P
                 and #$20                     ; E2D4= 29 20       )
-LE2D6:
                 rts                          ; E2D6= 60          `
 
 ; Default vector table
 ; ====================
 LE2D7:
-                sbc $65FB                    ; E2D7= ED FB 65    m{e
-                sbc $FF                      ; E2DA= E5 FF       e.
-                sbc $0C                      ; E2DC= E5 0C       e.
-                inc $02                      ; E2DE= E6 02       f.
-                inx                          ; E2E0= E8          h
-                lda ($EE),Y                  ; E2E1= B1 EE       1n
-                and $22EF,Y                  ; E2E3= 39 EF 22    9o"
-                inx                          ; E2E6= E8          h
-;LDY &1BE7,X      :\ E2E7= BC E7 1B    <g.
-                .byte $BC
-LE2E8:
-                .byte $E7
-                .byte $1B
-                .byte $FF                    ; E2EA= FF          .
-                asl $21FF,X                  ; E2EB= 1E FF 21    ..!
-                .byte $FF                    ; E2EE= FF          .
-                bit $FF                      ; E2EF= 24 FF       $.
-                .byte $27                    ; E2F1= 27          '
-                .byte $FF                    ; E2F2= FF          .
-                rol A                        ; E2F3= 2A          *
-                .byte $FF                    ; E2F4= FF          .
-                and LAAFF                    ; E2F5= 2D FF AA    -.*
-                .byte $FF                    ; E2F8= FF          .
-                tax                          ; E2F9= AA          *
-                .byte $FF                    ; E2FA= FF          .
-                tax                          ; E2FB= AA          *
-                .byte $FF                    ; E2FC= FF          .
-                tax                          ; E2FD= AA          *
-                .byte $FF                    ; E2FE= FF          .
-                jmp $43F7                    ; E2FF= 4C F7 43    LwC
-
-                nop                          ; E302= EA          j
-                sed                          ; E303= F8          x
-                sbc #$7B                     ; E304= E9 7B       i{
-                sbc #$AA                     ; E306= E9 AA       i*
-                .byte $FF                    ; E308= FF          .
-                tax                          ; E309= AA          *
-                .byte $FF                    ; E30A= FF          .
-                tax                          ; E30B= AA          *
-                .byte $FF                    ; E30C= FF          .
+                .word LFBED ; USERV=$200
+                .word LE565 ; BRKV=$202
+                .word LE5FF ; IRQ1V=$204
+                .word LE60C ; IRQ2V=$206
+                .word LE802 ; CLIV=$208
+                .word LEEB1 ; BYTEV=$20a
+                .word LEF39 ; WORDV=$20c
+                .word LE822 ; WRCHV=$20e
+                .word LE7BC ; RDCHV=$210
+LE2E9:
+                .word LFF1B ; FILEV=$212
+                .word LFF1E ; ARGSV=$214
+                .word LFF21 ; BGETV=$216
+                .word LFF24 ; BPUTV=$218
+                .word LFF27 ; GBPBV=$21a
+                .word LFF2A ; FINDV=$21c
+                .word LFF2D ; FSCV=$21e
+                .word LFFAA ; EVENTV=$220
+                .word LFFAA ; UPTV=$222
+                .word LFFAA ; NETV=$224
+                .word LFFAA ; VDUV=$226 
+                .word LF74C ; KEYV=$228 
+                .word LEA43 ; INSV=$22a 
+                .word LE9F8 ; REMV=$22c 
+                .word LE97B ; CNPV=$22e 
+                .word LFFAA ; IND1V=$230
+                .word LFFAA ; IND2V=$232
+                .word LFFAA ; IND3V=$234
+                
                 bcc LE310                    ; E30D= 90 01       ..
                 .byte $9F                    ; E30F= 9F          .
 LE310:
@@ -17006,7 +16981,7 @@ LE47F:
                 ldx #$08                     ; E487= A2 08       ".
                 ldy #$F4                     ; E489= A0 F4        t
                 dec $0267                    ; E48B= CE 67 02    Ng.
-                jsr OS_CLI                   ; E48E= 20 F7 FF     w.
+                jsr OSCLI                   ; E48E= 20 F7 FF     w.
                 inc $0267                    ; E491= EE 67 02    ng.
                 bra LE4A3                    ; E494= 80 0D       ..
 
@@ -17082,38 +17057,10 @@ LE513:
                 plp                          ; E515= 28          (
 LE516:
                 brk                          ; E516= 00          .
-                brk                          ; E517= 00          .
-                .byte $54                    ; E518= 54          T
-                pla                          ; E519= 68          h
-                adc #$73                     ; E51A= 69 73       is
-                jsr $7369                    ; E51C= 20 69 73     is
-                jsr $6F6E                    ; E51F= 20 6E 6F     no
-                stz $20,X                    ; E522= 74 20       t
-                adc ($20,X)                  ; E524= 61 20       a
-                jmp ($6E61)                  ; E526= 6C 61 6E    lan
-
-                .byte $67                    ; E529= 67          g
-                adc $61,X                    ; E52A= 75 61       ua
-                .byte $67                    ; E52C= 67          g
-;ADC &00          :\ E52D= 65 00       e.
-                .byte $65
-                ; BRK                        ; E52F= 00          .
-                ; EOR #$20                   ; E530= 49 20       I
-                ; EQUB $63                   ; E532= 63          c
-                ; ADC ($6E,X)                ; E533= 61 6E       an
-                ; ROR $746F                  ; E535= 6E 6F 74    not
-                ; JSR $7572                  ; E538= 20 72 75     ru
-                ; ROR $7420                  ; E53B= 6E 20 74    n t
-                ; PLA                        ; E53E= 68          h
-                ; ADC #$73                   ; E53F= 69 73       is
-                ; JSR $6F63                  ; E541= 20 63 6F     co
-                ; STZ $65                    ; E544= 64 65       de
-                ; BRK                        ; E546= 00          .
+                .text 0,"This is not a language"
 LE52E:
                 brk
-                .byte $00
-                .text "I cannot run this code"
-                .byte $00
+                .text 0,"I cannot run this code",0
 LE547:
                 ldx #$03                     ; E547= A2 03       ".
                 ldy #$07                     ; E549= A0 07        .
@@ -17135,6 +17082,7 @@ LE54E:
 LE564:
                 rts                          ; E564= 60          `
 
+LE565:
                 ldy #$00                     ; E565= A0 00        .
                 jsr LE7A7                    ; E567= 20 A7 E7     'g
                 jsr OSNEWL                   ; E56A= 20 E7 FF     g.
@@ -17181,7 +17129,7 @@ LE59E:
                 pha                          ; E5A1= 48          H
                 and #$10                     ; E5A2= 29 10       ).
                 bne LE5A9                    ; E5A4= D0 03       P.
-                jmp ($0204)                  ; E5A6= 6C 04 02    l..
+                jmp (IRQ1V)                  ; E5A6= 6C 04 02    l..
 
 LE5A9:
                 phx                          ; E5A9= DA          Z
@@ -17204,7 +17152,7 @@ LE5A9:
                 plx                          ; E5CD= FA          z
                 lda $FC                      ; E5CE= A5 FC       %|
                 cli                          ; E5D0= 58          X
-                jmp ($0202)                  ; E5D1= 6C 02 02    l..
+                jmp (BRKV)                  ; E5D1= 6C 02 02    l..
 
 LE5D4:
                 sec                          ; E5D4= 38          8
@@ -17232,6 +17180,7 @@ LE5E9:
 LE5FE:
                 rts                          ; E5FE= 60          `
 
+LE5FF:
                 lda $FC                      ; E5FF= A5 FC       %|
                 pha                          ; E601= 48          H
                 phx                          ; E602= DA          Z
@@ -17243,6 +17192,7 @@ LE5FE:
                 pla                          ; E60A= 68          h
                 rti                          ; E60B= 40          @
 
+LE60C:
                 lda $FC                      ; E60C= A5 FC       %|
                 rti                          ; E60E= 40          @
 
@@ -17308,7 +17258,7 @@ LE663:
                 ply                          ; E66C= 7A          z
                 plx                          ; E66D= FA          z
                 pla                          ; E66E= 68          h
-                jmp ($0206)                  ; E66F= 6C 06 02    l..
+                jmp (IRQ2V)                  ; E66F= 6C 06 02    l..
 
 LE672:
                 lda SYSTEM_VIA+$D            ; E672= AD 4D FE    -M~
@@ -17541,6 +17491,7 @@ LE800:
 
 ; OSCLI
 ; =====
+LE802:
                 jsr LEDBA                    ; E802= 20 BA ED     :m
                 stx $F2                      ; E805= 86 F2       .r
                 sty $F3                      ; E807= 84 F3       .s
@@ -17739,7 +17690,7 @@ LE93A:
 LE93C:
                 ldy $0285                    ; E93C= AC 85 02    ,..
                 jsr LEB04                    ; E93F= 20 04 EB     .k
-                jmp ($0222)                  ; E942= 6C 22 02    l".
+                jmp (UPTV)                  ; E942= 6C 22 02    l".
 
 LE945:
                 bne LE956                    ; E945= D0 0F       P.
@@ -17782,6 +17733,7 @@ LE975:
                 pla                          ; E979= 68          h
                 rts                          ; E97A= 60          `
 
+LE97B:
                 bvc LE984                    ; E97B= 50 07       P.
 LE97D:
                 lda $02D7,X                  ; E97D= BD D7 02    =W.
@@ -17887,8 +17839,9 @@ LE9EF:
 LE9F4:
                 clv                          ; E9F4= B8          8
 LE9F5:
-                jmp ($022C)                  ; E9F5= 6C 2C 02    l,.
+                jmp (REMV)                  ; E9F5= 6C 2C 02    l,.
 
+LE9F8:
                 php                          ; E9F8= 08          .
                 sei                          ; E9F9= 78          x
                 lda $02D7,X                  ; E9FA= BD D7 02    =W.
@@ -17940,8 +17893,9 @@ LEA38:
 LEA3F:
                 tya                          ; EA3F= 98          .
 LEA40:
-                jmp ($022A)                  ; EA40= 6C 2A 02    l*.
+                jmp (INSV)                  ; EA40= 6C 2A 02    l*.
 
+LEA43:
                 php                          ; EA43= 08          .
                 sei                          ; EA44= 78          x
                 pha                          ; EA45= 48          H
@@ -18073,7 +18027,7 @@ LEAFD:
                 bpl LEB07                    ; EB00= 10 05       ..
                 lda #$06                     ; EB02= A9 06       ).
 LEB04:
-                jmp ($0224)                  ; EB04= 6C 24 02    l$.
+                jmp (NETV)                  ; EB04= 6C 24 02    l$.
 
 LEB07:
                 lda $0268                    ; EB07= AD 68 02    -h.
@@ -18257,7 +18211,7 @@ LEC37:
                 lda #$00
 
 LEC39:
-                jmp ($0200)                  ; EC39= 6C 00 02    l..
+                jmp (USERV)                  ; EC39= 6C 00 02    l..
 
 LEC3C:
                 ldx #$00                     ; EC3C= A2 00       ".
@@ -18419,7 +18373,7 @@ LED1E:
 LED21:
                 bit LE34E                    ; ED21= 2C 4E E3    ,Nc
 LED24:
-                jmp ($022E)                  ; ED24= 6C 2E 02    l..
+                jmp (CNPV)                  ; ED24= 6C 2E 02    l..
 
 LED27:
                 sec                          ; ED27= 38          8
@@ -18572,8 +18526,8 @@ LEDEE:
                 plp
                 ldx #$0E                     ; Prepare to set 7 vectors
 LEDF3:
-                lda LE2E8,X                  ; Set filing system vectors to point to extended vectors
-                sta $0211,X
+                lda LE2E9-1,X                  ; Set filing system vectors to point to extended vectors
+                sta FILEV-1,X
                 dex
                 bne LEDF3
                 jsr LF1EE                    ; Set extended vectors
@@ -18809,6 +18763,7 @@ LEF2E:
                 jsr LF384                    ; EF33= 20 84 F3     .s
                 jmp L97B4                    ; EF36= 4C B4 97    L4.
 
+LEF39:
                 pha                          ; EF39= 48          H
                 php                          ; EF3A= 08          .
                 sei                          ; EF3B= 78          x
@@ -19280,7 +19235,7 @@ LF1E2:
 LF1E3:
                 and #$01                     ; F1E3= 29 01       ).
 LF1E5:
-                jmp ($021E)                  ; F1E5= 6C 1E 02    l..
+                jmp (FSCV)                  ; F1E5= 6C 1E 02    l..
 
 ; OSWORD &0F - Write to RTC
 ; =========================
@@ -20170,6 +20125,7 @@ LF735:
 
 ; KEYV handler
 ; ============
+LF74C:
                 bvc LF758                    ; F74C= 50 0A       P.
                 lda #$01                     ; F74E= A9 01       ).
                 sta SYSTEM_VIA+$E            ; F750= 8D 4E FE    .N~
@@ -20392,7 +20348,7 @@ LF8AE:
                 .byte $9D
 ;     12dr6uop[        Up       k+       k-     kRet
 LF8BF:
-                jmp ($0220)
+                jmp (EVENTV)
                 .byte 1
                 .text "axfyjk@:"
                 .byte $0D
@@ -20438,7 +20394,7 @@ LF8DF:
 LF8FF:
                 bit LE34E                    ; Set V
 LF902:
-                jmp ($0228)                  ; Jump to KEYV
+                jmp (KEYV)                  ; Jump to KEYV
 LF905:
                 ldy $0244                    ; F905= AC 44 02    ,D.
                 ldx #$00                     ; F908= A2 00       ".
@@ -20547,11 +20503,11 @@ LF9AD:
 
 LF9B2:
                 jsr LFA97                    ; F9B2= 20 97 FA     .z
-                jmp ($0218)                  ; F9B5= 6C 18 02    l..
+                jmp (BPUTV)                  ; F9B5= 6C 18 02    l..
 
 LF9B8:
                 jsr LFA97                    ; F9B8= 20 97 FA     .z
-                jmp ($0216)                  ; F9BB= 6C 16 02    l..
+                jmp (BGETV)                  ; F9BB= 6C 16 02    l..
 
 LF9BE:
                 cmp #$05                     ; F9BE= C9 05       I.
@@ -20568,7 +20524,7 @@ LF9BE:
                 jsr LFA97                    ; F9D0= 20 97 FA     .z
 LF9D3:
                 ply                          ; F9D3= 7A          z
-                jmp ($021A)                  ; F9D4= 6C 1A 02    l..
+                jmp (GBPBV)                  ; F9D4= 6C 1A 02    l..
 
 LF9D7:
                 phy                          ; F9D7= 5A          Z
@@ -20617,7 +20573,7 @@ LFA14:
 LFA15:
                 jsr LFA97                    ; FA15= 20 97 FA     .z
 LFA18:
-                jmp ($0214)                  ; FA18= 6C 14 02    l..
+                jmp (ARGSV)                  ; FA18= 6C 14 02    l..
 
 LFA1B:
                 ora #$00                     ; FA1B= 09 00       ..
@@ -20628,7 +20584,7 @@ LFA1B:
 LFA24:
                 jsr LFA97                    ; FA24= 20 97 FA     .z
 LFA27:
-                jmp ($021C)                  ; FA27= 6C 1C 02    l..
+                jmp (FINDV)                  ; FA27= 6C 1C 02    l..
 
 LFA2A:
                 phx                          ; FA2A= DA          Z
@@ -20669,7 +20625,7 @@ LFA5B:
                 rts                          ; FA6A= 60          `
 
 LFA6B:
-                jmp ($0212)                  ; FA6B= 6C 12 02    l..
+                jmp (FILEV)                  ; FA6B= 6C 12 02    l..
 
 LFA6E:
                 pha                          ; FA6E= 48          H
@@ -21029,12 +20985,19 @@ LFF00:
                 jsr LFF51                    ; FF12= 20 51 FF     Q.
                 jsr LFF51                    ; FF15= 20 51 FF     Q.
                 jsr LFF51                    ; FF18= 20 51 FF     Q.
+LFF1B:
                 jsr LFF51                    ; FF1B= 20 51 FF     Q.
+LFF1E:
                 jsr LFF51                    ; FF1E= 20 51 FF     Q.
+LFF21:
                 jsr LFF51                    ; FF21= 20 51 FF     Q.
+LFF24:
                 jsr LFF51                    ; FF24= 20 51 FF     Q.
+LFF27:
                 jsr LFF51                    ; FF27= 20 51 FF     Q.
+LFF2A:
                 jsr LFF51                    ; FF2A= 20 51 FF     Q.
+LFF2D:
                 jsr LFF51                    ; FF2D= 20 51 FF     Q.
                 jsr LFF51                    ; FF30= 20 51 FF     Q.
                 jsr LFF51                    ; FF33= 20 51 FF     Q.
@@ -21101,7 +21064,7 @@ LFFAA:
                 rts                          ; FFAA= 60          `
 
 LFFAB:
-                ldy CRTC+0,X
+                ldy $fe00,X
                 rts
 
 LFFAF:
@@ -21121,22 +21084,35 @@ LFFB3:
                 jmp LF27F                    ; FFC5
                 jmp LE7BC                    ; FFC8
                 jmp LE822                    ; FFCB
+OSFIND:
                 jmp LFA1B                    ; FFCE
+OSGBPB:
                 jmp LF9BE                    ; FFD1
+OSBPUT:
                 jmp LF9B2                    ; FFD4
+OSBGET:
                 jmp LF9B8                    ; FFD7
+OSARGS:
                 jmp LF9E7                    ; FFDA
+OSFILE:         
                 jmp LFA2A                    ; FFDD
-                jmp ($0210)                  ; FFE0
-                cmp #$0D                     ; FFE5
-                bne OSWRCH
-                lda #$0A                     ; FFE9
-                jsr OSWRCH
+OSRDCH:
+                jmp (RDCHV)                  ; FFE0
+OSASCI:
+                cmp #$0D                     ; FFE3
+                bne OSWRCH                   ; FFE5
+OSNEWL:
+                lda #$0A                     ; FFE7
+                jsr OSWRCH                   ; FFE9
                 lda #$0D                     ; FFEC
-                jmp ($020E)                  ; FFEE
-                jmp ($020C)                  ; FFF1
-                jmp ($020A)                  ; FFF4
-                jmp ($0208)                  ; FFF7
+OSWRCH:
+                jmp (WRCHV)                  ; FFEE
+OSWORD:
+                jmp (WORDV)                  ; FFF1
+OSBYTE:
+                jmp (BYTEV)                  ; FFF4
+OSCLI:
+                jmp (CLIV)                  ; FFF7
 
 LFFFA:                                       ; FFFA NMIV
                 .word $0D00

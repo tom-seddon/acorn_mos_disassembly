@@ -11340,23 +11340,23 @@ LC06D:
                 bne LC096                    ; C073= D0 21       P!
                 lda #$20                     ; C075= A9 20       )
 LC077:
-                tay                          ; C077= A8          (
-                lda LE027,Y                  ; C078= B9 27 E0    9'`
-                sta $035D                    ; C07B= 8D 5D 03    .].
-                lda LE048,Y                  ; C07E= B9 48 E0    9H`
-                bmi LC0B3                    ; C081= 30 30       00
-                tax                          ; C083= AA          *
-                ora #$F0                     ; C084= 09 F0       .p
-                sta $026A                    ; C086= 8D 6A 02    .j.
-                txa                          ; C089= 8A          .
-                lsr A                        ; C08A= 4A          J
-                lsr A                        ; C08B= 4A          J
-                lsr A                        ; C08C= 4A          J
-                lsr A                        ; C08D= 4A          J
-                clc                          ; C08E= 18          .
-                adc #$C0                     ; C08F= 69 C0       i@
-                sta $035E                    ; C091= 8D 5E 03    .^.
-                bra LC0CA                    ; C094= 80 34       .4
+                tay                          ; C077= A8
+                lda LE027,Y                  ; Get routine LSB
+                sta $035D                    ; Store jump address LSB (see MasRef E.4-3)
+                lda LE048,Y                  ; Get routine MSB
+                bmi LC0B3                    ; Branch taken if bit 7 set
+                tax                          ; Save original MSB value
+                ora #$F0                     ; 
+                sta $026A                    ; 
+                txa                          ; Restore original MSB value
+                lsr A                        ; 
+                lsr A                        ; 
+                lsr A                        ; 
+                lsr A                        ; Extract value in top 4 bits
+                clc                          ; 
+                adc #$C0                     ; Add $C0 to value from top 4 bits
+                sta $035E                    ; Store jump address MSB
+                bra LC0CA                    ; Continue
 
 LC096:
                 bit STATE                      ; C096= 24 D0       $P
@@ -11376,7 +11376,7 @@ LC0A9:
                 bra LC0CA                    ; C0B1= 80 17       ..
 
 LC0B3:
-                sta $035E                    ; C0B3= 8D 5E 03    .^.
+                sta $035E                    ; Store jump address MSB
                 tya                          ; C0B6= 98          .
                 eor #$F7                     ; C0B7= 49 F7       Iw
                 cmp #$FA                     ; C0B9= C9 FA       Iz
@@ -11410,10 +11410,12 @@ LC0E0:
 LC0E1:
                 rts                          ; C0E1= 60          `
 
+LC0E2:
                 jsr LC0CA                    ; C0E2= 20 CA C0     J@
                 jsr LC048                    ; C0E5= 20 48 C0     H@
                 bra LC0FA                    ; C0E8= 80 10       ..
-
+                
+LC0EA:
                 pha                          ; C0EA= 48          H
                 jsr LC0CA                    ; C0EB= 20 CA C0     J@
                 jsr LE93A                    ; C0EE= 20 3A E9     :i
@@ -11629,6 +11631,7 @@ LC241:
 LC249:
                 jmp LC4DF                    ; C249= 4C DF C4    L_D
 
+LC24C:
                 jsr LD12D                    ; C24C= 20 2D D1     -Q
                 bcs LC235                    ; C24F= B0 E4       0d
                 lda #$00                     ; C251= A9 00       ).
@@ -11684,6 +11687,7 @@ LC29A:
                 jsr LC2E9                    ; C2A9= 20 E9 C2     iB
                 bcc LC273                    ; C2AC= 90 C5       .E
                 jsr LC38F                    ; C2AE= 20 8F C3     .C
+LC2B1:
                 jsr LE2D2                    ; C2B1= 20 D2 E2     Rb
                 bne LC296                    ; C2B4= D0 E0       P`
                 dec $0269                    ; C2B6= CE 69 02    Ni.
@@ -11828,6 +11832,7 @@ LC3A2:
 LC3A4:
                 rts                          ; C3A4= 60          `
 
+LC3A5:
                 ldx $0355                    ; C3A5= AE 55 03    .U.
                 lda $0321                    ; C3A8= AD 21 03    -!.
                 cmp $0323                    ; C3AB= CD 23 03    M#.
@@ -11885,6 +11890,7 @@ LC40A:
 
 LC410:
                 jsr LC47C                    ; C410= 20 7C C4     |D
+LC413:
                 lda $0361                    ; C413= AD 61 03    -a.
                 beq LC3A4                    ; C416= F0 8C       p.
                 ldx #$00                     ; C418= A2 00       ".
@@ -11944,6 +11950,7 @@ LC46A:
 LC47C:
                 stz $0323                    ; C47C= 9C 23 03    .#.
                 stz $0322                    ; C47F= 9C 22 03    .".
+LC482:
                 lda $0366                    ; C482= AD 66 03    -f.
                 and #$0E                     ; C485= 29 0E       ).
                 tax                          ; C487= AA          *
@@ -12024,29 +12031,35 @@ LC50A:
                 sbc $030C,X                  ; C50D= FD 0C 03    }..
                 sta $0310,X                  ; C510= 9D 10 03    ...
                 rts                          ; C513= 60          `
-
+                
+LC514:
                 stz $0269                    ; C514= 9C 69 02    .i.
                 lda #$91                     ; C517= A9 91       ).
+LC519:
                 eor #$95                     ; C519= 49 95       I.
 LC51B:
                 tsb STATE                      ; C51B= 04 D0       .P
                 rts                          ; C51D= 60          `
-
+                
+LC51E:
                 lda $0361                    ; C51E= AD 61 03    -a.
                 beq LC52C                    ; C521= F0 09       p.
                 jsr LCF50                    ; C523= 20 50 CF     PO
                 lda #$2B                     ; C526= A9 2B       )+
+LC528:
                 eor #$0B                     ; C528= 49 0B       I.
                 trb STATE                      ; C52A= 14 D0       .P
 LC52C:
                 rts                          ; C52C= 60          `
 
+LC52D:
                 lda $0361                    ; C52D= AD 61 03    -a.
                 beq LC52C                    ; C530= F0 FA       pz
                 lda #$20                     ; C532= A9 20       )
                 jsr LCF53                    ; C534= 20 53 CF     SO
                 bra LC51B                    ; C537= 80 E2       .b
-
+                
+LC539:
                 ldy #$00                     ; C539= A0 00        .
                 lda $0323                    ; C53B= AD 23 03    -#.
                 bpl LC541                    ; C53E= 10 01       ..
@@ -12069,7 +12082,8 @@ LC541:
                 sta ZORA                      ; C561= 85 D2       .R
 LC563:
                 rts                          ; C563= 60          `
-
+                
+LC564:
                 ldy #$00                     ; C564= A0 00        .
                 lda $0323                    ; C566= AD 23 03    -#.
                 bpl LC56C                    ; C569= 10 01       ..
@@ -12240,6 +12254,7 @@ LC66F:
                 ror A                        ; C67A= 6A          j
                 rts                          ; C67B= 60          `
 
+LC67C:
                 lda $031B                    ; C67C= AD 1B 03    -..
                 cmp #$20                     ; C67F= C9 20       I
                 bcc LC691                    ; C681= 90 0E       ..
@@ -12260,6 +12275,7 @@ LC691:
                 bcs LC6A7                    ; C696= B0 0F       0.
                 jmp (LE069,X)                ; C698= 7C 69 E0    |i`
 
+LC69B:
                 ldx $0361                    ; C69B= AE 61 03    .a.
                 beq LC6A3                    ; C69E= F0 03       p.
                 jmp LD146                    ; C6A0= 4C 46 D1    LFQ
@@ -12389,11 +12405,13 @@ LC780:
                 stx $034D                    ; C786= 8E 4D 03    .M.
                 rts                          ; C789= 60          `
 
+LC78A:
                 ldx #$20                     ; C78A= A2 20       "
                 ldy #$0C                     ; C78C= A0 0C        .
                 jsr LC91E                    ; C78E= 20 1E C9     .I
                 jmp LC4DF                    ; C791= 4C DF C4    L_D
 
+LC794:
                 lda $0323                    ; C794= AD 23 03    -#.
                 bra LC7BC                    ; C797= 80 23       .#
 
@@ -13422,6 +13440,7 @@ LCE21:
                 bpl LCE21                    ; CE2A= 10 F5       .u
                 rts                          ; CE2C= 60          `
 
+LCE2D:
                 lda #$20                     ; CE2D= A9 20       )
                 bit $0366                    ; CE2F= 2C 66 03    ,f.
                 bne LCE37                    ; CE32= D0 03       P.
@@ -16174,79 +16193,73 @@ LE023:
                 .byte $AA
                 .byte $FF
 
-                ; VDU control code dispatch table, low bytes
-                ; ==========================================
-LE027:
-                .byte $35                    ; E027= 35          5
-                .byte $E2                    ; E028= E2          .
-                .byte $EA                    ; E029= EA          .
-                .byte $EA                    ; E02A= EA          .
-                .byte $1E                    ; E02B= 1E          .
-                .byte $2D                    ; E02C= 2D          -
-                .byte $35                    ; E02D= 35          5
-                .byte $B6                    ; E02E= B6          .
-                .byte $9A                    ; E02F= 9A          .
-                .byte $4C                    ; E030= 4C          L
-                .byte $5B                    ; E031= 5B          [
-                .byte $B1                    ; E032= B1          .
-                .byte $4F                    ; E033= 4F          O
-                .byte $F6                    ; E034= F6          .
-                .byte $14                    ; E035= 14          .
-                .byte $28                    ; E036= 28          (
-                .byte $13                    ; E037= 13          .
-                .byte $39                    ; E038= 39          9
-                .byte $64                    ; E039= 64          d
-                .byte $2D                    ; E03A= 2D          -
-                .byte $C5                    ; E03B= C5          .
-                .byte $19                    ; E03C= 19          .
-                .byte $94                    ; E03D= 94          .
-                .byte $7C                    ; E03E= 7C          |
-                .byte $1F                    ; E03F= 1F          .
-                .byte $9B                    ; E040= 9B          .
-                .byte $AA                    ; E041= AA          .
-                .byte $35                    ; E042= 35          5
-                .byte $A5                    ; E043= A5          .
-                .byte $8A                    ; E044= 8A          .
-                .byte $7C                    ; E045= 7C          |
-                .byte $82                    ; E046= 82          .
-                .byte $2D                    ; E047= 2D          -
+; VDU control code dispatch tables
+; ================================
+;
 
-                ; VDU control code dispatch table, high bytes
-                ; ===========================================
+; each routine is (address, number of additional VDU bytes)
+vdu_routines=[
+                (LC035,0), ; VDU0
+                (LC0E2,1), ; VDU1
+                (LC0EA,0), ; VDU2
+                (LC0EA,0), ; VDU3
+                (LC51E,0), ; VDU4
+                (LC52D,0), ; VDU5
+                (LC035,0), ; VDU6
+                (LEFB6,0), ; VDU7
+                (LC29A,0), ; VDU8
+                (LC24C,0), ; VDU9
+                (LC25B,0), ; VDU10
+                (LC2B1,0), ; VDU11
+                (LC44F,0), ; VDU12
+                (LC3F6,0), ; VDU13
+                (LC514,0), ; VDU14
+                (LC528,0), ; VDU15
+                (LC413,0), ; VDU16
+                (LC539,1), ; VDU17
+                (LC564,2), ; VDU18
+                (LC62D,5), ; VDU19
+                (LC5C5,0), ; VDU20
+                (LC519,0), ; VDU21
+                (LC794,1), ; VDU22
+                (LC67C,9), ; VDU23
+                (LC71F,8), ; VDU24
+                (LC69B,5), ; VDU25
+                (LC6AA,0), ; VDU26
+                (LC035,0), ; VDU27
+                (LC3A5,4), ; VDU28
+                (LC78A,4), ; VDU29
+                (LC47C,0), ; VDU30
+                (LC482,2), ; VDU31
+                (LCE2D,0), ; ???
+                ]
+                
+; LSB of routine address
+LE027:
+                .for i=0,i<len(vdu_routines),i+=1
+                .byte <vdu_routines[i][0]
+                .next
+
+; If bit 7 set: MSB of routine address
+;
+; If bit 7 clear:
+;
+; Top 4 bits are bits 8-11 of routine address (bits 12-15 are %1010,
+; so address is $C0xx to $C7xx)
+;
+; Bottom 4 bits are ORed with $f0 and stored in $26a - -ve bytes left
+; in VDU queue.
 LE048:
-                .byte $C0                    ; E048= C0          .
-                .byte $0F                    ; E049= 0F          .
-                .byte $C0                    ; E04A= C0          .
-                .byte $C0                    ; E04B= C0          .
-                .byte $C5                    ; E04C= C5          .
-                .byte $C5                    ; E04D= C5          .
-                .byte $C0                    ; E04E= C0          .
-                .byte $EF                    ; E04F= EF          .
-                .byte $C2                    ; E050= C2          .
-                .byte $C2                    ; E051= C2          .
-                .byte $C2                    ; E052= C2          .
-                .byte $C2                    ; E053= C2          .
-                .byte $C4                    ; E054= C4          .
-                .byte $C3                    ; E055= C3          .
-                .byte $C5                    ; E056= C5          .
-                .byte $C5                    ; E057= C5          .
-                .byte $C4                    ; E058= C4          .
-                .byte $5F                    ; E059= 5F          _
-                .byte $5E                    ; E05A= 5E          ^
-                .byte $6B                    ; E05B= 6B          k
-                .byte $C5                    ; E05C= C5          .
-                .byte $C5                    ; E05D= C5          .
-                .byte $7F                    ; E05E= 7F          
-                .byte $67                    ; E05F= 67          g
-                .byte $78                    ; E060= 78          x
-                .byte $6B                    ; E061= 6B          k
-                .byte $C6                    ; E062= C6          .
-                .byte $C0                    ; E063= C0          .
-                .byte $3C                    ; E064= 3C          <
-                .byte $7C                    ; E065= 7C          |
-                .byte $C4                    ; E066= C4          .
-                .byte $4E                    ; E067= 4E          N
-                .byte $CE                    ; E068= CE          .
+                .for i=0,i<len(vdu_routines),i+=1
+                .if vdu_routines[i][1]==0
+                .byte >vdu_routines[i][0]
+                .else
+                .cerror vdu_routines[i][0]<$c000 || vdu_routines[i][0]>$c7ff,format("illegal VDU routine address for VDU %d: $%04x",i,vdu_routines[i][0])
+                .cerror vdu_routines[i][1]<0 || vdu_routines[i][1]>15,format("illegal VDU parameter count for VDU %d: %d",i,vdu_routines[i][1])
+                .byte (16-vdu_routines[i][1])|(((>vdu_routines[i][0])&$0f)<<4)
+                .endif
+                .next
+                
 LE069:
                 .word LCEFB      ; E069= FB CE        ..
                 .word LCF2B      ; E06B= 2B CF        +.
@@ -16287,77 +16300,22 @@ LE07B:
 
 ; Times 40 lookup table, high bytes
 LE0AF:
-                brk                          ; E0AF= 00          .
-                brk                          ; E0B0= 00          .
-                brk                          ; E0B1= 00          .
-                brk                          ; E0B2= 00          .
-                brk                          ; E0B3= 00          .
-                brk                          ; E0B4= 00          .
-                brk                          ; E0B5= 00          .
-                ora ($01,X)                  ; E0B6= 01 01       ..
-                ora ($01,X)                  ; E0B8= 01 01       ..
-                ora ($01,X)                  ; E0BA= 01 01       ..
-                .byte $02                    ; E0BC= 02          .
-                .byte $02                    ; E0BD= 02          .
-                .byte $02                    ; E0BE= 02          .
-                .byte $02                    ; E0BF= 02          .
-                .byte $02                    ; E0C0= 02          .
-                .byte $02                    ; E0C1= 02          .
-                .byte $02                    ; E0C2= 02          .
-                .byte $03                    ; E0C3= 03          .
-                .byte $03                    ; E0C4= 03          .
-                .byte $03                    ; E0C5= 03          .
-                .byte $03                    ; E0C6= 03          .
-                .byte $03                    ; E0C7= 03          .
+                .for i=0,i<25,i+=1
+                .byte >i*40
+                .next
 
 ; Times 40 lookup table, low bytes
 LE0C8:
-                .byte $00                    ; E0C8= 00          .
-                .byte $28                    ; E0C9= 28          (
-                .byte $50                    ; E0CA= 50          P
-                .byte $78                    ; E0CB= 78          x
-                .byte $A0                    ; E0CC= A0          .
-                .byte $C8                    ; E0CD= C8          .
-                .byte $F0                    ; E0CE= F0          .
-                .byte $18                    ; E0CF= 18          .
-                .byte $40                    ; E0D0= 40          @
-                .byte $68                    ; E0D1= 68          h
-                .byte $90                    ; E0D2= 90          .
-                .byte $B8                    ; E0D3= B8          .
-                .byte $E0                    ; E0D4= E0          .
-                .byte $08                    ; E0D5= 08          .
-                .byte $30                    ; E0D6= 30          0
-                .byte $58                    ; E0D7= 58          X
-                .byte $80                    ; E0D8= 80          .
-                .byte $A8                    ; E0D9= A8          .
-                .byte $D0                    ; E0DA= D0          .
-                .byte $F8                    ; E0DB= F8          .
-                .byte $20                    ; E0DC= 20
-                .byte $48                    ; E0DD= 48          H
-                .byte $70                    ; E0DE= 70          p
-                .byte $98                    ; E0DF= 98          .
-                .byte $C0                    ; E0E0= C0          .
+                .for i=0,i<25,i+=1
+                .byte <i*40
+                .next
 
-; Times 320 lookup table
+; Times 640 lookup table, high bytes
 LE0E1:
-                .byte $00                    ; E0E1= 00
-                .byte $02                    ; E0E2= 02          .
-                ora $07                      ; E0E3= 05 07       ..
-                asl A                        ; E0E5= 0A          .
-                tsb $110F                    ; E0E6= 0C 0F 11    ...
-                trb $16                      ; E0E9= 14 16       ..
-                ora $1E1B,Y                  ; E0EB= 19 1B 1E    ...
-                jsr $2523                    ; E0EE= 20 23 25     #%
-                plp                          ; E0F1= 28          (
-                rol A                        ; E0F2= 2A          *
-                and $322F                    ; E0F3= 2D 2F 32    -/2
-                bit $37,X                    ; E0F6= 34 37       47
-                and $3E3C,Y                  ; E0F8= 39 3C 3E    9<>
-                eor ($43,X)                  ; E0FB= 41 43       AC
-                lsr $48                      ; E0FD= 46 48       FH
-                .byte $4B                    ; E0FF= 4B          K
-;EOR &1F1F        :\ E100= 4D 1F 1F    M..
-                .byte $4D
+                .for i=0,i<32,i+=1
+                .byte >i*640
+                .next
+
 LE101:
                 .byte $1F
                 .byte $1F

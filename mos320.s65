@@ -1,6 +1,7 @@
 ;-------------------------------------------------------------------------
 ;
-; Names are intended to match the ones in
+; Names for stuff common to MOS 3.20 and OS 1.20 are intended to
+; mostly match the ones in
 ; https://tobylobster.github.io/mos/mos/index.html
 ;
 ;-------------------------------------------------------------------------
@@ -23,6 +24,45 @@
 
 ;-------------------------------------------------------------------------
 
+stringInputBufferAddress=$f2    ;word
+
+;-------------------------------------------------------------------------
+
+romServiceCallAbsoluteWorkspaceClaim=$01 ; memory used only when ROM is paged in
+romServiceCallPrivateWorkspaceClaim=$02 ; memory used even when ROM is not paged in
+romServiceCallAutoBoot=$03              ;
+romServiceCallUnrecognisedCommand=$04   ; star command not recognised
+romServiceCallUnrecognisedInterrupt=$05 ;
+romServiceCallBreakInstruction=$06      ;
+romServiceCallUnrecognisedOSBYTE=$07    ;
+romServiceCallUnrecognisedOSWORD=$08    ;
+romServiceCallHelp=$09                  ;
+romServiceCallClaimStaticWorkspace=$0A ; (Issued by paged ROMs, not the OS)
+romServiceCallNMIRelease=$0B    ; (Issued by paged ROMs, not the OS)
+romServiceCallNMIClaim=$0C      ; (Issued by paged ROMs, not the OS)
+romServiceCallROMFilingSystemInitialize=$0D    ;
+romServiceCallROMFilingSystemByteGet=$0E    ;
+romServiceCallVectorsClaimed=$0F    ; Used when a filing system starts
+romServiceCallSpoolExecClosureWarning=$10    ;
+;romServiceCallFontImplosionExplosionWarning=$11    ;
+romServiceCallInitialiseFilingSystem=$12    ; (Issued from paged ROMs, not the OS)
+romServiceCallPollingInterrupt=$15
+romServiceCallAbsoluteHAZELWorkspaceClaim=$21
+romServiceCallPrivateHAZELWorkspaceClam=$22
+romServiceCallTopOfHAZELWorkspace=$23
+romServiceCallCountDynamicHAZELWorkspace=$24
+romServiceCallRequestFSInfo=$25
+romServiceCallCloseAllOpenFiles=$26
+romServiceCallInformReset=$27
+romServiceCallUnknownCONFIG=$28
+romServiceCallUnknownSTATUS=$29
+romServiceCallLanguageChange=$2a
+romServiceCallTubeSystemPostInitialisation=$FE    ;
+romServiceCallTubeMainInitialisation=$FF    ;
+
+                
+;-------------------------------------------------------------------------
+                
 vectors=$200
 USERV=$200
 BRKV=$202
@@ -56,8 +96,6 @@ CRTC=$FE00
 ACIA=$fe08
 SERPROC=$fe10
 HADC=$fe18
-SYSTEM_VIA=$fe40
-USER_VIA=$fe60
 TUBE=$fee0
 ROMSEL=$fe30
 ACCCON=$fe34
@@ -65,6 +103,196 @@ VCONTROL=$fe20
 VPALETTE=$fe21
 
 HAZEL_WORKSPACE=$df00
+
+key_space=$62
+key_comma=$66
+key_minus=$17
+key_stop=$67
+key_slash=$68
+key_0=$27
+key_1=$30
+key_2=$31
+key_3=$11
+key_4=$12
+key_5=$13
+key_6=$34
+key_7=$24
+key_8=$15
+key_9=$26
+key_colon=$48
+key_semicolon=$57
+key_at=$47
+key_a=$41
+key_b=$64
+key_c=$52
+key_d=$32
+key_e=$22
+key_f=$43
+key_g=$53
+key_h=$54
+key_i=$25
+key_j=$45
+key_k=$46
+key_l=$56
+key_m=$65
+key_n=$55
+key_o=$36
+key_p=$37
+key_q=$10
+key_r=$33
+key_s=$51
+key_t=$23
+key_u=$35
+key_v=$63
+key_w=$21
+key_x=$42
+key_y=$44
+key_z=$61
+key_left_square_bracket=$38
+key_backslash=$78
+key_right_square_bracket=$58
+key_caret=$18
+key_underline=$28
+key_escape=$70
+key_tab=$60
+key_caps_lock=$40
+key_ctrl=$1
+key_shift_lock=$50
+key_shift=$0
+key_delete=$59
+key_copy=$69
+key_return=$49
+key_up=$39
+key_down=$29
+key_left=$19
+key_right=$79
+key_f0=$20
+key_f1=$71
+key_f2=$72
+key_f3=$73
+key_f4=$14
+key_f5=$74
+key_f6=$75
+key_f7=$16
+key_f8=$76
+key_f9=$77
+
+fsInfoBlock: .struct
+name: .fill 8
+minHandle: .fill 1
+maxHandle: .fill 1
+fsNumber: .fill 1
+                .ends
+
+                .virtual $df00
+hazel: .block
+currentFS:
+                .fill 1
+activeFS:
+                .fill 1
+libFS:
+                .fill 1
+currentFSROM:
+                .fill 1
+commandLinePointer:
+                .fill 2
+fsInfoBlocks:
+                .fill 17*size(fsInfoBlock)
+fsInfoBlocksTerminator:
+                ; space reserved for the 0 terminator when the full
+                ; set of info blocks are filled.
+                .fill 1
+fsFlags: .block
+                .fill 1
+useASCII=$80
+isAPPEND=$80
+noLineNumbers=$40
+                .bend
+lineNumberBCD:
+                .fill 2
+lastCharPrinted:
+                .fill 1
+tempFSFlag:
+                .fill 1   
+                .bend
+                .endv
+
+                .virtual $fe34
+acccon: .block
+;D=1 = display shadow RAM; D=0 = display main RAM
+d=$01
+
+;E=1 = VDU code ($c000-$dfff in MOS ROM) accesses shadow RAM; E=0 =
+;VDU code accesses main RAM
+e=$02
+
+;X=1 = shadow RAM at $3000; X=0 = main RAM at $3000
+x=$04
+
+;Y=1 = HAZEL at $c000; Y=0 = MOS ROM at $c000
+y=$08
+
+;ITU=1 = access internal Tube; ITU=0 = access external Tube
+itu=$10
+
+;IFJ=1 = $fc00...$fdff accesses cartridge; IFJ=0 = $fc00...$fdff
+;accesses 1MHz bus
+ifj=$20
+
+; TST=1 = read MOS ROM at $fc00...$feff; TST=0 = read I/O at
+; $fc00...$feff
+tst=$40
+
+;IRR=1 = IRQ to CPU
+irr=$80
+                .bend
+                .endv
+
+                VIA: .struct                    ;
+orb:
+irb:
+                .fill 1         ;0
+ora:
+ira:
+                .fill 1         ;1
+ddrb:
+                .fill 1         ;2
+ddra:
+                .fill 1         ;3
+t1cL:
+                .fill 1         ;4
+t1cH:
+                .fill 1         ;5
+t1lL:
+                .fill 1         ;6
+t1lH:
+                .fill 1         ;7
+t2cL:
+                .fill 1         ;8
+t2cH:
+                .fill 1         ;9
+sr:
+                .fill 1         ;10
+acr:
+                .fill 1         ;11
+pcr:
+                .fill 1         ;12
+ifr:
+                .fill 1         ;13
+ier:
+                .fill 1         ;14
+oraNoHandshake:
+iraNoHandshake:
+                .fill 1         ;15
+                .ends
+
+                                .virtual $fe40
+systemVIA: .dstruct VIA
+                .endv
+
+                .virtual $fe60
+userVIA: .dstruct VIA
+                .endv
 
 ; Presumed addresses in ANDY that don't happen to coincide with other
 ; labels.
@@ -154,6 +382,8 @@ ZTEMPB=$dc                      ;Temporary space
 ZTEMPC=$de                      ;Temporary space
 ZTEMPD=$e0                      ;Temporary space
 
+nmiEntryPoint=$d00
+                
 ;-------------------------------------------------------------------------
 
 beword .macro value
@@ -184,67 +414,77 @@ L8012:
                 
 ; STARTUP
 ; =======
-L8020:
-                lda #$FE                     ; 8022= 1C 34 FE    .4~
-                trb ACCCON
+reset:                          ;8020
+                lda #~acccon.d  ;display main RAM
+                trb ACCCON      
                 stz HAZEL_WORKSPACE+$DD
                 trb $0366
                 cld
                 ldx #$FF
-                txs
-                stx USER_VIA+$3
-                lda #$CF                     ; 8034= 8D 42 FE    .B~
-                sta SYSTEM_VIA+$2
+                txs              ;reset stack
+                stx userVIA.ddra ;port A all outputs
+                lda #%11001111
+                sta systemVIA.ddrb ;
                 ldy #$20                     ; 8037= A0 20
                 ldx #$0A                     ; 8039= A2 0A       ".
                 jsr L98E4                    ; 803B= 20 E4 98     d.
                 jsr L9729                    ; 803E= 20 29 97     ).
-                lda #$0C                     ; 8041= A9 0C       ).
-                tsb ACCCON                    ; 8043= 0C 34 FE    .4~
-                lda SYSTEM_VIA+$E            ; 8046= AD 4E FE    -N~
-                asl a                        ; 8049= 0A          .
-                pha                          ; 804A= 48          H
-                beq L8054                    ; 804B= F0 07       p.
-                lda $0258                    ; 804D= AD 58 02    -X.
-                lsr a                        ; 8050= 4A          J
-                dec a                        ; 8051= 3A          :
-                bne L8073                    ; 8052= D0 1F       P.
-L8054:
-                tay                          ; 8054= A8          (
-L8055:
-                tya                          ; 8055= 98          .
-                stz $01                      ; 8056= 64 01       d.
-                stz $00                      ; 8058= 64 00       d.
-L805A:
-                sta ($00),y                  ; 805A= 91 00       ..
-                iny                          ; 805C= C8          H
-                bne L805A                    ; 805D= D0 FB       P{
-                inc $01                      ; 805F= E6 01       f.
-                ldx #$40
-                stx $0D00
-                ldx $01                      ; 8066= A6 01       &.
-                cpx #$E0                     ; 8068= E0 E0       ``
-                bcc L805A                    ; 806A= 90 EE       .n
-                lda #$04                     ; 806C= A9 04       ).
-                trb ACCCON                    ; 806E= 1C 34 FE    .4~
-                bne L8055                    ; 8071= D0 E2       Pb
+                lda #acccon.y|acccon.x       ; page in HAZEL+shadow
+                tsb ACCCON
+                lda systemVIA.ier
+                asl a
+                pha
+                beq +       ; branch taken if power on
+                lda $0258                    ; read BREAK action flags
+                                             ; (set by *FX200)
+                lsr a                        ; divide by 2 to get the
+                                             ; break action
+                dec a                        ; Z=1 if it was 1
+                bne L8073                    ; branch taken if break
+                                             ; action says don't clear
+                                             ; RAM
++
+                tay             ;Y=0
+clearRAM:
+                tya             ;A=0
+                stz $01
+                stz $00         ;start at $0000
+-
+                sta ($00),y     ;clear RAM
+                iny
+                bne -
+                inc $01
+                ldx #$40          ;$40=RTI
+                stx nmiEntryPoint ;restore the RTI previously written,
+                                  ;as each iteration will potentially
+                                  ;overwrite it
+                ldx $01
+                cpx #$E0        ;hit the end of RAM?
+                bcc -           ;branch taken if still more to go
+                lda #acccon.x   ;page out shadow RAM
+                trb ACCCON
+                bne clearRAM    ;branch taken if shadow RAM bit
+                             ;previously set - i.e., that was the
+                             ;first iteration, and we need to go back
+                             ;to do main RAM
 L8073:
                 lda #$11                     ; 8075= 8D 04 DF    .._
                 sta HAZEL_WORKSPACE+$04
                 lda #$E8                     ; 807A= 8D 05 DF    .._
                 sta HAZEL_WORKSPACE+$05
-                lda #$0C                     ; 807F= 1C 34 FE    .4~
+                lda #acccon.y|acccon.x ; page in MOS ROM, page in main
+                                       ; RAM
                 trb ACCCON
                 lda #$0F                     ; 8084= 8D 8E 02    ...
                 sta $028E
-L8087:
+-
                 dec a                        ; 8088= 8D 40 FE    .@~
-                sta SYSTEM_VIA+$0
+                sta systemVIA.orb
                 cmp #$09                     ; 808D= B0 F8       0x
-                bcs L8087
-                ldx #$01                     ; 8091= 20 80 F8     .x
-                jsr LF880
-                cpx #$80                     ; 8096= 20 35 F7     5w
+                bcs -
+                ldx #key_ctrl
+                jsr interrogateKeyboard
+                cpx #$80        ;Z=0 C=1 if CTRL+BREAK
                 jsr LF735
                 stz $028D                    ; 8099= 9C 8D 02    ...
                 ror a                        ; 809C= 6A          j
@@ -326,14 +566,14 @@ L8113:
                 pha
                 ldx $0256                    ; 812D= AE 56 02    .V.
 L8130:
-                lda LE2D7-1,y         ; 8130= B9 D6 E2    9Vb
+                lda defaultVectorTable-1,y         ; 8130= B9 D6 E2    9Vb
                 sta vectors-1,y       ; 8133= 99 FF 01    ...
                 dey                   ; 8136= 88          .
                 cpy #EVENTV+1-vectors ; 8137= C0 21       @!
                 bcs L8130             ; 8139= B0 F5       0u
                 ldy #FILEV-vectors    ; 813B= A0 12        .
 L813D:
-                lda LE2D7-1,y   ; 813D= B9 D6 E2    9Vb
+                lda defaultVectorTable-1,y   ; 813D= B9 D6 E2    9Vb
                 sta vectors-1,y   ; 8140= 99 FF 01    ...
                 dey                          ; 8143= 88          .
                 bne L813D                    ; 8144= D0 F7       Pw
@@ -386,8 +626,8 @@ L8196:
                 ldx #$01                     ; 81A3= A2 01       ".
                 lda #$7F                     ; 81A5= A9 7F       ).
 L81A7:
-                sta SYSTEM_VIA+$D,x          ; 81A7= 9D 4D FE    .M~
-                sta USER_VIA+$D,x            ; 81AA= 9D 6D FE    .m~
+                sta systemVIA.ifr,x          ; 81A7= 9D 4D FE    .M~
+                sta userVIA.ifr,x            ; 81AA= 9D 6D FE    .m~
                 dex                          ; 81AD= CA          J
                 bpl L81A7                    ; 81AE= 10 F7       .w
                 cli                          ; 81B0= 58          X
@@ -397,18 +637,18 @@ L81A7:
                 jsr LF8CF                    ; 81B6= 20 CF F8     Ox
 L81B9:
                 ldx #$D2
-                stx SYSTEM_VIA+$E
+                stx systemVIA.ier
                 ldx #$04
-                stx SYSTEM_VIA+$C
+                stx systemVIA.pcr
                 lda #$40
-                sta SYSTEM_VIA+$B
+                sta systemVIA.acr
                 lda #$0E
-                sta SYSTEM_VIA+$6
-                sta USER_VIA+$C
+                sta systemVIA.t1lL
+                sta userVIA.pcr
                 sta HADC+0
                 lda #$27
-                sta SYSTEM_VIA+$7
-                sta SYSTEM_VIA+$5
+                sta systemVIA.t1lH
+                sta systemVIA.t1cH
                 ldx #$08
 L81DD:
                 dex                          ; 81DD= CA          J
@@ -482,7 +722,7 @@ L8282:
                 bra L8282                    ; 8282= 80 FE       .~
 
 L8284:
-                jsr LEDBA                    ; 8284= 20 BA ED     :m
+                jsr selectHAZEL                    ; 8284= 20 BA ED     :m
                 stz HAZEL_WORKSPACE+$D4      ; 8287= 9C D4 DF    .T_
                 stz HAZEL_WORKSPACE+$D5      ; 828A= 9C D5 DF    .U_
                 ldy #$CA                     ; 828D= A0 CA        J
@@ -513,7 +753,7 @@ L82B4:
                 bcc L82D0
 L82C6:
                 ldx #$FF                     ; Service call &FF - Tube PreInit
-                jsr LEE72
+                jsr makeROMServiceCall
                 bne L82D0                    ; Not claimed, step past
                 dec $027A                    ; Tube PreInit claimed, set TubeFlag to &FF, Tube present
 L82D0:
@@ -521,21 +761,21 @@ L82D0:
                 beq L82FC
                 ldy #$DC                     ; Start high workspace at &DC00 and work downwards
                 ldx #$24                     ; Ask ROMs how much private high workspace required
-                jsr LEE72
+                jsr makeROMServiceCall
                 ldx #$21                     ; Ask ROMs for maximum shared high workspace required
-                jsr LEE72
+                jsr makeROMServiceCall
                 phy                          ; Save top of shared workspace
                 ldx #$22                     ; Ask ROMs for private high workspace required
-                jsr LEE72
+                jsr makeROMServiceCall
                 ldy #$0E                     ; Start low workspace at &0E00
                 ldx #$01                     ; Ask ROMs for maximum shared workspace
-                jsr LEE72
+                jsr makeROMServiceCall
                 ldx #$02                     ; Ask ROMs for private workspace
-                jsr LEE72
+                jsr makeROMServiceCall
                 sty $0244                    ; Set OSHWM - default PAGE
                 ply                          ; Get top of shared high workspace
                 ldx #$23                     ; Tell ROMs top of shared high workspace
-                jsr LEE72
+                jsr makeROMServiceCall
 L82FC:
                 ldx #$21
 L82FE:
@@ -548,7 +788,7 @@ L82FE:
                 sta $F3
                 ldy #$27                     ; Y=>end of FS Info Blocks
                 ldx #$25                     ; Ask ROMs for FS Info Blocks
-                jsr LEE72
+                jsr makeROMServiceCall
                 lda #$00                     ; Terminate FS Info blocks
                 sta ($F2),y
 
@@ -557,7 +797,7 @@ L82FE:
                 stz $0257
                 ldx #$FE
                 ldy $027A
-                jsr LEE72                    ; Tube PostInit
+                jsr makeROMServiceCall                    ; Tube PostInit
                 and $0267
                 bpl L8340
                 ldy #$FF                     ; Print <NL>"Acorn MOS"
@@ -676,24 +916,24 @@ L84FF:
                 stx $F2                      ; 84FF= 86 F2       .r
                 sty $F3                      ; 8501= 84 F3       .s
                 lda HAZEL_WORKSPACE+$00      ; 8503= AD 00 DF    -._
-                jsr LFB4D                    ; 8506= 20 4D FB     M{
+                jsr selectFS                    ; 8506= 20 4D FB     M{
                 lda #$08                     ; 8509= A9 08       ).
                 jsr LF1E5                    ; 850B= 20 E5 F1     eq
                 ldy #$FF                     ; 850E= A0 FF        .
 L8510:
-                jsr LF2FE                    ; 8510= 20 FE F2     ~r
+                jsr incAndSkipSpaces                    ; 8510= 20 FE F2     ~r
                 beq L84FE                    ; 8513= F0 E9       pi
                 cmp #$2A                     ; 8515= C9 2A       I*
                 beq L8510                    ; 8517= F0 F7       pw
-                jsr LF2FF                    ; 8519= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 8519= 20 FF F2     .r
                 beq L84FE                    ; 851C= F0 E0       p`
                 cmp #$7C                     ; 851E= C9 7C       I|
                 beq L84FE                    ; 8520= F0 DC       p\
                 stz HAZEL_WORKSPACE+$C6      ; 8522= 9C C6 DF    .F_
                 cmp #$2D                     ; 8525= C9 2D       I-
                 bne L8535                    ; 8527= D0 0C       P.
-                jsr LFAA6                    ; 8529= 20 A6 FA     &z
-                jsr LFB4D                    ; 852C= 20 4D FB     M{
+                jsr parseFileNameFS                    ; 8529= 20 A6 FA     &z
+                jsr selectFS                    ; 852C= 20 4D FB     M{
                 sec                          ; 852F= 38          8
                 ror HAZEL_WORKSPACE+$C6      ; 8530= 6E C6 DF    nF_
                 lda ($F2),y                  ; 8533= B1 F2       1r
@@ -721,7 +961,7 @@ L854E:
                 iny                          ; 8557= C8          H
 L8558:
                 lda ($F2),y                  ; 8558= B1 F2       1r
-                jsr LEA71                    ; 855A= 20 71 EA     qj
+                jsr isLetter                    ; 855A= 20 71 EA     qj
                 bcc L854E                    ; 855D= 90 EF       .o
                 lda ($B0)                    ; 855F= B2 B0       20
                 bmi L8582                    ; 8561= 30 1F       0.
@@ -754,7 +994,7 @@ L8585:
                 bmi L8592                    ; 858D= 30 03       0.
                 stz HAZEL_WORKSPACE+$C6      ; 858F= 9C C6 DF    .F_
 L8592:
-                jsr LF2FF                    ; 8592= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 8592= 20 FF F2     .r
                 clc                          ; 8595= 18          .
                 php                          ; 8596= 08          .
                 jsr L84EE                    ; 8597= 20 EE 84     n.
@@ -801,9 +1041,9 @@ L85CA:
                 pha                          ; 85CE= 48          H
                 lda #$0E                     ; 85CF= A9 0E       ).
                 jsr OSWRCH                   ; 85D1= 20 EE FF     n.
-                jsr LEE72                    ; 85D4= 20 72 EE     rn
+                jsr makeROMServiceCall                    ; 85D4= 20 72 EE     rn
                 ldx #$18                     ; 85D7= A2 18       ".
-                jsr LEE72                    ; 85D9= 20 72 EE     rn
+                jsr makeROMServiceCall                    ; 85D9= 20 72 EE     rn
                 pla                          ; 85DC= 68          h
                 bit #$04                     ; 85DD= 89 04       ..
                 bne L860D                    ; 85DF= D0 2C       P,
@@ -811,7 +1051,7 @@ L85CA:
                 jmp OSWRCH                   ; 85E3= 4C EE FF    Ln.
 
 L85E6:
-                jsr LF2FF                    ; 85E6= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 85E6= 20 FF F2     .r
                 cmp #$26                     ; 85E9= C9 26       I&
                 bne L860E                    ; 85EB= D0 21       P!
                 iny                          ; 85ED= C8          H
@@ -872,7 +1112,7 @@ L8634:
                 rts                          ; 8640= 60          `
 
 L8641:
-                jsr LF2FF                    ; 8641= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 8641= 20 FF F2     .r
                 cmp #$0D                     ; 8644= C9 0D       I.
 L8646:
                 clc                          ; 8646= 18          .
@@ -912,7 +1152,7 @@ L8670:
                 ldx #$FF                     ; 8670= A2 FF       ".
                 txs                          ; 8672= 9A          .
                 cli                          ; 8673= 58          X
-                jsr LEDBA                    ; 8674= 20 BA ED     :m
+                jsr selectHAZEL                    ; 8674= 20 BA ED     :m
                 lda #'*'                     ; 8677= A9 2A       )*
                 jsr OSWRCH                   ; 8679= 20 EE FF     n.
                 jsr L869D                    ; 867C= 20 9D 86     ..
@@ -942,7 +1182,7 @@ L869D:
                 jmp OSWORD                   ; 86A3= 4C F1 FF    Lq.
 
 L86A6:
-                jsr LF2FF                    ; 86A6= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 86A6= 20 FF F2     .r
                 bne L869A                    ; 86A9= D0 EF       Po
                 ldy #$0F                     ; 86AB= A0 0F        .
 L86AD:
@@ -964,7 +1204,7 @@ L86AD:
                 dey                          ; 86CB= 88          .
                 bcc L8718                    ; 86CC= 90 4A       .J
 L86CE:
-                jsr LF3FC                    ; 86CE= 20 FC F3     |s
+                jsr osrdscEntryPoint                    ; 86CE= 20 FC F3     |s
                 cmp #$20                     ; 86D1= C9 20       I
                 bcc L86E4                    ; 86D3= 90 0F       ..
                 cmp #$7F                     ; 86D5= C9 7F       I.
@@ -982,7 +1222,7 @@ L86E4:
                 sta $F6                      ; 86E9= 85 F6       .v
                 lda #$80                     ; 86EB= A9 80       ).
                 sta $F7                      ; 86ED= 85 F7       .w
-                jsr LF3FC                    ; 86EF= 20 FC F3     |s
+                jsr osrdscEntryPoint                    ; 86EF= 20 FC F3     |s
                 jsr LA865                    ; 86F2= 20 65 A8     e(
 L86F5:
                 phy                          ; 86F5= 5A          Z
@@ -1021,7 +1261,7 @@ L8722:
                 clc                          ; 8722= 18          .
 L8723:
                 php                          ; 8723= 08          .
-                jsr LF2FF                    ; 8724= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 8724= 20 FF F2     .r
                 jsr L897D                    ; 8727= 20 7D 89     }.
                 tay                          ; 872A= A8          (
                 jsr LE9BB                    ; 872B= 20 BB E9     ;i
@@ -1158,7 +1398,7 @@ L887A:
                 ldx #$28                     ; 887F= A2 28       "(
 L8881:
                 ldy $E6                      ; 8881= A4 E6       $f
-                jsr LEE72                    ; 8883= 20 72 EE     rn
+                jsr makeROMServiceCall                    ; 8883= 20 72 EE     rn
                 bne L88AC                    ; 8886= D0 24       P$
                 rts                          ; 8888= 60          `
 
@@ -1169,7 +1409,7 @@ L8889:
                 lda L8787,x                  ; 888E= BD 87 87    =..
                 pha                          ; 8891= 48          H
 L8892:
-                jmp LF2FF                    ; 8892= 4C FF F2    L.r
+                jmp skipSpacesAndCheckForCRInStringInput                    ; 8892= 4C FF F2    L.r
 
 L8895:
                 jsr L8934                    ; 8895= 20 34 89     4.
@@ -1183,7 +1423,7 @@ L889E:
                 pha                          ; 88A2= 48          H
                 lda L8789,x                  ; 88A3= BD 89 87    =..
                 pha                          ; 88A6= 48          H
-                jsr LF2FF                    ; 88A7= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 88A7= 20 FF F2     .r
                 beq L8892                    ; 88AA= F0 E6       pf
 L88AC:
                 jmp L8976                    ; 88AC= 4C 76 89    Lv.
@@ -1290,7 +1530,7 @@ L8930:
                 bra L8929                    ; 8932= 80 F5       .u
 
 L8934:
-                jsr LF2FF                    ; 8934= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 8934= 20 FF F2     .r
                 sty $E6                      ; 8937= 84 E6       .f
                 beq L8979                    ; 8939= F0 3E       p>
                 ldx #$00                     ; 893B= A2 00       ".
@@ -1306,7 +1546,7 @@ L8947:
                 inx                          ; 8949= E8          h
 L894A:
                 lda ($F2),y                  ; 894A= B1 F2       1r
-                jsr LEA71                    ; 894C= 20 71 EA     qj
+                jsr isLetter                    ; 894C= 20 71 EA     qj
                 bcc L893F                    ; 894F= 90 EE       .n
 L8951:
                 lda L875C,x                  ; 8951= BD 5C 87    =\.
@@ -1355,7 +1595,7 @@ L897D:
                 bcs L8976                    ; 8985= B0 EF       0o
 L8987:
                 pha                          ; 8987= 48          H
-                jsr LF2FF                    ; 8988= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 8988= 20 FF F2     .r
 L898B:
                 bne L8976                    ; 898B= D0 E9       Pi
                 pla                          ; 898D= 68          h
@@ -1807,7 +2047,7 @@ L8BF0:
                 .byte 0
                 ply                          ; 8D12= 7A
                 ldx #$28                     ; 8D13= A2 28       "(
-                jsr LEE72                    ; 8D15= 20 72 EE     rn
+                jsr makeROMServiceCall                    ; 8D15= 20 72 EE     rn
                 jsr LA958                    ; 8D18= 20 58 A9     X)
                 .text "Where:"
                 .byte $0D
@@ -1895,7 +2135,7 @@ L8DA9:
                 jsr L8B17                    ; 8E51= 20 17 8B     ..
                 ply                          ; 8E54= 7A          z
                 ldx #$29                     ; 8E55= A2 29       ")
-                jmp LEE72                    ; 8E57= 4C 72 EE    Lrn
+                jmp makeROMServiceCall                    ; 8E57= 4C 72 EE    Lrn
 
 L8E5A:
                 ldx #$18                     ; 8E5A= A2 18       ".
@@ -2073,7 +2313,7 @@ L8F42:
                 lsr HAZEL_WORKSPACE+$C6      ; 8F52= 4E C6 DF    NF_
                 jsr LF26D                    ; 8F55= 20 6D F2     mr
 L8F58:
-                jsr LF27F                    ; 8F58= 20 7F F2     .r
+                jsr gsreadEntryPoint                    ; 8F58= 20 7F F2     .r
                 bcc L8F58                    ; 8F5B= 90 FB       .{
                 beq L8F79                    ; 8F5D= F0 1A       p.
                 ldx #$00                     ; 8F5F= A2 00       ".
@@ -2084,7 +2324,7 @@ L8F66:
                 sta $02F1,x                  ; 8F69= 9D F1 02    .q.
                 dex                          ; 8F6C= CA          J
                 bpl L8F66                    ; 8F6D= 10 F7       .w
-                jsr LF2FF                    ; 8F6F= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 8F6F= 20 FF F2     .r
                 beq L8F79                    ; 8F72= F0 05       p.
                 ldx #$04                     ; 8F74= A2 04       ".
                 jsr L935B                    ; 8F76= 20 5B 93     [.
@@ -2327,7 +2567,7 @@ L90E9:
                 ldy #$00                     ; Step past first parameter
                 jsr LF26D
 L9108:
-                jsr LF27F
+                jsr gsreadEntryPoint
                 bcc L9108
                 tya                          ; Save address of dest filename
                 clc
@@ -2610,7 +2850,7 @@ L92BC:
                 rts                          ; 92C8= 60          `
 
 L92C9:
-                jsr LF2FF                    ; Skip spaces
+                jsr skipSpacesAndCheckForCRInStringInput                    ; Skip spaces
                 jsr L8648                    ; 92CC= 20 48 86     H.
                 bcc L92F4                    ; 92CF= 90 23       .#
                 jsr L92BC                    ; 92D1= 20 BC 92     <.
@@ -2640,7 +2880,7 @@ L92F4:
 ; *GO (<addr>)
 ; ============
 L92F5:
-                jsr LF2FF                    ; Skip spaces
+                jsr skipSpacesAndCheckForCRInStringInput                    ; Skip spaces
                 bne L92FD                    ; Jump to read parameters
                 jmp L8661                    ; No parameters, enter CLICOM
 
@@ -2649,7 +2889,7 @@ L92F5:
 L92FD:
                 ldx #$00                     ; Use &02ED-&02F0
                 jsr L935B                    ; Read hex address
-                jsr LF2FF                    ; Skip spaces
+                jsr skipSpacesAndCheckForCRInStringInput                    ; Skip spaces
                 php                          ; Update &F2/3 to point to any further parameters
                 tya
                 clc
@@ -2681,7 +2921,7 @@ L931B:
                 iny                          ; 9335= C8          H
                 jsr LF26D                    ; 9336= 20 6D F2     mr
 L9339:
-                jsr LF27F                    ; 9339= 20 7F F2     .r
+                jsr gsreadEntryPoint                    ; 9339= 20 7F F2     .r
                 bcc L9339                    ; 933C= 90 FB       .{
                 pla                          ; 933E= 68          h
                 pha                          ; 933F= 48          H
@@ -2717,7 +2957,7 @@ L9371:
                 bra L9369                    ; 937A= 80 ED       .m
 
 L937C:
-                jsr LF2FF                    ; 937C= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 937C= 20 FF F2     .r
                 bne L93E2                    ; 937F= D0 61       Pa
                 lda #$00                     ; 9381= A9 00       ).
                 tay                          ; 9383= A8          (
@@ -2801,7 +3041,7 @@ L93EB:
                 jsr L85E6                    ; 9406= 20 E6 85     f.
                 bcc L93E2                    ; 9409= 90 D7       .W
                 stx $E4                      ; 940B= 86 E4       .d
-                jsr LF2FF                    ; 940D= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 940D= 20 FF F2     .r
                 bne L93E2                    ; 9410= D0 D0       PP
 L9412:
                 ldy $E4                      ; 9412= A4 E4       $d
@@ -2819,7 +3059,7 @@ L9420:
 
 L9423:
                 ldx #$10                     ; 9423= A2 10       ".
-                jsr LEE72                    ; 9425= 20 72 EE     rn
+                jsr makeROMServiceCall                    ; 9425= 20 72 EE     rn
                 beq L941F                    ; 9428= F0 F5       pu
                 jsr LA58B                    ; 942A= 20 8B A5     .%
                 lda $0257                    ; 942D= AD 57 02    -W.
@@ -2878,7 +3118,7 @@ L947C:
 
 L9488:
                 jsr L9473                    ; 9488 20 73 94
-                jsr LF2FF                    ; 948B 20 FF F2
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 948B 20 FF F2
                 bne L947C                    ; 948E D0 EC
                 lda #$22                     ; 9490 A9 22
                 jsr OSWRCH                   ; 9492= 20 EE FF     n.
@@ -2914,14 +3154,14 @@ L94C7:
                 lda $F4                      ; 94CA= A5 F4       %t
                 pha                          ; 94CC= 48          H
                 jsr selectTerminalROMAndANDY                    ; 94CD= 20 7F E5     .e
-                jsr LF2FF                    ; 94D0= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 94D0= 20 FF F2     .r
                 stz $B0                      ; 94D3= 64 B0       d0
                 beq L94EC                    ; 94D5= F0 15       p.
                 ldx #$00                     ; 94D7= A2 00       ".
                 sec                          ; 94D9= 38          8
-                jsr LF26E                    ; 94DA= 20 6E F2     nr
+                jsr gsinitEntryPoint                    ; 94DA= 20 6E F2     nr
 L94DD:
-                jsr LF27F                    ; 94DD= 20 7F F2     .r
+                jsr gsreadEntryPoint                    ; 94DD= 20 7F F2     .r
                 bcs L94E8                    ; 94E0= B0 06       0.
                 sta LDC00,x                  ; 94E2= 9D 00 DC    ..\
                 inx                          ; 94E5= E8          h
@@ -3536,23 +3776,23 @@ L98B2:
 L98B7:
                 php                          ; 98B7= 08          .
                 sei                          ; 98B8= 78          x
-                jsr L9906                    ; 98B9= 20 06 99     ..
+                jsr setRTCAddress                    ; 98B9= 20 06 99     ..
                 lda #$49                     ; 98BC= A9 49       )I
-                sta SYSTEM_VIA+$0            ; 98BE= 8D 40 FE    .@~
-                stz SYSTEM_VIA+$3            ; 98C1= 9C 43 FE    .C~
+                sta systemVIA.orb            ; 98BE= 8D 40 FE    .@~
+                stz systemVIA.ddra            ; 98C1= 9C 43 FE    .C~
                 lda #$4A                     ; 98C4= A9 4A       )J
-                sta SYSTEM_VIA+$0            ; 98C6= 8D 40 FE    .@~
-                ldy SYSTEM_VIA+$F            ; 98C9= AC 4F FE    ,O~
+                sta systemVIA.orb            ; 98C6= 8D 40 FE    .@~
+                ldy systemVIA.iraNoHandshake            ; 98C9= AC 4F FE    ,O~
 L98CC:
-                lda #$42                     ; 98CC= A9 42       )B
-                sta SYSTEM_VIA+$0            ; 98CE= 8D 40 FE    .@~
-                lda #$02                     ; 98D1= A9 02       ).
-                sta SYSTEM_VIA+$0            ; 98D3= 8D 40 FE    .@~
-                stz SYSTEM_VIA+$3            ; 98D6= 9C 43 FE    .C~
-                plp                          ; 98D9= 28          (
-                tya                          ; 98DA= 98          .
+                lda #$42
+                sta systemVIA.orb            ;RTC AS=0 CS=1 DS=0 R=0
+                lda #$02
+                sta systemVIA.orb            ;RTC AS=0 CS=0 DS=0 R=0
+                stz systemVIA.ddra           ;all bits inputs
+                plp
+                tya
 L98DB:
-                rts                          ; 98DB= 60          `
+                rts
 
 L98DC:
                 txa                          ; 98DC= 8A          .
@@ -3560,17 +3800,17 @@ L98DC:
                 jsr L98FD                    ; 98DF= 20 FD 98     }.
                 bcs L98DB                    ; 98E2= B0 F7       0w
 L98E4:
-                php                          ; 98E4= 08          .
-                sei                          ; 98E5= 78          x
-                jsr L9906                    ; 98E6= 20 06 99     ..
-                lda #$41                     ; 98E9= A9 41       )A
-                sta SYSTEM_VIA+$0            ; 98EB= 8D 40 FE    .@~
-                lda #$FF                     ; 98EE= A9 FF       ).
-                sta SYSTEM_VIA+$3            ; 98F0= 8D 43 FE    .C~
-                lda #$4A                     ; 98F3= A9 4A       )J
-                sta SYSTEM_VIA+$0            ; 98F5= 8D 40 FE    .@~
-                sty SYSTEM_VIA+$F            ; 98F8= 8C 4F FE    .O~
-                bra L98CC                    ; 98FB= 80 CF       .O
+                php
+                sei
+                jsr setRTCAddress            ;X=address
+                lda #$41
+                sta systemVIA.orb            ;RTC AS=0 CS=1 DS=0 R=0
+                lda #$FF
+                sta systemVIA.ddra           ;all bits outputs
+                lda #$4A
+                sta systemVIA.orb            ;RTC AS=0 CS=1 DS=0 R=1
+                sty systemVIA.oraNoHandshake ;store value
+                bra L98CC
 
 L98FD:
                 cpx #$32                     ; 98FD= E0 32       `2
@@ -3581,18 +3821,28 @@ L98FD:
 L9905:
                 rts                          ; 9905= 60          `
 
-L9906:
-                lda #$02                     ; 9906= A9 02       ).
-                sta SYSTEM_VIA+$0            ; 9908= 8D 40 FE    .@~
-                lda #$82                     ; 990B= A9 82       ).
-                sta SYSTEM_VIA+$0            ; 990D= 8D 40 FE    .@~
-                lda #$FF                     ; 9910= A9 FF       ).
-                sta SYSTEM_VIA+$3            ; 9912= 8D 43 FE    .C~
-                stx SYSTEM_VIA+$F            ; 9915= 8E 4F FE    .O~
-                lda #$C2                     ; 9918= A9 C2       )B
-                sta SYSTEM_VIA+$0            ; 991A= 8D 40 FE    .@~
-                lda #$42                     ; 991D= A9 42       )B
-                sta SYSTEM_VIA+$0            ; 991F= 8D 40 FE    .@~
+;-------------------------------------------------------------------------
+;
+; set RTC address for future read/write operation.
+;
+; entry:
+;
+; X = address to set
+;
+; preserves: Y
+; 
+setRTCAddress:
+                lda #$02
+                sta systemVIA.orb            ;RTC AS=0 CS=0 DS=0 R=0
+                lda #$82
+                sta systemVIA.orb            ;RTC AS=1 CS=0 DS=0 R=0
+                lda #$FF
+                sta systemVIA.ddra           ;all bits outputs
+                stx systemVIA.oraNoHandshake ;write RTC address
+                lda #$c2
+                sta systemVIA.orb            ;RTC AS=1 CS=1 DS=0 R=0
+                lda #$42
+                sta systemVIA.orb            ;RTC AS=0 CS=1 DS=0 R=0
                 rts                          ; 9922= 60          `
 
 L9923:
@@ -4335,7 +4585,7 @@ L9E63:
                 dex                          ; 9E71= CA          J
                 bpl L9E63                    ; 9E72= 10 EF       .o
                 lda ($F2),y                  ; 9E74= B1 F2       1r
-                jsr LEA71                    ; 9E76= 20 71 EA     qj
+                jsr isLetter                    ; 9E76= 20 71 EA     qj
                 bcs L9E95                    ; 9E79= B0 1A       0.
 L9E7B:
                 lda ($F2),y                  ; 9E7B= B1 F2       1r
@@ -4344,7 +4594,7 @@ L9E7B:
                 iny                          ; 9E81= C8          H
                 cmp #$20                     ; 9E82= C9 20       I
                 bne L9E7B                    ; 9E84= D0 F5       Pu
-                jsr LF2FF                    ; 9E86= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; 9E86= 20 FF F2     .r
                 bne L9E61                    ; 9E89= D0 D6       PV
 L9E8B:
                 ply                          ; 9E8B= 7A          z
@@ -4688,7 +4938,7 @@ LA06B:
                 jsr LF26D                    ; A071= 20 6D F2     mr
                 ldx #$00                     ; A074= A2 00       ".
 LA076:
-                jsr LF27F                    ; A076= 20 7F F2     .r
+                jsr gsreadEntryPoint                    ; A076= 20 7F F2     .r
                 bcs LA088                    ; A079= B0 0D       0.
                 beq LA085                    ; A07B= F0 08       p.
                 sta $03D2,x                  ; A07D= 9D D2 03    .R.
@@ -6161,7 +6411,7 @@ LA96A:
                 rts                          ; A96A= 60          `
 
 LA96B:
-                jsr LEA71                    ; A96B= 20 71 EA     qj
+                jsr isLetter                    ; A96B= 20 71 EA     qj
                 eor $03B2,x                  ; A96E= 5D B2 03    ]2.
                 bcs LA975                    ; A971= B0 02       0.
                 and #$DF                     ; A973= 29 DF       )_
@@ -12475,9 +12725,9 @@ LC803:
                 lda LE174,y                  ; C80F= B9 74 E1    9ta
                 php                          ; C812= 08          .
                 sei                          ; C813= 78          x
-                sta SYSTEM_VIA+$0            ; C814= 8D 40 FE    .@~
+                sta systemVIA.orb            ; C814= 8D 40 FE    .@~
                 lda LE170,y                  ; C817= B9 70 E1    9pa
-                sta SYSTEM_VIA+$0            ; C81A= 8D 40 FE    .@~
+                sta systemVIA.orb            ; C81A= 8D 40 FE    .@~
                 plp                          ; C81D= 28          (
                 lda LE179,y                  ; C81E= B9 79 E1    9ya
                 sta $0354                    ; C821= 8D 54 03    .T.
@@ -16709,17 +16959,17 @@ LE2D2:
 
 ; Default vector table
 ; ====================
-LE2D7:
+defaultVectorTable: .block
                 .word LFBED ; USERV=$200
                 .word LE565 ; BRKV=$202
                 .word LE5FF ; IRQ1V=$204
                 .word LE60C ; IRQ2V=$206
                 .word LE802 ; CLIV=$208
-                .word LEEB1 ; BYTEV=$20a
+                .word osbyteEntryPoint ; BYTEV=$20a
                 .word LEF39 ; WORDV=$20c
-                .word LE822 ; WRCHV=$20e
-                .word LE7BC ; RDCHV=$210
-LE2E9:
+                .word oswrchEntryPoint ; WRCHV=$20e
+                .word osrdchEntryPoint ; RDCHV=$210
+fsVectors: .block
                 .word E_FILEV ; FILEV=$212
                 .word E_ARGSV ; ARGSV=$214
                 .word E_BGETV ; BGETV=$216
@@ -16727,6 +16977,8 @@ LE2E9:
                 .word E_GBPBV ; GBPBV=$21a
                 .word E_FINDV ; FINDV=$21c
                 .word E_FSCV ; FSCV=$21e
+end:
+                .bend
                 .word LFFAA ; EVENTV=$220
                 .word LFFAA ; UPTV=$222
                 .word LFFAA ; NETV=$224
@@ -16738,6 +16990,8 @@ LE2E9:
                 .word LFFAA ; IND1V=$230
                 .word LFFAA ; IND2V=$232
                 .word LFFAA ; IND3V=$234
+end:
+                .bend
                 
                 bcc LE310                    ; E30D= 90 01       ..
                 .byte $9F                    ; E30F= 9F          .
@@ -16813,14 +17067,14 @@ LE358:
 
 ; STARTUP
 ; =======
-LE364:
-                lda #$40                     ; Disable NMIs and IRQs
-                sta $0D00
+resetEntryPoint:                ;e364
+                lda #$40        ; $40 = RTI
+                sta nmiEntryPoint ; make NMI routine a no-op
                 sei
-                lda #$53                     ;
-                sta LFE8E
-                jsr selectTerminalROM                    ; Page in ROM 15 and continue
-                jmp L8020
+                lda #$53              ;
+                sta LFE8E             ; ???
+                jsr selectTerminalROM ; Page in ROM 15 and continue
+                jmp reset
 
 ; Check if a coprocessor is attached to the Tube
 ; ----------------------------------------------
@@ -16936,7 +17190,7 @@ LE40E:
                 sec                          ; Call Break Intercept Vector
                 jsr LF349
                 ldx #$27                     ; Service call &27 - Break pressed
-                jsr LEE72
+                jsr makeROMServiceCall
                 ldy $0256                    ; Get Exec handle, skip past if closed
                 beq LE424
                 stz $0256                    ; Clear Exec handle
@@ -16991,7 +17245,7 @@ LE46C:
                 beq LE4A3                    ; E476= F0 2B       p+
 LE478:
                 ldx #$03                     ; E47A= 20 72 EE     rn
-                jsr LEE72
+                jsr makeROMServiceCall
                 beq LE4A3                    ; E47D= F0 24       p$
 LE47F:
                 tya                          ; E47F= 98          .
@@ -17016,7 +17270,7 @@ LE499:
 LE4A3:
                 lda #$05                     ;
                 ldx $0285                    ; *FX5,<current printer>
-                jsr LEEB1
+                jsr osbyteEntryPoint
                 lda $028D                    ; If not Soft Break, select default language
                 bne LE4BB
                 ldx $028C                    ; Get current language ROM
@@ -17044,7 +17298,7 @@ LE4C3:
 LE4DA:
                 phx                          ; E4DA= DA          Z
                 ldx #$2A                     ; E4DD= 20 72 EE     rn
-                jsr LEE72
+                jsr makeROMServiceCall
                 plx                          ; E4E0= FA          z
 LE4E1:
                 stx $028C                    ; E4E1= 8E 8C 02    ...
@@ -17178,7 +17432,7 @@ LE598:
                 plx                          ; E59C= FA          z
                 rts                          ; E59D= 60          `
 
-LE59E:
+irqEntryPoint:
                 sta $FC                      ; E59E= 85 FC       .|
                 pla                          ; E5A0= 68          h
                 pha                          ; E5A1= 48          H
@@ -17201,7 +17455,7 @@ LE5A9:
                 sta $024A                    ; E5BD= 8D 4A 02    .J.
                 stx $F0                      ; E5C0= 86 F0       .p
                 ldx #$06                     ; E5C4= 20 72 EE     rn
-                jsr LEE72
+                jsr makeROMServiceCall
                 ldx $028C                    ; E5C7= AE 8C 02    ...
                 jsr selectROMX                    ; E5CA= 20 81 E5     .e
                 plx                          ; E5CD= FA          z
@@ -17271,7 +17525,7 @@ LE628:
                 tax                          ; E628= AA          *
                 tya                          ; E629= 98          .
                 ldy #$07                     ; E62A= A0 07        .
-                jmp LEA28                    ; E62C= 4C 28 EA    L(j
+                jmp eventEntryPoint                    ; E62C= 4C 28 EA    L(j
 
 LE62F:
                 ldx #$02                     ; E62F= A2 02       ".
@@ -17306,7 +17560,7 @@ LE65B:
                 bvs LE64D                    ; E661= 70 EA       pj
 LE663:
                 ldx #$05                     ; E665= 20 72 EE     rn
-                jsr LEE72
+                jsr makeROMServiceCall
                 beq LE64D                    ; E668= F0 E3       pc
                 pla                          ; E66A= 68          h
                 pla                          ; E66B= 68          h
@@ -17316,10 +17570,10 @@ LE663:
                 jmp (IRQ2V)                  ; E66F= 6C 06 02    l..
 
 LE672:
-                lda SYSTEM_VIA+$D            ; E672= AD 4D FE    -M~
+                lda systemVIA.ifr            ; E672= AD 4D FE    -M~
                 bpl LE6B3                    ; E675= 10 3C       .<
                 and $0279                    ; E677= 2D 79 02    -y.
-                and SYSTEM_VIA+$E            ; E67A= 2D 4E FE    -N~
+                and systemVIA.ier            ; E67A= 2D 4E FE    -N~
                 bit #$02                     ; E67D= 89 02       ..
                 beq LE6D5                    ; E67F= F0 54       pT
                 dec $0240                    ; E681= CE 40 02    N@.
@@ -17343,15 +17597,15 @@ LE6A0:
                 stx $0251                    ; E6A6= 8E 51 02    .Q.
 LE6A9:
                 ldy #$04                     ; E6A9= A0 04        .
-                jsr LEA28                    ; E6AB= 20 28 EA     (j
+                jsr eventEntryPoint                    ; E6AB= 20 28 EA     (j
                 lda #$02                     ; E6AE= A9 02       ).
                 jmp LE78A                    ; E6B0= 4C 8A E7    L.g
 
 LE6B3:
-                lda USER_VIA+$D              ; E6B3= AD 6D FE    -m~
+                lda userVIA.ifr              ; E6B3= AD 6D FE    -m~
                 bpl LE663                    ; E6B6= 10 AB       .+
                 and $0277                    ; E6B8= 2D 77 02    -w.
-                and USER_VIA+$E              ; E6BB= 2D 6E FE    -n~
+                and userVIA.ier              ; E6BB= 2D 6E FE    -n~
                 ror a                        ; E6BE= 6A          j
                 ror a                        ; E6BF= 6A          j
                 bcc LE663                    ; E6C0= 90 A1       .!
@@ -17359,8 +17613,8 @@ LE6B3:
                 dey                          ; E6C5= 88          .
                 bne LE663                    ; E6C6= D0 9B       P.
                 lda #$02                     ; E6C8= A9 02       ).
-                sta USER_VIA+$D              ; E6CA= 8D 6D FE    .m~
-                sta USER_VIA+$E              ; E6CD= 8D 6E FE    .n~
+                sta userVIA.ifr              ; E6CA= 8D 6D FE    .m~
+                sta userVIA.ier              ; E6CD= 8D 6E FE    .n~
                 ldx #$03                     ; E6D0= A2 03       ".
                 jmp LE8D5                    ; E6D2= 4C D5 E8    LUh
 
@@ -17368,7 +17622,7 @@ LE6D5:
                 bit #$40                     ; E6D5= 89 40       .@
                 beq LE74E                    ; E6D7= F0 75       pu
                 lda #$40                     ; E6D9= A9 40       )@
-                sta SYSTEM_VIA+$D            ; E6DB= 8D 4D FE    .M~
+                sta systemVIA.ifr            ; E6DB= 8D 4D FE    .M~
                 lda $0283                    ; E6DE= AD 83 02    -..
                 tax                          ; E6E1= AA          *
                 eor #$0F                     ; E6E2= 49 0F       I.
@@ -17393,7 +17647,7 @@ LE6FB:
                 dex                          ; E700= CA          J
                 bne LE6FB                    ; E701= D0 F8       Px
                 ldy #$05                     ; E703= A0 05        .
-                jsr LEA28                    ; E705= 20 28 EA     (j
+                jsr eventEntryPoint                    ; E705= 20 28 EA     (j
 LE708:
                 lda $02B1                    ; E708= AD B1 02    -1.
                 bne LE715                    ; E70B= D0 08       P.
@@ -17424,7 +17678,7 @@ LE73B:
                 ldy $0243                    ; E73E= AC 43 02    ,C.
                 beq LE748                    ; E741= F0 05       p.
                 ldx #$15                     ; E745= 20 72 EE     rn
-                jsr LEE72
+                jsr makeROMServiceCall
 LE748:
                 bit HADC+0                   ; E748= 2C 18 FE    ,.~
                 bvs LE752                    ; E74B= 70 05       p.
@@ -17442,7 +17696,7 @@ LE752:
                 sta $02B9,x                  ; E760= 9D B9 02    .9.
                 stx $02BE                    ; E763= 8E BE 02    .>.
                 ldy #$03                     ; E766= A0 03        .
-                jsr LEA28                    ; E768= 20 28 EA     (j
+                jsr eventEntryPoint                    ; E768= 20 28 EA     (j
                 dex                          ; E76B= CA          J
                 bne LE771                    ; E76C= D0 03       P.
                 ldx $024D                    ; E76E= AE 4D 02    .M.
@@ -17462,7 +17716,7 @@ LE777:
 LE788:
                 lda #$10                     ; E788= A9 10       ).
 LE78A:
-                sta SYSTEM_VIA+$D            ; E78A= 8D 4D FE    .M~
+                sta systemVIA.ifr            ; E78A= 8D 4D FE    .M~
                 rts                          ; E78D= 60          `
 
 LE78E:
@@ -17500,7 +17754,7 @@ LE7B1:
                 cli                          ; E7B9= 58          X
                 bra LE7BE                    ; E7BA= 80 02       ..
 
-LE7BC:
+osrdchEntryPoint:
                 stz $E6                      ; E7BC= 64 E6       df
 LE7BE:
                 phx                          ; E7BE= DA          Z
@@ -17547,7 +17801,7 @@ LE800:
 ; OSCLI
 ; =====
 LE802:
-                jsr LEDBA                    ; E802= 20 BA ED     :m
+                jsr selectHAZEL                    ; E802= 20 BA ED     :m
                 stx $F2                      ; E805= 86 F2       .r
                 sty $F3                      ; E807= 84 F3       .s
                 ldy #$00                     ; E809= A0 00        .
@@ -17568,7 +17822,7 @@ LE818:
 
                 ; OSWRCH
                 ; ======
-LE822:
+oswrchEntryPoint:
                 pha                          ; E822= 48          H
                 phx                          ; E823= DA          Z
                 phy                          ; E824= 5A          Z
@@ -17687,14 +17941,14 @@ LE8D5:
                 ror $02D1                    ; E8E0= 6E D1 02    nQ.
                 bmi LE928                    ; E8E3= 30 43       0C
                 ldy #$82                     ; E8E5= A0 82        .
-                sty USER_VIA+$E              ; E8E7= 8C 6E FE    .n~
-                sta USER_VIA+$1              ; E8EA= 8D 61 FE    .a~
-                lda USER_VIA+$C              ; E8ED= AD 6C FE    -l~
+                sty userVIA.ier              ; E8E7= 8C 6E FE    .n~
+                sta userVIA.ora              ; E8EA= 8D 61 FE    .a~
+                lda userVIA.pcr              ; E8ED= AD 6C FE    -l~
                 and #$F1                     ; E8F0= 29 F1       )q
                 ora #$0C                     ; E8F2= 09 0C       ..
-                sta USER_VIA+$C              ; E8F4= 8D 6C FE    .l~
+                sta userVIA.pcr              ; E8F4= 8D 6C FE    .l~
                 ora #$0E                     ; E8F7= 09 0E       ..
-                sta USER_VIA+$C              ; E8F9= 8D 6C FE    .l~
+                sta userVIA.pcr              ; E8F9= 8D 6C FE    .l~
                 rts                          ; E8FC= 60          `
 
 LE8FD:
@@ -17918,7 +18172,7 @@ LEA12:
                 cmp $02E0,x                  ; EA19= DD E0 02    ]`.
                 bne LEA23                    ; EA1C= D0 05       P.
                 ldy #$00                     ; EA1E= A0 00        .
-                jsr LEA28                    ; EA20= 20 28 EA     (j
+                jsr eventEntryPoint                    ; EA20= 20 28 EA     (j
 LEA23:
                 pla                          ; EA23= 68          h
 LEA24:
@@ -17928,7 +18182,7 @@ LEA25:
                 clc                          ; EA26= 18          .
                 rts                          ; EA27= 60          `
 
-LEA28:
+eventEntryPoint:
                 php                          ; EA28= 08          .
                 sei                          ; EA29= 78          x
                 pha                          ; EA2A= 48          H
@@ -17943,7 +18197,7 @@ LEA28:
 LEA38:
                 tya                          ; EA38= 98          .
                 ldy #$02                     ; EA39= A0 02        .
-                jsr LEA28                    ; EA3B= 20 28 EA     (j
+                jsr eventEntryPoint                    ; EA3B= 20 28 EA     (j
                 tay                          ; EA3E= A8          (
 LEA3F:
                 tya                          ; EA3F= 98          .
@@ -17973,7 +18227,7 @@ LEA62:
                 cpx #$02                     ; EA63= E0 02       `.
                 bcs LEA6E                    ; EA65= B0 07       0.
                 ldy #$01                     ; EA67= A0 01        .
-                jsr LEA28                    ; EA69= 20 28 EA     (j
+                jsr eventEntryPoint                    ; EA69= 20 28 EA     (j
                 pha                          ; EA6C= 48          H
 LEA6D:
                 pla                          ; EA6D= 68          h
@@ -17982,16 +18236,32 @@ LEA6E:
                 sec                          ; EA6F= 38          8
                 rts                          ; EA70= 60          `
 
-LEA71:
-                pha                          ; EA71= 48          H
-                and #$DF                     ; EA72= 29 DF       )_
-                cmp #$5B                     ; EA74= C9 5B       I[
-                bcs LEA7C                    ; EA76= B0 04       0.
-                eor #$FF                     ; EA78= 49 FF       I.
-                cmp #$BF                     ; EA7A= C9 BF       I?
-LEA7C:
-                pla                          ; EA7C= 68          h
-                rts                          ; EA7D= 60          `
+;-------------------------------------------------------------------------
+;
+; Check if character is a letter - A-Z or a-z.
+;
+; Entry:
+;
+; A = character to test
+;
+; Exit:
+;
+; C=0 if character is letter, C=1 otherwise
+;
+; Preserves: A/X/Y
+isLetter: .proc                 ;EA71
+                pha
+                and #$DF        ;convert to upper case
+                cmp #'Z'+1
+                bcs +           ;branch taken with C=1 if past Z
+                eor #$FF
+                cmp #-'A'       ;C=1 if past A
++
+                pla
+                rts
+                .pend
+
+;-------------------------------------------------------------------------
 
 LEA7E:
                 ldx #$00                     ; EA7E= A2 00       ".
@@ -18008,7 +18278,7 @@ LEA80:
                 tya                          ; EA93= 98          .
                 bcs LEAA0                    ; EA94= B0 0A       0.
                 ldy #$06                     ; EA96= A0 06        .
-                jsr LEA28                    ; EA98= 20 28 EA     (j
+                jsr eventEntryPoint                    ; EA98= 20 28 EA     (j
                 bcc LEAA0                    ; EA9B= 90 03       ..
                 jsr LEC57                    ; EA9D= 20 57 EC     Wl
 LEAA0:
@@ -18451,7 +18721,7 @@ LED35:
                 rts                          ; ED44= 60          `
 
 LED45:
-                lda SYSTEM_VIA+$0            ; ED45= AD 40 FE    -@~
+                lda systemVIA.irb            ; ED45= AD 40 FE    -@~
                 ror a                        ; ED48= 6A          j
                 ror a                        ; ED49= 6A          j
                 ror a                        ; ED4A= 6A          j
@@ -18506,7 +18776,7 @@ LED83:
 ; Pass to sideways ROMs
 LED84:
                 ldx #$07                     ; ED86= 20 72 EE     rn
-                jsr LEE72
+                jsr makeROMServiceCall
                 ldx $F0                      ; ED89= A6 F0       &p
                 eor #$00                     ; ED8B= 49 00       I.
                 rts                          ; ED8D= 60          `
@@ -18525,24 +18795,24 @@ LED9A:
                 jsr LEDC0
                 lda ACCCON                    ; Save ACCON register
                 pha
-                jsr LEDBA                    ; Page Hazel workspace in
+                jsr selectHAZEL         ; Page Hazel workspace in
                 ldx HAZEL_WORKSPACE+$01      ;
                 stx HAZEL_WORKSPACE+$00
                 lda #$0F                     ; Set FS ROM = 15
                 sta HAZEL_WORKSPACE+$03
                 pla                          ; Restore ACCON
-LEDB0:
-                and #$08
-                bne LEDBC
-                lda #$08
-                trb ACCCON
+selectMOSOrHAZEL:                                       ;edb0
+                and #acccon.y   ;get just the HAZEL/MOS bit
+                bne tsbACCCON   ;branch taken if HAZEL at $c000
+                lda #acccon.y
+                trb ACCCON      ;page in MOS at $c000
                 rts
 
-LEDBA:
-                lda #$08                     ; EDBA= A9 08       ).
-LEDBC:
-                tsb ACCCON                    ; EDBC= 0C 34 FE    .4~
-                rts                          ; EDBF= 60          `
+selectHAZEL:
+                lda #acccon.y
+tsbACCCON:
+                tsb ACCCON      ;page in HAZEL at $c000
+                rts
 
 ; Select ROM or TAPE
 ; ==================
@@ -18579,9 +18849,13 @@ LEDEB:
 LEDEE:
                 stz $CE                      ; Clear byte (unused on BBC)
                 plp
-                ldx #$0E                     ; Prepare to set 7 vectors
+                ldx #defaultVectorTable.fsVectors.end-defaultVectorTable.fsVectors ; Prepare to set 7 vectors
 LEDF3:
-                lda LE2E9-1,x                  ; Set filing system vectors to point to extended vectors
+                lda defaultVectorTable.fsVectors-1,x ; Set filing
+                                                     ; system vectors
+                                                     ; to point to
+                                                     ; extended
+                                                     ; vectors
                 sta FILEV-1,x
                 dex
                 bne LEDF3
@@ -18594,7 +18868,7 @@ LEDF3:
 LEE03:
                 phy
                 phx                          ; Send service call
-                jsr LEE72
+                jsr makeROMServiceCall
                 plx
                 cpx #$0F                     ; If VectorsClaimed, hook FileSwitch back in
                 beq LEE43
@@ -18616,7 +18890,7 @@ LEE1C:
                 pha                          ; EE1D= 48          H
                 lda ACCCON                    ; EE1E= AD 34 FE    -4~
                 pha                          ; EE21= 48          H
-                jsr LEDBA                    ; EE22= 20 BA ED     :m
+                jsr selectHAZEL                    ; EE22= 20 BA ED     :m
                 sec                          ; EE25= 38          8
                 ror HAZEL_WORKSPACE+$00      ; EE26= 6E 00 DF    n._
 LEE29:
@@ -18631,7 +18905,7 @@ LEE29:
 LEE3B:
                 ply                          ; EE3B= 7A          z
                 pla                          ; EE3C= 68          h
-                jsr LEDB0                    ; EE3D= 20 B0 ED     0m
+                jsr selectMOSOrHAZEL                    ; EE3D= 20 B0 ED     0m
                 pla                          ; EE40= 68          h
                 tax                          ; EE41= AA          *
                 rts                          ; EE42= 60          `
@@ -18641,7 +18915,7 @@ LEE43:
                 pha                          ; EE44= 48          H
                 lda ACCCON                    ; EE45= AD 34 FE    -4~
                 pha                          ; EE48= 48          H
-                jsr LEDBA                    ; EE49= 20 BA ED     :m
+                jsr selectHAZEL                    ; EE49= 20 BA ED     :m
                 lda $021E                    ; Save FSC
                 sta HAZEL_WORKSPACE+$DA      ; EE4F= 8D DA DF    .Z_
                 lda $021F                    ; EE52= AD 1F 02    -..
@@ -18661,45 +18935,49 @@ LEE64:
                 tsb $E2                      ; EE6F= 04 E2       .b
                 rts                          ; EE71= 60          `
 
-
+;-------------------------------------------------------------------------
+; 
 ; Pass service call around sideways ROMs
-; ======================================
-; On entry, X=service call number
-;           Y=any parameters
-; On exit,  X=0 or preserved
-;           Y=any returned parameters
-;           EQ=call claimed if called directly
 ;
-LEE72:
-                lda $F4                      ; Save current ROM
+; Entry:
+; X=service call number
+; Y=any parameters
+;
+; Exit:
+; X=0 or preserved
+; Y=any returned parameters
+; EQ=call claimed if called directly
+;
+makeROMServiceCall: .proc                    ;ee72
+                lda $F4         ; Save current ROM
                 pha
-                lda ACCCON                    ; Save current paging state
+                lda ACCCON      ; Save current paging state
                 pha
-                jsr LEDBA                    ; Page in Hazel
-                txa                          ; Pass service call number to A
-                ldx #$0F                     ; Start at ROM 15, and always call ROM 15
-                bra LEE86
-LEE81:
-                bit $02A1,x                  ; No service entry, step to next ROM
-                bpl LEE91
-LEE86:
-                jsr selectROMX                    ; Page in ROM X
-                jsr L8003                    ; Call ROM service entry point
-                tax                          ; Exit if call claimed
-                beq LEE94
-                ldx $F4                      ; Get ROM number
-LEE91:
-                dex                          ; Step down to next ROM, loop until all done
-                bpl LEE81
+                jsr selectHAZEL ; Page in Hazel
+                txa             ; Pass service call number to A
+                ldx #$0F     ; Start at ROM 15, and always call ROM 15
+                bra callServiceEntry
+callServiceEntriesLoop:
+                bit $02A1,x     ;check if ROM X has a service entry
+                bpl nextROM       ;branch taken if no service entry
+callServiceEntry:
+                jsr selectROMX  ; Page in ROM X
+                jsr $8003       ; Call ROM service entry point
+                tax             ; X = service call result
+                beq done       ;branch taken if service call claimed
+                ldx $F4         ; Get ROM number
+nextROM:
+                dex       ; Step down to next ROM, loop until all done
+                bpl callServiceEntriesLoop
 
-LEE94:
+done:
                 pla                          ; Restore paging state
-                jsr LEDB0
+                jsr selectMOSOrHAZEL
                 pla                          ; Restore current ROM
                 jsr selectROMA
                 txa                          ; Pass claim/noclaim to A
                 rts
-
+                .pend
 
 ; OSBYTE &6B (107) - Select memory for direct access
 ; ==============================================
@@ -18724,26 +19002,29 @@ LEEB0:
 
 ; OSBYTE
 ; ======
-LEEB1:
+osbyteEntryPoint:
                 pha                          ; EEB1= 48          H
                 php                          ; EEB2= 08          .
                 sei                          ; EEB3= 78          x
                 sta $EF                      ; EEB4= 85 EF       .o
                 stx $F0                      ; EEB6= 86 F0       .p
                 sty $F1                      ; EEB8= 84 F1       .q
-                ldx #$07                     ; EEBA= A2 07       ".
-                cmp #$6B                     ; EEBC= C9 6B       Ik
-                bcc LEF00                    ; EEBE= 90 40       .@
-                cmp #$A6                     ; EEC0= C9 A6       I&
-                bcc LEECD                    ; EEC2= 90 09       ..
-                cmp #$A6                     ; EEC4= C9 A6       I&
-                bcc LEF0C                    ; EEC6= 90 44       .D
+                ldx #romServiceCallUnrecognisedOSBYTE
+                cmp #$6B                     
+                bcc LEF00       ;branch taken if OSBYTE <$6B
+                cmp #$A6
+                bcc LEECD       ;branch taken if OSBYTE $6B-$A5
+                cmp #$A6
+                bcc LEF0C       ;??? - wait... didn't we just do this?
+
+; OSBYTEs $a6-$ff
+                
                 clc                          ; EEC8= 18          .
 LEEC9:
                 lda #$A6                     ; EEC9= A9 A6       )&
                 adc #$00                     ; EECB= 69 00       i.
 LEECD:
-                sbc #$50                     ; EECD= E9 50       iP
+                sbc #$50        ;make range $1b-$56
 LEECF:
                 asl a                        ; EECF= 0A          .
                 sec                          ; EED0= 38          8
@@ -18779,17 +19060,17 @@ LEEFA:
                 rts                          ; EEFF= 60          `
 
 LEF00:
-                ldy #$00                     ; EF00= A0 00        .
-                cmp #$1A                     ; EF02= C9 1A       I.
-                bcc LEECF                    ; EF04= 90 C9       .I
-                bra LEF0C                    ; EF06= 80 04       ..
+                ldy #$00        ;Y=0 on entry for this lot
+                cmp #$1A        ;OSBYTEs $1a-$43 are unused
+                bcc LEECF       ;taken if OSBYTE $00-$19
+                bra LEF0C       
 
 LEF08:
-                ldx #$08                     ; EF08= A2 08       ".
+                ldx #romServiceCallUnrecognisedOSWORD
                 pla                          ; EF0A= 68          h
                 pla                          ; EF0B= 68          h
 LEF0C:
-                jsr LEE72                    ; EF0C= 20 72 EE     rn
+                jsr makeROMServiceCall
                 bne LEF15                    ; EF0F= D0 04       P.
                 ldx $F0                      ; EF11= A6 F0       &p
                 bra LEEFA                    ; EF13= 80 E5       .e
@@ -19381,9 +19662,9 @@ LF23E:
 LF241:
                 bcc LF24C                    ; Skip if not called from OSBYTE
                 ldy #$07                     ; Turn ShiftLock LED on
-                sty SYSTEM_VIA+$0
+                sty systemVIA.orb
                 dey                          ; Turn CapsLock LED on
-                sty SYSTEM_VIA+$0
+                sty systemVIA.orb
 LF24C:
                 bit $FF                      ; Test Escape and return
                 rts
@@ -19413,9 +19694,9 @@ LF261:
 
 LF26D:
                 clc                          ; F26D= 18          .
-LF26E:
+gsinitEntryPoint:
                 ror $E4                      ; F26E= 66 E4       fd
-                jsr LF2FF                    ; F270= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; F270= 20 FF F2     .r
                 iny                          ; F273= C8          H
                 cmp #$22                     ; F274= C9 22       I"
                 beq LF27A                    ; F276= F0 02       p.
@@ -19426,7 +19707,7 @@ LF27A:
                 cmp #$0D                     ; F27C= C9 0D       I.
                 rts                          ; F27E= 60          `
 
-LF27F:
+gsreadEntryPoint:
                 lda #$01                     ; F27F= A9 01       ).
                 tsb $E4                      ; F281= 04 E4       .d
                 jsr LF29C                    ; F283= 20 9C F2     .r
@@ -19478,7 +19759,7 @@ LF2BC:
                 cmp #$22                     ; F2C7= C9 22       I"
                 beq LF2F8                    ; F2C9= F0 2D       p-
 LF2CB:
-                jsr LF2FF                    ; F2CB= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; F2CB= 20 FF F2     .r
                 sec                          ; F2CE= 38          8
                 rts                          ; F2CF= 60          `
 
@@ -19515,20 +19796,20 @@ LF2F9:
                 clc                          ; F2FC= 18          .
                 rts                          ; F2FD= 60          `
 
-LF2FE:
+incAndSkipSpaces:
                 iny                          ; F2FE= C8          H
-LF2FF:
-                lda ($F2),y                  ; F2FF= B1 F2       1r
-                cmp #$20                     ; F301= C9 20       I
-                beq LF2FE                    ; F303= F0 F9       py
+skipSpacesAndCheckForCRInStringInput:
+                lda (stringInputBufferAddress),y                  ; F2FF= B1 F2       1r
+                cmp #' '                     ; F301= C9 20       I
+                beq incAndSkipSpaces                    ; F303= F0 F9       py
 LF305:
-                cmp #$0D                     ; F305= C9 0D       I.
+                cmp #13                     ; F305= C9 0D       I.
                 rts                          ; F307= 60          `
 
 LF308:
-                bcc LF2FF                    ; F308= 90 F5       .u
+                bcc skipSpacesAndCheckForCRInStringInput                    ; F308= 90 F5       .u
 LF30A:
-                jsr LF2FF                    ; F30A= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; F30A= 20 FF F2     .r
                 cmp #$2C                     ; F30D= C9 2C       I,
                 bne LF305                    ; F30F= D0 F4       Pt
                 iny                          ; F311= C8          H
@@ -19607,7 +19888,7 @@ LF36E:
 
 LF373:
                 ldx #$26                     ; F375= 4C 72 EE    Lrn
-                jmp LEE72
+                jmp makeROMServiceCall
 
 LF378:
                 php                          ; F378= 08          .
@@ -19671,7 +19952,7 @@ LF3D7:
                 phx                          ; F3D9= DA          Z
                 tsx                          ; F3DA= BA          :
                 lda $0104,x                  ; F3DB= BD 04 01    =..
-                jsr LEDB0                    ; F3DE= 20 B0 ED     0m
+                jsr selectMOSOrHAZEL                    ; F3DE= 20 B0 ED     0m
 LF3E1:
                 lda $0103,x                  ; F3E1= BD 03 01    =..
                 sta $0104,x                  ; F3E4= 9D 04 01    ...
@@ -19681,7 +19962,7 @@ LF3E1:
                 plp                          ; F3EA= 28          (
                 rts                          ; F3EB= 60          `
 
-LF3EC:
+vduChrEntryPoint:
                 jsr LF3AB                    ; F3EC= 20 AB F3     +s
                 ldx $F4                      ; F3EF= A6 F4       &t
                 phx                          ; F3F1= DA          Z
@@ -19690,11 +19971,11 @@ LF3EC:
                 plx                          ; F3F8= FA          z
                 jmp selectROMX                    ; F3F9= 4C 81 E5    L.e
 
-LF3FC:
+osrdscEntryPoint:
                 jsr LF3AB                    ; F3FC= 20 AB F3     +s
                 jmp LC018                    ; F3FF= 4C 18 C0    L.@
 
-LF402:
+oswrscEntryPoint:
                 jsr LF3AB                    ; F402= 20 AB F3     +s
                 jmp LDB5F                    ; F405= 4C 5F DB    L_[
 
@@ -19957,16 +20238,16 @@ LF5E6:
 LF5E7:
                 sei                          ; F5E7= 78          x
                 ldy #$FF                     ; F5E8= A0 FF        .
-                sty SYSTEM_VIA+$3            ; F5EA= 8C 43 FE    .C~
-                sta SYSTEM_VIA+$F            ; F5ED= 8D 4F FE    .O~
+                sty systemVIA.ddra            ; F5EA= 8C 43 FE    .C~
+                sta systemVIA.oraNoHandshake            ; F5ED= 8D 4F FE    .O~
                 iny                          ; F5F0= C8          H
-                sty SYSTEM_VIA+$0            ; F5F1= 8C 40 FE    .@~
+                sty systemVIA.orb            ; F5F1= 8C 40 FE    .@~
                 ldy #$02                     ; F5F4= A0 02        .
 LF5F6:
                 dey                          ; F5F6= 88          .
                 bne LF5F6                    ; F5F7= D0 FD       P}
                 ldy #$08                     ; F5F9= A0 08        .
-                sty SYSTEM_VIA+$0            ; F5FB= 8C 40 FE    .@~
+                sty systemVIA.orb            ; F5FB= 8C 40 FE    .@~
                 ldy #$04                     ; F5FE= A0 04        .
 LF600:
                 dey                          ; F600= 88          .
@@ -20135,7 +20416,7 @@ LF701:
                 ldx #$0D                     ; F705= A2 0D       ".
 LF707:
                 php                          ; F707= 08          .
-                jsr LEE72                    ; F708= 20 72 EE     rn
+                jsr makeROMServiceCall                    ; F708= 20 72 EE     rn
                 plp                          ; F70B= 28          (
                 cmp #$01                     ; F70C= C9 01       I.
                 tya                          ; F70E= 98          .
@@ -20160,7 +20441,7 @@ LF724:
                 ora $ED                      ; F728= 05 ED       .m
                 bne LF732                    ; F72A= D0 06       P.
                 lda #$81                     ; F72C= A9 81       ).
-                sta SYSTEM_VIA+$E            ; F72E= 8D 4E FE    .N~
+                sta systemVIA.ier            ; F72E= 8D 4E FE    .N~
                 inx                          ; F731= E8          h
 LF732:
                 stx $0242                    ; F732= 8E 42 02    .B.
@@ -20170,10 +20451,10 @@ LF735:
                 lsr a                        ; F739= 4A          J
                 and #$18                     ; F73A= 29 18       ).
                 ora #$06                     ; F73C= 09 06       ..
-                sta SYSTEM_VIA+$0            ; F73E= 8D 40 FE    .@~
+                sta systemVIA.orb            ; F73E= 8D 40 FE    .@~
                 lsr a                        ; F741= 4A          J
                 ora #$07                     ; F742= 09 07       ..
-                sta SYSTEM_VIA+$0            ; F744= 8D 40 FE    .@~
+                sta systemVIA.orb            ; F744= 8D 40 FE    .@~
                 jsr LF91C                    ; F747= 20 1C F9     .y
                 pla                          ; F74A= 68          h
                 rts                          ; F74B= 60          `
@@ -20183,7 +20464,7 @@ LF735:
 LF74C:
                 bvc LF758                    ; F74C= 50 0A       P.
                 lda #$01                     ; F74E= A9 01       ).
-                sta SYSTEM_VIA+$E            ; F750= 8D 4E FE    .N~
+                sta systemVIA.ier            ; F750= 8D 4E FE    .N~
                 bcs LF75D                    ; F753= B0 08       0.
                 jmp LF865                    ; F755= 4C 65 F8    Lex
 
@@ -20200,7 +20481,7 @@ LF760:
                 lda $025A                    ; F760= AD 5A 02    -Z.
                 and #$B7                     ; F763= 29 B7       )7
                 ldx #$00                     ; F765= A2 00       ".
-                jsr LF880                    ; F767= 20 80 F8     .x
+                jsr interrogateKeyboard                    ; F767= 20 80 F8     .x
                 bcc LF76E                    ; F76A= 90 02       ..
                 stx $FA                      ; F76C= 86 FA       .z
 LF76E:
@@ -20210,7 +20491,7 @@ LF76E:
                 ora #$08                     ; F774= 09 08       ..
 LF776:
                 inx                          ; F776= E8          h
-                jsr LF880                    ; F777= 20 80 F8     .x
+                jsr interrogateKeyboard                    ; F777= 20 80 F8     .x
                 bcc LF735                    ; F77A= 90 B9       .9
                 bpl LF780                    ; F77C= 10 02       ..
                 ora #$40                     ; F77E= 09 40       .@
@@ -20218,7 +20499,7 @@ LF780:
                 sta $025A                    ; F780= 8D 5A 02    .Z.
                 ldx $EC                      ; F783= A6 EC       &l
                 beq LF7D4                    ; F785= F0 4D       pM
-                jsr LF880                    ; F787= 20 80 F8     .x
+                jsr interrogateKeyboard                    ; F787= 20 80 F8     .x
                 bmi LF799                    ; F78A= 30 0D       0.
                 cpx $EC                      ; F78C= E4 EC       dl
 LF78E:
@@ -20302,7 +20583,7 @@ LF806:
 LF811:
                 rol $FA                      ; F811= 26 FA       &z
                 bmi LF822                    ; F813= 30 0D       0.
-                jsr LEA71                    ; F815= 20 71 EA     qj
+                jsr isLetter                    ; F815= 20 71 EA     qj
                 bcs LF822                    ; F818= B0 08       0.
                 jsr LF313                    ; F81A= 20 13 F3     .s
 LF81D:
@@ -20329,7 +20610,7 @@ LF839:
 LF845:
                 ldx $ED                      ; F845= A6 ED       &m
                 beq LF852                    ; F847= F0 09       p.
-                jsr LF880                    ; F849= 20 80 F8     .x
+                jsr interrogateKeyboard                    ; F849= 20 80 F8     .x
                 stx $ED                      ; F84C= 86 ED       .m
                 bmi LF868                    ; F84E= 30 18       0.
                 stz $ED                      ; F850= 64 ED       dm
@@ -20346,7 +20627,7 @@ LF862:
                 jmp LF724                    ; F862= 4C 24 F7    L$w
 
 LF865:
-                jsr LF880                    ; F865= 20 80 F8     .x
+                jsr interrogateKeyboard                    ; F865= 20 80 F8     .x
 LF868:
                 lda $EC                      ; F868= A5 EC       %l
                 bne LF862                    ; F86A= D0 F6       Pv
@@ -20362,15 +20643,30 @@ LF875:
                 stx $02CA                    ; F87C= 8E CA 02    .J.
                 rts                          ; F87F= 60          `
 
-LF880:
-                ldy #$03                     ; F880= A0 03        .
-                sty SYSTEM_VIA+$0            ; F882= 8C 40 FE    .@~
-                ldy #$7F                     ; F885= A0 7F        .
-                sty SYSTEM_VIA+$3            ; F887= 8C 43 FE    .C~
-                stx SYSTEM_VIA+$F            ; F88A= 8E 4F FE    .O~
-                nop                          ; F88D= EA          j
-                ldx SYSTEM_VIA+$F            ; F88E= AE 4F FE    .O~
-                rts                          ; F891= 60          `
+;-------------------------------------------------------------------------
+;
+; Read a single key's state from the keyboard
+;
+; Entry:
+;
+; X = key to test
+;
+; Exit:
+;
+; X=$80, N=1 if key pressed; X=$00, N=0 if key not pressed
+;
+; Preserves: A/C
+; 
+interrogateKeyboard: .proc
+                ldy #$03                     ;write to keyboard
+                sty systemVIA.orb
+                ldy #$7F
+                sty systemVIA.ddra           ;bit 7=input, bits 6-0=output
+                stx systemVIA.oraNoHandshake ;store key value
+                nop
+                ldx systemVIA.iraNoHandshake ;read key state
+                rts
+                .pend
 
 ; Default keyboard table
 ; ======================
@@ -20470,10 +20766,10 @@ LF910:
 LF916:
                 txa                          ; F916= 8A          .
                 bpl LF923                    ; F917= 10 0A       ..
-                jsr LF880                    ; F919= 20 80 F8     .x
+                jsr interrogateKeyboard                    ; F919= 20 80 F8     .x
 LF91C:
                 lda #$0B                     ; F91C= A9 0B       ).
-                sta SYSTEM_VIA+$0            ; F91E= 8D 40 FE    .@~
+                sta systemVIA.orb            ; F91E= 8D 40 FE    .@~
                 txa                          ; F921= 8A          .
                 rts                          ; F922= 60          `
 
@@ -20483,24 +20779,24 @@ LF923:
                 sta $02CC                    ; F928= 8D CC 02    .L.
                 ldx #$0C                     ; F92B= A2 0C       ".
                 lda #$7F                     ; F92D= A9 7F       ).
-                sta SYSTEM_VIA+$3            ; F92F= 8D 43 FE    .C~
+                sta systemVIA.ddra            ; F92F= 8D 43 FE    .C~
                 lda #$03                     ; F932= A9 03       ).
-                sta SYSTEM_VIA+$0            ; F934= 8D 40 FE    .@~
+                sta systemVIA.orb            ; F934= 8D 40 FE    .@~
 LF937:
                 lda #$0F                     ; F937= A9 0F       ).
-                sta SYSTEM_VIA+$F            ; F939= 8D 4F FE    .O~
+                sta systemVIA.oraNoHandshake            ; F939= 8D 4F FE    .O~
                 lda #$01                     ; F93C= A9 01       ).
-                sta SYSTEM_VIA+$D            ; F93E= 8D 4D FE    .M~
-                stx SYSTEM_VIA+$F            ; F941= 8E 4F FE    .O~
-                bit SYSTEM_VIA+$D            ; F944= 2C 4D FE    ,M~
+                sta systemVIA.ifr            ; F93E= 8D 4D FE    .M~
+                stx systemVIA.oraNoHandshake            ; F941= 8E 4F FE    .O~
+                bit systemVIA.ifr            ; F944= 2C 4D FE    ,M~
                 beq LF964                    ; F947= F0 1B       p.
                 txa                          ; F949= 8A          .
 LF94A:
                 clc                          ; F94A= 18          .
                 adc #$10                     ; F94B= 69 10       i.
                 bmi LF964                    ; F94D= 30 15       0.
-                sta SYSTEM_VIA+$F            ; F94F= 8D 4F FE    .O~
-                bit SYSTEM_VIA+$F            ; F952= 2C 4F FE    ,O~
+                sta systemVIA.oraNoHandshake            ; F94F= 8D 4F FE    .O~
+                bit systemVIA.iraNoHandshake            ; F952= 2C 4F FE    ,O~
                 bpl LF94A                    ; F955= 10 F3       .s
                 cmp $02CB                    ; F957= CD CB 02    MK.
                 bcc LF94A                    ; F95A= 90 EE       .n
@@ -20518,23 +20814,23 @@ LF96C:
 LF96E:
                 jsr LF9A6                    ; F96E= 20 A6 F9     &y
                 lda #$7F                     ; F971= A9 7F       ).
-                sta SYSTEM_VIA+$3            ; F973= 8D 43 FE    .C~
+                sta systemVIA.ddra            ; F973= 8D 43 FE    .C~
                 lda #$03                     ; F976= A9 03       ).
-                sta SYSTEM_VIA+$0            ; F978= 8D 40 FE    .@~
+                sta systemVIA.orb            ; F978= 8D 40 FE    .@~
                 lda #$0F                     ; F97B= A9 0F       ).
-                sta SYSTEM_VIA+$F            ; F97D= 8D 4F FE    .O~
+                sta systemVIA.oraNoHandshake            ; F97D= 8D 4F FE    .O~
                 lda #$01                     ; F980= A9 01       ).
-                sta SYSTEM_VIA+$D            ; F982= 8D 4D FE    .M~
-                stx SYSTEM_VIA+$F            ; F985= 8E 4F FE    .O~
-                bit SYSTEM_VIA+$D            ; F988= 2C 4D FE    ,M~
+                sta systemVIA.ifr            ; F982= 8D 4D FE    .M~
+                stx systemVIA.oraNoHandshake            ; F985= 8E 4F FE    .O~
+                bit systemVIA.ifr            ; F988= 2C 4D FE    ,M~
                 beq LF9AD                    ; F98B= F0 20       p
                 txa                          ; F98D= 8A          .
 LF98E:
                 clc                          ; F98E= 18          .
                 adc #$10                     ; F98F= 69 10       i.
                 bmi LF9AD                    ; F991= 30 1A       0.
-                sta SYSTEM_VIA+$F            ; F993= 8D 4F FE    .O~
-                bit SYSTEM_VIA+$F            ; F996= 2C 4F FE    ,O~
+                sta systemVIA.oraNoHandshake            ; F993= 8D 4F FE    .O~
+                bit systemVIA.iraNoHandshake            ; F996= 2C 4F FE    ,O~
                 bpl LF98E                    ; F999= 10 F3       .s
                 pha                          ; F99B= 48          H
 LF99C:
@@ -20556,15 +20852,15 @@ LF9AD:
                 bpl LF96E                    ; F9AE= 10 BE       .>
                 bra LF9A6                    ; F9B0= 80 F4       .t
 
-LF9B2:
+osbputEntryPoint:
                 jsr LFA97                    ; F9B2= 20 97 FA     .z
                 jmp (BPUTV)                  ; F9B5= 6C 18 02    l..
 
-LF9B8:
+osbgetEntryPoint:
                 jsr LFA97                    ; F9B8= 20 97 FA     .z
                 jmp (BGETV)                  ; F9BB= 6C 16 02    l..
 
-LF9BE:
+osgbpbEntryPoint:
                 cmp #$05                     ; F9BE= C9 05       I.
                 bcs LF9D7                    ; F9C0= B0 15       0.
                 cmp #$00                     ; F9C2= C9 00       I.
@@ -20585,22 +20881,22 @@ LF9D7:
                 phy                          ; F9D7= 5A          Z
                 phx                          ; F9D8= DA          Z
                 pha                          ; F9D9= 48          H
-                jsr LEDBA                    ; F9DA= 20 BA ED     :m
+                jsr selectHAZEL                    ; F9DA= 20 BA ED     :m
                 lda HAZEL_WORKSPACE+$00      ; F9DD= AD 00 DF    -._
-                jsr LFB4D                    ; F9E0= 20 4D FB     M{
+                jsr selectFS                    ; F9E0= 20 4D FB     M{
                 pla                          ; F9E3= 68          h
                 plx                          ; F9E4= FA          z
                 bra LF9D3                    ; F9E5= 80 EC       .l
 
 ; FILESWITCH OSARGS HANDLER
 ; =========================
-LF9E7:
+osargsEntryPoint:
                 cpy #$00                     ; F9E7= C0 00       @.
                 bne LFA15                    ; F9E9= D0 2A       P*
                 cmp #$04                     ; F9EB= C9 04       I.
                 bcs LFA15                    ; F9ED= B0 26       0&
                 pha                          ; F9EF= 48          H
-                jsr LEDBA                    ; Page in Hazel
+                jsr selectHAZEL                    ; Page in Hazel
                 pla                          ; F9F3= 68          h
                 bne LF9FA                    ; Jump with A<>0
                 lda HAZEL_WORKSPACE+$00      ; OSARGS 0,0 - Read filing system number
@@ -20630,23 +20926,31 @@ LFA15:
 LFA18:
                 jmp (ARGSV)                  ; FA18= 6C 14 02    l..
 
-LFA1B:
-                ora #$00                     ; FA1B= 09 00       ..
-                beq LFA24                    ; FA1D= F0 05       p.
-                jsr LFA6E                    ; FA1F= 20 6E FA     nz
-                bra LFA27                    ; FA22= 80 03       ..
+;-------------------------------------------------------------------------
+;
+; Entry point for OSFIND
+;
+; 
+osfindEntryPoint: .proc
+                ora #$00        ;A=$00 if a file is to be closed
+                beq close       ;branch taken if closing a file
+                jsr LFA6E       ;handle something other than a file close
+                bra callFINDV
 
-LFA24:
+close:
                 jsr LFA97                    ; FA24= 20 97 FA     .z
-LFA27:
+callFINDV:
                 jmp (FINDV)                  ; FA27= 6C 1C 02    l..
+                .pend
+                
+;-------------------------------------------------------------------------
 
-LFA2A:
+osfileEntryPoint:               ;fa2a
                 phx                          ; FA2A= DA          Z
                 phy                          ; FA2B= 5A          Z
                 pha                          ; FA2C= 48          H
-                stx $F2                      ; FA2D= 86 F2       .r
-                sty $F3                      ; FA2F= 84 F3       .s
+                stx stringInputBufferAddress+0
+                sty stringInputBufferAddress+1
                 ldy #$11                     ; FA31= A0 11        .
 LFA33:
                 lda ($F2),y                  ; FA33= B1 F2       1r
@@ -20682,19 +20986,20 @@ LFA5B:
 LFA6B:
                 jmp (FILEV)                  ; FA6B= 6C 12 02    l..
 
+; ??? parse file name, taking into account -FS- syntax?
 LFA6E:
-                pha                          ; FA6E= 48          H
-                lda $F2                      ; FA6F= A5 F2       %r
-                pha                          ; FA71= 48          H
-                lda $F3                      ; FA72= A5 F3       %s
-                pha                          ; FA74= 48          H
-                jsr LEDBA                    ; FA75= 20 BA ED     :m
-                stx $F2                      ; FA78= 86 F2       .r
-                sty $F3                      ; FA7A= 84 F3       .s
+                pha                          
+                lda stringInputBufferAddress+0
+                pha                          
+                lda stringInputBufferAddress+1 
+                pha                          
+                jsr selectHAZEL
+                stx stringInputBufferAddress+0
+                sty stringInputBufferAddress+1
                 ldy #$00                     ; FA7C= A0 00        .
-                jsr LFAA6                    ; FA7E= 20 A6 FA     &z
+                jsr parseFileNameFS                    ; FA7E= 20 A6 FA     &z
                 phy                          ; FA81= 5A          Z
-                jsr LFB4D                    ; FA82= 20 4D FB     M{
+                jsr selectFS                    ; FA82= 20 4D FB     M{
                 pla                          ; FA85= 68          h
                 clc                          ; FA86= 18          .
                 adc $F2                      ; FA87= 65 F2       er
@@ -20713,94 +21018,114 @@ LFA8F:
 LFA97:
                 phx                          ; FA97= DA          Z
                 pha                          ; FA98= 48          H
-                jsr LEDBA                    ; FA99= 20 BA ED     :m
+                jsr selectHAZEL                    ; FA99= 20 BA ED     :m
                 jsr LFB23                    ; FA9C= 20 23 FB     #{
                 txa                          ; FA9F= 8A          .
-                jsr LFB4D                    ; FAA0= 20 4D FB     M{
+                jsr selectFS                    ; FAA0= 20 4D FB     M{
                 pla                          ; FAA3= 68          h
                 plx                          ; FAA4= FA          z
                 rts                          ; FAA5= 60          `
 
-LFAA6:
-                lsr HAZEL_WORKSPACE+$C6      ; FAA6= 4E C6 DF    NF_
-                jsr LF2FF                    ; FAA9= 20 FF F2     .r
-                lda ($F2),y                  ; FAAC= B1 F2       1r
-                cmp #$2D                     ; FAAE= C9 2D       I-
-                beq LFABE                    ; FAB0= F0 0C       p.
-                bit HAZEL_WORKSPACE+$C6      ; FAB2= 2C C6 DF    ,F_
-                lda HAZEL_WORKSPACE+$00      ; FAB5= AD 00 DF    -._
-                bvc LFABD                    ; FAB8= 50 03       P.
-                lda HAZEL_WORKSPACE+$01      ; FABA= AD 01 DF    -._
-LFABD:
-                rts                          ; FABD= 60          `
+;-------------------------------------------------------------------------
+;
+; Parse the FS part of a file name, if any, and return the filing
+; system to use.
+;
+; Entry:
+;
+; (stringInputBufferAddress),y = the string
+;
+; Exit:
+;
+; A = FS number to use
+;
+; (stringInputBufferAddress),y = next char after any tempfs prefix has
+; been consumed
+parseFileNameFS: .proc
+                
+                lsr hazel.tempFSFlag
+                jsr skipSpacesAndCheckForCRInStringInput
+                lda (stringInputBufferAddress),y
+                cmp #'-'
+                beq parseFSNamePrefix ; branch taken if tempfs syntax
+                bit hazel.tempFSFlag
+                lda hazel.currentFS
+                bvc +
+                lda hazel.activeFS
++
+                rts
 
-LFABE:
+parseFSNamePrefix:
                 iny                          ; FABE= C8          H
                 ldx #$00                     ; FABF= A2 00       ".
 LFAC1:
-                lda HAZEL_WORKSPACE+$06,x    ; FAC1= BD 06 DF    =._
-                beq LFB0A                    ; FAC4= F0 44       pD
-                txa                          ; FAC6= 8A          .
-                clc                          ; FAC7= 18          .
-                adc #$08                     ; FAC8= 69 08       i.
-                sta $B0                      ; FACA= 85 B0       .0
-                phy                          ; FACC= 5A          Z
-LFACD:
-                lda ($F2),y                  ; FACD= B1 F2       1r
-                jsr LEA71                    ; FACF= 20 71 EA     qj
-                bcc LFADC                    ; FAD2= 90 08       ..
-                cmp #$30                     ; FAD4= C9 30       I0
-                bcc LFAF3                    ; FAD6= 90 1B       ..
-                cmp #$3A                     ; FAD8= C9 3A       I:
-                bcs LFAF3                    ; FADA= B0 17       0.
-LFADC:
-                cpx $B0                      ; FADC= E4 B0       d0
-                bcs LFAEB                    ; FADE= B0 0B       0.
-                eor HAZEL_WORKSPACE+$06,x    ; FAE0= 5D 06 DF    ]._
-                and #$DF                     ; FAE3= 29 DF       )_
-                bne LFAEB                    ; FAE5= D0 04       P.
-                inx                          ; FAE7= E8          h
-                iny                          ; FAE8= C8          H
-                bra LFACD                    ; FAE9= 80 E2       .b
+                lda hazel.fsInfoBlocks,x ;get FS name char
+                beq badFilingSystemName
+                txa                      ;A=offset in info blocks
+                clc
+                adc #$08
+                sta $B0         ;offset of end of name
+                phy
+compareFSNameLoop:
+                lda (stringInputBufferAddress),y
 
-LFAEB:
-                ply                          ; FAEB= 7A          z
-                ldx $B0                      ; FAEC= A6 B0       &0
-                inx                          ; FAEE= E8          h
-                inx                          ; FAEF= E8          h
-                inx                          ; FAF0= E8          h
-                bra LFAC1                    ; FAF1= 80 CE       .N
+; validate FS name char. Must be letter or digit.
+                
+                jsr isLetter
+                bcc validFSNameChar           ;branch taken if letter
+                cmp #'0'
+                bcc notValidFSNameChar       ;branch taken if not digit
+                cmp #'9'+1
+                bcs notValidFSNameChar       ;branch taken if not digit
+validFSNameChar:
+                cpx $B0                  
+                bcs nextFSInfoBlock ;branch taken if end of FS
+                                         ;info block name was reached
+                eor hazel.fsInfoBlocks,x
+                and #$DF                 ;Z=1 if char matches FS name
+                bne nextFSInfoBlock      ;branch taken if not a match
+                inx                      ;next fs info block byte
+                iny                      ;next input string byte
+                bra compareFSNameLoop
 
-LFAF3:
-                cmp #$2D                     ; FAF3= C9 2D       I-
-                bne LFB0A                    ; FAF5= D0 13       P.
-                iny                          ; FAF7= C8          H
-                cpx $B0                      ; FAF8= E4 B0       d0
-                beq LFB03                    ; FAFA= F0 07       p.
-                lda HAZEL_WORKSPACE+$06,x    ; FAFC= BD 06 DF    =._
-                cmp #$20                     ; FAFF= C9 20       I
-                bne LFAEB                    ; FB01= D0 E8       Ph
-LFB03:
-                pla                          ; FB03= 68          h
-                ldx $B0                      ; FB04= A6 B0       &0
-                lda HAZEL_WORKSPACE+$08,x    ; FB06= BD 08 DF    =._
-                rts                          ; FB09= 60          `
+nextFSInfoBlock:
+                ply                          
+                ldx $B0         ;offset of end of name
+                inx                          
+                inx                          
+                inx             ;advance to next entry
+                bra LFAC1                    
 
-LFB0A:
-                brk                          ; FB0A= 00          .
-                sed                          ; FB0B= F8          x
-                .byte $42                    ; FB0C= 42          B
-                adc ($64,x)                  ; FB0D= 61 64       ad
-                jsr $6966                    ; FB0F= 20 66 69     fi
-                jmp ($6E69)                  ; FB12= 6C 69 6E    lin
+notValidFSNameChar:
 
-                .byte $67                    ; FB15= 67          g
-                jsr $7973                    ; FB16= 20 73 79     sy
-                .byte $73                    ; FB19= 73          s
-                stz $65,x                    ; FB1A= 74 65       te
-                adc $6E20                    ; FB1C= 6D 20 6E    m n
-                adc ($6D,x)                  ; FB1F= 61 6D       am
-                adc $00                      ; FB21= 65 00       e.
+; Matching FS name must be terminated with -. Otherwise, it's bad
+; syntax, or perhaps an overly long name.
+                
+                cmp #'-'
+                bne badFilingSystemName
+                iny                       ;consume input '-'
+                cpx $B0                   
+                beq foundFSInfoBlock     ;branch taken if a match due
+                                         ;to being right at end of the
+                                         ;FS info block name
+                lda hazel.fsInfoBlocks,x ;
+                cmp #$20
+                bne nextFSInfoBlock      ;branch taken if not a match
+                                         ;as tthe supplied name was a
+                                         ;prefix of this FS's name
+foundFSInfoBlock:
+                pla
+                ldx $B0
+                lda hazel.fsInfoBlocks+(fsInfoBlock.fsNumber-(fsInfoBlock.name+size(fsInfoBlock.name))),x
+                rts
+
+badFilingSystemName:
+                brk
+                .text $f8,'Bad filing system name',0
+                .pend
+
+;-------------------------------------------------------------------------
+
 LFB23:
                 pha                          ; FB23= 48          H
                 phy                          ; FB24= 5A          Z
@@ -20834,16 +21159,25 @@ LFB4A:
                 pla                          ; FB4B= 68          h
                 rts                          ; FB4C= 60          `
 
-; Select filing system in A
-; =========================
-LFB4D:
-                cmp HAZEL_WORKSPACE+$01      ; Check active fs
-                beq LFB68                    ; Already active fs, return
-                phy                          ; FB52= 5A          Z
-                phx                          ; FB53= DA          Z
-                tay                          ; FB54= A8          (
-                dec a                        ; FB55= 3A          :
-                bne LFB5F                    ; FB56= D0 07       P.
+;-------------------------------------------------------------------------
+;
+; Select filing system in A.
+;
+; Entry:
+;
+; A = FS number
+;
+selectFS:                               ;fb4d
+                cmp hazel.activeFS      ; Check active fs
+                beq LFB68               ; Already active fs, return
+                phy
+                phx
+                tay
+                dec a
+                bne LFB5F       ;taken if not FS 1 (tape)
+
+; ??? - only if trying to select tape FS
+                
                 lda #$04                     ; FB58= A9 04       ).
                 bit $E2                      ; FB5A= 24 E2       $b
                 bne LFB5F                    ; FB5C= D0 01       P.
@@ -20851,7 +21185,7 @@ LFB4D:
 LFB5F:
                 phy                          ; FB5F= 5A          Z
                 ldx #$12                     ; Service call &12 - Select filing system
-                jsr LEE72
+                jsr makeROMServiceCall
                 pla                          ; FB65= 68          h
                 plx                          ; FB66= FA          z
                 ply                          ; FB67= 7A          z
@@ -20861,8 +21195,8 @@ LFB68:
 ; FileSwitch FSC
 ; ==============
                 pha                          ; FB69= 48          H
-                jsr LEDBA                    ; FB6A= 20 BA ED     :m
-                lsr HAZEL_WORKSPACE+$C6      ; FB6D= 4E C6 DF    NF_
+                jsr selectHAZEL                    ; FB6A= 20 BA ED     :m
+                lsr hazel.tempFSFlag
                 pla                          ; FB70= 68          h
                 pha                          ; FB71= 48          H
                 phx                          ; FB72= DA          Z
@@ -20918,7 +21252,7 @@ LFBA6:
                 bvs LFB7C                    ; Pass to current filing system
                 lda HAZEL_WORKSPACE+$00      ; Get current filing system number
 LFBAE:
-                jsr LFB4D                    ; Select filing system
+                jsr selectFS                    ; Select filing system
                 bra LFB7C                    ; Pass to filing system
 
 ; FSC 2, 4 - *filename, *RUN filename
@@ -20949,7 +21283,7 @@ LFBCE:
                 cmp #$20                     ; FBCE= C9 20       I
                 bne LFBC7                    ; FBD0= D0 F5       Pu
 LFBD2:
-                jsr LF2FF                    ; FBD2= 20 FF F2     .r
+                jsr skipSpacesAndCheckForCRInStringInput                    ; FBD2= 20 FF F2     .r
                 tya                          ; FBD5= 98          .
                 clc                          ; FBD6= 18          .
                 adc $F2                      ; FBD7= 65 F2       er
@@ -21110,7 +21444,7 @@ extendedVectorEntryPoint:
                 sta $010A,x                  ; FF77= 9D 0A 01    ...
                 lda ACCCON                    ; FF7A= AD 34 FE    -4~
                 sta $0109,x                  ; FF7D= 9D 09 01    ...
-                jsr LEDBA                    ; FF80= 20 BA ED     :m
+                jsr selectHAZEL                    ; FF80= 20 BA ED     :m
                 lda $0D9F,y                  ; FF83= B9 9F 0D    9..
                 jsr selectROMA                    ; FF86= 20 92 E5     .e
                 ply                          ; FF89= 7A          z
@@ -21130,7 +21464,7 @@ extendedVectorEntryPoint:
                 pla                          ; FF9E= 68          h
                 pla                          ; FF9F= 68          h
                 pla                          ; FFA0= 68          h
-                jsr LEDB0                    ; FFA1= 20 B0 ED     0m
+                jsr selectMOSOrHAZEL                    ; FFA1= 20 B0 ED     0m
                 pla                          ; FFA4= 68          h
                 jsr selectROMA                    ; FFA5= 20 92 E5     .e
                 pla                          ; FFA8= 68          h
@@ -21148,29 +21482,36 @@ LFFAF:
 
                 brk
 
-LFFB3:
-                jmp LF402                    ; FFB3
-                .byte $36                    ; FFB6
-                .word LE2D7
-                jmp LF3FC                    ; FFB9
-                jmp LF3EC                    ; FFBC
-                jmp LEA28                    ; FFBF
-                jmp LF26E                    ; FFC2
-                jmp LF27F                    ; FFC5
-                jmp LE7BC                    ; FFC8
-                jmp LE822                    ; FFCB
+OSWRSC:
+                jmp oswrscEntryPoint ; FFB3
+                .byte defaultVectorTable.end-defaultVectorTable
+                .word defaultVectorTable
+OSRDSC:
+                jmp osrdscEntryPoint ; FFB9
+VDUCHR:
+                jmp vduChrEntryPoint ; FFBC
+OSEVEN:
+                jmp eventEntryPoint ; FFBF
+GSINIT:
+                jmp gsinitEntryPoint ; FFC2
+GSREAD:
+                jmp gsreadEntryPoint ; FFC5
+NVRDCH:
+                jmp osrdchEntryPoint                    ; FFC8
+NVWRCH:
+                jmp oswrchEntryPoint                    ; FFCB
 OSFIND:
-                jmp LFA1B                    ; FFCE
+                jmp osfindEntryPoint                    ; FFCE
 OSGBPB:
-                jmp LF9BE                    ; FFD1
+                jmp osgbpbEntryPoint                    ; FFD1
 OSBPUT:
-                jmp LF9B2                    ; FFD4
+                jmp osbputEntryPoint                    ; FFD4
 OSBGET:
-                jmp LF9B8                    ; FFD7
+                jmp osbgetEntryPoint                    ; FFD7
 OSARGS:
-                jmp LF9E7                    ; FFDA
+                jmp osargsEntryPoint ; FFDA
 OSFILE:         
-                jmp LFA2A                    ; FFDD
+                jmp osfileEntryPoint ; FFDD
 OSRDCH:
                 jmp (RDCHV)                  ; FFE0
 OSASCI:
@@ -21190,11 +21531,11 @@ OSCLI:
                 jmp (CLIV)                  ; FFF7
 
 LFFFA:                                       ; FFFA NMIV
-                .word $0D00
+                .word nmiEntryPoint
 LFFFC:                                       ; FFFB RESETV
-                .word LE364
+                .word resetEntryPoint
 LFFFE:                                       ; FFFE IRQV
-                .word LE59E
+                .word irqEntryPoint
 
                 .send mos
                 

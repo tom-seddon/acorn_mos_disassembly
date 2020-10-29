@@ -62,35 +62,64 @@ romServiceCallTubeMainInitialisation=$FF    ;
 
                 
 ;-------------------------------------------------------------------------
+
+uservIndex=0
+brkvIndex=1
+irq1vIndex=2
+irq2vIndex=3
+clivIndex=4
+bytevIndex=5
+wordvIndex=6
+wrchvIndex=7
+rdchvIndex=8
+filevIndex=9
+argsvIndex=10
+bgetvIndex=11
+bputvIndex=12
+gbpbvIndex=13
+findvIndex=14
+fscvIndex=15
+eventvIndex=16
+uptvIndex=17
+netvIndex=18
+vduvIndex=19
+keyvIndex=20
+insvIndex=21
+remvIndex=22
+cnpvIndex=23
+ind1vIndex=24
+ind2vIndex=25
+ind3vIndex=26
+
                 
 vectors=$200
-USERV=$200
-BRKV=$202
-IRQ1V=$204
-IRQ2V=$206
-CLIV=$208
-BYTEV=$20a
-WORDV=$20c
-WRCHV=$20e
-RDCHV=$210
-FILEV=$212
-ARGSV=$214
-BGETV=$216
-BPUTV=$218
-GBPBV=$21a
-FINDV=$21c
-FSCV=$21e
-EVENTV=$220
-UPTV=$222
-NETV=$224
-VDUV=$226
-KEYV=$228
-INSV=$22a
-REMV=$22c
-CNPV=$22e
-IND1V=$230
-IND2V=$232
-IND3V=$234
+USERV=vectors+uservIndex*2
+BRKV=vectors+brkvIndex*2
+IRQ1V=vectors+irq1vIndex*2
+IRQ2V=vectors+irq2vIndex*2
+CLIV=vectors+clivIndex*2
+BYTEV=vectors+bytevIndex*2
+WORDV=vectors+wordvIndex*2
+WRCHV=vectors+wrchvIndex*2
+RDCHV=vectors+rdchvIndex*2
+FILEV=vectors+filevIndex*2
+ARGSV=vectors+argsvIndex*2
+BGETV=vectors+bgetvIndex*2
+BPUTV=vectors+bputvIndex*2
+GBPBV=vectors+gbpbvIndex*2
+FINDV=vectors+findvIndex*2
+FSCV=vectors+fscvIndex*2
+EVENTV=vectors+eventvIndex*2
+UPTV=vectors+uptvIndex*2
+NETV=vectors+netvIndex*2
+VDUV=vectors+vduvIndex*2
+KEYV=vectors+keyvIndex*2
+INSV=vectors+insvIndex*2
+REMV=vectors+remvIndex*2
+CNPV=vectors+cnpvIndex*2
+IND1V=vectors+ind1vIndex*2
+IND2V=vectors+ind2vIndex*2
+IND3V=vectors+ind3vIndex*2
                 
 CRTC=$FE00
 ACIA=$fe08
@@ -98,7 +127,7 @@ SERPROC=$fe10
 HADC=$fe18
 TUBE=$fee0
 ROMSEL=$fe30
-ACCCON=$fe34
+;ACCCON=$fe34
 VCONTROL=$fe20
 VPALETTE=$fe21
 
@@ -213,38 +242,52 @@ lineNumberBCD:
 lastCharPrinted:
                 .fill 1
 tempFSFlag:
-                .fill 1   
+                .fill 1
+moveOSGBPB:
+                .fill 13
+moveSrcHandle:
+                .fill 1
+moveDestHandle:
+                .fill 1
+moveBufferMSB:
+                .fill 1
+moveNumPages:
+                .fill 1
+moveDestName:
+                .fill 2
+activeFSCV:
+                .fill 2
                 .bend
                 .endv
 
                 .virtual $fe34
-acccon: .block
+ACCCON: .block
 ;D=1 = display shadow RAM; D=0 = display main RAM
-d=$01
+D=$01
 
 ;E=1 = VDU code ($c000-$dfff in MOS ROM) accesses shadow RAM; E=0 =
 ;VDU code accesses main RAM
-e=$02
+E=$02
 
 ;X=1 = shadow RAM at $3000; X=0 = main RAM at $3000
-x=$04
+X=$04
 
 ;Y=1 = HAZEL at $c000; Y=0 = MOS ROM at $c000
-y=$08
+Y=$08
 
 ;ITU=1 = access internal Tube; ITU=0 = access external Tube
-itu=$10
+ITU=$10
 
 ;IFJ=1 = $fc00...$fdff accesses cartridge; IFJ=0 = $fc00...$fdff
 ;accesses 1MHz bus
-ifj=$20
+IFJ=$20
 
 ; TST=1 = read MOS ROM at $fc00...$feff; TST=0 = read I/O at
 ; $fc00...$feff
-tst=$40
+TST=$40
 
 ;IRR=1 = IRQ to CPU
-irr=$80
+IRR=$80
                 .bend
                 .endv
 
@@ -369,18 +412,33 @@ XBEBE=$BEBE
 LFE8E=$fe8e
 
 ; MasRef E.4-4
-STATE=$d0                       ;VDU status byte
-ZMASK=$d1                       ;Pixel mask
-ZORA=$d2                        ;Text OR mask
-ZEOR=$d3                        ;Text EOR mask
-ZGORA=$d4                       ;Graphics OR mask
-ZGEOR=$d5                       ;Graphics EOR mask
-ZMEMG=$d6                       ;Graphics pointer
-ZMEMT=$d8                       ;Text pointer
-ZTEMP=$da                       ;Temporary space
-ZTEMPB=$dc                      ;Temporary space
-ZTEMPC=$de                      ;Temporary space
-ZTEMPD=$e0                      ;Temporary space
+
+                .virtual $d0
+STATE: .block
+                .fill 1
+                ; D.2-32
+isPrinterEnabled=$01
+isScrollingDisabled=$02
+isPagedScrolling=$04
+isTextWindow=$08
+isShadowMode=$10
+isVDU5=$20
+isCursorEditing=$40
+isVDU21=$80
+                .bend
+ZMASK: .fill 1                       ;Pixel mask
+ZORA: .fill 1                        ;Text OR mask
+ZEOR: .fill 1                        ;Text EOR mask
+ZGORA: .fill 1                       ;Graphics OR mask
+ZGEOR: .fill 1                       ;Graphics EOR mask
+ZMEMG: .fill 2                       ;Graphics pointer
+ZMEMT: .fill 2                       ;Text pointer
+ZTEMP: .fill 2                       ;Temporary space
+ZTEMPB: .fill 2                      ;Temporary space
+ZTEMPC: .fill 2                      ;Temporary space
+ZTEMPD: .fill 2                      ;Temporary space
+
+                .endv                
 
 nmiEntryPoint=$d00
                 
@@ -415,7 +473,7 @@ L8012:
 ; STARTUP
 ; =======
 reset:                          ;8020
-                lda #~acccon.d  ;display main RAM
+                lda #~ACCCON.D  ;display main RAM
                 trb ACCCON      
                 stz HAZEL_WORKSPACE+$DD
                 trb $0366
@@ -429,7 +487,7 @@ reset:                          ;8020
                 ldx #$0A                     ; 8039= A2 0A       ".
                 jsr L98E4                    ; 803B= 20 E4 98     d.
                 jsr L9729                    ; 803E= 20 29 97     ).
-                lda #acccon.y|acccon.x       ; page in HAZEL+shadow
+                lda #ACCCON.Y|ACCCON.X       ; page in HAZEL+shadow
                 tsb ACCCON
                 lda systemVIA.ier
                 asl a
@@ -461,7 +519,7 @@ clearRAM:
                 ldx $01
                 cpx #$E0        ;hit the end of RAM?
                 bcc -           ;branch taken if still more to go
-                lda #acccon.x   ;page out shadow RAM
+                lda #ACCCON.X   ;page out shadow RAM
                 trb ACCCON
                 bne clearRAM    ;branch taken if shadow RAM bit
                              ;previously set - i.e., that was the
@@ -472,7 +530,7 @@ L8073:
                 sta HAZEL_WORKSPACE+$04
                 lda #$E8                     ; 807A= 8D 05 DF    .._
                 sta HAZEL_WORKSPACE+$05
-                lda #acccon.y|acccon.x ; page in MOS ROM, page in main
+                lda #ACCCON.Y|ACCCON.X ; page in MOS ROM, page in main
                                        ; RAM
                 trb ACCCON
                 lda #$0F                     ; 8084= 8D 8E 02    ...
@@ -655,7 +713,7 @@ L81DD:
                 jsr LF55D                    ; 81DE= 20 5D F5     ]u
                 cpx #$04                     ; 81E1= E0 04       `.
                 bne L81DD                    ; 81E3= D0 F8       Px
-                jsr LF910                    ; 81E5= 20 10 F9     .y
+                jsr osbyte7A
                 stx $ED                      ; 81E8= 86 ED       .m
                 ldx #$00                     ; 81EA= A2 00       ".
                 jsr LE97D                    ; 81EC= 20 7D E9     }i
@@ -665,10 +723,10 @@ L81DD:
                 jsr L8E84                    ; 81F7= 20 84 8E     ..
                 pha                          ; 81FA= 48          H
                 tax                          ; 81FB= AA          *
-                jsr LEC6B                    ; 81FC= 20 6B EC     kl
+                jsr osbyte08                    ; 81FC= 20 6B EC     kl
                 plx                          ; 81FF= FA          z
                 lda #$07                     ; 8200= A9 07       ).
-                jsr LEC6D                    ; 8202= 20 6D EC     ml
+                jsr osbyte07                 ; 8202= 20 6D EC     ml
                 jsr L98AE                    ; 8205= 20 AE 98     ..
                 bit #$02                     ; 8208= 89 02       ..
                 bne L8211                    ; 820A= D0 05       P.
@@ -678,7 +736,7 @@ L8211:
                 jsr selectTerminalROM                    ; 8211= 20 90 E5     .e
                 ldx $0284                    ; 8214= AE 84 02    ...
                 beq L821C                    ; 8217= F0 03       p.
-                jsr LF11A                    ; 8219= 20 1A F1     .q
+                jsr osbyte12
 L821C:
                 lda $028D                    ; 821C= AD 8D 02    -..
                 beq L8224                    ; 821F= F0 03       p.
@@ -12782,7 +12840,7 @@ LC866:
 LC88B:
                 jsr LC8CF                    ; Clear paged mode counter
 LC88E:
-                jsr LF230                    ; Call KEYV to test Shift & Ctrl keys
+                jsr osbyte76    ; Call KEYV to test Shift & Ctrl keys
                 bcc LC895                    ; Ctrl not pressed, exit loop
                 bmi LC88B                    ; Shift pressed, loop back
 LC895:
@@ -12816,7 +12874,7 @@ LC8BB:
                 cmp $0269                    ; C8C4= CD 69 02    Mi.
                 bcs LC8D3                    ; C8C7= B0 0A       0.
 LC8C9:
-                jsr LF230                    ; C8C9= 20 30 F2     0r
+                jsr osbyte76                    ; C8C9= 20 30 F2     0r
                 sec                          ; C8CC= 38          8
                 bpl LC8C9                    ; C8CD= 10 FA       .z
 
@@ -14131,11 +14189,11 @@ LD110:
                 ldx $031C                    ; D110= AE 1C 03    ...
                 ldy #$00                     ; D113= A0 00        .
                 bcc LD11A                    ; D115= 90 03       ..
-                jmp LEC92                    ; D117= 4C 92 EC    L.l
+                jmp osbyte09                    ; D117= 4C 92 EC    L.l
 
 LD11A:
                 sec                          ; D11A= 38          8
-                jmp LEC94                    ; D11B= 4C 94 EC    L.l
+                jmp osbyte0A                    ; D11B= 4C 94 EC    L.l
 
 LD11E:
                 lda $0366                    ; D11E= AD 66 03    -f.
@@ -16979,17 +17037,17 @@ fsVectors: .block
                 .word E_FSCV ; FSCV=$21e
 end:
                 .bend
-                .word LFFAA ; EVENTV=$220
-                .word LFFAA ; UPTV=$222
-                .word LFFAA ; NETV=$224
-                .word LFFAA ; VDUV=$226 
+                .word rts ; EVENTV=$220
+                .word rts ; UPTV=$222
+                .word rts ; NETV=$224
+                .word rts ; VDUV=$226 
                 .word LF74C ; KEYV=$228 
                 .word LEA43 ; INSV=$22a 
                 .word LE9F8 ; REMV=$22c 
                 .word LE97B ; CNPV=$22e 
-                .word LFFAA ; IND1V=$230
-                .word LFFAA ; IND2V=$232
-                .word LFFAA ; IND3V=$234
+                .word rts ; IND1V=$230
+                .word rts ; IND2V=$232
+                .word rts ; IND3V=$234
 end:
                 .bend
                 
@@ -17205,7 +17263,7 @@ LE424:
                 ror HAZEL_WORKSPACE+$02
 LE431:
                 jsr LEE64                    ; Set default ROMFS/TAPEFS settings
-                jsr LF230                    ; Test Shift and Ctrl keys
+                jsr osbyte76                    ; Test Shift and Ctrl keys
                 lsr a                        ; Move SHIFT status from b7 to b3
                 lsr a
                 lsr a
@@ -17229,7 +17287,7 @@ LE454:
                 jsr selectROMX                    ; E459= 20 81 E5     .e
                 cpx #$0F                     ; E45C= E0 0F       `.
                 bne LE46C                    ; E45E= D0 0C       P.
-                jsr LF910                    ; E460= 20 10 F9     .y
+                jsr osbyte7A
                 inx                          ; E463= E8          h
                 beq LE47F                    ; E464= F0 19       p.
                 cpx #$63                     ; E466= E0 63       `c
@@ -17730,7 +17788,7 @@ LE78E:
 LE799:
                 jmp LE663                    ; E799= 4C 63 E6    Lcf
 
-LE79C:
+osbyte11:                       ;e79c
                 sty $02BE                    ; E79C= 8C BE 02    .>.
                 bra LE771                    ; E79F= 80 D0       .P
 
@@ -17985,7 +18043,7 @@ LE929:
                 clc                          ; E929= 18          .
                 lda #$01                     ; E92A= A9 01       ).
                 jsr LE93A                    ; E92C= 20 3A E9     :i
-LE92F:
+osbyte7B:
                 ror $02D1                    ; E92F= 6E D1 02    nQ.
 LE932:
                 rts                          ; E932= 60          `
@@ -18001,17 +18059,17 @@ LE93C:
                 jsr LEB04                    ; E93F= 20 04 EB     .k
                 jmp (UPTV)                  ; E942= 6C 22 02    l".
 
-LE945:
+osbyte0F:                       ;e945
                 bne LE956                    ; E945= D0 0F       P.
 LE947:
                 ldx #$08                     ; E947= A2 08       ".
 LE949:
                 cli                          ; E949= 58          X
                 sei                          ; E94A= 78          x
-                jsr LE951                    ; E94B= 20 51 E9     Qi
+                jsr osbyte15
                 dex                          ; E94E= CA          J
                 bpl LE949                    ; E94F= 10 F8       .x
-LE951:
+osbyte15:                                    ;e951
                 cpx #$09                     ; E951= E0 09       `.
                 bcc LE959                    ; E953= 90 04       ..
                 rts                          ; E955= 60          `
@@ -18087,7 +18145,13 @@ LE9A4:
                 bcc LE9A2                    ; E9B2= 90 EE       .n
                 rts                          ; E9B4= 60          `
 
-LE9B5:
+;-------------------------------------------------------------------------
+;
+; OSBYTE $77
+;
+; D.2-33
+;
+osbyte77:                       ;e9b5
                 jsr LF384                    ; E9B5= 20 84 F3     .s
                 jmp L9423                    ; E9B8= 4C 23 94    L#.
 
@@ -18419,49 +18483,49 @@ LEB63:
 ; OSBYTE Dispatch Table
 ; =====================
 LEB69:
-                .word LEF6F                  ; EB69= 6F EF       o.
-                .word LF0CE                  ; EB6B= CE F0       ..
-                .word LECB4                  ; EB6D= B4 EC       ..
-                .word LF0A3                  ; EB6F= A3 F0       ..
-                .word LF0D6                  ; EB71= D6 F0       ..
-                .word LF0BC                  ; EB73= BC F0       ..
-                .word LF0B3                  ; EB75= B3 F0       ..
-                .word LEC6D                  ; EB77= 6D EC       m.
-                .word LEC6B                  ; EB79= 6B EC       k.
-                .word LEC92                  ; EB7B= 92 EC       ..
-                .word LEC94                  ; EB7D= 94 EC       ..
-                .word LF0D4                  ; EB7F= D4 F0       ..
-                .word LF0D2                  ; EB81= D2 F0       ..
-                .word LECDA                  ; EB83= DA EC       ..
-                .word LECDB                  ; EB85= DB EC       ..
-                .word LE945                  ; EB87= 45 E9       E.
-                .word LECE7                  ; EB89= E7 EC       ..
-                .word LE79C                  ; EB8B= 9C E7       ..
-                .word LF11A                  ; EB8D= 1A F1       ..
-                .word LF0F5                  ; EB8F= F5 F0       ..
-                .word LF21C                  ; EB91= 1C F2       ..
-                .word LE951                  ; EB93= 51 E9       Q.
-                .word LF228                  ; EB95= 28 F2       (.
-                .word LF22C                  ; EB97= 2C F2       ,.
-                .word LED84                  ; EB99= 84 ED       ..
-                .word LF222                  ; EB9B= 22 F2       ".
-                .word LEE9E                  ; EB9D= 9E EE       ..
-                .word LEEA2                  ; EB9F= A2 EE       ..
-                .word LF20F                  ; EBA1= 0F F2       ..
-                .word LED84                  ; EBA3= 84 ED       ..
-                .word LED84                  ; EBA5= 84 ED       ..
-                .word LED58                  ; EBA7= 58 ED       X.
-                .word LED68                  ; EBA9= 68 ED       h.
-                .word LF0B8                  ; EBAB= B8 F0       ..
-                .word LFFAA                  ; EBAD= AA FF       ..
-                .word LFFAA                  ; EBAF= AA FF       ..
-                .word LEFB3                  ; EBB1= B3 EF       ..
-                .word LF230                  ; EBB3= 30 F2       0.
-                .word LE9B5                  ; EBB5= B5 E9       ..
-                .word LF90B                  ; EBB7= 0B F9       ..
-                .word LF902                  ; EBB9= 02 F9       ..
-                .word LF910                  ; EBBB= 10 F9       ..
-                .word LE92F                  ; EBBD= 2F E9       /.
+                .word osbyte00
+                .word osbyte01
+                .word osbyte02
+                .word osbyte03
+                .word osbyte04
+                .word osbyte05
+                .word osbyte06
+                .word osbyte07
+                .word osbyte08
+                .word osbyte09
+                .word osbyte0A
+                .word osbyte0B
+                .word osbyte0C
+                .word osbyte0D
+                .word osbyte0E
+                .word osbyte0F
+                .word osbyte10
+                .word osbyte11
+                .word osbyte12
+                .word osbyte13
+                .word osbyte14
+                .word osbyte15
+                .word osbyte16
+                .word osbyte17
+                .word osbyteUnused                  ; EB99= 84 ED       ..
+                .word osbyte19
+                .word osbyte6B                  ; EB9D= 9E EE       ..
+                .word osbyte6C
+                .word osbyte6D
+                .word osbyteUnused                  ; EBA3= 84 ED       ..
+                .word osbyteUnused                  ; EBA5= 84 ED       ..
+                .word osbyte70
+                .word osbyte71                  ; EBA9= 68 ED       h.
+                .word osbyte72
+                .word rts                  ; EBAD= AA FF       ..
+                .word rts                  ; EBAF= AA FF       ..
+                .word osbyte75
+                .word osbyte76                  ; EBB3= 30 F2       0.
+                .word osbyte77
+                .word osbyte78
+                .word callKEYV
+                .word osbyte7A
+                .word osbyte7B
                 .word LEC56                  ; EBBF= 56 EC       V.
                 .word LEC57                  ; EBC1= 57 EC       W.
                 .word LEC3C                  ; EBC3= 3C EC       <.
@@ -18496,12 +18560,12 @@ LEB69:
                 .word LF260                  ; EBFD= 60 F2       `.
                 .word LE914                  ; EBFF= 14 E9       ..
                 .word LFFAF                  ; EC01= AF FF       ..
-                .word LED84                  ; EC03= 84 ED       ..
-                .word LED84                  ; EC05= 84 ED       ..
+                .word osbyteUnused                  ; EC03= 84 ED       ..
+                .word osbyteUnused                  ; EC05= 84 ED       ..
                 .word LF0FF                  ; EC07= FF F0       ..
                 .word LED8E                  ; EC09= 8E ED       ..
                 .word LED94                  ; EC0B= 94 ED       ..
-                .word LED84                  ; EC0D= 84 ED       ..
+                .word osbyteUnused                  ; EC0D= 84 ED       ..
                 .word LE547                  ; EC0F= 47 E5       G.
                 .word LE23D                  ; EC11= 3D E2       =.
                 .word LF0DB                  ; EC13= DB F0       ..
@@ -18567,9 +18631,9 @@ LEC61:
                 ror a                        ; EC68= 6A          j
                 bra LEC89                    ; EC69= 80 1E       ..
 
-LEC6B:
+osbyte08:
                 lda #$38                     ; EC6B= A9 38       )8
-LEC6D:
+osbyte07:                                    ;ec6d
                 eor #$3F                     ; EC6D= 49 3F       I?
                 sta $FA                      ; EC6F= 85 FA       .z
                 ldy $0282                    ; EC71= AC 82 02    ,..
@@ -18592,10 +18656,10 @@ LEC90:
                 tax                          ; EC90= AA          *
                 rts                          ; EC91= 60          `
 
-LEC92:
+osbyte09:                       ;ec92
                 iny                          ; EC92= C8          H
                 clc                          ; EC93= 18          .
-LEC94:
+osbyte0A:                                    ;ec94
                 lda $0252,y                  ; EC94= B9 52 02    9R.
                 pha                          ; EC97= 48          H
                 txa                          ; EC98= 8A          .
@@ -18613,7 +18677,13 @@ LEC94:
                 sta VCONTROL                 ; ECAF= 8D 20 FE    . ~
                 bra LEC8F                    ; ECB2= 80 DB       .[
 
-LECB4:
+;-------------------------------------------------------------------------
+;
+; OSBYTE &02
+;
+; D.2-10
+                
+osbyte02:                       ;ecb4
                 txa                          ; ECB4= 8A          .
                 and #$01                     ; ECB5= 29 01       ).
                 pha                          ; ECB7= 48          H
@@ -18636,18 +18706,18 @@ LECD2:
 LECD9:
                 rts                          ; ECD9= 60          `
 
-LECDA:
+osbyte0D:                       ;ecda
                 tya                          ; ECDA= 98          .
-LECDB:
+osbyte0E:                                    ;ecda
                 cpx #$0A                     ; ECDB= E0 0A       `.
                 bcs LEC90                    ; ECDD= B0 B1       01
                 ldy $02BF,x                  ; ECDF= BC BF 02    <?.
                 sta $02BF,x                  ; ECE2= 9D BF 02    .?.
                 bra LEC8F                    ; ECE5= 80 A8       .(
 
-LECE7:
+osbyte10:                       ;ece7
                 beq LECEC                    ; ECE7= F0 03       p.
-                jsr LE79C                    ; ECE9= 20 9C E7     .g
+                jsr osbyte11
 LECEC:
                 lda $024D                    ; ECEC= AD 4D 02    -M.
                 stx $024D                    ; ECEF= 8E 4D 02    .M.
@@ -18671,7 +18741,7 @@ LED01:
                 beq LED14                    ; ED02= F0 10       p.
                 eor #$7F                     ; ED04= 49 7F       I.
                 tax                          ; ED06= AA          *
-                jsr LF902                    ; ED07= 20 02 F9     .y
+                jsr callKEYV
                 rol a                        ; ED0A= 2A          *
 LED0B:
                 ldx #$FF                     ; ED0B= A2 FF       ".
@@ -18733,21 +18803,27 @@ LED45:
                 tax                          ; ED56= AA          *
                 rts                          ; ED57= 60          `
 
-LED58:
+;-------------------------------------------------------------------------
+;
+; OSBYTE $70
+;
+; D.2-31
+;
+osbyte70:                       ;ed58
                 jsr LED70                    ; ED58= 20 70 ED     pm
                 asl a                        ; ED5B= 0A          .
-                beq LED62                    ; ED5C= F0 04       p.
+                beq clearACCCCONE
 LED5E:
                 tsb ACCCON                    ; ED5E= 0C 34 FE    .4~
                 rts                          ; ED61= 60          `
 
-LED62:
-                lda #$02                     ; ED62= A9 02       ).
+clearACCCCONE:
+                lda #ACCCON.E
 LED64:
                 trb ACCCON                    ; ED64= 1C 34 FE    .4~
                 rts                          ; ED67= 60          `
 
-LED68:
+osbyte71:                       ;ed68
                 jsr LED70                    ; ED68= 20 70 ED     pm
                 bne LED5E                    ; ED6B= D0 F1       Pq
                 inc a                        ; ED6D= 1A          .
@@ -18759,8 +18835,8 @@ LED70:
                 sta $021A,y                  ; ED72= 99 1A 02    ...
                 bne LED80                    ; ED75= D0 09       P.
                 lda STATE                      ; ED77= A5 D0       %P
-                and #$10                     ; ED79= 29 10       ).
-                beq LED83                    ; ED7B= F0 06       p.
+                and #STATE.isShadowMode
+                beq LED83       ;
 LED7D:
                 lda #$01                     ; ED7D= A9 01       ).
                 rts                          ; ED7F= 60          `
@@ -18774,7 +18850,7 @@ LED83:
 ; OSBYTE &6E (110), &6F (111)
 ; ===========================
 ; Pass to sideways ROMs
-LED84:
+osbyteUnused:                   ;ed84
                 ldx #$07                     ; ED86= 20 72 EE     rn
                 jsr makeROMServiceCall
                 ldx $F0                      ; ED89= A6 F0       &p
@@ -18802,14 +18878,14 @@ LED9A:
                 sta HAZEL_WORKSPACE+$03
                 pla                          ; Restore ACCON
 selectMOSOrHAZEL:                                       ;edb0
-                and #acccon.y   ;get just the HAZEL/MOS bit
+                and #ACCCON.Y   ;get just the HAZEL/MOS bit
                 bne tsbACCCON   ;branch taken if HAZEL at $c000
-                lda #acccon.y
+                lda #ACCCON.Y
                 trb ACCCON      ;page in MOS at $c000
                 rts
 
 selectHAZEL:
-                lda #acccon.y
+                lda #ACCCON.Y
 tsbACCCON:
                 tsb ACCCON      ;page in HAZEL at $c000
                 rts
@@ -18865,66 +18941,75 @@ LEDF3:
 
 ; Send a sideways ROM service call and check for filing system change
 ; ===================================================================
-LEE03:
+LEE03: .proc                    ;ee03
                 phy
                 phx                          ; Send service call
                 jsr makeROMServiceCall
                 plx
-                cpx #$0F                     ; If VectorsClaimed, hook FileSwitch back in
-                beq LEE43
-                inc a                        ; If claimed, check FSSelect and UKCommand
-                dec a
-                beq LEE14
-LEE11:
-                plx                          ; Return with result in X, EQ=Claimed
+                cpx #romServiceCallVectorsClaimed ; If VectorsClaimed,
+                                                  ; hook FileSwitch
+                                                  ; back in
+                beq handleVectorsClaimed
+                inc a       ; If claimed, check for
+                            ; InitialiseFilingSystem or
+                            ; UnrecognisedCommand
+                dec a       ;Z=1 if claimed
+                beq wasClaimed  ;branch taken if claimed
+done:
+                plx             ; Return with result in X, EQ=Claimed
                 tax
                 rts
 
-LEE14:
-                cpx #$12                     ; EE16= F0 04       p.
-                beq LEE1C
-                cpx #$04                     ; EE18= E0 04       `.
-                bne LEE11                    ; EE1A= D0 F5       Pu
-LEE1C:
-                ply                          ; EE1C= 7A          z
-                pha                          ; EE1D= 48          H
-                lda ACCCON                    ; EE1E= AD 34 FE    -4~
-                pha                          ; EE21= 48          H
-                jsr selectHAZEL                    ; EE22= 20 BA ED     :m
-                sec                          ; EE25= 38          8
-                ror HAZEL_WORKSPACE+$00      ; EE26= 6E 00 DF    n._
+wasClaimed:
+                cpx #romServiceCallInitialiseFilingSystem
+                beq +
+                cpx #romServiceCallUnrecognisedCommand
+                bne done                    ; EE1A= D0 F5       Pu
++
+
+; handle InitialiseFilingSystem ($12) or UnrecognisedCommand ($04)
+                
+                ply                     ;Y=service call arg
+                pha                     ;save A (though actually it's
+                                        ;always $00...)
+                lda ACCCON
+                pha                     ;save ACCCON
+                jsr selectHAZEL
+                sec
+                ror hazel.currentFS ;set currentFS bit 7
 LEE29:
-                phy                          ; EE29= 5A          Z
-                lda #$00                     ; EE2A= A9 00       ).
-                tay                          ; EE2C= A8          (
-                jsr LFA18                    ; EE2D= 20 18 FA     .z
-                sta HAZEL_WORKSPACE+$01      ; EE30= 8D 01 DF    .._
-                bit HAZEL_WORKSPACE+$00      ; EE33= 2C 00 DF    ,._
-                bpl LEE3B                    ; EE36= 10 03       ..
-                jsr LF20F                    ; EE38= 20 0F F2     .r
+                phy             ;save ROM service call argument
+                lda #$00                     
+                tay                          
+                jsr callARGSV   ;A=0, Y=0 - get active FS number
+                sta hazel.activeFS ;save active FS number
+                bit hazel.currentFS
+                bpl LEE3B
+                jsr osbyte6D
 LEE3B:
                 ply                          ; EE3B= 7A          z
                 pla                          ; EE3C= 68          h
-                jsr selectMOSOrHAZEL                    ; EE3D= 20 B0 ED     0m
+                jsr selectMOSOrHAZEL
                 pla                          ; EE40= 68          h
                 tax                          ; EE41= AA          *
                 rts                          ; EE42= 60          `
 
-LEE43:
+handleVectorsClaimed:
                 ply                          ; EE43= 7A          z
                 pha                          ; EE44= 48          H
                 lda ACCCON                    ; EE45= AD 34 FE    -4~
                 pha                          ; EE48= 48          H
                 jsr selectHAZEL                    ; EE49= 20 BA ED     :m
-                lda $021E                    ; Save FSC
-                sta HAZEL_WORKSPACE+$DA      ; EE4F= 8D DA DF    .Z_
-                lda $021F                    ; EE52= AD 1F 02    -..
-                sta HAZEL_WORKSPACE+$DB      ; EE55= 8D DB DF    .[_
-                lda #$69                     ; Hook FileSwitch FSC in
-                sta $021E                    ; EE5A= 8D 1E 02    ...
-                lda #$FB                     ; EE5D= A9 FB       ){
-                sta $021F                    ; EE5F= 8D 1F 02    ...
+                lda FSCV+0
+                sta hazel.activeFSCV+0
+                lda FSCV+1
+                sta hazel.activeFSCV+1
+                lda #<fscEntryPoint
+                sta FSCV+0
+                lda #>fscEntryPoint          
+                sta FSCV+1
                 bra LEE29                    ; EE62= 80 C5       .E
+                .pend
 
 LEE64:
                 lda #$A1                     ; EE64= A9 A1       )!
@@ -18934,7 +19019,7 @@ LEE64:
                 lda #$04                     ; EE6D= A9 04       ).
                 tsb $E2                      ; EE6F= 04 E2       .b
                 rts                          ; EE71= 60          `
-
+                
 ;-------------------------------------------------------------------------
 ; 
 ; Pass service call around sideways ROMs
@@ -18981,13 +19066,13 @@ done:
 
 ; OSBYTE &6B (107) - Select memory for direct access
 ; ==============================================
-LEE9E:
+osbyte6B:                       ;ee9e
                 ldy #$20                     ; Y=&20 to change 1MHz bit
                 bra LEEA4
 
 ; OSBYTE &6C (108) - Select memory for direct access
 ; ==============================================
-LEEA2:
+osbyte6C:
                 ldy #$04                     ; Y=&04 to change RAM bit
 LEEA4:
                 tya                          ; Clear RAM or 1MHz bit
@@ -19137,17 +19222,23 @@ LEF6C:
                 ldx #$03                     ; EF6C= A2 03       ".
                 rts                          ; EF6E= 60          `
 
+;-------------------------------------------------------------------------
+; 
 ; OSBYTE &00
-; ==========
-LEF6F:
-                bne LEF6C                    ; EF6F= D0 FB       P{
-                brk                          ; EF71= 00          .
-                .byte $F7                    ; EF72= F7          w
-                .byte $4F                    ; EF73= 4F          O
-                .byte $53                    ; EF74= 53          S
-                jsr $2E33                    ; EF75= 20 33 2E     3.
-                and ($30)                    ; EF78= 32 30       20
-                brk                          ; EF7A= 00          .
+;
+; D.2-18
+l
+osbyte00:                       ;ef6f
+                bne LEF6C       ;branch taken if A<>0 - return with
+                                ;X=3
+
+; do a BRK and print MOS version number.
+                
+                brk                          
+                .text $f7,"OS 3.20",0
+
+; ???
+                
                 iny                          ; EF7B= C8          H
                 lda ($F0),y                  ; EF7C= B1 F0       1p
                 cmp #$20                     ; EF7E= C9 20       I
@@ -19182,7 +19273,7 @@ LEF90:
                 pla                          ; EFB0= 68          h
                 pla                          ; EFB1= 68          h
                 plp                          ; EFB2= 28          (
-LEFB3:
+osbyte75:
                 ldx STATE                      ; EFB3= A6 D0       &P
                 rts                          ; EFB5= 60          `
 
@@ -19351,7 +19442,7 @@ LF09F:
                 rol a                        ; F0A1= 2A          *
                 rts                          ; F0A2= 60          `
 
-LF0A3:
+osbyte03:
                 phx                          ; F0A3= DA          Z
                 ldx $027C                    ; F0A4= AE 7C 02    .|.
                 lda #$0A                     ; F0A7= A9 0A       ).
@@ -19359,60 +19450,72 @@ LF0A3:
                 plx                          ; F0AC= FA          z
                 lda #$03                     ; F0AD= A9 03       ).
                 ldy #$00                     ; F0AF= A0 00        .
-                bra LF0D6                    ; F0B1= 80 23       .#
+                bra osbyte04                 ; F0B1= 80 23       .#
 
-LF0B3:
+osbyte06:                       ;f0b3
                 lsr $0246                    ; F0B3= 4E 46 02    NF.
-                bra LF0CE                    ; F0B6= 80 16       ..
+                bra osbyte01                    ; F0B6= 80 16       ..
 
-LF0B8:
+osbyte72:                       ;f0b8
                 lda #$1F                     ; F0B8= A9 1F       ).
                 bra LF0CC                    ; F0BA= 80 10       ..
 
-LF0BC:
+osbyte05:                       ;f0bc
                 cli                          ; F0BC= 58          X
                 sei                          ; F0BD= 78          x
                 bit $FF                      ; F0BE= 24 FF       $.
                 bmi LF0EB                    ; F0C0= 30 29       0)
                 bit $02D1                    ; F0C2= 2C D1 02    ,Q.
-                bpl LF0BC                    ; F0C5= 10 F5       .u
+                bpl osbyte05
                 jsr LE93C                    ; F0C7= 20 3C E9     <i
                 ldy #$00                     ; F0CA= A0 00        .
 LF0CC:
                 stz $F1                      ; F0CC= 64 F1       dq
-LF0CE:
-                eor #$F0                     ; F0CE= 49 F0       Ip
-                bra LF0D9                    ; F0D0= 80 07       ..
 
-LF0D2:
+;-------------------------------------------------------------------------
+;
+; OSBYTE &01
+;
+; D.2-18
+                
+osbyte01:                       ;f0ce
+                eor #$F0        ;set A=$F1
+                bra LF0D9       ;jump to standard MOS variable
+                                ;handling
+
+osbyte0C:
                 beq LF107                    ; F0D2= F0 33       p3
-LF0D4:
+osbyte0B:                                    ;f0d4
                 adc #$CF                     ; F0D4= 69 CF       iO
-LF0D6:
+osbyte04:                                    ;f0d6
                 clc                          ; F0D6= 18          .
                 adc #$E9                     ; F0D7= 69 E9       ii
 LF0D9:
                 stx $F0                      ; F0D9= 86 F0       .p
 LF0DB:
-                tay                          ; F0DB= A8          (
-                lda $0190,y                  ; F0DC= B9 90 01    9..
-                tax                          ; F0DF= AA          *
-                and $F1                      ; F0E0= 25 F1       %q
-                eor $F0                      ; F0E2= 45 F0       Ep
-                sta $0190,y                  ; F0E4= 99 90 01    ...
-                lda $0191,y                  ; F0E7= B9 91 01    9..
-                tay                          ; F0EA= A8          (
+                tay             ;
+                lda $0190,y     ;get MOS variable value
+                tax             ;save old value
+                and $F1         ;AND old value with Y
+                eor $F0         ;EOR old value with X
+                sta $0190,y     ;set new variable value
+                lda $0191,y
+                tay             ;Y=contents of next location
 LF0EB:
                 rts                          ; F0EB= 60          `
 
 LF0EC:
-                stz $7F                      ; F0EC= 64 7F       d.
-                .byte $5B                    ; F0EE= 5B          [
-                adc $7649                    ; F0EF= 6D 49 76    mIv
-                eor ($64)                    ; F0F2= 52 64       Rd
-                rti                          ; F0F4= 40          @
+                .byte $64
+                .byte $7f
+                .byte $5b
+                .byte $6d
+                .byte $49
+                .byte $76
+                .byte $52
+                .byte $64
+                .byte $40
 
-LF0F5:
+osbyte13:                       ;f0f5
                 lda $0240                    ; F0F5= AD 40 02    -@.
 LF0F8:
                 cli                          ; F0F8= 58          X
@@ -19434,7 +19537,7 @@ LF107:
                 sty $0255                    ; F116= 8C 55 02    .U.
                 rts                          ; F119= 60          `
 
-LF11A:
+osbyte12:                                    ;f11a
                 sec                          ; F11A= 38          8
                 ror $0284                    ; F11B= 6E 84 02    n..
                 lda $F4                      ; F11E= A5 F4       %t
@@ -19612,36 +19715,36 @@ LF1FA:
 
 ; OSBYTE &6x - Make temporary FS permanant
 ; ========================================
-LF20F:
-                ldx HAZEL_WORKSPACE+$01      ; Copy active FS to current FS
-                stx HAZEL_WORKSPACE+$00
+osbyte6D:;f20f
+                ldx hazel.activeFS; Copy active FS to current FS
+                stx hazel.currentFS
                 lda $0DBC                    ; Copy XFILEV ROM to current FS ROM number
-                sta HAZEL_WORKSPACE+$03
+                sta hazel.currentFSROM
                 rts
 
-LF21C:
+osbyte14:                       ;f21c
                 jsr LF384                    ; F21C= 20 84 F3     .s
                 jmp L92A4                    ; F21F= 4C A4 92    L$.
 
-LF222:
+osbyte19:                       ;f222
                 jsr LF384                    ; F222= 20 84 F3     .s
                 jmp L92A8                    ; F225= 4C A8 92    L(.
 
-; OSBYTE &26 - Increment ROM polling semaphore
+; OSBYTE &16 - Increment ROM polling semaphore
 ; ========================================
-LF228:
+osbyte16:                       ;f228
                 inc $0243                    ; F228= EE 43 02    nC.
                 rts                          ; F22B= 60          `
 
-; OSBYTE &27 - Decrement ROM polling semaphore
+; OSBYTE &17 - Decrement ROM polling semaphore
+osbyte17:                       ;f22c
 ; ========================================
-LF22C:
                 dec $0243                    ; F22C= CE 43 02    NC.
                 rts                          ; F22F= 60          `
 
 ; OSBYTE &76 - Set LEDs to keyboard state
 ; =======================================
-LF230:
+osbyte76:
                 php                          ; Disable IRQs
                 sei
                 lda #$40                     ; Turn on LEDs
@@ -19649,7 +19752,7 @@ LF230:
                 bmi LF23E                    ; Exit if Escape pending
                 clc                          ; Call KEYV to read SHIFT and CTRL
                 clv
-                jsr LF902
+                jsr callKEYV
 ; Returns A.b7=CTRL, A.b6=SHIFT, MI=CTRL, VS=SHIFT
 LF23E:
                 plp                          ; Restore IRQs
@@ -20744,7 +20847,7 @@ LF8DF:
 ;   esc       f1       f2       f3       f5       f6       f8       f9        \    right       k4       k5       k2
 LF8FF:
                 bit LE34E                    ; Set V
-LF902:
+callKEYV:                                    ;f902
                 jmp (KEYV)                  ; Jump to KEYV
 LF905:
                 ldy $0244                    ; F905= AC 44 02    ,D.
@@ -20752,16 +20855,22 @@ LF905:
 LF90A:
                 rts                          ; F90A= 60          `
 
-LF90B:
+;-------------------------------------------------------------------------
+;
+; OSBYTE $78
+;
+; D.2-33
+;
+osbyte78:                          ;f90b
                 sty $EC                      ; F90B= 84 EC       .l
                 stx $ED                      ; F90D= 86 ED       .m
                 rts                          ; F90F= 60          `
 
-LF910:
+osbyte7A:
                 ldx #$10                     ; F910= A2 10       ".
                 clv                          ; F912= B8          8
                 sec                          ; F913= 38          8
-                bra LF902                    ; F914= 80 EC       .l
+                bra callKEYV                    ; F914= 80 EC       .l
 
 LF916:
                 txa                          ; F916= 8A          .
@@ -20923,8 +21032,13 @@ LFA14:
 
 LFA15:
                 jsr LFA97                    ; FA15= 20 97 FA     .z
-LFA18:
-                jmp (ARGSV)                  ; FA18= 6C 14 02    l..
+
+;-------------------------------------------------------------------------
+;
+; Call current FS's OSARGS routine, bypassing the FileSwitch stuff.
+;
+callARGSV:                      ;fa18
+                jmp (ARGSV)
 
 ;-------------------------------------------------------------------------
 ;
@@ -21194,6 +21308,7 @@ LFB68:
 
 ; FileSwitch FSC
 ; ==============
+fscEntryPoint:
                 pha                          ; FB69= 48          H
                 jsr selectHAZEL                    ; FB6A= 20 BA ED     :m
                 lsr hazel.tempFSFlag
@@ -21234,7 +21349,7 @@ LFB81:
 ; ================
 LFB99:
                 plx                          ; FB99= FA          z
-                jsr LFBC1                    ; FB9A= 20 C1 FB     A{
+                jsr getCommandLinePointer                    ; FB9A= 20 C1 FB     A{
                 bra LFB7D                    ; FB9D= 80 DE       .^
 
 ; FSC 1 - =EOF
@@ -21259,7 +21374,7 @@ LFBAE:
 ; ===================================
 LFBB3:
                 plx
-                jsr LFBC1                    ; Skip '*'s and spaces, set command line address
+                jsr getCommandLinePointer                    ; Skip '*'s and spaces, set command line address
                 phx                          ; Continue on to pass to filing system
 
 ; FSC 5, 9, 10 - *CAT, *EX, *INFO
@@ -21270,30 +21385,53 @@ LFBB8:
                 jsr LFA6E                    ; ? Check for temporary fs ?
                 bra LFB7D                    ; Pass to filing system's FSC
 
-LFBC1:
-                stx $F2                      ; FBC1= 86 F2       .r
-                sty $F3                      ; FBC3= 84 F3       .s
+;-------------------------------------------------------------------------
+;
+; Get command line pointer.
+;
+; Entry:
+;
+; X/Y - pointer to CR-terminated command line string
+;
+; Exit:
+;
+; X/Y, (hazel.commandLinePointer) - pointer to first non-space char in
+; command line string
+getCommandLinePointer: .proc ;fbc1
+                stx stringInputBufferAddress+0
+                sty stringInputBufferAddress+1
+
+; skip spaces. Stop if terminating CR encountered.
+                
                 ldy #$FF                     ; FBC5= A0 FF        .
-LFBC7:
-                iny                          ; FBC7= C8          H
-                lda ($F2),y                  ; FBC8= B1 F2       1r
-                cmp #$0D                     ; FBCA= C9 0D       I.
-                beq LFBD2                    ; FBCC= F0 04       p.
-LFBCE:
-                cmp #$20                     ; FBCE= C9 20       I
-                bne LFBC7                    ; FBD0= D0 F5       Pu
-LFBD2:
-                jsr skipSpacesAndCheckForCRInStringInput                    ; FBD2= 20 FF F2     .r
-                tya                          ; FBD5= 98          .
-                clc                          ; FBD6= 18          .
-                adc $F2                      ; FBD7= 65 F2       er
-                sta HAZEL_WORKSPACE+$04      ; FBD9= 8D 04 DF    .._
-                lda $F3                      ; FBDC= A5 F3       %s
-                adc #$00                     ; FBDE= 69 00       i.
-                sta HAZEL_WORKSPACE+$05      ; FBE0= 8D 05 DF    .._
-                ldy $F3                      ; FBE3= A4 F3       $s
-                ldx $F2                      ; FBE5= A6 F2       &r
-                rts                          ; FBE7= 60          `
+-
+                iny
+                lda (stringInputBufferAddress),y
+                cmp #$0D
+                beq +
+                cmp #' '
+                bne -
+                
++
+
+; Hmm. Didn't we just do this bit already?
+                
+                jsr skipSpacesAndCheckForCRInStringInput
+
+; Store address of first non-space char in the HAZEL command line
+; pointer.
+                
+                tya
+                clc
+                adc stringInputBufferAddress+0
+                sta hazel.commandLinePointer+0
+                lda stringInputBufferAddress+1
+                adc #$00                     
+                sta hazel.commandLinePointer+1
+                ldy stringInputBufferAddress+1
+                ldx stringInputBufferAddress+0
+                rts                          
+                .pend
 
 ; FSC 11 - RUN from libfs
 ; =======================
@@ -21469,7 +21607,7 @@ extendedVectorEntryPoint:
                 jsr selectROMA                    ; FFA5= 20 92 E5     .e
                 pla                          ; FFA8= 68          h
                 plp                          ; FFA9= 28          (
-LFFAA:
+rts:
                 rts                          ; FFAA= 60          `
 
 LFFAB:

@@ -133,8 +133,6 @@ ROMSEL=$fe30
 VCONTROL=$fe20
 VPALETTE=$fe21
 
-HAZEL_WORKSPACE=$df00
-
 key_space=$62
 key_comma=$66
 key_minus=$17
@@ -215,50 +213,67 @@ maxHandle: .fill 1
 fsNumber: .fill 1
                 .ends
 
+osgbpbBlock: .struct
+handle: .fill 1
+addr: .fill 4
+numBytes: .fill 4
+ptr: .fill 4
+                .ends
+
+                ; NAUG p260
+                
                 .virtual $df00
 hazel: .block
-currentFS:
+currentFS:                      ;df00
                 .fill 1
-activeFS:
+activeFS:                       ;df01
                 .fill 1
-libFS:
+libFS:                          ;df02
                 .fill 1
-currentFSROM:
+currentFSROM:                   ;df03
                 .fill 1
-commandLinePointer:
+commandLinePointer:             ;df04
                 .fill 2
-fsInfoBlocks:
-                .fill 17*size(fsInfoBlock)
-fsInfoBlocksTerminator:
+
+                ; 17 info blocks in total, but everything is relative
+                ; to the 0th, so there's only a need to instantiate a
+                ; struct for that one. Don't think 64tass handles
+                ; arrays of structs anyway.
+fsInfoBlocks:   .dstruct fsInfoBlock ;df06
+                .fill 16*size(fsInfoBlock)
+fsInfoBlocksTerminator:         ;dfc1
                 ; space reserved for the 0 terminator when the full
                 ; set of info blocks are filled.
                 .fill 1
-fsFlags: .block
+fsFlags: .block                 ;dfc2
                 .fill 1
 useASCII=$80
 isAPPEND=$80
 noLineNumbers=$40
                 .bend
-lineNumberBCD:
+lineNumberBCD:                  ;dfc3
                 .fill 2
-lastCharPrinted:
+lastCharPrinted:                ;dfc5
                 .fill 1
-tempFSFlag:
+tempFSFlag:                     ;dfc6
                 .fill 1
-moveOSGBPB:
-                .fill 13
-moveSrcHandle:
+moveOSGBPB: .dstruct osgbpbBlock ;dfc7
+moveSrcHandle:                  ;dfd4
                 .fill 1
-moveDestHandle:
+moveDestHandle:                 ;dfd5
                 .fill 1
-moveBufferMSB:
+moveBufferMSB:                  ;dfd6
                 .fill 1
-moveNumPages:
+moveNumPages:                   ;dfd7
                 .fill 1
-moveDestName:
+moveDestName:                   ;dfd8
                 .fill 2
-activeFSCV:
+activeFSCV:                     ;dfda
                 .fill 2
+oldACCCON:                      ;dfdc
+                .fill 1
+hasACCCONChanged:                ;dfdd
+                .fill 1
                 .bend
                 .endv
 
@@ -477,7 +492,7 @@ L8012:
 reset:                          ;8020
                 lda #~ACCCON.D  ;display main RAM
                 trb ACCCON      
-                stz HAZEL_WORKSPACE+$DD
+                stz hazel.hasACCCONChanged
                 trb $0366
                 cld
                 ldx #$FF
@@ -528,10 +543,10 @@ clearRAM:
                              ;first iteration, and we need to go back
                              ;to do main RAM
 L8073:
-                lda #$11                     ; 8075= 8D 04 DF    .._
-                sta HAZEL_WORKSPACE+$04
-                lda #$E8                     ; 807A= 8D 05 DF    .._
-                sta HAZEL_WORKSPACE+$05
+                lda #<emptyCommandLine
+                sta hazel.commandLinePointer+0
+                lda #>emptyCommandLine
+                sta hazel.commandLinePointer+1
                 lda #ACCCON.Y|ACCCON.X ; page in MOS ROM, page in main
                                        ; RAM
                 trb ACCCON
@@ -783,8 +798,8 @@ L8282:
 
 L8284:
                 jsr selectHAZEL                    ; 8284= 20 BA ED     :m
-                stz HAZEL_WORKSPACE+$D4      ; 8287= 9C D4 DF    .T_
-                stz HAZEL_WORKSPACE+$D5      ; 828A= 9C D5 DF    .U_
+                stz hazel.moveSrcHandle
+                stz hazel.moveDestHandle
                 ldy #$CA                     ; 828D= A0 CA        J
                 jsr LEA7E                    ; 828F= 20 7E EA     ~j
                 jsr LF349                    ; 8292= 20 49 F3     Is
@@ -840,7 +855,7 @@ L82FC:
                 ldx #$21
 L82FE:
                 lda L8347-1,x                ; Copy initial FS info blocks for CFS, TAPE, ROM
-                sta HAZEL_WORKSPACE+$05,x
+                sta hazel.fsInfoBlocks-1,x
                 dex
                 bne L82FE
                 stz $F2                      ; &F2/3=>FS Info Blocks
@@ -975,7 +990,7 @@ L84FE:
 L84FF:
                 stx $F2                      ; 84FF= 86 F2       .r
                 sty $F3                      ; 8501= 84 F3       .s
-                lda HAZEL_WORKSPACE+$00      ; 8503= AD 00 DF    -._
+                lda hazel.currentFS
                 jsr selectFS                    ; 8506= 20 4D FB     M{
                 lda #$08                     ; 8509= A9 08       ).
                 jsr callFSCV                    ; 850B= 20 E5 F1     eq
@@ -989,13 +1004,13 @@ L8510:
                 beq L84FE                    ; 851C= F0 E0       p`
                 cmp #$7C                     ; 851E= C9 7C       I|
                 beq L84FE                    ; 8520= F0 DC       p\
-                stz HAZEL_WORKSPACE+$C6      ; 8522= 9C C6 DF    .F_
+                stz hazel.tempFSFlag      ; 8522= 9C C6 DF    .F_
                 cmp #$2D                     ; 8525= C9 2D       I-
                 bne L8535                    ; 8527= D0 0C       P.
                 jsr parseFileNameFS                    ; 8529= 20 A6 FA     &z
                 jsr selectFS                    ; 852C= 20 4D FB     M{
                 sec                          ; 852F= 38          8
-                ror HAZEL_WORKSPACE+$C6      ; 8530= 6E C6 DF    nF_
+                ror hazel.tempFSFlag      ; 8530= 6E C6 DF    nF_
                 lda ($F2),y                  ; 8533= B1 F2       1r
 L8535:
                 cmp #$2F                     ; 8535= C9 2F       I/
@@ -1052,7 +1067,7 @@ L8585:
                 pha                          ; 8589= 48          H
                 jsr L859B                    ; 858A= 20 9B 85     ..
                 bmi L8592                    ; 858D= 30 03       0.
-                stz HAZEL_WORKSPACE+$C6      ; 858F= 9C C6 DF    .F_
+                stz hazel.tempFSFlag      ; 858F= 9C C6 DF    .F_
 L8592:
                 jsr skipSpacesAndCheckForCRInStringInput                    ; 8592= 20 FF F2     .r
                 clc                          ; 8595= 18          .
@@ -1082,9 +1097,9 @@ L85A6:
 ; *ADFS - pass straight to ROMs/Filing System
 ; ===========================================
 L85AF:
-                bit HAZEL_WORKSPACE+$C6      ; Check filing system flag
+                bit hazel.tempFSFlag      ; Check filing system flag
                 bmi L85C0                    ; If ... skip ROM service call
-                stz HAZEL_WORKSPACE+$C6      ; Clear filing system flag
+                stz hazel.tempFSFlag      ; Clear filing system flag
                 ldy $E6
                 ldx #$04
                 jsr osbyte8F                    ; Service call 4 - Unknown command
@@ -2281,41 +2296,41 @@ L8EB1:
 
 L8EB9:
                 lda #$C0                     ; 8EB9= A9 C0       )@
-                sta HAZEL_WORKSPACE+$C2      ; 8EBB= 8D C2 DF    .B_
+                sta hazel.fsFlags      ; 8EBB= 8D C2 DF    .B_
                 bra L8ED2                    ; 8EBE= 80 12       ..
 
 L8EC0:
-                lsr HAZEL_WORKSPACE+$C2      ; 8EC0= 4E C2 DF    NB_
-                stz HAZEL_WORKSPACE+$C3      ; 8EC3= 9C C3 DF    .C_
-                stz HAZEL_WORKSPACE+$C4      ; 8EC6= 9C C4 DF    .D_
+                lsr hazel.fsFlags      ; 8EC0= 4E C2 DF    NB_
+                stz hazel.lineNumberBCD+0      ; 8EC3= 9C C3 DF    .C_
+                stz hazel.lineNumberBCD+1      ; 8EC6= 9C C4 DF    .D_
                 bra L8ECF                    ; 8EC9= 80 04       ..
 
 L8ECB:
                 sec                          ; 8ECB= 38          8
-                ror HAZEL_WORKSPACE+$C2      ; 8ECC= 6E C2 DF    nB_
+                ror hazel.fsFlags      ; 8ECC= 6E C2 DF    nB_
 L8ECF:
-                lsr HAZEL_WORKSPACE+$C2      ; 8ECF= 4E C2 DF    NB_
+                lsr hazel.fsFlags      ; 8ECF= 4E C2 DF    NB_
 L8ED2:
-                stz HAZEL_WORKSPACE+$C5      ; 8ED2= 9C C5 DF    .E_
+                stz hazel.lastCharPrinted      ; 8ED2= 9C C5 DF    .E_
                 jsr LA545                    ; 8ED5= 20 45 A5     E%
 L8ED8:
                 bit $FF                      ; 8ED8= 24 FF       $.
                 bmi L8F2E                    ; 8EDA= 30 52       0R
                 jsr OSBGET                   ; 8EDC= 20 D7 FF     W.
                 bcs L8F0F                    ; 8EDF= B0 2E       0.
-                bit HAZEL_WORKSPACE+$C2      ; 8EE1= 2C C2 DF    ,B_
+                bit hazel.fsFlags      ; 8EE1= 2C C2 DF    ,B_
                 bvs L8EEB                    ; 8EE4= 70 05       p.
                 pha                          ; 8EE6= 48          H
                 jsr L91EB                    ; 8EE7= 20 EB 91     k.
                 pla                          ; 8EEA= 68          h
 L8EEB:
-                bit HAZEL_WORKSPACE+$C2      ; 8EEB= 2C C2 DF    ,B_
+                bit hazel.fsFlags      ; 8EEB= 2C C2 DF    ,B_
                 bmi L8F04                    ; 8EEE= 30 14       0.
                 cmp #$0D                     ; 8EF0= C9 0D       I.
                 beq L8F14                    ; 8EF2= F0 20       p
                 cmp #$0A                     ; 8EF4= C9 0A       I.
                 beq L8F14                    ; 8EF6= F0 1C       p.
-                sta HAZEL_WORKSPACE+$C5      ; 8EF8= 8D C5 DF    .E_
+                sta hazel.lastCharPrinted      ; 8EF8= 8D C5 DF    .E_
                 cmp #$22                     ; 8EFB= C9 22       I"
                 beq L8F04                    ; 8EFD= F0 05       p.
                 jsr L9606                    ; 8EFF= 20 06 96     ..
@@ -2333,16 +2348,16 @@ L8F0F:
                 jmp OSFIND                   ; 8F11= 4C CE FF    LN.
 
 L8F14:
-                cmp HAZEL_WORKSPACE+$C5      ; 8F14= CD C5 DF    ME_
+                cmp hazel.lastCharPrinted      ; 8F14= CD C5 DF    ME_
                 beq L8F29                    ; 8F17= F0 10       p.
                 pha                          ; 8F19= 48          H
-                lda HAZEL_WORKSPACE+$C5      ; 8F1A= AD C5 DF    -E_
+                lda hazel.lastCharPrinted      ; 8F1A= AD C5 DF    -E_
                 cmp #$0D                     ; 8F1D= C9 0D       I.
                 beq L8F34                    ; 8F1F= F0 13       p.
                 cmp #$0A                     ; 8F21= C9 0A       I.
                 beq L8F34                    ; 8F23= F0 0F       p.
                 pla                          ; 8F25= 68          h
-                sta HAZEL_WORKSPACE+$C5      ; 8F26= 8D C5 DF    .E_
+                sta hazel.lastCharPrinted      ; 8F26= 8D C5 DF    .E_
 L8F29:
                 jsr OSNEWL                   ; 8F29= 20 E7 FF     g.
                 bra L8ED8                    ; 8F2C= 80 AA       .*
@@ -2353,7 +2368,7 @@ L8F2E:
 
 L8F34:
                 pla                          ; 8F34= 68          h
-                stz HAZEL_WORKSPACE+$C5      ; 8F35= 9C C5 DF    .E_
+                stz hazel.lastCharPrinted      ; 8F35= 9C C5 DF    .E_
                 bra L8F07                    ; 8F38= 80 CD       .M
 
 L8F3A:
@@ -2370,7 +2385,7 @@ L8F42:
                 ldx #$04                     ; 8F4B= A2 04       ".
                 jsr L92BC                    ; 8F4D= 20 BC 92     <.
                 ldy #$00                     ; 8F50= A0 00        .
-                lsr HAZEL_WORKSPACE+$C6      ; 8F52= 4E C6 DF    NF_
+                lsr hazel.tempFSFlag      ; 8F52= 4E C6 DF    NF_
                 jsr LF26D                    ; 8F55= 20 6D F2     mr
 L8F58:
                 jsr gsreadEntryPoint                    ; 8F58= 20 7F F2     .r
@@ -2391,7 +2406,7 @@ L8F66:
 L8F79:
                 ldy $F3                      ; 8F79= A4 F3       $s
                 ldx $F2                      ; 8F7B= A6 F2       &r
-                asl HAZEL_WORKSPACE+$C6      ; 8F7D= 0E C6 DF    .F_
+                asl hazel.tempFSFlag      ; 8F7D= 0E C6 DF    .F_
                 jsr LA545                    ; 8F80= 20 45 A5     E%
                 lda #$02                     ; 8F83= A9 02       ).
                 jsr L9461                    ; 8F85= 20 61 94     a.
@@ -2473,16 +2488,16 @@ L8FFB:
 ; *BUILD
 ; ======
 L900F:
-                lsr HAZEL_WORKSPACE+$C2      ; 900F= 4E C2 DF    NB_
+                lsr hazel.fsFlags      ; 900F= 4E C2 DF    NB_
                 bra L9018                    ; 9012= 80 04       ..
 L9014:
                 sec                          ; 9014= 38          8
-                ror HAZEL_WORKSPACE+$C2      ; 9015= 6E C2 DF    nB_
+                ror hazel.fsFlags      ; 9015= 6E C2 DF    nB_
 L9018:
-                stz HAZEL_WORKSPACE+$C3      ; 9018= 9C C3 DF    .C_
-                stz HAZEL_WORKSPACE+$C4      ; 901B= 9C C4 DF    .D_
+                stz hazel.lineNumberBCD+0      ; 9018= 9C C3 DF    .C_
+                stz hazel.lineNumberBCD+1      ; 901B= 9C C4 DF    .D_
                 lda #$80                     ; 901E= A9 80       ).
-                bit HAZEL_WORKSPACE+$C2      ; 9020= 2C C2 DF    ,B_
+                bit hazel.fsFlags      ; 9020= 2C C2 DF    ,B_
                 bpl L9027                    ; 9023= 10 02       ..
                 lda #$C0                     ; 9025= A9 C0       )@
 L9027:
@@ -2573,7 +2588,7 @@ L90AB:
 ; =====
 L90B6:
                 lda ACCCON                    ; Save ACCCON
-                sta HAZEL_WORKSPACE+$DC
+                sta hazel.oldACCCON
                 pha                          ; Save ACCCON and command line pointer
                 phx
                 phy
@@ -2590,25 +2605,25 @@ L90B6:
 ; Y=top of available memory in shadow memory
 L90CE:
                 lda #$30                     ; &3000=start of shadow memory
-                sta HAZEL_WORKSPACE+$D6
+                sta hazel.moveBufferMSB
                 lda #$04
                 tsb ACCCON
-                sta HAZEL_WORKSPACE+$DD      ; set 'ACCCON changed'
+                sta hazel.hasACCCONChanged      ; set 'ACCCON changed'
                 tya                          ; A=length of space in shadow memory
                 sec
-                sbc HAZEL_WORKSPACE+$D6
+                sbc hazel.moveBufferMSB
                 bra L90E9
 
 ; No shadow memory available, use Hazel
 L90E2:
                 lda #$DD                     ; Buffer at &DD00
-                sta HAZEL_WORKSPACE+$D6
+                sta hazel.moveBufferMSB
                 lda #$02                     ; Buffer length=&200
 
 ; &DFD6=high byte of buffer address
 ; A=high byte of buffer length
 L90E9:
-                sta HAZEL_WORKSPACE+$D7      ; Store buffer length
+                sta hazel.moveNumPages      ; Store buffer length
                 ply                          ; Get command line pointer
                 plx
                 phx
@@ -2616,7 +2631,7 @@ L90E9:
                 lda #$40                     ; Open source file
                 jsr OSFIND
                 tay                          ; Store source handle, jump if not found
-                sty HAZEL_WORKSPACE+$D4
+                sty hazel.moveSrcHandle
                 beq L9134
                 ply                          ; Get command line back again
                 plx
@@ -2632,22 +2647,22 @@ L9108:
                 tya                          ; Save address of dest filename
                 clc
                 adc $F2
-                sta HAZEL_WORKSPACE+$D8
+                sta hazel.moveDestName+0
                 tax
                 lda $F3
                 adc #$00
-                sta HAZEL_WORKSPACE+$D9
+                sta hazel.moveDestName+1
                 tay                          ; Temporary filing system flag
-                asl HAZEL_WORKSPACE+$C6
+                asl hazel.tempFSFlag
                 lda #$80                     ; Open destination file
                 jsr OSFIND
                 tay                          ; Store dest handle, jump if opened
-                sty HAZEL_WORKSPACE+$D5
+                sty hazel.moveDestHandle
                 bne L9137
 
 ; Couldn't open destination
-                ldy HAZEL_WORKSPACE+$D4      ; Get source handle and clear it
-                stz HAZEL_WORKSPACE+$D4
+                ldy hazel.moveSrcHandle      ; Get source handle and clear it
+                stz hazel.moveSrcHandle
                 jsr OSFIND                   ; Close source file
 L9134:
                 jmp LA54D                    ; Jump to 'Not found' error
@@ -2660,21 +2675,21 @@ L9137:
                 ldx #$07
 L9139:
                 stz $02EE,x                  ; Addr=0, Num=0
-                stz HAZEL_WORKSPACE+$C8,x
+                stz hazel.moveOSGBPB+1,x
                 dex
                 bpl L9139
-                lda HAZEL_WORKSPACE+$D4      ; Source handle
+                lda hazel.moveSrcHandle      ; Source handle
                 sta $02ED
-                lda HAZEL_WORKSPACE+$D6      ; Buffer address
+                lda hazel.moveBufferMSB      ; Buffer address
                 sta $02EF
-                sta HAZEL_WORKSPACE+$C9
-                lda HAZEL_WORKSPACE+$D7      ; Buffer length
+                sta hazel.moveOSGBPB.addr+1
+                lda hazel.moveNumPages
                 sta $02F3
-                sta HAZEL_WORKSPACE+$CD
+                sta hazel.moveOSGBPB.numBytes+1
                 dec $02F0                    ; Source addr=&FFFFxxxx
                 dec $02F1
-                dec HAZEL_WORKSPACE+$CA      ; Dest addr=&FFFFxxxx
-                dec HAZEL_WORKSPACE+$CB
+                dec hazel.moveOSGBPB.addr+2
+                dec hazel.moveOSGBPB.addr+3
 
 ; Should use &FFFExxxx and let filing system select correct memory
 ; Unfortunately, CFS/RFS and DFS do not recognise &FFFExxxx, so
@@ -2692,28 +2707,28 @@ L9139:
 ; End of file, adjust destination buffer length for final part
                 lda #$00
                 sbc $02F2
-                sta HAZEL_WORKSPACE+$CC
-                lda HAZEL_WORKSPACE+$CD
+                sta hazel.moveOSGBPB.numBytes+0
+                lda hazel.moveOSGBPB.numBytes+1
                 sbc $02F3
-                sta HAZEL_WORKSPACE+$CD
+                sta hazel.moveOSGBPB.numBytes+1
 L9183:
-                lda HAZEL_WORKSPACE+$D5      ; Destination handle
-                sta HAZEL_WORKSPACE+$C7
+                lda hazel.moveDestHandle      ; Destination handle
+                sta hazel.moveOSGBPB.handle
                 lda #$02                     ; XY=>control block, A=write
-                ldx #$C7
-                ldy #$DF                     ; Write data
+                ldx #<hazel.moveOSGBPB
+                ldy #>hazel.moveOSGBPB
                 jsr OSGBPB
                 plp                          ; Loop until end of file
                 bcc L9137
                 lda #$00
-                ldy HAZEL_WORKSPACE+$D4      ; Get and clear source handle
-                stz HAZEL_WORKSPACE+$D4
+                ldy hazel.moveSrcHandle      ; Get and clear source handle
+                stz hazel.moveSrcHandle
                 phy                          ; Close source file
                 jsr OSFIND
                 lda #$00                     ; Get dest handle
-                ldy HAZEL_WORKSPACE+$D5
+                ldy hazel.moveDestHandle
                 phy                          ; Clear dest handle and close file
-                stz HAZEL_WORKSPACE+$D5
+                stz hazel.moveDestHandle
                 jsr OSFIND
                 ply                          ; Dest not CFS/RFS, jump to...
                 cpy #$04
@@ -2724,7 +2739,7 @@ L91B3:
                 plx
 L91B5:
                 pla                          ; Clear 'ACCCON changed', restore ACCCON
-                stz HAZEL_WORKSPACE+$DD
+                stz hazel.hasACCCONChanged
                 sta ACCCON
                 rts
 
@@ -2740,9 +2755,9 @@ L91BD:
                 ldy #$02
                 lda #$05                     ; Read info on source file
                 jsr OSFILE
-                lda HAZEL_WORKSPACE+$D8      ; Get address of dest filename
+                lda hazel.moveDestName+0      ; Get address of dest filename
                 sta $02ED
-                lda HAZEL_WORKSPACE+$D9      ;  and put in control block
+                lda hazel.moveDestName+1      ;  and put in control block
                 sta $02EE
                 lda #$F0                     ; Mask out 'public' access bits
                 trb $02FB
@@ -2758,9 +2773,9 @@ L91EB:
                 jsr L922E                    ; 91F2= 20 2E 92     ..
 L91F5:
                 sec                          ; 91F5= 38          8
-                lda HAZEL_WORKSPACE+$C4      ; 91F6= AD C4 DF    -D_
+                lda hazel.lineNumberBCD+1      ; 91F6= AD C4 DF    -D_
                 jsr L9211                    ; 91F9= 20 11 92     ..
-                lda HAZEL_WORKSPACE+$C3      ; 91FC= AD C3 DF    -C_
+                lda hazel.lineNumberBCD+0      ; 91FC= AD C3 DF    -C_
                 pha                          ; 91FF= 48          H
                 php                          ; 9200= 08          .
                 lsr a                        ; 9201= 4A          J
@@ -2801,8 +2816,8 @@ L9229:
 L922E:
                 lda #$00                     ; 922E= A9 00       ).
                 sed                          ; 9230= F8          x
-                adc HAZEL_WORKSPACE+$C3,x    ; 9231= 7D C3 DF    }C_
-                sta HAZEL_WORKSPACE+$C3,x    ; 9234= 9D C3 DF    .C_
+                adc hazel.lineNumberBCD,x    ; 9231= 7D C3 DF    }C_
+                sta hazel.lineNumberBCD,x    ; 9234= 9D C3 DF    .C_
                 cld                          ; 9237= D8          X
 L9238:
                 rts                          ; 9238= 60          `
@@ -2965,7 +2980,7 @@ L9310:
 L9316:
                 lda #$FF                     ; 9316= A9 FF       ).
 L9318:
-                lsr HAZEL_WORKSPACE+$C6      ; 9318= 4E C6 DF    NF_
+                lsr hazel.tempFSFlag      ; 9318= 4E C6 DF    NF_
 L931B:
                 stx $F2                      ; 931B= 86 F2       .r
                 sty $F3                      ; 931D= 84 F3       .s
@@ -3002,7 +3017,7 @@ L9361:
                 bne L93E2                    ; 9361= D0 7F       P.
                 inc $02F3                    ; 9363= EE F3 02    ns.
 L9366:
-                asl HAZEL_WORKSPACE+$C6      ; 9366= 0E C6 DF    .F_
+                asl hazel.tempFSFlag      ; 9366= 0E C6 DF    .F_
 L9369:
                 ldx #$ED                     ; 9369= A2 ED       "m
                 ldy #$02                     ; 936B= A0 02        .
@@ -3086,7 +3101,7 @@ L93E5:
                 txa                          ; 93EA= 8A          .
 L93EB:
                 php                          ; 93EB= 08          .
-                lsr HAZEL_WORKSPACE+$C6      ; 93EC= 4E C6 DF    NF_
+                lsr hazel.tempFSFlag      ; 93EC= 4E C6 DF    NF_
                 plp                          ; 93EF= 28          (
                 pha                          ; 93F0= 48          H
                 stz $E5                      ; 93F1= 64 E5       de
@@ -3107,7 +3122,7 @@ L9412:
                 ldy $E4                      ; 9412= A4 E4       $d
                 ldx $E5                      ; 9414= A6 E5       &e
                 pla                          ; 9416= 68          h
-                asl HAZEL_WORKSPACE+$C6      ; 9417= 0E C6 DF    .F_
+                asl hazel.tempFSFlag      ; 9417= 0E C6 DF    .F_
                 jsr OSBYTE                   ; 941A= 20 F4 FF     t.
                 bvs L93E2                    ; 941D= 70 C3       pC
 L941F:
@@ -3132,7 +3147,7 @@ L9433:
                 beq L9440                    ; 943B= F0 03       p.
                 jsr OSFIND                   ; 943D= 20 CE FF     N.
 L9440:
-                lsr HAZEL_WORKSPACE+$C6      ; 9440= 4E C6 DF    NF_
+                lsr hazel.tempFSFlag      ; 9440= 4E C6 DF    NF_
                 ply                          ; 9443= 7A          z
                 plp                          ; 9444= 28          (
                 beq L941F                    ; 9445= F0 D8       pX
@@ -3140,7 +3155,7 @@ L9440:
                 bcc L944D                    ; 9449= 90 02       ..
                 lda #$C0                     ; 944B= A9 C0       )@
 L944D:
-                asl HAZEL_WORKSPACE+$C6      ; 944D= 0E C6 DF    .F_
+                asl hazel.tempFSFlag      ; 944D= 0E C6 DF    .F_
                 jsr OSFIND                   ; 9450= 20 CE FF     N.
                 tay                          ; 9453= A8          (
                 beq L93E2                    ; 9454= F0 8C       p.
@@ -4576,21 +4591,21 @@ L9DE3:
 L9DEA:
                 cmp #$06                     ; Not ErrorOccured
                 bne L9E17
-                lda HAZEL_WORKSPACE+$DD      ; Skip if ACCCON not changed
+                lda hazel.hasACCCONChanged ; Skip if ACCCON not changed
                 beq L9DFC
-                stz HAZEL_WORKSPACE+$DD      ; Clear ACCCON changed flag
-                lda HAZEL_WORKSPACE+$DC      ; Restore ACCCON
+                stz hazel.hasACCCONChanged ; Clear ACCCON changed flag
+                lda hazel.oldACCCON        ; Restore ACCCON
                 sta ACCCON
 L9DFC:
                 phy                          ; 9DFC= 5A          Z
-                ldy HAZEL_WORKSPACE+$D4      ; 9DFD= AC D4 DF    ,T_
+                ldy hazel.moveSrcHandle
                 beq L9E08                    ; 9E00= F0 06       p.
-                stz HAZEL_WORKSPACE+$D4      ; 9E02= 9C D4 DF    .T_
+                stz hazel.moveSrcHandle
                 jsr L8F0F                    ; 9E05= 20 0F 8F     ..
 L9E08:
-                ldy HAZEL_WORKSPACE+$D5      ; 9E08= AC D5 DF    ,U_
+                ldy hazel.moveDestHandle
                 beq L9E13                    ; 9E0B= F0 06       p.
-                stz HAZEL_WORKSPACE+$D5      ; 9E0D= 9C D5 DF    .U_
+                stz hazel.moveDestHandle
                 jsr L8F0F                    ; 9E10= 20 0F 8F     ..
 L9E13:
                 ply                          ; 9E13= 7A          z
@@ -5861,11 +5876,11 @@ LA591:
                 beq LA59E                    ; A599= F0 03       p.
                 jsr OSFIND                   ; A59B= 20 CE FF     N.
 LA59E:
-                lsr HAZEL_WORKSPACE+$C6      ; A59E= 4E C6 DF    NF_
+                lsr hazel.tempFSFlag      ; A59E= 4E C6 DF    NF_
                 ply                          ; A5A1= 7A          z
                 plp                          ; A5A2= 28          (
                 beq LA5AE                    ; A5A3= F0 09       p.
-                asl HAZEL_WORKSPACE+$C6      ; A5A5= 0E C6 DF    .F_
+                asl hazel.tempFSFlag      ; A5A5= 0E C6 DF    .F_
                 jsr LA545                    ; A5A8= 20 45 A5     E%
                 sta $0256                    ; A5AB= 8D 56 02    .V.
 LA5AE:
@@ -17258,11 +17273,11 @@ LE40E:
                 jsr OSFIND
 LE424:
                 sec                          ;
-                ror HAZEL_WORKSPACE+$00
+                ror hazel.currentFS
                 lda $028D                    ; Soft Break
                 beq LE431
                 sec                          ;
-                ror HAZEL_WORKSPACE+$02
+                ror hazel.libFS
 LE431:
                 jsr LEE64                    ; Set default ROMFS/TAPEFS settings
                 jsr osbyte76                    ; Test Shift and Ctrl keys
@@ -17273,7 +17288,7 @@ LE431:
                 eor $028F                    ; Toggle with OSBYTE 255 boot status
                 and #$08
                 tay
-                ldx HAZEL_WORKSPACE+$03      ; Get current filing system
+                ldx hazel.currentFSROM
                 lda $028D                    ; Soft Break, use current filing system
                 beq LE454
                 jsr selectTerminalROM                    ; E449= 20 90 E5     .e
@@ -17323,7 +17338,7 @@ LE496:
                 inc $0267                    ; E496= EE 67 02    ng.
 LE499:
                 sec                          ; E499= 38          8
-                ror HAZEL_WORKSPACE+$00      ; E49A= 6E 00 DF    n._
+                ror hazel.currentFS
                 lda #$00                     ; E49D= A9 00       ).
                 tax                          ; E49F= AA          *
                 jsr LEDC2                    ; E4A0= 20 C2 ED     Bm
@@ -17849,8 +17864,8 @@ LE7F3:
                 rts                          ; E7F5= 60          `
 
 LE7F6:
-                lda HAZEL_WORKSPACE+$01      ; E7F6= AD 01 DF    -._
-                sta HAZEL_WORKSPACE+$02      ; E7F9= 8D 02 DF    .._
+                lda hazel.activeFS
+                sta hazel.libFS
                 rts                          ; E7FC= 60          `
 
 LE7FD:
@@ -17868,6 +17883,8 @@ LE802:
 LE80B:
                 lda ($F2),y                  ; E80B= B1 F2       1r
                 sta LDC00,y                  ; E80D= 99 00 DC    ..\
+emptyCommandLine=*+1                         ;arbitrary place that's
+                                             ;just a 13 byte...
                 cmp #$0D                     ; E810= C9 0D       I.
                 beq LE818                    ; E812= F0 04       p.
                 iny                          ; E814= C8          H
@@ -18918,10 +18935,10 @@ osbyte8C8D:; LED9A:
                 lda ACCCON                    ; Save ACCON register
                 pha
                 jsr selectHAZEL         ; Page Hazel workspace in
-                ldx HAZEL_WORKSPACE+$01      ;
-                stx HAZEL_WORKSPACE+$00
+                ldx hazel.activeFS
+                stx hazel.currentFS
                 lda #$0F                     ; Set FS ROM = 15
-                sta HAZEL_WORKSPACE+$03
+                sta hazel.currentFSROM
                 pla                          ; Restore ACCON
 selectMOSOrHAZEL:                                       ;edb0
                 and #ACCCON.Y   ;get just the HAZEL/MOS bit
@@ -21106,7 +21123,7 @@ LF9D7:
                 phx                          ; F9D8= DA          Z
                 pha                          ; F9D9= 48          H
                 jsr selectHAZEL                    ; F9DA= 20 BA ED     :m
-                lda HAZEL_WORKSPACE+$00      ; F9DD= AD 00 DF    -._
+                lda hazel.currentFS
                 jsr selectFS                    ; F9E0= 20 4D FB     M{
                 pla                          ; F9E3= 68          h
                 plx                          ; F9E4= FA          z
@@ -21123,7 +21140,7 @@ osargsEntryPoint:
                 jsr selectHAZEL                    ; Page in Hazel
                 pla                          ; F9F3= 68          h
                 bne LF9FA                    ; Jump with A<>0
-                lda HAZEL_WORKSPACE+$00      ; OSARGS 0,0 - Read filing system number
+                lda hazel.currentFS      ; OSARGS 0,0 - Read filing system number
                 rts
 
 LF9FA:
@@ -21132,16 +21149,16 @@ LF9FA:
                 dec a                        ; OSARGS 1,0 - Read command line address
                 sta $02,x                    ; F9FE= 95 02       ..
                 sta $03,x                    ; FA00= 95 03       ..
-                lda HAZEL_WORKSPACE+$04      ; FA02= AD 04 DF    -._
+                lda hazel.commandLinePointer+0
                 sta $00,x                    ; FA05= 95 00       ..
-                lda HAZEL_WORKSPACE+$05      ; FA07= AD 05 DF    -._
+                lda hazel.commandLinePointer+1
                 sta $01,x                    ; FA0A= 95 01       ..
                 rts                          ; FA0C= 60          `
 
 LFA0D:
                 cmp #$01                     ; FA0D= C9 01       I.
                 beq LFA14                    ; OSARGS 2,0 - Read OldNFS flag
-                lda HAZEL_WORKSPACE+$02      ; OSARGS 3,0 - Read libfs filing system number
+                lda hazel.libFS      ; OSARGS 3,0 - Read libfs filing system number
 LFA14:
                 rts                          ; FA14= 60          `
 
@@ -21361,11 +21378,11 @@ LFB23:
                 tya                          ; FB25= 98          .
                 ldy #$00                     ; FB26= A0 00        .
 LFB28:
-                ldx HAZEL_WORKSPACE+$06,y    ; FB28= BE 06 DF    >._
+                ldx hazel.fsInfoBlocks,y
                 beq LFB42                    ; FB2B= F0 15       p.
-                cmp HAZEL_WORKSPACE+$0E,y    ; FB2D= D9 0E DF    Y._
+                cmp hazel.fsInfoBlocks.minHandle,y
                 bcc LFB39                    ; FB30= 90 07       ..
-                cmp HAZEL_WORKSPACE+$0F,y    ; FB32= D9 0F DF    Y._
+                cmp hazel.fsInfoBlocks.maxHandle,y
                 bcc LFB47                    ; FB35= 90 10       ..
                 beq LFB47                    ; FB37= F0 0E       p.
 LFB39:
@@ -21378,11 +21395,11 @@ LFB39:
                 bra LFB28                    ; FB40= 80 E6       .f
 
 LFB42:
-                ldx HAZEL_WORKSPACE+$00      ; FB42= AE 00 DF    .._
+                ldx hazel.currentFS
                 bra LFB4A                    ; FB45= 80 03       ..
 
 LFB47:
-                ldx HAZEL_WORKSPACE+$10,y    ; FB47= BE 10 DF    >._
+                ldx hazel.fsInfoBlocks.fsNumber,y
 LFB4A:
                 ply                          ; FB4A= 7A          z
                 pla                          ; FB4B= 68          h
@@ -21442,7 +21459,7 @@ LFB7C:
                 plx                          ; FB7C= FA          z
 LFB7D:
                 pla                          ; FB7D= 68          h
-                jmp (HAZEL_WORKSPACE+$DA)    ; FB7E= 6C DA DF    lZ_
+                jmp (hazel.activeFSCV)    ; FB7E= 6C DA DF    lZ_
 
 ; FileSwitch FSC table
 ; --------------------
@@ -21478,9 +21495,9 @@ LFB9F:
 ; FSC 0 - *OPT
 ; ============
 LFBA6:
-                bit HAZEL_WORKSPACE+$C6      ; Check temporary fs flag
+                bit hazel.tempFSFlag      ; Check temporary fs flag
                 bvs LFB7C                    ; Pass to current filing system
-                lda HAZEL_WORKSPACE+$00      ; Get current filing system number
+                lda hazel.currentFS      ; Get current filing system number
 LFBAE:
                 jsr selectFS                    ; Select filing system
                 bra LFB7C                    ; Pass to filing system
@@ -21496,7 +21513,7 @@ LFBB3:
 ; ===============================
 LFBB8:
                 plx
-                asl HAZEL_WORKSPACE+$C6      ;
+                asl hazel.tempFSFlag      ;
                 jsr LFA6E                    ; ? Check for temporary fs ?
                 bra LFB7D                    ; Pass to filing system's FSC
 
@@ -21551,7 +21568,7 @@ getCommandLinePointer: .proc ;fbc1
 ; FSC 11 - RUN from libfs
 ; =======================
 LFBE8:
-                lda HAZEL_WORKSPACE+$02      ; Is a libfs set?
+                lda hazel.libFS      ; Is a libfs set?
                 bpl LFBAE                    ; Yes, jump to run from libfs
 LFBED:
                 brk

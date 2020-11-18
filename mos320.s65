@@ -120,6 +120,8 @@ CNPV=vectors+cnpvIndex*2
 IND1V=vectors+ind1vIndex*2
 IND2V=vectors+ind2vIndex*2
 IND3V=vectors+ind3vIndex*2
+
+serialRegisterULACopy=$0282
                 
 CRTC=$FE00
 ACIA=$fe08
@@ -717,7 +719,7 @@ L81DD:
                 stx $ED                      ; 81E8= 86 ED       .m
                 ldx #$00                     ; 81EA= A2 00       ".
                 jsr LE97D                    ; 81EC= 20 7D E9     }i
-                lda $0282                    ; 81EF= AD 82 02    -..
+                lda serialRegisterULACopy                    ; 81EF= AD 82 02    -..
                 and #$7F                     ; 81F2= 29 7F       ).
                 jsr LEC89                    ; 81F4= 20 89 EC     .l
                 jsr L8E84                    ; 81F7= 20 84 8E     ..
@@ -6525,7 +6527,7 @@ LA9C5:
 LA9CA:
                 php                          ; A9CA= 08          .
                 sei                          ; A9CB= 78          x
-                lda $0282                    ; A9CC= AD 82 02    -..
+                lda serialRegisterULACopy                    ; A9CC= AD 82 02    -..
                 sta SERPROC+0                    ; A9CF= 8D 10 FE    ..~
                 stz $EA                      ; A9D2= 64 EA       dj
                 bra LA9D7                    ; A9D4= 80 01       ..
@@ -17024,7 +17026,7 @@ defaultVectorTable: .block
                 .word LE60C ; IRQ2V=$206
                 .word LE802 ; CLIV=$208
                 .word osbyteEntryPoint ; BYTEV=$20a
-                .word LEF39 ; WORDV=$20c
+                .word oswordEntryPoint ; WORDV=$20c
                 .word oswrchEntryPoint ; WRCHV=$20e
                 .word osrdchEntryPoint ; RDCHV=$210
 fsVectors: .block
@@ -18486,7 +18488,7 @@ LEB63:
 ; TODO structure probably the same as
 ; https://tobylobster.github.io/mos/mos/S-s15.html#SP1...
                 
-LEB69:
+osbyteAndOSWORDRoutineTable:
                 .word osbyte00 ;Display MOS version D.2-18
                 .word osbyte01 ;Write user flag D.2-18
                 .word osbyte02 ;Specify input stream D.2-18
@@ -18572,8 +18574,9 @@ LEB69:
                 .word osbyteUnused ;reserved for applications software
                 .word osbyteA4     ;Check processor type
                 .word osbyteA5     ;Read output cursor position
-                .word osbyteA6  ;Read start address of MOS variables
+                .word osbyteA6  ;handle osbyte A6-FF
                 .word callUSERV ;*LINE - not part of the above table???
+oswordRoutineTable:
                 .word osword00  ;Read line from input stream to memory
                 .word osword01  ;Read system clock
                 .word osword02  ;Write system clock
@@ -18619,31 +18622,79 @@ osbyte7D: ;EC57
                 jmp $0403                    ; EC5E= 4C 03 04    L..
 
 osbyte89:
-                lda $0282                    ; EC61= AD 82 02    -..
+                lda serialRegisterULACopy                    ; EC61= AD 82 02    -..
                 tay                          ; EC64= A8          (
                 rol a                        ; EC65= 2A          *
                 cpx #$01                     ; EC66= E0 01       `.
                 ror a                        ; EC68= 6A          j
                 bra LEC89                    ; EC69= 80 1E       ..
 
+;-------------------------------------------------------------------------
+;
+; ;OSBYTE 8 (&08) Write RS423 transmit rate
+;
+; This call sets the RS423 baud rate for transmitting data. The actual format of
+; the data is set using OSBYTE 156/&9C (see below).
+;
+; Entry parameters :
+; X=0 selects 9600 baud
+; X=1 selects 75 baud
+; X=2 selects 150 baud
+; X=3 selects 300 baud
+; X=4 selects 1200 baud
+; X=5 selects 2400 baud
+; X=6 selects 4800 baud
+; X=7 selects 9600 baud
+; X=8 selects 19200 baud
+; Y=0
+;                 
+; On exit : X=Y=<old serial ACIA control register contents>
+
 osbyte08:
-                lda #$38                     ; EC6B= A9 38       )8
+                lda #$38
+                ; fall through to OSBYTE &07
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 7 (&07) Write RS423 receive rate
+;
+; This call sets the RS423 baud rate for receiving data. The actual
+; format of the data is set using OSBYTE 156/&9C (see below).
+;
+; Entry parameters :
+; X=0 selects 9600 baud
+; X=1 selects 75 baud
+; X=2 selects 150 baud
+; X=3 selects 300 baud
+; X=4 selects 1200 baud
+; X=5 selects 2400 baud
+; X=6 selects 4800 baud
+; X=7 selects 9600 baud
+; X=8 selects 19200 baud
+; Y=0
+;                 
+; On exit : X=Y=<old serial ACIA control register contents>
+
 osbyte07:                                    ;ec6d
-                eor #$3F                     ; EC6D= 49 3F       I?
-                sta $FA                      ; EC6F= 85 FA       .z
-                ldy $0282                    ; EC71= AC 82 02    ,..
-                cpx #$09                     ; EC74= E0 09       `.
-                bcs LEC8F                    ; EC76= B0 17       0.
-                and LF0EC,x                  ; EC78= 3D EC F0    =lp
-                sta $FB                      ; EC7B= 85 FB       .{
-                tya                          ; EC7D= 98          .
+                eor #$3F                     ;if OSBYTE 8,
+                                             ;A=%00000111, mask for
+                                             ;transmit rate; if OSBYTE
+                                             ;8, A=%000111000, mask
+                                             ;for receive rate.
+                sta $FA                      ;save mask
+                ldy serialRegisterULACopy                    ;
+                cpx #$09                     ;check for invalid baud rate
+                bcs LEC8F                    ;branch taken if invalid
+                and serialBaudRatesTable,x   ;get setting in A
+                sta $FB                      ;store setting
+                tya                          ;
                 ora $FA                      ; EC7E= 05 FA       .z
                 eor $FA                      ; EC80= 45 FA       Ez
                 ora $FB                      ; EC82= 05 FB       .{
                 ora #$40                     ; EC84= 09 40       .@
-                eor $025D                    ; EC86= 4D 5D 02    M].
+                eor $025D                    ;mask in tape/serial flag set by OSBYTE 205ac
 LEC89:
-                sta $0282                    ; EC89= 8D 82 02    ...
+                sta serialRegisterULACopy                    ; EC89= 8D 82 02    ...
                 sta SERPROC+0                    ; EC8C= 8D 10 FE    ..~
 LEC8F:
                 tya                          ; EC8F= 98          .
@@ -19091,26 +19142,25 @@ osbyteEntryPoint:
                 sty $F1                      ; EEB8= 84 F1       .q
                 ldx #romServiceCallUnrecognisedOSBYTE
                 cmp #$6B                     
-                bcc LEF00       ;branch taken if OSBYTE <$6B
+                bcc osbyte00To6A
                 cmp #$A6
-                bcc LEECD       ;branch taken if OSBYTE $6B-$A5
+                bcc osbyte6BToA5
                 cmp #$A6
                 bcc LEF0C       ;??? - wait... didn't we just do this?
 
-; OSBYTEs $a6-$ff
-                
-                clc                          ; EEC8= 18          .
-LEEC9:
-                lda #$A6                     ; EEC9= A9 A6       )&
-                adc #$00                     ; EECB= 69 00       i.
-LEECD:
-                sbc #$50        ;make range $1b-$56
-LEECF:
-                asl a                        ; EECF= 0A          .
-                sec                          ; EED0= 38          8
-LEED1:
-                sty $F1                      ; EED1= 84 F1       .q
-                tay                          ; EED3= A8          (
+osbyteA6ToFF:
+                clc
+osbyteOrUSERV:      ;call OSBYTE A6+ routine if C=0; call USERV if C=1
+                lda #$A6
+                adc #$00
+osbyte6BToA5:
+                sbc #$50        ;map $6b-$a5 to $1b-$56
+osbyteUseTable:
+                asl a           ;table is of words
+                sec
+callOSBYTEOrOSWORDFromTable:
+                sty $F1         ;save Y (possibly again?)
+                tay             ;get table offset in Y
                 bit $025E                    ; EED4= 2C 5E 02    ,^.
                 bpl LEEE0                    ; EED7= 10 07       ..
                 txa                          ; EED9= 8A          .
@@ -19118,9 +19168,9 @@ LEED1:
                 jsr LEB04                    ; EEDB= 20 04 EB     .k
                 bvs LEEFA                    ; EEDE= 70 1A       p.
 LEEE0:
-                lda LEB69+1,y                ; EEE0= B9 6A EB    9jk
-                sta $FB                      ; EEE3= 85 FB       .{
-                lda LEB69,y                  ; EEE5= B9 69 EB    9ik
+                lda osbyteAndOSWORDRoutineTable+1,y
+                sta $FB
+                lda osbyteAndOSWORDRoutineTable,y
                 sta $FA                      ; EEE8= 85 FA       .z
                 lda $EF                      ; EEEA= A5 EF       %o
                 ldy $F1                      ; EEEC= A4 F1       $q
@@ -19130,7 +19180,10 @@ LEEE0:
 LEEF4:
                 sec                          ; EEF4= 38          8
                 ldx $F0                      ; EEF5= A6 F0       &p
-                jsr LF8DF                    ; EEF7= 20 DF F8     _x
+
+; on entry to the OSBYTE handlers, C=1, N/Z set as per X.
+                
+                jsr call00FA                    ; EEF7= 20 DF F8     _x
 LEEFA:
                 ror a                        ; EEFA= 6A          j
                 plp                          ; EEFB= 28          (
@@ -19139,10 +19192,10 @@ LEEFA:
                 clv                          ; EEFE= B8          8
                 rts                          ; EEFF= 60          `
 
-LEF00:
+osbyte00To6A:
                 ldy #$00        ;Y=0 on entry for this lot
-                cmp #$1A        ;OSBYTEs $1a-$43 are unused
-                bcc LEECF       ;taken if OSBYTE $00-$19
+                cmp #$1A        ;OSBYTE <=$19 is table-driven
+                bcc osbyteUseTable ;taken if OSBYTE $00-$19
                 bra LEF0C       
 
 LEF08:
@@ -19173,28 +19226,39 @@ LEF1B:
                 and $BB                      ; EF2C= 25 BB       %;
 LEF2E:
                 rts                          ; EF2E= 60          `
-
+                
 osword0E:                       ;ef2f
                 cmp #$03                     ; EF2F= C9 03       I.
                 bcs LEF08                    ; EF31= B0 D5       0U
                 jsr LF384                    ; EF33= 20 84 F3     .s
                 jmp L97B4                    ; EF36= 4C B4 97    L4.
 
-LEF39:
-                pha                          ; EF39= 48          H
-                php                          ; EF3A= 08          .
-                sei                          ; EF3B= 78          x
+;-------------------------------------------------------------------------
+;
+; Entry point for OSWORD.
+;
+; D.3-3
+; 
+oswordEntryPoint:
+                pha             ;save OSWORD request
+                php
+                sei
                 sta $EF                      ; EF3C= 85 EF       .o
                 stx $F0                      ; EF3E= 86 F0       .p
                 sty $F1                      ; EF40= 84 F1       .q
-                ldx #$08                     ; EF42= A2 08       ".
-                cmp #$E0                     ; EF44= C9 E0       I`
-                bcs LEEC9                    ; EF46= B0 81       0.
-                cmp #$10                     ; EF48= C9 10       I.
-                bcs LEF0C                    ; EF4A= B0 C0       0@
-                adc #$57                     ; EF4C= 69 57       iW
-                asl a                        ; EF4E= 0A          .
-                bra LEED1                    ; EF4F= 80 80       ..
+                ldx #romServiceCallUnrecognisedOSWORD
+                cmp #$E0
+                bcs osbyteOrUSERV ;taken if OSWORD $E0 or higher -
+                                  ;these go via USERV
+                cmp #$10
+                bcs LEF0C       ;taken if unknown OSWORD
+
+; adjust request number so it's a suitable index into the
+; OSBYTE/OSWORD routine table.
+                
+                adc #(oswordRoutineTable-osbyteAndOSWORDRoutineTable)/2
+                asl a
+                bra callOSBYTEOrOSWORDFromTable
 
 osword05:                       ;ef51
                 jsr LEF63                    ; EF51= 20 63 EF     co
@@ -19216,19 +19280,30 @@ LEF63:
                 lda ($F0),y                  ; EF66= B1 F0       1p
                 sta $FB                      ; EF68= 85 FB       .{
                 ldy #$04                     ; EF6A= A0 04        .
-LEF6C:
+ldx03ThenRTS:
                 ldx #$03                     ; EF6C= A2 03       ".
                 rts                          ; EF6E= 60          `
-
+                
 ;-------------------------------------------------------------------------
 ; 
-; OSBYTE &00
+; OSBYTE 0 (&00) Display MOS version
+;
+; OSBYTE 0 has the effect of performing a BRK instruction and
+; displaying the MOS version number.
+;
+; Entry parameters :
+;
+; X=0 executes a BRK and displays the OS version
+;
+; X=1 executes an RTS and returns the Operating system version
+;
+; On exit : X=<OS version>
 ;
 ; D.2-18
-l
+;
 osbyte00:                       ;ef6f
-                bne LEF6C       ;branch taken if A<>0 - return with
-                                ;X=3
+                bne ldx03ThenRTS ;branch taken if X<>0 - return with
+                                 ;X=3
 
 ; do a BRK and print MOS version number.
                 
@@ -19476,7 +19551,20 @@ LF0CC:
 
 ;-------------------------------------------------------------------------
 ;
-; OSBYTE &01
+; OSBYTE 1 (&01) Write user flag
+;
+; This call provides a means of writing data to the user flag
+; (location &281). The flag is zero by default
+;
+; Entry parameters:
+;
+; X=<new value>
+; Y=0
+;
+; On exit : X=<old value>
+;
+; Note: This call uses OSBYTE 241/&F1 and is left free for user
+; applications.
 ;
 ; D.2-18
                 
@@ -19506,16 +19594,36 @@ osbyteA6:
 LF0EB:
                 rts                          ; F0EB= 60          `
 
-LF0EC:
-                .byte $64
-                .byte $7f
-                .byte $5b
-                .byte $6d
-                .byte $49
-                .byte $76
-                .byte $52
-                .byte $64
-                .byte $40
+;-------------------------------------------------------------------------
+;
+; This table is used to set the serial baud rate.
+;
+;   - bit 7 is not used (always clear)
+;   - bit 6 is not used (always set)
+;   - bits 3,4,5 indicate the serial receive baud rate
+;   - bits 0,1,2 indicate the serial transmit baud rate
+;
+;       111 =    75 baud
+;       011 =   150 baud
+;       101 =   300 baud
+;       001 =  1200 baud
+;       110 =  2400 baud
+;       010 =  4800 baud
+;       100 =  9600 baud
+;       000 = 19200 baud
+;
+; ***************************************************************************************
+                
+serialBaudRatesTable:
+                .byte %01100100;$64
+                .byte %01111111;$7f
+                .byte %01011011;$5b
+                .byte %01101101;$6d
+                .byte %01001001;$49
+                .byte %01110110;$76
+                .byte %01010010;$52
+                .byte %01100100;$64
+                .byte %01000000;$40
 
 osbyte13:                       ;f0f5
                 lda $0240                    ; F0F5= AD 40 02    -@.
@@ -20826,7 +20934,7 @@ LF8CF:
                 .byte $AA
                 .byte $AC
 ; shlk       scghnl;]       del       k#       k*       k,
-LF8DF:
+call00FA:
                 jmp ($00FA)
                 .byte 0
                 .text "z vbm,./"

@@ -4546,9 +4546,9 @@ L9D7C:
                 jmp L9D7C                    ; 9D89= 4C 7C 9D    L|.
 
 L9D8C:
-                lda #<LADE0                     ; 9D8C= A9 7B       ){
+                lda #<tubeHost.LADE0                     ; 9D8C= A9 7B       ){
                 sta EVENTV+0                    ; 9D8E= 8D 20 02    . .
-                lda #>LADE0                     ; 9D91= A9 06       ).
+                lda #>tubeHost.LADE0                     ; 9D91= A9 06       ).
                 sta EVENTV+1                    ; 9D93= 8D 21 02    .!.
                 lda #<tubeBrkHandlerAddr        ; 9D96= A9 16       ).
                 sta BRKV+0                    ; 9D98= 8D 02 02    ...
@@ -4558,18 +4558,18 @@ L9D8C:
                 sta TUBE+0                   ; 9DA2= 8D E0 FE    .`~
                 ldy #$00                     ; 9DA5= A0 00        .
 L9DA7:
-                lda tubeHostCodePage0,y                  ; 9DA7= B9 6E AB    9n+
+                lda tubeHost.codePage0,y                  ; 9DA7= B9 6E AB    9n+
                 sta tubeHostAddr+0*256,y
-                lda tubeHostCodePages12,y                  ; 9DAD= B9 65 AC    9e,
+                lda tubeHost.codePages12,y                  ; 9DAD= B9 65 AC    9e,
                 sta tubeHostAddr+1*256,y
-                lda tubeHostCodePages12+256,y                  ; 9DB3= B9 65 AD    9e-
+                lda tubeHost.codePages12+256,y                  ; 9DB3= B9 65 AD    9e-
                 sta tubeHostAddr+2*256,y
                 dey                          ; 9DB9= 88          .
                 bne L9DA7                    ; 9DBA= D0 EB       Pk
-                jsr LAB8D                    ; 9DBC= 20 1F 04     ..
-                ldx #tubeBrkHandler.size
+                jsr tubeHost.LAB8D                    ; 9DBC= 20 1F 04     ..
+                ldx #tubeHost.brkHandler.size
 L9DC1:
-                lda tubeBrkHandler,x                  ; 9DC1= BD 2D AB    =-+
+                lda tubeHost.brkHandler,x                  ; 9DC1= BD 2D AB    =-+
                 sta @wtubeBrkHandlerAddr,x                  ; 9DC4= 9D 16 00    ...
                 dex                          ; 9DC7= CA          J
                 bpl L9DC1                    ; 9DC8= 10 F7       .w
@@ -5534,7 +5534,7 @@ LA3A7:
                 pla                          ; A3B6= 68          h
                 beq LA3BE                    ; A3B7= F0 05       p.
                 lda #$80                     ; A3B9= A9 80       ).
-                jsr tubeEntryPoint                    ; A3BB= 20 06 04     ..
+                jsr tubeHost.entryPoint                    ; A3BB= 20 06 04     ..
 LA3BE:
                 jmp LAA81                    ; A3BE= 4C 81 AA    L.*
 
@@ -5546,7 +5546,7 @@ LA3C1:
                 pla                          ; A3C8= 68          h
                 beq LA3D0                    ; A3C9= F0 05       p.
                 lda #$80                     ; A3CB= A9 80       ).
-                jsr tubeEntryPoint                    ; A3CD= 20 06 04     ..
+                jsr tubeHost.entryPoint                    ; A3CD= 20 06 04     ..
 LA3D0:
                 jmp LA343                    ; A3D0= 4C 43 A3    LC#
 
@@ -5577,7 +5577,7 @@ LA3F6:
                 php                          ; A3F7= 08          .
                 beq LA3FF                    ; A3F8= F0 05       p.
                 lda #$80                     ; A3FA= A9 80       ).
-                jsr tubeEntryPoint                    ; A3FC= 20 06 04     ..
+                jsr tubeHost.entryPoint                    ; A3FC= 20 06 04     ..
 LA3FF:
                 plp                          ; A3FF= 28          (
                 rts                          ; A400= 60          `
@@ -6542,7 +6542,7 @@ LA9BB:
                 lda $027A                    ; A9BB= AD 7A 02    -z.
                 beq LA9C5                    ; A9BE= F0 05       p.
                 lda #$80                     ; A9C0= A9 80       ).
-                jsr tubeEntryPoint                    ; A9C2= 20 06 04     ..
+                jsr tubeHost.entryPoint                    ; A9C2= 20 06 04     ..
 LA9C5:
                 ldx #$00                     ; A9C5= A2 00       ".
                 jsr LAA61                    ; A9C7= 20 61 AA     a*
@@ -6722,10 +6722,10 @@ LAAB0:
                 pha                          ; AAB0= 48          H
                 lda #$C0                     ; AAB1= A9 C0       )@
 LAAB3:
-                jsr tubeEntryPoint                    ; AAB3= 20 06 04     ..
+                jsr tubeHost.entryPoint                    ; AAB3= 20 06 04     ..
                 bcc LAAB3                    ; AAB6= 90 FB       .{
                 pla                          ; AAB8= 68          h
-                jmp tubeEntryPoint                    ; AAB9= 4C 06 04    L..
+                jmp tubeHost.entryPoint                    ; AAB9= 4C 06 04    L..
 
 LAABC:
                 tax                          ; AABC= AA          *
@@ -6796,16 +6796,18 @@ LAAFF:
 LAB2A:
                 jmp LA978                    ; AB2A= 4C 78 A9    Lx)
 
-tubeBrkHandler: .block
+tubeHost: .block          ;tube code
+                
+brkHandler: .block
                 .logical tubeBrkHandlerAddr
                 lda #$FF                     ; AB2D= A9 FF       ).
-                jsr LADD1                    ; AB2F= 20 6C 06     l.
+                jsr tubeHost.LADD1                    ; AB2F= 20 6C 06     l.
                 lda TUBE+3                   ; AB32= AD E3 FE    -c~
                 lda #$00                     ; AB35= A9 00       ).
-                jsr LADC6                    ; AB37= 20 61 06     a.
+                jsr tubeHost.LADC6                    ; AB37= 20 61 06     a.
                 tay                          ; AB3A= A8          (
                 lda ($FD),y                  ; AB3B= B1 FD       1}
-                jsr LADC6                    ; AB3D= 20 61 06     a.
+                jsr tubeHost.LADC6                    ; AB3D= 20 61 06     a.
 LAB40:
                 iny                          ; AB40= C8          H
                 lda ($FD),y                  ; AB41= B1 FD       1}
@@ -6828,7 +6830,7 @@ LAB58:
                 bmi LAB52                    ; AB60= 30 F0       0p
                 ldx TUBE+3                   ; AB62= AE E3 FE    .c~
                 stx $51                      ; AB65= 86 51       .Q
-                jmp (tubeCommandRoutines+0)  ; AB67= 6C 00 05    l..
+                jmp (tubeHost.commandRoutines+0)  ; AB67= 6C 00 05    l..
 
                 brk                          ; AB6A= 00          .
                 bra LAB6D                    ; AB6B= 80 00       ..
@@ -6836,7 +6838,7 @@ LAB58:
 LAB6D:
                 brk                          ; AB6D= 00          .
                 .here
-size=*-tubeBrkHandler
+size=*-brkHandler
                 .bend
                 
 ;-------------------------------------------------------------------------
@@ -6845,15 +6847,16 @@ size=*-tubeBrkHandler
 ;
 ; See http://mdfs.net/Software/Tube/M128/Host320.lst
 
-tubeHostCodePage0:
+
+codePage0:
                 .logical tubeHostAddr
-tubeCopyLanguage:
+copyLanguage:
                 jmp LAC30
 
-tubeCopyEscapeStatus:
+copyEscapeStatus:
                 jmp LADDA
                 
-tubeEntryPoint:
+entryPoint:
                 cmp #$80                     ; AB74= C9 80       I.
                 bcc LABA1                    ; AB76= 90 29       .)
                 cmp #$C0                     ; AB78= C9 C0       I@
@@ -6903,7 +6906,7 @@ LABB0:
                 bpl LABB0                    ; ABB6= 10 F8       .x
                 ldy #$18                     ; ABB8= A0 18        .
                 sty TUBE+0                   ; ABBA= 8C E0 FE    .`~
-                lda tubeDataTransferFlags,x
+                lda dataTransferFlags,x
                 sta TUBE+0                   ; ABC0= 8D E0 FE    .`~
                 lsr a                        ; ABC3= 4A          J
                 lsr a                        ; ABC4= 4A          J
@@ -6937,7 +6940,7 @@ LABEE:
                 beq LABDB                    ; ABF1= F0 E8       ph
 LABF3:
                 lda #$FF                     ; ABF3= A9 FF       ).
-                jsr tubeEntryPoint                    ; ABF5= 20 06 04     ..
+                jsr tubeHost.entryPoint                    ; ABF5= 20 06 04     ..
                 bcc LABF3                    ; ABF8= 90 F9       .y
                 jsr LAC37                    ; ABFA= 20 C9 04     I.
 LABFD:
@@ -6970,7 +6973,7 @@ LAC1E:
 LAC29:
                 ldy #$00                     ; AC29= A0 00        .
                 ldx #$53                     ; AC2B= A2 53       "S
-                jmp tubeEntryPoint                    ; AC2D= 4C 06 04    L..
+                jmp tubeHost.entryPoint                    ; AC2D= 4C 06 04    L..
 
 LAC30:
                 cli                          ; AC30= 58          X
@@ -7004,9 +7007,9 @@ LAC60:
                 rts                          ; AC64= 60          `
                 .here
 
-tubeHostCodePages12:
+codePages12:
                 .logical tubeHostAddr+256
-tubeCommandRoutines:
+commandRoutines:
                 .word LAC9A
                 .word LACED
                 .word LAD3F
@@ -7021,7 +7024,7 @@ tubeCommandRoutines:
                 .word LACFF
 
                 ; Tube data transfer flags
-tubeDataTransferFlags:
+dataTransferFlags:
                 .byte $86        ;  CoPro->I/O bytes
                 .byte $88        ;  I/O->CoPro bytes
                 .byte $96        ;  CoPro->I/O words
@@ -7286,6 +7289,7 @@ LAE0F:
                 dex                          ; AE17= CA          J
                 rts                          ; AE18= 60          `
                 .here
+                .bend
 
 LAE19:
                 php                          ; AE19= 08          .
@@ -17456,7 +17460,7 @@ LE509:
                 bit $027A                    ; E50B= 2C 7A 02    ,z.
                 bpl LE579                    ; E50E= 10 69       .i
 LE510:
-                jmp tubeCopyLanguage
+                jmp tubeHost.copyLanguage
 
 LE513:
                 .text ")C("
@@ -18693,7 +18697,7 @@ osbyte7D: ;EC57
                 ror $FF                      ; EC57= 66 FF       f.
                 bit $027A                    ; EC59= 2C 7A 02    ,z.
                 bpl LECD9                    ; EC5C= 10 7B       .{
-                jmp tubeCopyEscapeStatus     ; EC5E= 4C 03 04    L..
+                jmp tubeHost.copyEscapeStatus     ; EC5E= 4C 03 04    L..
 
 osbyte89:
                 lda serialRegisterULACopy                    ; EC61= AD 82 02    -..

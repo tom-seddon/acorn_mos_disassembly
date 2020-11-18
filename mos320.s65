@@ -24,6 +24,7 @@
 
 ;-------------------------------------------------------------------------
 
+tubeBrkHandlerAddr=$16
 tubeHostAddr=$400
                 
 ;-------------------------------------------------------------------------
@@ -125,6 +126,8 @@ IND1V=vectors+ind1vIndex*2
 IND2V=vectors+ind2vIndex*2
 IND3V=vectors+ind3vIndex*2
 
+extendedVectorSpace=$d9f
+                
 serialRegisterULACopy=$0282
                 
 CRTC=$FE00
@@ -4543,14 +4546,14 @@ L9D7C:
                 jmp L9D7C                    ; 9D89= 4C 7C 9D    L|.
 
 L9D8C:
-                lda #$7B                     ; 9D8C= A9 7B       ){
-                sta $0220                    ; 9D8E= 8D 20 02    . .
-                lda #$06                     ; 9D91= A9 06       ).
-                sta $0221                    ; 9D93= 8D 21 02    .!.
-                lda #$16                     ; 9D96= A9 16       ).
-                sta $0202                    ; 9D98= 8D 02 02    ...
-                lda #$00                     ; 9D9B= A9 00       ).
-                sta $0203                    ; 9D9D= 8D 03 02    ...
+                lda #<LADE0                     ; 9D8C= A9 7B       ){
+                sta EVENTV+0                    ; 9D8E= 8D 20 02    . .
+                lda #>LADE0                     ; 9D91= A9 06       ).
+                sta EVENTV+1                    ; 9D93= 8D 21 02    .!.
+                lda #<tubeBrkHandlerAddr        ; 9D96= A9 16       ).
+                sta BRKV+0                    ; 9D98= 8D 02 02    ...
+                lda #>tubeBrkHandlerAddr      ; 9D9B= A9 00       ).
+                sta BRKV+1                    ; 9D9D= 8D 03 02    ...
                 lda #$8E                     ; 9DA0= A9 8E       ).
                 sta TUBE+0                   ; 9DA2= 8D E0 FE    .`~
                 ldy #$00                     ; 9DA5= A0 00        .
@@ -4564,10 +4567,10 @@ L9DA7:
                 dey                          ; 9DB9= 88          .
                 bne L9DA7                    ; 9DBA= D0 EB       Pk
                 jsr LAB8D                    ; 9DBC= 20 1F 04     ..
-                ldx #$41                     ; 9DBF= A2 41       "A
+                ldx #tubeBrkHandler.size
 L9DC1:
-                lda LAB2D,x                  ; 9DC1= BD 2D AB    =-+
-                sta @w$16,x                  ; 9DC4= 9D 16 00    ...
+                lda tubeBrkHandler,x                  ; 9DC1= BD 2D AB    =-+
+                sta @wtubeBrkHandlerAddr,x                  ; 9DC4= 9D 16 00    ...
                 dex                          ; 9DC7= CA          J
                 bpl L9DC1                    ; 9DC8= 10 F7       .w
 
@@ -6793,7 +6796,8 @@ LAAFF:
 LAB2A:
                 jmp LA978                    ; AB2A= 4C 78 A9    Lx)
 
-LAB2D:
+tubeBrkHandler: .block
+                .logical tubeBrkHandlerAddr
                 lda #$FF                     ; AB2D= A9 FF       ).
                 jsr LADD1                    ; AB2F= 20 6C 06     l.
                 lda TUBE+3                   ; AB32= AD E3 FE    -c~
@@ -6831,7 +6835,10 @@ LAB58:
 
 LAB6D:
                 brk                          ; AB6D= 00          .
-
+                .here
+size=*-tubeBrkHandler
+                .bend
+                
 ;-------------------------------------------------------------------------
 ;
 ; Tube host code
@@ -7241,6 +7248,7 @@ LADDA:
                 ror a                        ; ADDD= 6A          j
                 bra LADEF                    ; ADDE= 80 0F       ..
 
+LADE0:
                 pha                          ; ADE0= 48          H
                 lda #$00                     ; ADE1= A9 00       ).
                 jsr LADEF                    ; ADE3= 20 8A 06     ..
@@ -7351,29 +7359,27 @@ LAE6C:
                 beq LAE29                    ; AE74= F0 B3       p3
                 ldx #$04                     ; AE76= A2 04       ".
 LAE78:
-                lda $0229,x                  ; AE78= BD 29 02    =).
+                lda INSV-1,x                  ; AE78= BD 29 02    =).
                 sta $6F,x                    ; AE7B= 95 6F       .o
                 lda LAE93-1,x                ; AE7D= BD 92 AE    =..
-                sta $0229,x                  ; AE80= 9D 29 02    .).
+                sta INSV-1,x                  ; AE80= 9D 29 02    .).
                 dex                          ; AE83= CA          J
                 bne LAE78                    ; AE84= D0 F2       Pr
                 ldx #$06                     ; AE86= A2 06       ".
 LAE88:
-                lda LAE96,x                  ; AE88= BD 96 AE    =..
-                sta $0DDD,x                  ; AE8B= 9D DD 0D    .].
+                lda LAE97-1,x                  ; AE88= BD 96 AE    =..
+                sta extendedVectorSpace+insvIndex*3-1,x
                 dex                          ; AE8E= CA          J
                 bne LAE88                    ; AE8F= D0 F7       Pw
                 bra LAE6A                    ; AE91= 80 D7       .W
 
 LAE93:
-                .byte $3F                    ; AE93= 3F          ?
-                .byte $FF                    ; AE94= FF          .
-                .byte $42                    ; AE95= 42          B
-LAE96:
-                .byte $FF                    ; AE96= FF          .
-                .byte $D4                    ; AE97= D4          T
-                ldx $130F                    ; AE98= AE 0F 13    ...
-                .byte $AF                    ; AE9B= AF          /
+                .word E_INSV
+                .word E_REMV
+LAE97:
+                .word LAED4
+                .byte $0f
+                .word LAF13
                 .byte $0F                    ; AE9C= 0F          .
 LAE9D:
                 sei                          ; AE9D= 78          x
@@ -7381,8 +7387,8 @@ LAE9D:
                 bne LAE6A                    ; AEA1= D0 C7       PG
                 ldx #$06                     ; AEA3= A2 06       ".
 LAEA5:
-                lda $0DDD,x                  ; AEA5= BD DD 0D    =].
-                cmp LAE96,x                  ; AEA8= DD 96 AE    ]..
+                lda extendedVectorSpace+insvIndex*3-1,x
+                cmp LAE97-1,x                  ; AEA8= DD 96 AE    ]..
                 bne LAE6A                    ; AEAB= D0 BD       P=
                 dex                          ; AEAD= CA          J
                 bne LAEA5                    ; AEAE= D0 F5       Pu
@@ -7406,6 +7412,7 @@ LAECA:
                 bne LAECA                    ; AED0= D0 F8       Px
                 bra LAE6A                    ; AED2= 80 96       ..
 
+LAED4:
                 php                          ; AED4= 08          .
                 sei                          ; AED5= 78          x
                 cpx #$01                     ; AED6= E0 01       `.
@@ -7452,6 +7459,7 @@ LAF0F:
                 clv                          ; AF0F= B8          8
                 jmp (CNPV)                  ; AF10= 6C 2E 02    l..
 
+LAF13:
                 php                          ; AF13= 08          .
                 sei                          ; AF14= 78          x
                 cpx #$01                     ; AF15= E0 01       `.
@@ -7493,6 +7501,7 @@ LAF48:
 LAF4E:
                 rts                          ; AF4E= 60          `
 
+LAF4F:
                 lda #$DA                     ; AF4F= A9 DA       )Z
                 jsr LB823                    ; AF51= 20 23 B8     #8
                 jsr LB634                    ; AF54= 20 34 B6     46
@@ -7523,18 +7532,18 @@ LAF7E:
                 sei                          ; AF7E= 78          x
                 ldx #$FE                     ; AF7F= A2 FE       "~
                 txs                          ; AF81= 9A          .
-                lda #$4F                     ; AF82= A9 4F       )O
-                sta $0202                    ; AF84= 8D 02 02    ...
-                lda #$AF                     ; AF87= A9 AF       )/
-                sta $0203                    ; AF89= 8D 03 02    ...
-                lda #$B1                     ; AF8C= A9 B1       )1
-                sta $0230                    ; AF8E= 8D 30 02    .0.
-                lda #$B7                     ; AF91= A9 B7       )7
-                sta $0231                    ; AF93= 8D 31 02    .1.
-                lda #$B1                     ; AF96= A9 B1       )1
-                sta $0232                    ; AF98= 8D 32 02    .2.
-                lda #$B7                     ; AF9B= A9 B7       )7
-                sta $0233                    ; AF9D= 8D 33 02    .3.
+                lda #<LAF4F                     ; AF82= A9 4F       )O
+                sta BRKV+0
+                lda #>LAF4F
+                sta BRKV+1
+                lda #<LB7B1
+                sta IND1V+0
+                lda #>LB7B1
+                sta IND1V+1
+                lda #<LB7B1
+                sta IND2V+0
+                lda #>LB7B1
+                sta IND2V+1
                 ldx #$6E                     ; AFA0= A2 6E       "n
 LAFA2:
                 stz $00,x                    ; AFA2= 74 00       t.
@@ -8951,6 +8960,7 @@ LB7A6:
                 jsr OSWRCH                   ; B7AC= 20 EE FF     n.
                 bra LB7A6                    ; B7AF= 80 F5       .u
 
+LB7B1:
                 bcc LB7F9                    ; B7B1= 90 46       .F
 LB7B3:
                 sec                          ; B7B3= 38          8
@@ -19868,7 +19878,7 @@ LF1EE:
                 ldx #$15
 LF1F0:
                 lda LF1FA-1,x
-                sta $0DB9,x
+                sta extendedVectorSpace+filevIndex*3-1,x
                 dex
                 bne LF1F0
 LF1F9:
@@ -19897,7 +19907,7 @@ LF1FA:
 osbyte6D:;f20f
                 ldx hazel.activeFS; Copy active FS to current FS
                 stx hazel.currentFS
-                lda $0DBC                    ; Copy XFILEV ROM to current FS ROM number
+                lda extendedVectorSpace+filevIndex*3+2 ; Copy XFILEV ROM to current FS ROM number
                 sta hazel.currentFSROM
                 rts
 
@@ -21753,16 +21763,16 @@ extendedVectorEntryPoint:
                 lda #$8C                     ; FF61= A9 8C       ).
                 sta $0107,x                  ; FF63= 9D 07 01    ...
                 ldy $010B,x                  ; FF66= BC 0B 01    <..
-                lda $0D9D,y                  ; FF69= B9 9D 0D    9..
+                lda extendedVectorSpace-2,y                  ; FF69= B9 9D 0D    9..
                 sta $0105,x                  ; FF6C= 9D 05 01    ...
-                lda $0D9E,y                  ; FF6F= B9 9E 0D    9..
+                lda extendedVectorSpace-1,y                  ; FF6F= B9 9E 0D    9..
                 sta $0106,x                  ; FF72= 9D 06 01    ...
                 lda $F4                      ; FF75= A5 F4       %t
                 sta $010A,x                  ; FF77= 9D 0A 01    ...
                 lda ACCCON                    ; FF7A= AD 34 FE    -4~
                 sta $0109,x                  ; FF7D= 9D 09 01    ...
                 jsr selectHAZEL                    ; FF80= 20 BA ED     :m
-                lda $0D9F,y                  ; FF83= B9 9F 0D    9..
+                lda extendedVectorSpace,y                  ; FF83= B9 9F 0D    9..
                 jsr selectROMA                    ; FF86= 20 92 E5     .e
                 ply                          ; FF89= 7A          z
                 plx                          ; FF8A= FA          z

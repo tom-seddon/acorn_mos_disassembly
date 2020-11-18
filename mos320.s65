@@ -24,6 +24,10 @@
 
 ;-------------------------------------------------------------------------
 
+tubeHostAddr=$400
+                
+;-------------------------------------------------------------------------
+
 stringInputBufferAddress=$f2    ;word
 
 ;-------------------------------------------------------------------------
@@ -4551,15 +4555,15 @@ L9D8C:
                 sta TUBE+0                   ; 9DA2= 8D E0 FE    .`~
                 ldy #$00                     ; 9DA5= A0 00        .
 L9DA7:
-                lda LAB6E,y                  ; 9DA7= B9 6E AB    9n+
-                sta $0400,y                  ; 9DAA= 99 00 04    ...
-                lda LAC65,y                  ; 9DAD= B9 65 AC    9e,
-                sta $0500,y                  ; 9DB0= 99 00 05    ...
-                lda LAD65,y                  ; 9DB3= B9 65 AD    9e-
-                sta $0600,y                  ; 9DB6= 99 00 06    ...
+                lda tubeHostCodePage0,y                  ; 9DA7= B9 6E AB    9n+
+                sta tubeHostAddr+0*256,y
+                lda tubeHostCodePages12,y                  ; 9DAD= B9 65 AC    9e,
+                sta tubeHostAddr+1*256,y
+                lda tubeHostCodePages12+256,y                  ; 9DB3= B9 65 AD    9e-
+                sta tubeHostAddr+2*256,y
                 dey                          ; 9DB9= 88          .
                 bne L9DA7                    ; 9DBA= D0 EB       Pk
-                jsr $041F                    ; 9DBC= 20 1F 04     ..
+                jsr LAB8D                    ; 9DBC= 20 1F 04     ..
                 ldx #$41                     ; 9DBF= A2 41       "A
 L9DC1:
                 lda LAB2D,x                  ; 9DC1= BD 2D AB    =-+
@@ -5527,7 +5531,7 @@ LA3A7:
                 pla                          ; A3B6= 68          h
                 beq LA3BE                    ; A3B7= F0 05       p.
                 lda #$80                     ; A3B9= A9 80       ).
-                jsr $0406                    ; A3BB= 20 06 04     ..
+                jsr tubeEntryPoint                    ; A3BB= 20 06 04     ..
 LA3BE:
                 jmp LAA81                    ; A3BE= 4C 81 AA    L.*
 
@@ -5539,7 +5543,7 @@ LA3C1:
                 pla                          ; A3C8= 68          h
                 beq LA3D0                    ; A3C9= F0 05       p.
                 lda #$80                     ; A3CB= A9 80       ).
-                jsr $0406                    ; A3CD= 20 06 04     ..
+                jsr tubeEntryPoint                    ; A3CD= 20 06 04     ..
 LA3D0:
                 jmp LA343                    ; A3D0= 4C 43 A3    LC#
 
@@ -5570,7 +5574,7 @@ LA3F6:
                 php                          ; A3F7= 08          .
                 beq LA3FF                    ; A3F8= F0 05       p.
                 lda #$80                     ; A3FA= A9 80       ).
-                jsr $0406                    ; A3FC= 20 06 04     ..
+                jsr tubeEntryPoint                    ; A3FC= 20 06 04     ..
 LA3FF:
                 plp                          ; A3FF= 28          (
                 rts                          ; A400= 60          `
@@ -6535,7 +6539,7 @@ LA9BB:
                 lda $027A                    ; A9BB= AD 7A 02    -z.
                 beq LA9C5                    ; A9BE= F0 05       p.
                 lda #$80                     ; A9C0= A9 80       ).
-                jsr $0406                    ; A9C2= 20 06 04     ..
+                jsr tubeEntryPoint                    ; A9C2= 20 06 04     ..
 LA9C5:
                 ldx #$00                     ; A9C5= A2 00       ".
                 jsr LAA61                    ; A9C7= 20 61 AA     a*
@@ -6715,10 +6719,10 @@ LAAB0:
                 pha                          ; AAB0= 48          H
                 lda #$C0                     ; AAB1= A9 C0       )@
 LAAB3:
-                jsr $0406                    ; AAB3= 20 06 04     ..
+                jsr tubeEntryPoint                    ; AAB3= 20 06 04     ..
                 bcc LAAB3                    ; AAB6= 90 FB       .{
                 pla                          ; AAB8= 68          h
-                jmp $0406                    ; AAB9= 4C 06 04    L..
+                jmp tubeEntryPoint                    ; AAB9= 4C 06 04    L..
 
 LAABC:
                 tax                          ; AABC= AA          *
@@ -6791,17 +6795,17 @@ LAB2A:
 
 LAB2D:
                 lda #$FF                     ; AB2D= A9 FF       ).
-                jsr $066C                    ; AB2F= 20 6C 06     l.
+                jsr LADD1                    ; AB2F= 20 6C 06     l.
                 lda TUBE+3                   ; AB32= AD E3 FE    -c~
                 lda #$00                     ; AB35= A9 00       ).
-                jsr $0661                    ; AB37= 20 61 06     a.
+                jsr LADC6                    ; AB37= 20 61 06     a.
                 tay                          ; AB3A= A8          (
                 lda ($FD),y                  ; AB3B= B1 FD       1}
-                jsr $0661                    ; AB3D= 20 61 06     a.
+                jsr LADC6                    ; AB3D= 20 61 06     a.
 LAB40:
                 iny                          ; AB40= C8          H
                 lda ($FD),y                  ; AB41= B1 FD       1}
-                jsr $0661                    ; AB43= 20 61 06     a.
+                jsr LADC6                    ; AB43= 20 61 06     a.
                 tax                          ; AB46= AA          *
                 bne LAB40                    ; AB47= D0 F7       Pw
                 ldx #$FF                     ; AB49= A2 FF       ".
@@ -6820,18 +6824,29 @@ LAB58:
                 bmi LAB52                    ; AB60= 30 F0       0p
                 ldx TUBE+3                   ; AB62= AE E3 FE    .c~
                 stx $51                      ; AB65= 86 51       .Q
-                jmp ($0500)                  ; AB67= 6C 00 05    l..
+                jmp (tubeCommandRoutines+0)  ; AB67= 6C 00 05    l..
 
                 brk                          ; AB6A= 00          .
                 bra LAB6D                    ; AB6B= 80 00       ..
 
 LAB6D:
                 brk                          ; AB6D= 00          .
-LAB6E:
-                jmp $04C2                    ; AB6E= 4C C2 04    LB.
 
-                jmp $0675                    ; AB71= 4C 75 06    Lu.
+;-------------------------------------------------------------------------
+;
+; Tube host code
+;
+; See http://mdfs.net/Software/Tube/M128/Host320.lst
 
+tubeHostCodePage0:
+                .logical tubeHostAddr
+tubeCopyLanguage:
+                jmp LAC30
+
+tubeCopyEscapeStatus:
+                jmp LADDA
+                
+tubeEntryPoint:
                 cmp #$80                     ; AB74= C9 80       I.
                 bcc LABA1                    ; AB76= 90 29       .)
                 cmp #$C0                     ; AB78= C9 C0       I@
@@ -6839,12 +6854,14 @@ LAB6E:
                 ora #$40                     ; AB7C= 09 40       .@
                 cmp $15                      ; AB7E= C5 15       E.
                 bne LABA0                    ; AB80= D0 1E       P.
+LAB82:
                 php                          ; AB82= 08          .
                 sei                          ; AB83= 78          x
                 lda #$05                     ; AB84= A9 05       ).
-                jsr $066C                    ; AB86= 20 6C 06     l.
-                jsr $066A                    ; AB89= 20 6A 06     j.
+                jsr LADD1
+                jsr LADCF                    ; AB89= 20 6A 06     j.
                 plp                          ; AB8C= 28          (
+LAB8D:
                 lda #$80                     ; AB8D= A9 80       ).
                 sta $15                      ; AB8F= 85 15       ..
                 sta $14                      ; AB91= 85 14       ..
@@ -6868,18 +6885,18 @@ LABA1:
                 sei                          ; ABA2= 78          x
                 sty $13                      ; ABA3= 84 13       ..
                 stx $12                      ; ABA5= 86 12       ..
-                jsr $066C                    ; ABA7= 20 6C 06     l.
+                jsr LADD1                    ; ABA7= 20 6C 06     l.
                 tax                          ; ABAA= AA          *
                 ldy #$03                     ; ABAB= A0 03        .
-                jsr $066A                    ; ABAD= 20 6A 06     j.
+                jsr LADCF                    ; ABAD= 20 6A 06     j.
 LABB0:
                 lda ($12),y                  ; ABB0= B1 12       1.
-                jsr $066C                    ; ABB2= 20 6C 06     l.
+                jsr LADD1                    ; ABB2= 20 6C 06     l.
                 dey                          ; ABB5= 88          .
                 bpl LABB0                    ; ABB6= 10 F8       .x
                 ldy #$18                     ; ABB8= A0 18        .
                 sty TUBE+0                   ; ABBA= 8C E0 FE    .`~
-                lda $0518,x                  ; ABBD= BD 18 05    =..
+                lda tubeDataTransferFlags,x
                 sta TUBE+0                   ; ABC0= 8D E0 FE    .`~
                 lsr a                        ; ABC3= 4A          J
                 lsr a                        ; ABC4= 4A          J
@@ -6887,7 +6904,7 @@ LABB0:
                 bit TUBE+5                   ; ABC7= 2C E5 FE    ,e~
                 bit TUBE+5                   ; ABCA= 2C E5 FE    ,e~
 LABCD:
-                jsr $066C                    ; ABCD= 20 6C 06     l.
+                jsr LADD1                    ; ABCD= 20 6C 06     l.
 LABD0:
                 bit TUBE+6                   ; ABD0= 2C E6 FE    ,f~
                 bvc LABD0                    ; ABD3= 50 FB       P{
@@ -6895,8 +6912,8 @@ LABD0:
                 cpx #$04                     ; ABD7= E0 04       `.
                 bne LABEC                    ; ABD9= D0 11       P.
 LABDB:
-                jsr $0414                    ; ABDB= 20 14 04     ..
-                jsr $0661                    ; ABDE= 20 61 06     a.
+                jsr LAB82                    ; ABDB= 20 14 04     ..
+                jsr LADC6                    ; ABDE= 20 61 06     a.
                 jmp $0032                    ; ABE1= 4C 32 00    L2.
 
 LABE4:
@@ -6913,14 +6930,14 @@ LABEE:
                 beq LABDB                    ; ABF1= F0 E8       ph
 LABF3:
                 lda #$FF                     ; ABF3= A9 FF       ).
-                jsr $0406                    ; ABF5= 20 06 04     ..
+                jsr tubeEntryPoint                    ; ABF5= 20 06 04     ..
                 bcc LABF3                    ; ABF8= 90 F9       .y
-                jsr $04C9                    ; ABFA= 20 C9 04     I.
+                jsr LAC37                    ; ABFA= 20 C9 04     I.
 LABFD:
                 php                          ; ABFD= 08          .
                 sei                          ; ABFE= 78          x
                 lda #$07                     ; ABFF= A9 07       ).
-                jsr $04BB                    ; AC01= 20 BB 04     ;.
+                jsr LAC29                    ; AC01= 20 BB 04     ;.
                 ldy #$00                     ; AC04= A0 00        .
                 stz $00                      ; AC06= 64 00       d.
 LAC08:
@@ -6941,17 +6958,20 @@ LAC1E:
                 inc $01                      ; AC1E= E6 01       f.
                 bit $01                      ; AC20= 24 01       $.
                 bvc LABFD                    ; AC22= 50 D9       PY
-                jsr $04C9                    ; AC24= 20 C9 04     I.
+                jsr LAC37                    ; AC24= 20 C9 04     I.
                 lda #$04                     ; AC27= A9 04       ).
+LAC29:
                 ldy #$00                     ; AC29= A0 00        .
                 ldx #$53                     ; AC2B= A2 53       "S
-                jmp $0406                    ; AC2D= 4C 06 04    L..
+                jmp tubeEntryPoint                    ; AC2D= 4C 06 04    L..
 
+LAC30:
                 cli                          ; AC30= 58          X
                 bcs LABF3                    ; AC31= B0 C0       0@
                 bne LABEE                    ; AC33= D0 B9       P9
-                bra LAC98                    ; AC35= 80 61       .a
+                bra LAC8F                    ; AC35= 80 61       .a
 
+LAC37:
                 lda #$80                     ; AC37= A9 80       ).
                 sta $54                      ; AC39= 85 54       .T
                 sta $01                      ; AC3B= 85 01       ..
@@ -6975,79 +6995,94 @@ LAC60:
                 sta $56                      ; AC60= 85 56       .V
                 sty $55                      ; AC62= 84 55       .U
                 rts                          ; AC64= 60          `
+                .here
 
-LAC65:
-                and $05,x                    ; AC65= 35 05       5.
-                dey                          ; AC67= 88          .
-                ora $DA                      ; AC68= 05 DA       .Z
-                ora $EB                      ; AC6A= 05 EB       .k
-                ora $07                      ; AC6C= 05 07       ..
-                asl $36                      ; AC6E= 06 36       .6
-                asl $59                      ; AC70= 06 59       .Y
-                ora $2C                      ; AC72= 05 2C       .,
-                ora $20                      ; AC74= 05 20       .
-                ora $3F                      ; AC76= 05 3F       .?
-                ora $B2                      ; AC78= 05 B2       .2
-                ora $9A                      ; AC7A= 05 9A       ..
-                ora $86                      ; AC7C= 05 86       ..
-                dey                          ; AC7E= 88          .
-                stx $98,y                    ; AC7F= 96 98       ..
-                clc                          ; AC81= 18          .
-                clc                          ; AC82= 18          .
-                .byte $82                    ; AC83= 82          .
-                clc                          ; AC84= 18          .
-                jsr $06A1                    ; AC85= 20 A1 06     !.
+tubeHostCodePages12:
+                .logical tubeHostAddr+256
+tubeCommandRoutines:
+                .word LAC9A
+                .word LACED
+                .word LAD3F
+                .word LAD50
+                .word LAD6C
+                .word LAD9B
+                .word LACBE
+                .word LAC91
+                .word LAC85
+                .word LACA4
+                .word LAD17
+                .word LACFF
+
+                ; Tube data transfer flags
+tubeDataTransferFlags:
+                .byte $86        ;  CoPro->I/O bytes
+                .byte $88        ;  I/O->CoPro bytes
+                .byte $96        ;  CoPro->I/O words
+                .byte $98        ;  I/O->CoPro words
+                .byte $18        ;  Execute in CoPro
+                .byte $18        ;  Reserved
+                .byte $82        ;  CoPro->I/O 256 bytes
+                .byte $18        ;  I/O->CoPro 256 bytes
+
+LAC85:
+                jsr LAE06                    ; AC85= 20 A1 06     !.
                 tay                          ; AC88= A8          (
-                jsr $06A1                    ; AC89= 20 A1 06     !.
+                jsr LAE06                    ; AC89= 20 A1 06     !.
                 jsr OSBPUT                   ; AC8C= 20 D4 FF     T.
+LAC8F:
                 bra LACF3                    ; AC8F= 80 62       .b
 
-                jsr $06A1                    ; AC91= 20 A1 06     !.
+LAC91:
+                jsr LAE06                    ; AC91= 20 A1 06     !.
                 tay                          ; AC94= A8          (
                 jsr OSBGET                   ; AC95= 20 D7 FF     W.
 LAC98:
                 bra LAC9D                    ; AC98= 80 03       ..
 
+LAC9A:
                 jsr OSRDCH                   ; AC9A= 20 E0 FF     `.
 LAC9D:
                 ror a                        ; AC9D= 6A          j
-                jsr $0661                    ; AC9E= 20 61 06     a.
+                jsr LADC6                    ; AC9E= 20 61 06     a.
                 rol a                        ; ACA1= 2A          *
                 bra LACF5                    ; ACA2= 80 51       .Q
 
-                jsr $06A1                    ; ACA4= 20 A1 06     !.
+LACA4:
+                jsr LAE06                    ; ACA4= 20 A1 06     !.
                 beq LACB3                    ; ACA7= F0 0A       p.
                 pha                          ; ACA9= 48          H
-                jsr $0574                    ; ACAA= 20 74 05     t.
+                jsr LACD9                    ; ACAA= 20 74 05     t.
                 pla                          ; ACAD= 68          h
                 jsr OSFIND                   ; ACAE= 20 CE FF     N.
                 bra LACF5                    ; ACB1= 80 42       .B
 
 LACB3:
-                jsr $06A1                    ; ACB3= 20 A1 06     !.
+                jsr LAE06                    ; ACB3= 20 A1 06     !.
                 tay                          ; ACB6= A8          (
                 lda #$00                     ; ACB7= A9 00       ).
                 jsr OSFIND                   ; ACB9= 20 CE FF     N.
                 bra LACF3                    ; ACBC= 80 35       .5
-
-                jsr $06A1                    ; ACBE= 20 A1 06     !.
+                
+LACBE:
+                jsr LAE06                    ; ACBE= 20 A1 06     !.
                 tay                          ; ACC1= A8          (
                 ldx #$04                     ; ACC2= A2 04       ".
-                jsr $0693                    ; ACC4= 20 93 06     ..
+                jsr LADF8                    ; ACC4= 20 93 06     ..
                 jsr OSARGS                   ; ACC7= 20 DA FF     Z.
-                jsr $0661                    ; ACCA= 20 61 06     a.
+                jsr LADC6                    ; ACCA= 20 61 06     a.
                 ldx #$03                     ; ACCD= A2 03       ".
 LACCF:
                 lda $00,x                    ; ACCF= B5 00       5.
-                jsr $0661                    ; ACD1= 20 61 06     a.
+                jsr LADC6                    ; ACD1= 20 61 06     a.
                 dex                          ; ACD4= CA          J
                 bpl LACCF                    ; ACD5= 10 F8       .x
                 bra LACFD                    ; ACD7= 80 24       .$
 
+LACD9:
                 ldx #$00                     ; ACD9= A2 00       ".
                 ldy #$00                     ; ACDB= A0 00        .
 LACDD:
-                jsr $06A1                    ; ACDD= 20 A1 06     !.
+                jsr LAE06                    ; ACDD= 20 A1 06     !.
                 sta $0700,y                  ; ACE0= 99 00 07    ...
                 iny                          ; ACE3= C8          H
                 beq LACEA                    ; ACE4= F0 04       p.
@@ -7057,7 +7092,8 @@ LACEA:
                 ldy #$07                     ; ACEA= A0 07        .
                 rts                          ; ACEC= 60          `
 
-                jsr $0574                    ; ACED= 20 74 05     t.
+LACED:
+                jsr LACD9                    ; ACED= 20 74 05     t.
                 jsr OSCLI                   ; ACF0= 20 F7 FF     w.
 LACF3:
                 lda #$7F                     ; ACF3= A9 7F       ).
@@ -7068,42 +7104,45 @@ LACF5:
 LACFD:
                 bra LAD4D                    ; ACFD= 80 4E       .N
 
+LACFF:
                 ldx #$0D                     ; ACFF= A2 0D       ".
-                jsr $0693                    ; AD01= 20 93 06     ..
+                jsr LADF8                    ; AD01= 20 93 06     ..
                 ldy #$00                     ; AD04= A0 00        .
                 jsr OSGBPB                   ; AD06= 20 D1 FF     Q.
                 pha                          ; AD09= 48          H
                 ldx #$0C                     ; AD0A= A2 0C       ".
 LAD0C:
                 lda $00,x                    ; AD0C= B5 00       5.
-                jsr $0661                    ; AD0E= 20 61 06     a.
+                jsr LADC6                    ; AD0E= 20 61 06     a.
                 dex                          ; AD11= CA          J
                 bpl LAD0C                    ; AD12= 10 F8       .x
                 pla                          ; AD14= 68          h
                 bra LAC9D                    ; AD15= 80 86       ..
 
+LAD17:
                 ldx #$10                     ; AD17= A2 10       ".
 LAD19:
-                jsr $06A1                    ; AD19= 20 A1 06     !.
+                jsr LAE06                    ; AD19= 20 A1 06     !.
                 sta $01,x                    ; AD1C= 95 01       ..
                 dex                          ; AD1E= CA          J
                 bne LAD19                    ; AD1F= D0 F8       Px
-                jsr $0574                    ; AD21= 20 74 05     t.
+                jsr LACD9                    ; AD21= 20 74 05     t.
                 stx $00                      ; AD24= 86 00       ..
                 sty $01                      ; AD26= 84 01       ..
                 ldy #$00                     ; AD28= A0 00        .
-                jsr $06A1                    ; AD2A= 20 A1 06     !.
+                jsr LAE06                    ; AD2A= 20 A1 06     !.
                 jsr OSFILE                   ; AD2D= 20 DD FF     ].
-                jsr $0661                    ; AD30= 20 61 06     a.
+                jsr LADC6                    ; AD30= 20 61 06     a.
                 ldx #$10                     ; AD33= A2 10       ".
 LAD35:
                 lda $01,x                    ; AD35= B5 01       5.
-                jsr $0661                    ; AD37= 20 61 06     a.
+                jsr LADC6                    ; AD37= 20 61 06     a.
                 dex                          ; AD3A= CA          J
                 bne LAD35                    ; AD3B= D0 F8       Px
                 bra LAD4D                    ; AD3D= 80 0E       ..
 
-                jsr $069D                    ; AD3F= 20 9D 06     ..
+LAD3F:
+                jsr LAE02                    ; AD3F= 20 9D 06     ..
                 jsr OSBYTE                   ; AD42= 20 F4 FF     t.
 LAD45:
                 bit TUBE+2                   ; AD45= 2C E2 FE    ,b~
@@ -7112,27 +7151,28 @@ LAD45:
 LAD4D:
                 jmp $0036                    ; AD4D= 4C 36 00    L6.
 
-                jsr $069D                    ; AD50= 20 9D 06     ..
+LAD50:
+                jsr LAE02                    ; AD50= 20 9D 06     ..
                 tay                          ; AD53= A8          (
-                jsr $06A1                    ; AD54= 20 A1 06     !.
+                jsr LAE06                    ; AD54= 20 A1 06     !.
                 jsr OSBYTE                   ; AD57= 20 F4 FF     t.
                 eor #$9D                     ; AD5A= 49 9D       I.
                 beq LAD4D                    ; AD5C= F0 EF       po
                 ror a                        ; AD5E= 6A          j
-                jsr $0661                    ; AD5F= 20 61 06     a.
+                jsr LADC6                    ; AD5F= 20 61 06     a.
 LAD62:
                 bit TUBE+2                   ; AD62= 2C E2 FE    ,b~
-LAD65:
                 bvc LAD62                    ; AD65= 50 FB       P{
                 sty TUBE+3                   ; AD67= 8C E3 FE    .c~
                 bra LAD45                    ; AD6A= 80 D9       .Y
 
-                jsr $06A1                    ; AD6C= 20 A1 06     !.
+LAD6C:
+                jsr LAE06                    ; AD6C= 20 A1 06     !.
                 tay                          ; AD6F= A8          (
-                jsr $06AA                    ; AD70= 20 AA 06     *.
+                jsr LAE0F                    ; AD70= 20 AA 06     *.
                 bmi LAD7F                    ; AD73= 30 0A       0.
 LAD75:
-                jsr $06A1                    ; AD75= 20 A1 06     !.
+                jsr LAE06                    ; AD75= 20 A1 06     !.
                 sta $0128,x                  ; AD78= 9D 28 01    .(.
                 dex                          ; AD7B= CA          J
                 bpl LAD75                    ; AD7C= 10 F7       .w
@@ -7141,7 +7181,7 @@ LAD7F:
                 ldx #$28                     ; AD7F= A2 28       "(
                 ldy #$01                     ; AD81= A0 01        .
                 jsr OSWORD                   ; AD83= 20 F1 FF     q.
-                jsr $06AA                    ; AD86= 20 AA 06     *.
+                jsr LAE0F                    ; AD86= 20 AA 06     *.
                 bmi LAD4D                    ; AD89= 30 C2       0B
 LAD8B:
                 ldy $0128,x                  ; AD8B= BC 28 01    <(.
@@ -7153,10 +7193,11 @@ LAD8E:
                 bpl LAD8B                    ; AD97= 10 F2       .r
 LAD99:
                 bra LAD4D                    ; AD99= 80 B2       .2
-
+                
+LAD9B:
                 ldx #$04                     ; AD9B= A2 04       ".
 LAD9D:
-                jsr $06A1                    ; AD9D= 20 A1 06     !.
+                jsr LAE06                    ; AD9D= 20 A1 06     !.
                 sta $00,x                    ; ADA0= 95 00       ..
                 dex                          ; ADA2= CA          J
                 bpl LAD9D                    ; ADA3= 10 F8       .x
@@ -7166,15 +7207,15 @@ LAD9D:
                 jsr OSWORD                   ; ADA8= 20 F1 FF     q.
                 bcc LADB2                    ; ADAB= 90 05       ..
                 lda #$FF                     ; ADAD= A9 FF       ).
-                jmp $0590                    ; ADAF= 4C 90 05    L..
+                jmp LACF5                    ; ADAF= 4C 90 05    L..
 
 LADB2:
                 ldx #$00                     ; ADB2= A2 00       ".
                 lda #$7F                     ; ADB4= A9 7F       ).
-                jsr $0661                    ; ADB6= 20 61 06     a.
+                jsr LADC6                    ; ADB6= 20 61 06     a.
 LADB9:
                 lda $0700,x                  ; ADB9= BD 00 07    =..
-                jsr $0661                    ; ADBC= 20 61 06     a.
+                jsr LADC6                    ; ADBC= 20 61 06     a.
                 inx                          ; ADBF= E8          h
                 cmp #$0D                     ; ADC0= C9 0D       I.
                 bne LADB9                    ; ADC2= D0 F5       Pu
@@ -7185,7 +7226,8 @@ LADC6:
                 bvc LADC6                    ; ADC9= 50 FB       P{
                 sta TUBE+3                   ; ADCB= 8D E3 FE    .c~
                 rts                          ; ADCE= 60          `
-
+                
+LADCF:
                 lda $15                      ; ADCF= A5 15       %.
 LADD1:
                 bit TUBE+6                   ; ADD1= 2C E6 FE    ,f~
@@ -7193,6 +7235,7 @@ LADD1:
                 sta TUBE+7                   ; ADD6= 8D E7 FE    .g~
                 rts                          ; ADD9= 60          `
 
+LADDA:
                 lda $FF                      ; ADDA= A5 FF       %.
                 sec                          ; ADDC= 38          8
                 ror a                        ; ADDD= 6A          j
@@ -7200,11 +7243,11 @@ LADD1:
 
                 pha                          ; ADE0= 48          H
                 lda #$00                     ; ADE1= A9 00       ).
-                jsr $068A                    ; ADE3= 20 8A 06     ..
+                jsr LADEF                    ; ADE3= 20 8A 06     ..
                 tya                          ; ADE6= 98          .
-                jsr $068A                    ; ADE7= 20 8A 06     ..
+                jsr LADEF                    ; ADE7= 20 8A 06     ..
                 txa                          ; ADEA= 8A          .
-                jsr $068A                    ; ADEB= 20 8A 06     ..
+                jsr LADEF                    ; ADEB= 20 8A 06     ..
                 pla                          ; ADEE= 68          h
 LADEF:
                 bit TUBE+0                   ; ADEF= 2C E0 FE    ,`~
@@ -7213,13 +7256,14 @@ LADEF:
                 rts                          ; ADF7= 60          `
 
 LADF8:
-                jsr $06A1                    ; ADF8= 20 A1 06     !.
+                jsr LAE06                    ; ADF8= 20 A1 06     !.
                 sta $FF,x                    ; ADFB= 95 FF       ..
                 dex                          ; ADFD= CA          J
                 bne LADF8                    ; ADFE= D0 F8       Px
                 bra LAE06                    ; AE00= 80 04       ..
 
-                jsr $06A1                    ; AE02= 20 A1 06     !.
+LAE02:
+                jsr LAE06                    ; AE02= 20 A1 06     !.
                 tax                          ; AE05= AA          *
 LAE06:
                 bit TUBE+2                   ; AE06= 2C E2 FE    ,b~
@@ -7233,6 +7277,7 @@ LAE0F:
                 ldx TUBE+3                   ; AE14= AE E3 FE    .c~
                 dex                          ; AE17= CA          J
                 rts                          ; AE18= 60          `
+                .here
 
 LAE19:
                 php                          ; AE19= 08          .
@@ -7270,7 +7315,7 @@ LAE3E:
                 bne LAE3E                    ; AE47= D0 F5       Pu
 LAE49:
                 rts                          ; AE49= 60          `
-
+                
 LAE4A:
                 phy                          ; AE4A= 5A          Z
                 ply                          ; AE4B= 7A          z
@@ -7291,8 +7336,10 @@ LAE4A:
                 bra LAE29                    ; AE64= 80 C3       .C
 
 LAE66:
+                
                 stz $78                      ; AE66= 64 78       dx
                 ror $77                      ; AE68= 66 77       fw
+                
 LAE6A:
                 bra LAE29                    ; AE6A= 80 BD       .=
 
@@ -17399,7 +17446,7 @@ LE509:
                 bit $027A                    ; E50B= 2C 7A 02    ,z.
                 bpl LE579                    ; E50E= 10 69       .i
 LE510:
-                jmp $0400                    ; E510= 4C 00 04    L..
+                jmp tubeCopyLanguage
 
 LE513:
                 .text ")C("
@@ -18636,7 +18683,7 @@ osbyte7D: ;EC57
                 ror $FF                      ; EC57= 66 FF       f.
                 bit $027A                    ; EC59= 2C 7A 02    ,z.
                 bpl LECD9                    ; EC5C= 10 7B       .{
-                jmp $0403                    ; EC5E= 4C 03 04    L..
+                jmp tubeCopyEscapeStatus     ; EC5E= 4C 03 04    L..
 
 osbyte89:
                 lda serialRegisterULACopy                    ; EC61= AD 82 02    -..

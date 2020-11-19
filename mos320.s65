@@ -361,6 +361,70 @@ systemVIA: .dstruct VIA
 userVIA: .dstruct VIA
                 .endv
 
+; see App Note 004 - the Tube
+                
+                .virtual $fee0
+tube: .block
+; Parasite to Host: Carries the OSWRCH call. Data register is a FIFO
+; that can handle a VDU command length (10 bytes).
+;
+; Host to Parasite: There is a 1 byte buffer. It is used to generate
+; IRQ's in the parasite from events in the host.
+
+; write/read (clears IRQ)
+status1:
+                .fill 1
+
+; bit 7 - data available/IRQ
+; bit 6 - not full
+data1:
+                .fill 1
+
+; Used to implement OS calls that take a long time or that cannot
+; interrupt Host tasks. The parasite passes a byte describing the
+; required task. The two processors then exchange data until the task
+; is complete. OS calls handled through this register include: OSRDCH,
+; OSCLI, OSBYTE, OSWORD, OSBPUT, OSBGET, OSFIND, OSARGS, OSFILE,
+; OSGBPB.
+
+; write/read
+status2:
+                .fill 1
+
+; bit 7 - data available
+; bit 6 - not full
+data2:
+                .fill 1
+
+; Used for the background task of fast data transfer between the two
+; processors.
+
+; write/read
+status3:
+                .fill 1
+
+; bit 7 - data available/NMI
+; bit 6 - not full
+data3:
+                .fill 1
+
+; Used as the control channel for block transfers going through
+; Register 3, and also the transfer register for error strings from
+; host to parasite. In both cases, the host interrupts the parasite by
+; placing a byte into the Register. In the former case it is a byte
+; describing the required action, in the latter it is an error code.
+
+; write (sets IRQ)/read (clears IRQ)
+status4:
+                .fill 1
+
+; bit 7 - data available/IRQ
+; bit 6 - not full/IRQ
+data4:
+                .fill 1
+                .bend
+                .endv
+                
 ; Presumed addresses in ANDY that don't happen to coincide with other
 ; labels.
 ; 
@@ -4538,9 +4602,9 @@ L9D72:
                 cpy #$00                     ; 9D78= C0 00       @.
                 beq L9DCC                    ; 9D7A= F0 50       pP
 L9D7C:
-                bit TUBE+0                   ; 9D7C= 2C E0 FE    ,`~
+                bit tube.status1                   ; 9D7C= 2C E0 FE    ,`~
                 bpl L9D7C                    ; 9D7F= 10 FB       .{
-                lda TUBE+1                   ; 9D81= AD E1 FE    -a~
+                lda tube.data1                   ; 9D81= AD E1 FE    -a~
                 beq L9DCA                    ; 9D84= F0 44       pD
                 jsr OSWRCH                   ; 9D86= 20 EE FF     n.
                 jmp L9D7C                    ; 9D89= 4C 7C 9D    L|.
@@ -4555,7 +4619,7 @@ L9D8C:
                 lda #>tubeBrkHandlerAddr      ; 9D9B= A9 00       ).
                 sta BRKV+1                    ; 9D9D= 8D 03 02    ...
                 lda #$8E                     ; 9DA0= A9 8E       ).
-                sta TUBE+0                   ; 9DA2= 8D E0 FE    .`~
+                sta tube.status1                   ; 9DA2= 8D E0 FE    .`~
                 ldy #$00                     ; 9DA5= A0 00        .
 L9DA7:
                 lda tubeHost.codePage0,y                  ; 9DA7= B9 6E AB    9n+
@@ -5560,7 +5624,7 @@ LA3D3:
                 plx                          ; A3E0= FA          z
                 phx                          ; A3E1= DA          Z
                 beq LA3E9                    ; A3E2= F0 05       p.
-                sta TUBE+5                   ; A3E4= 8D E5 FE    .e~
+                sta tube.data3                   ; A3E4= 8D E5 FE    .e~
                 bra LA3F1                    ; A3E7= 80 08       ..
 
 LA3E9:
@@ -5590,7 +5654,7 @@ LA401:
                 pla                          ; A409= 68          h
                 pha                          ; A40A= 48          H
                 beq LA412                    ; A40B= F0 05       p.
-                lda TUBE+5                   ; A40D= AD E5 FE    -e~
+                lda tube.data3                   ; A40D= AD E5 FE    -e~
                 bra LA41A                    ; A410= 80 08       ..
 
 LA412:
@@ -5742,7 +5806,7 @@ LA4B5:
                 bmi LA4D3                    ; A4C4= 30 0D       0.
                 jsr LAABC                    ; A4C6= 20 BC AA     <*
                 beq LA4D0                    ; A4C9= F0 05       p.
-                stx TUBE+5                   ; A4CB= 8E E5 FE    .e~
+                stx tube.data3                   ; A4CB= 8E E5 FE    .e~
                 bra LA4D3                    ; A4CE= 80 03       ..
 
 LA4D0:
@@ -6126,7 +6190,7 @@ LA71E:
 LA737:
                 jsr LAABC                    ; A737= 20 BC AA     <*
                 beq LA741                    ; A73A= F0 05       p.
-                lda TUBE+5                   ; A73C= AD E5 FE    -e~
+                lda tube.data3                   ; A73C= AD E5 FE    -e~
                 bra LA743                    ; A73F= 80 02       ..
 
 LA741:
@@ -6796,57 +6860,65 @@ LAAFF:
 LAB2A:
                 jmp LA978                    ; AB2A= 4C 78 A9    Lx)
 
-tubeHost: .block          ;tube code
-                
-brkHandler: .block
-                .logical tubeBrkHandlerAddr
-                lda #$FF                     ; AB2D= A9 FF       ).
-                jsr tubeHost.LADD1                    ; AB2F= 20 6C 06     l.
-                lda TUBE+3                   ; AB32= AD E3 FE    -c~
-                lda #$00                     ; AB35= A9 00       ).
-                jsr tubeHost.LADC6                    ; AB37= 20 61 06     a.
-                tay                          ; AB3A= A8          (
-                lda ($FD),y                  ; AB3B= B1 FD       1}
-                jsr tubeHost.LADC6                    ; AB3D= 20 61 06     a.
-LAB40:
-                iny                          ; AB40= C8          H
-                lda ($FD),y                  ; AB41= B1 FD       1}
-                jsr LADC6                    ; AB43= 20 61 06     a.
-                tax                          ; AB46= AA          *
-                bne LAB40                    ; AB47= D0 F7       Pw
-                ldx #$FF                     ; AB49= A2 FF       ".
-                txs                          ; AB4B= 9A          .
-                cli                          ; AB4C= 58          X
-LAB4D:
-                bit TUBE+0                   ; AB4D= 2C E0 FE    ,`~
-                bpl LAB58                    ; AB50= 10 06       ..
-LAB52:
-                lda TUBE+1                   ; AB52= AD E1 FE    -a~
-                jsr OSWRCH                   ; AB55= 20 EE FF     n.
-LAB58:
-                bit TUBE+2                   ; AB58= 2C E2 FE    ,b~
-                bpl LAB4D                    ; AB5B= 10 F0       .p
-                bit TUBE+0                   ; AB5D= 2C E0 FE    ,`~
-                bmi LAB52                    ; AB60= 30 F0       0p
-                ldx TUBE+3                   ; AB62= AE E3 FE    .c~
-                stx $51                      ; AB65= 86 51       .Q
-                jmp (tubeHost.commandRoutines+0)  ; AB67= 6C 00 05    l..
-
-                brk                          ; AB6A= 00          .
-                bra LAB6D                    ; AB6B= 80 00       ..
-
-LAB6D:
-                brk                          ; AB6D= 00          .
-                .here
-size=*-brkHandler
-                .bend
-                
 ;-------------------------------------------------------------------------
 ;
 ; Tube host code
 ;
 ; See http://mdfs.net/Software/Tube/M128/Host320.lst
+;
+; I mostly just copied JGH's comments here.
 
+tubeHost: .block          ;tube code
+                
+brkHandler: .block
+                .logical tubeBrkHandlerAddr
+                lda #$FF
+                jsr sendR4       ;send $ff via R4 to interrupt copro
+                lda tube.data2   ;get ACK byte from copro
+                lda #$00
+                jsr sendR2       ;send $00 via R2 to specify ERROR
+                tay              ;Y=0
+                lda ($FD),y      ;get error number
+                jsr sendR2       ;send error number via R2
+-
+                iny             ;next char
+                lda ($FD),y     ;fetch error string char
+                jsr sendR2      ;send via R2
+                tax             ;set N/Z as per error string char
+                bne -           ;repeat until terminating $00 sent
+                ldx #$FF
+                txs             ;clear stack
+                cli
+idleLoop:
+                bit tube.status1 ;is there a char in R1?
+                bpl LAB58        ;branch taken if no char in R1
+handleOSWRCH:
+                lda tube.data1  ;get char from R1
+                jsr OSWRCH      ;pass to OSWRCH
+LAB58:
+                bit tube.status2 ;is there a command in R2?
+                bpl idleLoop     ;branch taken if no command in R2
+                bit tube.status1 ;is there a char in R1?
+                bmi handleOSWRCH ;branch taken if char in R1
+                ldx tube.data2   ;get command from R2
+                stx callCommandRoutine+1 ;use as index into command
+                                         ;table
+callCommandRoutine:
+                ; not sure why this can't be jmp
+                ; (tubeHost.commandRoutines,x)?
+                jmp (tubeHost.commandRoutines)
+
+                .byte $00
+                .byte $80
+                .byte $00
+AB6D:
+                .byte $00
+                .here
+size=*-brkHandler
+                .bend
+
+; Slightly ugly alias for inner symbol :(
+idleLoop=brkHandler.idleLoop                
 
 codePage0:
                 .logical tubeHostAddr
@@ -6868,7 +6940,7 @@ LAB82:
                 php                          ; AB82= 08          .
                 sei                          ; AB83= 78          x
                 lda #$05                     ; AB84= A9 05       ).
-                jsr LADD1
+                jsr sendR4
                 jsr LADCF                    ; AB89= 20 6A 06     j.
                 plp                          ; AB8C= 28          (
 LAB8D:
@@ -6895,42 +6967,42 @@ LABA1:
                 sei                          ; ABA2= 78          x
                 sty $13                      ; ABA3= 84 13       ..
                 stx $12                      ; ABA5= 86 12       ..
-                jsr LADD1                    ; ABA7= 20 6C 06     l.
+                jsr sendR4                    ; ABA7= 20 6C 06     l.
                 tax                          ; ABAA= AA          *
                 ldy #$03                     ; ABAB= A0 03        .
                 jsr LADCF                    ; ABAD= 20 6A 06     j.
 LABB0:
                 lda ($12),y                  ; ABB0= B1 12       1.
-                jsr LADD1                    ; ABB2= 20 6C 06     l.
+                jsr sendR4                    ; ABB2= 20 6C 06     l.
                 dey                          ; ABB5= 88          .
                 bpl LABB0                    ; ABB6= 10 F8       .x
                 ldy #$18                     ; ABB8= A0 18        .
-                sty TUBE+0                   ; ABBA= 8C E0 FE    .`~
+                sty tube.status1                   ; ABBA= 8C E0 FE    .`~
                 lda dataTransferFlags,x
-                sta TUBE+0                   ; ABC0= 8D E0 FE    .`~
+                sta tube.status1                   ; ABC0= 8D E0 FE    .`~
                 lsr a                        ; ABC3= 4A          J
                 lsr a                        ; ABC4= 4A          J
                 bcc LABCD                    ; ABC5= 90 06       ..
-                bit TUBE+5                   ; ABC7= 2C E5 FE    ,e~
-                bit TUBE+5                   ; ABCA= 2C E5 FE    ,e~
+                bit tube.data3                   ; ABC7= 2C E5 FE    ,e~
+                bit tube.data3                   ; ABCA= 2C E5 FE    ,e~
 LABCD:
-                jsr LADD1                    ; ABCD= 20 6C 06     l.
+                jsr sendR4                    ; ABCD= 20 6C 06     l.
 LABD0:
-                bit TUBE+6                   ; ABD0= 2C E6 FE    ,f~
+                bit tube.status4                   ; ABD0= 2C E6 FE    ,f~
                 bvc LABD0                    ; ABD3= 50 FB       P{
                 bcs LABE4                    ; ABD5= B0 0D       0.
                 cpx #$04                     ; ABD7= E0 04       `.
                 bne LABEC                    ; ABD9= D0 11       P.
 LABDB:
                 jsr LAB82                    ; ABDB= 20 14 04     ..
-                jsr LADC6                    ; ABDE= 20 61 06     a.
+                jsr sendR2                    ; ABDE= 20 61 06     a.
                 jmp $0032                    ; ABE1= 4C 32 00    L2.
 
 LABE4:
                 lsr a                        ; ABE4= 4A          J
                 bcc LABEC                    ; ABE5= 90 05       ..
                 ldy #$88                     ; ABE7= A0 88        .
-                sty TUBE+0                   ; ABE9= 8C E0 FE    .`~
+                sty tube.status1                   ; ABE9= 8C E0 FE    .`~
 LABEC:
                 plp                          ; ABEC= 28          (
                 rts                          ; ABED= 60          `
@@ -6952,7 +7024,7 @@ LABFD:
                 stz $00                      ; AC06= 64 00       d.
 LAC08:
                 lda ($00),y                  ; AC08= B1 00       1.
-                sta TUBE+5                   ; AC0A= 8D E5 FE    .e~
+                sta tube.data3                   ; AC0A= 8D E5 FE    .e~
                 nop                          ; AC0D= EA          j
                 nop                          ; AC0E= EA          j
                 nop                          ; AC0F= EA          j
@@ -7009,18 +7081,20 @@ LAC60:
 
 codePages12:
                 .logical tubeHostAddr+256
+
+; names of the indexes here come from app note 004
 commandRoutines:
-                .word LAC9A
-                .word LACED
-                .word LAD3F
-                .word LAD50
+                .word doRDCH    ;RDCHNO
+                .word doCLI     ;CLINO
+                .word doSBYT    ;SBYTNO
+                .word LAD50     ;BYTENO
                 .word LAD6C
                 .word LAD9B
                 .word LACBE
                 .word LAC91
                 .word LAC85
                 .word LACA4
-                .word LAD17
+                .word callOSFILE
                 .word LACFF
 
                 ; Tube data transfer flags
@@ -7035,82 +7109,96 @@ dataTransferFlags:
                 .byte $18        ;  I/O->CoPro 256 bytes
 
 LAC85:
-                jsr LAE06                    ; AC85= 20 A1 06     !.
+                jsr recvR2                    ; AC85= 20 A1 06     !.
                 tay                          ; AC88= A8          (
-                jsr LAE06                    ; AC89= 20 A1 06     !.
+                jsr recvR2                    ; AC89= 20 A1 06     !.
                 jsr OSBPUT                   ; AC8C= 20 D4 FF     T.
 LAC8F:
                 bra LACF3                    ; AC8F= 80 62       .b
 
 LAC91:
-                jsr LAE06                    ; AC91= 20 A1 06     !.
+                jsr recvR2                    ; AC91= 20 A1 06     !.
                 tay                          ; AC94= A8          (
                 jsr OSBGET                   ; AC95= 20 D7 FF     W.
 LAC98:
                 bra LAC9D                    ; AC98= 80 03       ..
 
-LAC9A:
+doRDCH:
                 jsr OSRDCH                   ; AC9A= 20 E0 FF     `.
 LAC9D:
                 ror a                        ; AC9D= 6A          j
-                jsr LADC6                    ; AC9E= 20 61 06     a.
+                jsr sendR2                    ; AC9E= 20 61 06     a.
                 rol a                        ; ACA1= 2A          *
                 bra LACF5                    ; ACA2= 80 51       .Q
 
 LACA4:
-                jsr LAE06                    ; ACA4= 20 A1 06     !.
+                jsr recvR2                    ; ACA4= 20 A1 06     !.
                 beq LACB3                    ; ACA7= F0 0A       p.
                 pha                          ; ACA9= 48          H
-                jsr LACD9                    ; ACAA= 20 74 05     t.
+                jsr recvR2String                    ; ACAA= 20 74 05     t.
                 pla                          ; ACAD= 68          h
                 jsr OSFIND                   ; ACAE= 20 CE FF     N.
                 bra LACF5                    ; ACB1= 80 42       .B
 
 LACB3:
-                jsr LAE06                    ; ACB3= 20 A1 06     !.
+                jsr recvR2                    ; ACB3= 20 A1 06     !.
                 tay                          ; ACB6= A8          (
                 lda #$00                     ; ACB7= A9 00       ).
                 jsr OSFIND                   ; ACB9= 20 CE FF     N.
                 bra LACF3                    ; ACBC= 80 35       .5
                 
 LACBE:
-                jsr LAE06                    ; ACBE= 20 A1 06     !.
+                jsr recvR2                    ; ACBE= 20 A1 06     !.
                 tay                          ; ACC1= A8          (
                 ldx #$04                     ; ACC2= A2 04       ".
                 jsr LADF8                    ; ACC4= 20 93 06     ..
                 jsr OSARGS                   ; ACC7= 20 DA FF     Z.
-                jsr LADC6                    ; ACCA= 20 61 06     a.
+                jsr sendR2                    ; ACCA= 20 61 06     a.
                 ldx #$03                     ; ACCD= A2 03       ".
 LACCF:
                 lda $00,x                    ; ACCF= B5 00       5.
-                jsr LADC6                    ; ACD1= 20 61 06     a.
+                jsr sendR2                    ; ACD1= 20 61 06     a.
                 dex                          ; ACD4= CA          J
                 bpl LACCF                    ; ACD5= 10 F8       .x
                 bra LACFD                    ; ACD7= 80 24       .$
 
-LACD9:
-                ldx #$00                     ; ACD9= A2 00       ".
-                ldy #$00                     ; ACDB= A0 00        .
-LACDD:
-                jsr LAE06                    ; ACDD= 20 A1 06     !.
-                sta $0700,y                  ; ACE0= 99 00 07    ...
-                iny                          ; ACE3= C8          H
-                beq LACEA                    ; ACE4= F0 04       p.
-                cmp #$0D                     ; ACE6= C9 0D       I.
-                bne LACDD                    ; ACE8= D0 F3       Ps
-LACEA:
-                ldy #$07                     ; ACEA= A0 07        .
-                rts                          ; ACEC= 60          `
+;-------------------------------------------------------------------------
+;
+; Receive a CR-terminated string over the Tube via R2.
+;
+; exit:
+; YX = pointer to received string (here, always $0700)
+;
+recvR2String: .proc
+                ldx #$00
+                ldy #$00        ;index
+-
+                jsr recvR2      ;get next string char
+                sta $0700,y     ;store in string buffer
+                iny
+                beq +           ;taken if too many bytes received
+                cmp #$0D
+                bne -           ;taken if end of string data not reached
++
+                ldy #$07        ;on exit, YX=$0700
+                rts                          
+                .pend
 
-LACED:
-                jsr LACD9                    ; ACED= 20 74 05     t.
-                jsr OSCLI                   ; ACF0= 20 F7 FF     w.
+;-------------------------------------------------------------------------
+;
+; Handle a Tube OSCLI request.
+;
+; See App Note 004 p22
+;
+doCLI:
+                jsr recvR2String
+                jsr OSCLI
 LACF3:
                 lda #$7F                     ; ACF3= A9 7F       ).
 LACF5:
-                bit TUBE+2                   ; ACF5= 2C E2 FE    ,b~
+                bit tube.status2                   ; ACF5= 2C E2 FE    ,b~
                 bvc LACF5                    ; ACF8= 50 FB       P{
-                sta TUBE+3                   ; ACFA= 8D E3 FE    .c~
+                sta tube.data2                   ; ACFA= 8D E3 FE    .c~
 LACFD:
                 bra LAD4D                    ; ACFD= 80 4E       .N
 
@@ -7123,66 +7211,67 @@ LACFF:
                 ldx #$0C                     ; AD0A= A2 0C       ".
 LAD0C:
                 lda $00,x                    ; AD0C= B5 00       5.
-                jsr LADC6                    ; AD0E= 20 61 06     a.
+                jsr sendR2                    ; AD0E= 20 61 06     a.
                 dex                          ; AD11= CA          J
                 bpl LAD0C                    ; AD12= 10 F8       .x
                 pla                          ; AD14= 68          h
                 bra LAC9D                    ; AD15= 80 86       ..
-
-LAD17:
+                
+callOSFILE: .proc
                 ldx #$10                     ; AD17= A2 10       ".
-LAD19:
-                jsr LAE06                    ; AD19= 20 A1 06     !.
+-
+                jsr recvR2                    ; AD19= 20 A1 06     !.
                 sta $01,x                    ; AD1C= 95 01       ..
                 dex                          ; AD1E= CA          J
-                bne LAD19                    ; AD1F= D0 F8       Px
-                jsr LACD9                    ; AD21= 20 74 05     t.
+                bne -
+                jsr recvR2String                    ; AD21= 20 74 05     t.
                 stx $00                      ; AD24= 86 00       ..
                 sty $01                      ; AD26= 84 01       ..
                 ldy #$00                     ; AD28= A0 00        .
-                jsr LAE06                    ; AD2A= 20 A1 06     !.
+                jsr recvR2                    ; AD2A= 20 A1 06     !.
                 jsr OSFILE                   ; AD2D= 20 DD FF     ].
-                jsr LADC6                    ; AD30= 20 61 06     a.
+                jsr sendR2                    ; AD30= 20 61 06     a.
                 ldx #$10                     ; AD33= A2 10       ".
-LAD35:
+-
                 lda $01,x                    ; AD35= B5 01       5.
-                jsr LADC6                    ; AD37= 20 61 06     a.
+                jsr sendR2                    ; AD37= 20 61 06     a.
                 dex                          ; AD3A= CA          J
-                bne LAD35                    ; AD3B= D0 F8       Px
+                bne -
                 bra LAD4D                    ; AD3D= 80 0E       ..
+                .pend
 
-LAD3F:
-                jsr LAE02                    ; AD3F= 20 9D 06     ..
+doSBYT:
+                jsr recvR2XA                    ; AD3F= 20 9D 06     ..
                 jsr OSBYTE                   ; AD42= 20 F4 FF     t.
 LAD45:
-                bit TUBE+2                   ; AD45= 2C E2 FE    ,b~
+                bit tube.status2                   ; AD45= 2C E2 FE    ,b~
                 bvc LAD45                    ; AD48= 50 FB       P{
-                stx TUBE+3                   ; AD4A= 8E E3 FE    .c~
+                stx tube.data2                   ; AD4A= 8E E3 FE    .c~
 LAD4D:
-                jmp $0036                    ; AD4D= 4C 36 00    L6.
+                jmp idleLoop                    ; AD4D= 4C 36 00    L6.
 
 LAD50:
-                jsr LAE02                    ; AD50= 20 9D 06     ..
+                jsr recvR2XA                    ; AD50= 20 9D 06     ..
                 tay                          ; AD53= A8          (
-                jsr LAE06                    ; AD54= 20 A1 06     !.
+                jsr recvR2                    ; AD54= 20 A1 06     !.
                 jsr OSBYTE                   ; AD57= 20 F4 FF     t.
                 eor #$9D                     ; AD5A= 49 9D       I.
                 beq LAD4D                    ; AD5C= F0 EF       po
                 ror a                        ; AD5E= 6A          j
-                jsr LADC6                    ; AD5F= 20 61 06     a.
+                jsr sendR2                    ; AD5F= 20 61 06     a.
 LAD62:
-                bit TUBE+2                   ; AD62= 2C E2 FE    ,b~
+                bit tube.status2                   ; AD62= 2C E2 FE    ,b~
                 bvc LAD62                    ; AD65= 50 FB       P{
-                sty TUBE+3                   ; AD67= 8C E3 FE    .c~
+                sty tube.data2                   ; AD67= 8C E3 FE    .c~
                 bra LAD45                    ; AD6A= 80 D9       .Y
 
 LAD6C:
-                jsr LAE06                    ; AD6C= 20 A1 06     !.
+                jsr recvR2                    ; AD6C= 20 A1 06     !.
                 tay                          ; AD6F= A8          (
                 jsr LAE0F                    ; AD70= 20 AA 06     *.
                 bmi LAD7F                    ; AD73= 30 0A       0.
 LAD75:
-                jsr LAE06                    ; AD75= 20 A1 06     !.
+                jsr recvR2                    ; AD75= 20 A1 06     !.
                 sta $0128,x                  ; AD78= 9D 28 01    .(.
                 dex                          ; AD7B= CA          J
                 bpl LAD75                    ; AD7C= 10 F7       .w
@@ -7196,9 +7285,9 @@ LAD7F:
 LAD8B:
                 ldy $0128,x                  ; AD8B= BC 28 01    <(.
 LAD8E:
-                bit TUBE+2                   ; AD8E= 2C E2 FE    ,b~
+                bit tube.status2                   ; AD8E= 2C E2 FE    ,b~
                 bvc LAD8E                    ; AD91= 50 FB       P{
-                sty TUBE+3                   ; AD93= 8C E3 FE    .c~
+                sty tube.data2                   ; AD93= 8C E3 FE    .c~
                 dex                          ; AD96= CA          J
                 bpl LAD8B                    ; AD97= 10 F2       .r
 LAD99:
@@ -7207,7 +7296,7 @@ LAD99:
 LAD9B:
                 ldx #$04                     ; AD9B= A2 04       ".
 LAD9D:
-                jsr LAE06                    ; AD9D= 20 A1 06     !.
+                jsr recvR2                    ; AD9D= 20 A1 06     !.
                 sta $00,x                    ; ADA0= 95 00       ..
                 dex                          ; ADA2= CA          J
                 bpl LAD9D                    ; ADA3= 10 F8       .x
@@ -7222,28 +7311,28 @@ LAD9D:
 LADB2:
                 ldx #$00                     ; ADB2= A2 00       ".
                 lda #$7F                     ; ADB4= A9 7F       ).
-                jsr LADC6                    ; ADB6= 20 61 06     a.
+                jsr sendR2                    ; ADB6= 20 61 06     a.
 LADB9:
                 lda $0700,x                  ; ADB9= BD 00 07    =..
-                jsr LADC6                    ; ADBC= 20 61 06     a.
+                jsr sendR2                    ; ADBC= 20 61 06     a.
                 inx                          ; ADBF= E8          h
                 cmp #$0D                     ; ADC0= C9 0D       I.
                 bne LADB9                    ; ADC2= D0 F5       Pu
                 bra LAD99                    ; ADC4= 80 D3       .S
 
-LADC6:
-                bit TUBE+2                   ; ADC6= 2C E2 FE    ,b~
-                bvc LADC6                    ; ADC9= 50 FB       P{
-                sta TUBE+3                   ; ADCB= 8D E3 FE    .c~
+sendR2:                          ;adc6/0661
+                bit tube.status2                   ; ADC6= 2C E2 FE    ,b~
+                bvc sendR2                    ; ADC9= 50 FB       P{
+                sta tube.data2                   ; ADCB= 8D E3 FE    .c~
                 rts                          ; ADCE= 60          `
                 
-LADCF:
-                lda $15                      ; ADCF= A5 15       %.
-LADD1:
-                bit TUBE+6                   ; ADD1= 2C E6 FE    ,f~
-                bvc LADD1                    ; ADD4= 50 FB       P{
-                sta TUBE+7                   ; ADD6= 8D E7 FE    .g~
-                rts                          ; ADD9= 60          `
+LADCF:                           ;adcf
+                lda $15          ;get Tube ID
+sendR4:                          ;add1/066c
+                bit tube.status4 ;check R4 status
+                bvc sendR4       ;branch taken if FIFO full
+                sta tube.data4   ;put byte in FIFO
+                rts
 
 LADDA:
                 lda $FF                      ; ADDA= A5 FF       %.
@@ -7261,31 +7350,31 @@ LADE0:
                 jsr LADEF                    ; ADEB= 20 8A 06     ..
                 pla                          ; ADEE= 68          h
 LADEF:
-                bit TUBE+0                   ; ADEF= 2C E0 FE    ,`~
+                bit tube.status1                   ; ADEF= 2C E0 FE    ,`~
                 bvc LADEF                    ; ADF2= 50 FB       P{
-                sta TUBE+1                   ; ADF4= 8D E1 FE    .a~
+                sta tube.data1                   ; ADF4= 8D E1 FE    .a~
                 rts                          ; ADF7= 60          `
 
 LADF8:
-                jsr LAE06                    ; ADF8= 20 A1 06     !.
+                jsr recvR2                    ; ADF8= 20 A1 06     !.
                 sta $FF,x                    ; ADFB= 95 FF       ..
                 dex                          ; ADFD= CA          J
                 bne LADF8                    ; ADFE= D0 F8       Px
-                bra LAE06                    ; AE00= 80 04       ..
+                bra recvR2                    ; AE00= 80 04       ..
 
-LAE02:
-                jsr LAE06                    ; AE02= 20 A1 06     !.
+recvR2XA:
+                jsr recvR2                    ; AE02= 20 A1 06     !.
                 tax                          ; AE05= AA          *
-LAE06:
-                bit TUBE+2                   ; AE06= 2C E2 FE    ,b~
-                bpl LAE06                    ; AE09= 10 FB       .{
-                lda TUBE+3                   ; AE0B= AD E3 FE    -c~
+recvR2:
+                bit tube.status2                   ; AE06= 2C E2 FE    ,b~
+                bpl recvR2                    ; AE09= 10 FB       .{
+                lda tube.data2                   ; AE0B= AD E3 FE    -c~
                 rts                          ; AE0E= 60          `
 
 LAE0F:
-                bit TUBE+2                   ; AE0F= 2C E2 FE    ,b~
+                bit tube.status2                   ; AE0F= 2C E2 FE    ,b~
                 bpl LAE0F                    ; AE12= 10 FB       .{
-                ldx TUBE+3                   ; AE14= AE E3 FE    .c~
+                ldx tube.data2                   ; AE14= AE E3 FE    .c~
                 dex                          ; AE17= CA          J
                 rts                          ; AE18= 60          `
                 .here
@@ -17216,12 +17305,12 @@ resetEntryPoint:                ;e364
 ; ----------------------------------------------
 LE375:
                 ldx #$01                     ;
-                stx TUBE+0
-                lda TUBE+0                   ;
+                stx tube.status1
+                lda tube.status1                   ;
                 eor #$01
                 ldx #$81                     ;
-                stx TUBE+0
-                and TUBE+0                   ; Cy=0 if no Tube, Cy=1 if Tube
+                stx tube.status1
+                and tube.status1                   ; Cy=0 if no Tube, Cy=1 if Tube
                 ror a
                 rts
 

@@ -372,7 +372,17 @@ tube: .block
 ; IRQ's in the parasite from events in the host.
 
 ; write/read (clears IRQ)
-status1:
+status1: .block
+; App Note 004 p13
+Q=$01                           ;enable HIRQ from R4
+I=$02                           ;enable PIRQ from R1
+J=$04                           ;enable PIRQ from R3
+M=$08                           ;enable PNMI from R3
+V=$10                           ;2-byte R3
+P=$20                           ;activate PRST
+T=$40                           ;clear all Tube registers
+S=$80                           ;set/clear bits
+                .bend
                 .fill 1
 
 ; bit 7 - data available/IRQ
@@ -498,6 +508,20 @@ XBEBE=$BEBE
 
                 ; written to during startup
 LFE8E=$fe8e
+
+                .virtual $00
+tubeLanguageHostAddr: .fill 2
+                .endv
+                
+                .virtual $12
+tubeTransferAddr: .fill 2
+tubeClaimed: .fill 1            ;bit 7 clear if tube claimed
+tubeClaimantID: .fill 1
+                .endv
+
+                .virtual $53
+tubeLanguageParasiteAddr: .fill 4
+                .endv
 
 ; MasRef E.4-4
 
@@ -6876,16 +6900,17 @@ brkHandler: .block
                 jsr sendR4       ;send $ff via R4 to interrupt copro
                 lda tube.data2   ;get ACK byte from copro
                 lda #$00
-                jsr sendR2       ;send $00 via R2 to specify ERROR
-                tay              ;Y=0
-                lda ($FD),y      ;get error number
-                jsr sendR2       ;send error number via R2
+                jsr sendR2A       ;send $00 via R2 to specify ERROR
+                tay               ;Y=0
+                lda ($FD),y       ;get error number
+                jsr sendR2A       ;send error number via R2
 -
                 iny             ;next char
                 lda ($FD),y     ;fetch error string char
-                jsr sendR2      ;send via R2
+                jsr sendR2A     ;send via R2
                 tax             ;set N/Z as per error string char
                 bne -           ;repeat until terminating $00 sent
+idleStartup:
                 ldx #$FF
                 txs             ;clear stack
                 cli
@@ -6905,20 +6930,19 @@ LAB58:
                                          ;table
 callCommandRoutine:
                 ; not sure why this can't be jmp
-                ; (tubeHost.commandRoutines,x)?
+                ; (tubeHost.commandRoutines,x)? - and then the table
+                ; wouldn't have to be page-aligned.
                 jmp (tubeHost.commandRoutines)
 
-                .byte $00
-                .byte $80
-                .byte $00
-AB6D:
-                .byte $00
+                ; ???
+                .dword $8000
                 .here
 size=*-brkHandler
                 .bend
 
-; Slightly ugly alias for inner symbol :(
-idleLoop=brkHandler.idleLoop                
+; Slightly ugly aliases for inner symbol :(
+idleStartup=brkHandler.idleStartup
+idleLoop=brkHandler.idleLoop
 
 codePage0:
                 .logical tubeHostAddr
@@ -6927,21 +6951,22 @@ copyLanguage:
 
 copyEscapeStatus:
                 jmp LADDA
-                
+
+; Tube transfer/claim/release
 entryPoint:
-                cmp #$80                     ; AB74= C9 80       I.
-                bcc LABA1                    ; AB76= 90 29       .)
-                cmp #$C0                     ; AB78= C9 C0       I@
-                bcs LAB94                    ; AB7A= B0 18       0.
-                ora #$40                     ; AB7C= 09 40       .@
-                cmp $15                      ; AB7E= C5 15       E.
-                bne LABA0                    ; AB80= D0 1E       P.
-LAB82:
+                cmp #$80
+                bcc dataTransfer
+                cmp #$C0
+                bcs claim
+                ora #$40
+                cmp $15
+                bne done
+release:
                 php                          ; AB82= 08          .
                 sei                          ; AB83= 78          x
                 lda #$05                     ; AB84= A9 05       ).
                 jsr sendR4
-                jsr LADCF                    ; AB89= 20 6A 06     j.
+                jsr sendR4TubeClaimantID
                 plp                          ; AB8C= 28          (
 LAB8D:
                 lda #$80                     ; AB8D= A9 80       ).
@@ -6949,134 +6974,170 @@ LAB8D:
                 sta $14                      ; AB91= 85 14       ..
                 rts                          ; AB93= 60          `
 
-LAB94:
-                asl $14                      ; AB94= 06 14       ..
-                bcs LAB9E                    ; AB96= B0 06       0.
-                cmp $15                      ; AB98= C5 15       E.
-                beq LABA0                    ; AB9A= F0 04       p.
-                clc                          ; AB9C= 18          .
-                rts                          ; AB9D= 60          `
+claim:
+                asl tubeClaimed    ;test if Tube free
+                bcs claim2         ;taken if Tube free - with C=1 and
+                                   ;tube marked as claimed
+                cmp tubeClaimantID
+                beq done       ;taken with C=1 if already claimed
+                clc            ;signal claim failure
+                rts
 
-LAB9E:
-                sta $15                      ; AB9E= 85 15       ..
-LABA0:
-                rts                          ; ABA0= 60          `
+claim2:
+                sta tubeClaimantID ; store claimant ID
+done:
+                rts
 
-LABA1:
-                php                          ; ABA1= 08          .
-                sei                          ; ABA2= 78          x
-                sty $13                      ; ABA3= 84 13       ..
-                stx $12                      ; ABA5= 86 12       ..
-                jsr sendR4                    ; ABA7= 20 6C 06     l.
-                tax                          ; ABAA= AA          *
-                ldy #$03                     ; ABAB= A0 03        .
-                jsr LADCF                    ; ABAD= 20 6A 06     j.
-LABB0:
-                lda ($12),y                  ; ABB0= B1 12       1.
-                jsr sendR4                    ; ABB2= 20 6C 06     l.
-                dey                          ; ABB5= 88          .
-                bpl LABB0                    ; ABB6= 10 F8       .x
-                ldy #$18                     ; ABB8= A0 18        .
-                sty tube.status1                   ; ABBA= 8C E0 FE    .`~
+dataTransfer:
+                php
+                sei
+                sty tubeTransferAddr+1
+                stx tubeTransferAddr+0
+                jsr sendR4      ;send reason code to interrupt copro
+                tax             ;save reason code
+                ldy #$03        ;will send 4 bytes
+                jsr sendR4TubeClaimantID ;send Tube claimant ID
+-
+                lda (tubeTransferAddr),y
+                jsr sendR4
+                dey
+                bpl -
+
+                ; disable R3 FIFO, disable R3 NMI
+                ldy #tube.status1.V|tube.status1.M
+                sty tube.status1
+
+                ; disable/enable other per-transfer type flags as
+                ; appropriate.
                 lda dataTransferFlags,x
-                sta tube.status1                   ; ABC0= 8D E0 FE    .`~
-                lsr a                        ; ABC3= 4A          J
-                lsr a                        ; ABC4= 4A          J
-                bcc LABCD                    ; ABC5= 90 06       ..
-                bit tube.data3                   ; ABC7= 2C E5 FE    ,e~
-                bit tube.data3                   ; ABCA= 2C E5 FE    ,e~
-LABCD:
-                jsr sendR4                    ; ABCD= 20 6C 06     l.
-LABD0:
-                bit tube.status4                   ; ABD0= 2C E6 FE    ,f~
-                bvc LABD0                    ; ABD3= 50 FB       P{
-                bcs LABE4                    ; ABD5= B0 0D       0.
-                cpx #$04                     ; ABD7= E0 04       `.
-                bne LABEC                    ; ABD9= D0 11       P.
+                sta tube.status1 ;STPVMJIQ
+
+                lsr a           ;0STPVMJI Q
+                lsr a           ;00STPVMJ I
+                bcc +           ;branch taken if CoPro->I/O transfer
+
+                ; Read R3 twice to delay and empty FIFO
+                bit tube.data3
+                bit tube.data3
++
+                jsr sendR4      ;send value to synchronize
+-
+                bit tube.status4
+                bvc -
+                bcs LABE4       ;branch taken if I/O->CoPro transfer
+                cpx #$04        ;$04 = execute in CoPro
+                bne LABEC       ;taken if not execute in CoPro
 LABDB:
-                jsr LAB82                    ; ABDB= 20 14 04     ..
-                jsr sendR2                    ; ABDE= 20 61 06     a.
-                jmp $0032                    ; ABE1= 4C 32 00    L2.
+                jsr release                    ; ABDB= 20 14 04     ..
+                jsr sendR2A                    ; ABDE= 20 61 06     a.
+                jmp idleStartup                ; ABE1= 4C 32 00    L2.
 
 LABE4:
-                lsr a                        ; ABE4= 4A          J
-                bcc LABEC                    ; ABE5= 90 05       ..
-                ldy #$88                     ; ABE7= A0 88        .
-                sty tube.status1                   ; ABE9= 8C E0 FE    .`~
+                lsr a            ;000STPVM J
+                bcc LABEC        ;branch taken if J=0
+                ldy #tube.status1.S|tube.status1.M
+                sty tube.status1
 LABEC:
                 plp                          ; ABEC= 28          (
                 rts                          ; ABED= 60          `
 
 LABEE:
-                ldx $028D                    ; ABEE= AE 8D 02    ...
-                beq LABDB                    ; ABF1= F0 E8       ph
-LABF3:
-                lda #$FF                     ; ABF3= A9 FF       ).
-                jsr tubeHost.entryPoint                    ; ABF5= 20 06 04     ..
-                bcc LABF3                    ; ABF8= 90 F9       .y
-                jsr LAC37                    ; ABFA= 20 C9 04     I.
-LABFD:
-                php                          ; ABFD= 08          .
-                sei                          ; ABFE= 78          x
-                lda #$07                     ; ABFF= A9 07       ).
-                jsr LAC29                    ; AC01= 20 BB 04     ;.
-                ldy #$00                     ; AC04= A0 00        .
-                stz $00                      ; AC06= 64 00       d.
-LAC08:
-                lda ($00),y                  ; AC08= B1 00       1.
-                sta tube.data3                   ; AC0A= 8D E5 FE    .e~
-                nop                          ; AC0D= EA          j
-                nop                          ; AC0E= EA          j
-                nop                          ; AC0F= EA          j
-                iny                          ; AC10= C8          H
-                bne LAC08                    ; AC11= D0 F5       Pu
-                plp                          ; AC13= 28          (
-                inc $54                      ; AC14= E6 54       fT
-                bne LAC1E                    ; AC16= D0 06       P.
-                inc $55                      ; AC18= E6 55       fU
-                bne LAC1E                    ; AC1A= D0 02       P.
-                inc $56                      ; AC1C= E6 56       fV
-LAC1E:
-                inc $01                      ; AC1E= E6 01       f.
-                bit $01                      ; AC20= 24 01       $.
-                bvc LABFD                    ; AC22= 50 D9       PY
-                jsr LAC37                    ; AC24= 20 C9 04     I.
-                lda #$04                     ; AC27= A9 04       ).
-LAC29:
-                ldy #$00                     ; AC29= A0 00        .
-                ldx #$53                     ; AC2B= A2 53       "S
-                jmp tubeHost.entryPoint                    ; AC2D= 4C 06 04    L..
+                ldx $028D   ;get last BREAK type
+                beq LABDB   ;if soft break, release Tube, send $80 via
+                            ;R2, and enter idle loop.
 
+; The current language is not copied across the Tube on soft Break,
+; only on Power-On Break and Hard Break, or when entered explicitly
+; with OSBYTE 142.
+                
+enterNewLanguage: .proc
+                lda #$FF
+                jsr tubeHost.entryPoint ;claim with ID=$3f
+                bcc enterNewLanguage    ;repeat until claimed
+                jsr getLanguageParasiteAddr ;sort out addresses
+                
+transferPage:
+                php
+                sei
+
+                ; initiate I/O->CoPro 256 bytes, then transfer the
+                ; next 256 bytes of the language ROM.
+                lda #$07
+                jsr doTube
+                
+                ldy #$00
+                stz tubeLanguageHostAddr+0
+-
+                lda (tubeLanguageHostAddr),y
+                sta tube.data3
+                nop
+                nop
+                nop
+                iny
+                bne -
+                plp
+
+                ; advance to next dest page.
+                inc tubeLanguageParasiteAddr+1
+                bne +
+                inc tubeLanguageParasiteAddr+2
+                bne +
+                inc tubeLanguageParasiteAddr+3
++
+                
+                inc tubeLanguageHostAddr+1 ;next source page
+                bit tubeLanguageHostAddr+1
+                bvc transferPage ;branch taken if source page $c0 not
+                                 ;reached yet
+
+                ; copy done - execute language in parasite
+                jsr getLanguageParasiteAddr
+                lda #$04        ;execute in copro
+
+                ; call Tube entry point with whatever reason code,
+                ; supplying language parasite address as the parasite
+                ; address.
+doTube:
+                ldy #>tubeLanguageParasiteAddr
+                ldx #<tubeLanguageParasiteAddr
+                jmp tubeHost.entryPoint
+                .pend
+                
 LAC30:
                 cli                          ; AC30= 58          X
-                bcs LABF3                    ; AC31= B0 C0       0@
+                bcs enterNewLanguage         ; AC31= B0 C0       0@
                 bne LABEE                    ; AC33= D0 B9       P9
                 bra LAC8F                    ; AC35= 80 61       .a
 
-LAC37:
+getLanguageParasiteAddr: .proc
                 lda #$80                     ; AC37= A9 80       ).
-                sta $54                      ; AC39= 85 54       .T
-                sta $01                      ; AC3B= 85 01       ..
-                lda #$20                     ; AC3D= A9 20       )
-                and L8006                    ; AC3F= 2D 06 80    -..
-                tay                          ; AC42= A8          (
-                sty $53                      ; AC43= 84 53       .S
-                beq LAC60                    ; AC45= F0 19       p.
-                ldx L8007                    ; AC47= AE 07 80    ...
-LAC4A:
-                inx                          ; AC4A= E8          h
-                lda L8000,x                  ; AC4B= BD 00 80    =..
-                bne LAC4A                    ; AC4E= D0 FA       Pz
-                lda L8001,x                  ; AC50= BD 01 80    =..
-                sta $53                      ; AC53= 85 53       .S
-                lda L8002,x                  ; AC55= BD 02 80    =..
-                sta $54                      ; AC58= 85 54       .T
-                ldy L8003,x                  ; AC5A= BC 03 80    <..
-                lda L8004,x                  ; AC5D= BD 04 80    =..
+                sta tubeLanguageParasiteAddr+1 ;$xxxx80xx
+                sta tubeLanguageHostAddr+1     ;$80xx
+                lda #$20
+                and $8006  ;test parasite address flag
+                tay        ;Y=0 if $8000, Y=$20 if parasite address
+                sty tubeLanguageParasiteAddr+0
+                beq LAC60       ;branch taken if good to go with A=0
+                                ;and Y=0
+
+                ldx $8007       ;get copyright offset
+                ; skip copyright message
+-
+                inx
+                lda $8000,x
+                bne -
+                
+                lda $8001,x
+                sta tubeLanguageParasiteAddr+0
+                lda $8002,x
+                sta tubeLanguageParasiteAddr+1
+                ldy L8003,x                  
+                lda L8004,x
 LAC60:
-                sta $56                      ; AC60= 85 56       .V
-                sty $55                      ; AC62= 84 55       .U
-                rts                          ; AC64= 60          `
+                sta tubeLanguageParasiteAddr+3
+                sty tubeLanguageParasiteAddr+2
+                rts
+                .pend
                 .here
 
 codePages12:
@@ -7084,83 +7145,116 @@ codePages12:
 
 ; names of the indexes here come from app note 004
 commandRoutines:
-                .word doRDCH    ;RDCHNO
-                .word doCLI     ;CLINO
-                .word doSBYT    ;SBYTNO
-                .word LAD50     ;BYTENO
-                .word LAD6C
-                .word LAD9B
-                .word LACBE
-                .word LAC91
-                .word LAC85
-                .word LACA4
-                .word callOSFILE
-                .word LACFF
+                .cerror (*&$ff)!=0,"commandRoutines must be paged aligned"
+                .word doRDCH    ;RDCHNO = $00
+                .word doCLI     ;CLINO = $02
+                .word doSBYT    ;SBYTNO = $04
+                .word doBYTE    ;BYTENO = $06
+                .word doWORD    ;WORDNO = $08
+                .word doRDLN    ;RDLNNO = $0a
+                .word doARGS     ;ARGSNO = $0c
+                .word doBGET     ;BGETNO = $0e
+                .word doBPUT     ;BPUTNO = $10
+                .word doFIND     ;FINDNO = $12
+                .word doFILE    ;FILENO = $14
+                .word doGBPB     ;GBPBNO = $16
 
                 ; Tube data transfer flags
 dataTransferFlags:
-                .byte $86        ;  CoPro->I/O bytes
-                .byte $88        ;  I/O->CoPro bytes
-                .byte $96        ;  CoPro->I/O words
-                .byte $98        ;  I/O->CoPro words
-                .byte $18        ;  Execute in CoPro
-                .byte $18        ;  Reserved
-                .byte $82        ;  CoPro->I/O 256 bytes
-                .byte $18        ;  I/O->CoPro 256 bytes
+                ; 0 - CoPro->I/O bytes
+                ;
+                ; Enable: PIRQ from R3, PIRQ from R1
+                .byte tube.status1.S|tube.status1.J|tube.status1.I
 
-LAC85:
-                jsr recvR2                    ; AC85= 20 A1 06     !.
-                tay                          ; AC88= A8          (
-                jsr recvR2                    ; AC89= 20 A1 06     !.
-                jsr OSBPUT                   ; AC8C= 20 D4 FF     T.
+                ; 1 - I/O->CoPro bytes
+                ;
+                ; Enable: PNMI from R3
+                .byte tube.status1.S|tube.status1.M
+
+                ; 2 - CoPro->I/O words
+                ;
+                ; Enable: 2-byte R3, PIRQ from R2, PIRQ from R1
+                .byte tube.status1.S|tube.status1.V|tube.status1.J|tube.status1.I
+
+                ; 3 - I/O->CoPro words
+                ;
+                ; Enable: 2-byte R3, PNMI from R3
+                .byte tube.status1.S|tube.status1.V|tube.status1.M
+
+                ; 4 - Execute in CoPro
+                ;
+                ; Disable: 2-byte R3, PNMI from R3
+                .byte tube.status1.V|tube.status1.M
+
+                ; 5 - Reserved
+                ;
+                ; Disable: 2-byte R3, PNMI from R3
+                .byte tube.status1.V|tube.status1.M
+
+                ; 6 - CoPro->I/O 256 bytes
+                ;
+                ; Enable: PIRQ from R1
+                .byte tube.status1.S|tube.status1.I
+
+                ; 7 - I/O->CoPro 256 bytes
+                ;
+                ; Disable: 2-byte R3, PNMI from R3
+                .byte tube.status1.V|tube.status1.M
+
+doBPUT:
+                jsr recvR2      ;Receive file handle
+                tay             ;Y = file handle
+                jsr recvR2      ;Receive byte
+                jsr OSBPUT      ;Do OSBPUT
 LAC8F:
-                bra LACF3                    ; AC8F= 80 62       .b
+                bra sendR27FThenGoIdle
 
-LAC91:
-                jsr recvR2                    ; AC91= 20 A1 06     !.
-                tay                          ; AC94= A8          (
-                jsr OSBGET                   ; AC95= 20 D7 FF     W.
+doBGET:
+                jsr recvR2      ;Receive file handle
+                tay             ;Y = file handle
+                jsr OSBGET      ;Do OSBGET
 LAC98:
-                bra LAC9D                    ; AC98= 80 03       ..
+                bra sendR2CAThenGoIdle
 
 doRDCH:
-                jsr OSRDCH                   ; AC9A= 20 E0 FF     `.
-LAC9D:
-                ror a                        ; AC9D= 6A          j
-                jsr sendR2                    ; AC9E= 20 61 06     a.
-                rol a                        ; ACA1= 2A          *
-                bra LACF5                    ; ACA2= 80 51       .Q
+                jsr OSRDCH      ;Do OSRDCH
+sendR2CAThenGoIdle:
+                ror a           ;set A bit 7 as per carry
+                jsr sendR2A     ;send via R2
+                rol a           ;restore A
+                bra sendR2AThenGoIdle
 
-LACA4:
-                jsr recvR2                    ; ACA4= 20 A1 06     !.
-                beq LACB3                    ; ACA7= F0 0A       p.
-                pha                          ; ACA9= 48          H
-                jsr recvR2String                    ; ACAA= 20 74 05     t.
-                pla                          ; ACAD= 68          h
-                jsr OSFIND                   ; ACAE= 20 CE FF     N.
-                bra LACF5                    ; ACB1= 80 42       .B
+doFIND: .proc
+                jsr recvR2            ;Receive reason code
+                beq close             ;taken if A=$00 - CLOSE#
+                pha                   ;save reason code
+                jsr recvR2String      ;receive file name
+                pla                   ;restore reason code
+                jsr OSFIND            ;call OSFIND
+                bra sendR2AThenGoIdle
 
-LACB3:
-                jsr recvR2                    ; ACB3= 20 A1 06     !.
-                tay                          ; ACB6= A8          (
-                lda #$00                     ; ACB7= A9 00       ).
-                jsr OSFIND                   ; ACB9= 20 CE FF     N.
-                bra LACF3                    ; ACBC= 80 35       .5
+close:
+                jsr recvR2      ;Receive file handle
+                tay             ;Y = file handle
+                lda #$00        ;A = $00 - CLOSE#
+                jsr OSFIND      ;call OSFIND
+                bra sendR27FThenGoIdle
+                .pend
                 
-LACBE:
+doARGS:
                 jsr recvR2                    ; ACBE= 20 A1 06     !.
                 tay                          ; ACC1= A8          (
                 ldx #$04                     ; ACC2= A2 04       ".
                 jsr LADF8                    ; ACC4= 20 93 06     ..
                 jsr OSARGS                   ; ACC7= 20 DA FF     Z.
-                jsr sendR2                    ; ACCA= 20 61 06     a.
+                jsr sendR2A                    ; ACCA= 20 61 06     a.
                 ldx #$03                     ; ACCD= A2 03       ".
 LACCF:
                 lda $00,x                    ; ACCF= B5 00       5.
-                jsr sendR2                    ; ACD1= 20 61 06     a.
+                jsr sendR2A                    ; ACD1= 20 61 06     a.
                 dex                          ; ACD4= CA          J
                 bpl LACCF                    ; ACD5= 10 F8       .x
-                bra LACFD                    ; ACD7= 80 24       .$
+                bra goIdle_0
 
 ;-------------------------------------------------------------------------
 ;
@@ -7193,16 +7287,17 @@ recvR2String: .proc
 doCLI:
                 jsr recvR2String
                 jsr OSCLI
-LACF3:
+sendR27FThenGoIdle:
                 lda #$7F                     ; ACF3= A9 7F       ).
-LACF5:
-                bit tube.status2                   ; ACF5= 2C E2 FE    ,b~
-                bvc LACF5                    ; ACF8= 50 FB       P{
-                sta tube.data2                   ; ACFA= 8D E3 FE    .c~
-LACFD:
-                bra LAD4D                    ; ACFD= 80 4E       .N
+sendR2AThenGoIdle:
+-
+                bit tube.status2
+                bvc -
+                sta tube.data2
+goIdle_0:
+                bra goIdle_1
 
-LACFF:
+doGBPB:
                 ldx #$0D                     ; ACFF= A2 0D       ".
                 jsr LADF8                    ; AD01= 20 93 06     ..
                 ldy #$00                     ; AD04= A0 00        .
@@ -7211,13 +7306,13 @@ LACFF:
                 ldx #$0C                     ; AD0A= A2 0C       ".
 LAD0C:
                 lda $00,x                    ; AD0C= B5 00       5.
-                jsr sendR2                    ; AD0E= 20 61 06     a.
+                jsr sendR2A                    ; AD0E= 20 61 06     a.
                 dex                          ; AD11= CA          J
                 bpl LAD0C                    ; AD12= 10 F8       .x
                 pla                          ; AD14= 68          h
-                bra LAC9D                    ; AD15= 80 86       ..
+                bra sendR2CAThenGoIdle
                 
-callOSFILE: .proc
+doFILE: .proc
                 ldx #$10                     ; AD17= A2 10       ".
 -
                 jsr recvR2                    ; AD19= 20 A1 06     !.
@@ -7230,42 +7325,46 @@ callOSFILE: .proc
                 ldy #$00                     ; AD28= A0 00        .
                 jsr recvR2                    ; AD2A= 20 A1 06     !.
                 jsr OSFILE                   ; AD2D= 20 DD FF     ].
-                jsr sendR2                    ; AD30= 20 61 06     a.
+                jsr sendR2A                    ; AD30= 20 61 06     a.
                 ldx #$10                     ; AD33= A2 10       ".
 -
                 lda $01,x                    ; AD35= B5 01       5.
-                jsr sendR2                    ; AD37= 20 61 06     a.
+                jsr sendR2A                    ; AD37= 20 61 06     a.
                 dex                          ; AD3A= CA          J
                 bne -
-                bra LAD4D                    ; AD3D= 80 0E       ..
+                bra goIdle_1
                 .pend
 
+;-------------------------------------------------------------------------
+;
+; Do a small (A<$80) OSBYTE 
+;
 doSBYT:
-                jsr recvR2XA                    ; AD3F= 20 9D 06     ..
-                jsr OSBYTE                   ; AD42= 20 F4 FF     t.
-LAD45:
+                jsr recvR2XA    ;receive X and A arguments
+                jsr OSBYTE
+sendR2X:
                 bit tube.status2                   ; AD45= 2C E2 FE    ,b~
-                bvc LAD45                    ; AD48= 50 FB       P{
+                bvc sendR2X
                 stx tube.data2                   ; AD4A= 8E E3 FE    .c~
-LAD4D:
+goIdle_1:
                 jmp idleLoop                    ; AD4D= 4C 36 00    L6.
 
-LAD50:
+doBYTE:
                 jsr recvR2XA                    ; AD50= 20 9D 06     ..
                 tay                          ; AD53= A8          (
                 jsr recvR2                    ; AD54= 20 A1 06     !.
                 jsr OSBYTE                   ; AD57= 20 F4 FF     t.
                 eor #$9D                     ; AD5A= 49 9D       I.
-                beq LAD4D                    ; AD5C= F0 EF       po
+                beq goIdle_1
                 ror a                        ; AD5E= 6A          j
-                jsr sendR2                    ; AD5F= 20 61 06     a.
+                jsr sendR2A                    ; AD5F= 20 61 06     a.
 LAD62:
                 bit tube.status2                   ; AD62= 2C E2 FE    ,b~
                 bvc LAD62                    ; AD65= 50 FB       P{
                 sty tube.data2                   ; AD67= 8C E3 FE    .c~
-                bra LAD45                    ; AD6A= 80 D9       .Y
+                bra sendR2X
 
-LAD6C:
+doWORD:
                 jsr recvR2                    ; AD6C= 20 A1 06     !.
                 tay                          ; AD6F= A8          (
                 jsr LAE0F                    ; AD70= 20 AA 06     *.
@@ -7281,7 +7380,7 @@ LAD7F:
                 ldy #$01                     ; AD81= A0 01        .
                 jsr OSWORD                   ; AD83= 20 F1 FF     q.
                 jsr LAE0F                    ; AD86= 20 AA 06     *.
-                bmi LAD4D                    ; AD89= 30 C2       0B
+                bmi goIdle_1
 LAD8B:
                 ldy $0128,x                  ; AD8B= BC 28 01    <(.
 LAD8E:
@@ -7291,9 +7390,9 @@ LAD8E:
                 dex                          ; AD96= CA          J
                 bpl LAD8B                    ; AD97= 10 F2       .r
 LAD99:
-                bra LAD4D                    ; AD99= 80 B2       .2
+                bra goIdle_1
                 
-LAD9B:
+doRDLN:
                 ldx #$04                     ; AD9B= A2 04       ".
 LAD9D:
                 jsr recvR2                    ; AD9D= 20 A1 06     !.
@@ -7306,28 +7405,28 @@ LAD9D:
                 jsr OSWORD                   ; ADA8= 20 F1 FF     q.
                 bcc LADB2                    ; ADAB= 90 05       ..
                 lda #$FF                     ; ADAD= A9 FF       ).
-                jmp LACF5                    ; ADAF= 4C 90 05    L..
+                jmp sendR2AThenGoIdle                    ; ADAF= 4C 90 05    L..
 
 LADB2:
                 ldx #$00                     ; ADB2= A2 00       ".
                 lda #$7F                     ; ADB4= A9 7F       ).
-                jsr sendR2                    ; ADB6= 20 61 06     a.
+                jsr sendR2A                    ; ADB6= 20 61 06     a.
 LADB9:
                 lda $0700,x                  ; ADB9= BD 00 07    =..
-                jsr sendR2                    ; ADBC= 20 61 06     a.
+                jsr sendR2A                    ; ADBC= 20 61 06     a.
                 inx                          ; ADBF= E8          h
                 cmp #$0D                     ; ADC0= C9 0D       I.
                 bne LADB9                    ; ADC2= D0 F5       Pu
                 bra LAD99                    ; ADC4= 80 D3       .S
 
-sendR2:                          ;adc6/0661
+sendR2A:                          ;adc6/0661
                 bit tube.status2                   ; ADC6= 2C E2 FE    ,b~
-                bvc sendR2                    ; ADC9= 50 FB       P{
+                bvc sendR2A                    ; ADC9= 50 FB       P{
                 sta tube.data2                   ; ADCB= 8D E3 FE    .c~
                 rts                          ; ADCE= 60          `
                 
-LADCF:                           ;adcf
-                lda $15          ;get Tube ID
+sendR4TubeClaimantID:              ;adcf
+                lda tubeClaimantID ;get Tube ID
 sendR4:                          ;add1/066c
                 bit tube.status4 ;check R4 status
                 bvc sendR4       ;branch taken if FIFO full
@@ -7357,7 +7456,7 @@ LADEF:
 
 LADF8:
                 jsr recvR2                    ; ADF8= 20 A1 06     !.
-                sta $FF,x                    ; ADFB= 95 FF       ..
+                sta $ff,x                    ; ADFB= 95 FF       ..
                 dex                          ; ADFD= CA          J
                 bne LADF8                    ; ADFE= D0 F8       Px
                 bra recvR2                    ; AE00= 80 04       ..

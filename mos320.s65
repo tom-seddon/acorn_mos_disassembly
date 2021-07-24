@@ -18968,6 +18968,8 @@ LEC90:
                 tax                          ; EC90= AA          *
                 rts                          ; EC91= 60          `
 
+; Y=0 on entry.
+                
 osbyte09:                       ;ec92
                 iny                          ; EC92= C8          H
                 clc                          ; EC93= 18          .

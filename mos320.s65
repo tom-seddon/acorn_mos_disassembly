@@ -1497,71 +1497,71 @@ L875C:
                 .text $ec,"TV"
                 .text $f0,0
 
-maybe_configure_routines=[
-                L8BF0,
-                L8D7F,
-                L89F1,
-                L8B7D,
-                L8A28,
-                L8AE1,
-                L88E8,
-                L8A66,
-                L8A17,
-                L8B82,
-                L899F,
-                L8B2E,
-                L88BD,
-                L8BAA,
-                L8A44,
-                L8ABB,
-                L88CB,
-                L8B87,
-                L8A5F,
-                L8B10,
-                L88B5,
-                L8B8E,
-                L88AF,
-                L8B8E,
-                L89B4,
-                L8B44,
-                L8A4A,
-                L8ABB,
-                L8A52,
-                L8B08,
-                L8A0F,
-                L8A9F,
-                L88F0,
-                L8B25,
-                L8A2E,
-                L8AE1,
-                L88DC,
-                L8A66,
-                L88C3,
-                L8BAA,
-                L8A3C,
-                L8A89,
-                L89E4,
-                L8AF5,
-                L89C7,
-                L8B78,
-                L8A09,
-                L8A9F,
-                L89A1,
-                L8B34,
-                L8A36,
-                L8A89,
-                L88E2,
-                L8A66,
-                L89EE,
-                L8AF5,
-                L8906,
-                L8B17,
-]
+_:=[]
+_..=[L8BF0]
+_..=[L8D7F]
+_..=[L89F1]
+_..=[L8B7D]
+_..=[L8A28]
+_..=[L8AE1]
+_..=[L88E8]
+_..=[L8A66]
+_..=[L8A17]
+_..=[L8B82]
+_..=[L899F]
+_..=[L8B2E]
+_..=[L88BD]
+_..=[L8BAA]
+_..=[L8A44]
+_..=[L8ABB]
+_..=[L88CB]
+_..=[L8B87]
+_..=[L8A5F]
+_..=[L8B10]
+_..=[L88B5]
+_..=[L8B8E]
+_..=[L88AF]
+_..=[L8B8E]
+_..=[L89B4]
+_..=[L8B44]
+_..=[L8A4A]
+_..=[L8ABB]
+_..=[L8A52]
+_..=[L8B08]
+_..=[L8A0F]
+_..=[L8A9F]
+_..=[L88F0]
+_..=[L8B25]
+_..=[L8A2E]
+_..=[L8AE1]
+_..=[L88DC]
+_..=[L8A66]
+_..=[L88C3]
+_..=[L8BAA]
+_..=[L8A3C]
+_..=[L8A89]
+_..=[L89E4]
+_..=[L8AF5]
+_..=[L89C7]
+_..=[L8B78]
+_..=[L8A09]
+_..=[L8A9F]
+_..=[L89A1]
+_..=[L8B34]
+_..=[L8A36]
+_..=[L8A89]
+_..=[L88E2]
+_..=[L8A66]
+_..=[L89EE]
+_..=[L8AF5]
+_..=[L8906]
+_..=[L8B17]
+maybe_configure_routines=_
 
                 .for i=0,i<len(maybe_configure_routines),i+=1
                 .beword maybe_configure_routines[i]-1
                 .next
-
+                
 L887A:
                 jsr L8934                    ; 887A 20 34 89
                 bcs L8889                    ; 887D= B0 0A       0.
@@ -4937,21 +4937,21 @@ L9F60:
 ; TAPE/ROM FSC dispatch table
 ; ---------------------------
 
-tape_and_rom_dispatch_fsc_routines=[
-                LA422,          ;0 - *OPT
-                LA4F1,          ;1 - EOF
-                LA110,          ;2 - */
-                LA129,          ;3 - unknown * command
-                LA110,          ;4 - *RUN
-                LA168,          ;5 - *CAT
-                L9F3A,          ;6 - shut down FS
-                L9F9E,          ;7 - obtain file handle range
-                L9F3A,          ;8 - OS command
-                LA155,          ;9 - *EX
-                L9F3A,          ;10 - *INFO
-                LA113,          ;11 - *RUN command for library
-]
-
+_:=[]
+_..=[LA422]          ;0 - *OPT
+_..=[LA4F1]          ;1 - EOF
+_..=[LA110]          ;2 - */
+_..=[LA129]          ;3 - unknown * command
+_..=[LA110]          ;4 - *RUN
+_..=[LA168]          ;5 - *CAT
+_..=[L9F3A]          ;6 - shut down FS
+_..=[L9F9E]          ;7 - obtain file handle range
+_..=[L9F3A]          ;8 - OS command
+_..=[LA155]          ;9 - *EX
+_..=[L9F3A]          ;10 - *INFO
+_..=[LA113]          ;11 - *RUN command for library
+tape_and_rom_dispatch_fsc_routines=_
+                
 L9F74:
                 .byte <tape_and_rom_dispatch_fsc_routines-1
 L9F80:
@@ -16764,41 +16764,40 @@ LE023:
 ;
 
 ; each routine is (address, number of additional VDU bytes)
-vdu_routines=[
-                (LC035,0), ; VDU0
-                (LC0E2,1), ; VDU1
-                (LC0EA,0), ; VDU2
-                (LC0EA,0), ; VDU3
-                (LC51E,0), ; VDU4
-                (LC52D,0), ; VDU5
-                (LC035,0), ; VDU6
-                (LEFB6,0), ; VDU7
-                (LC29A,0), ; VDU8
-                (LC24C,0), ; VDU9
-                (LC25B,0), ; VDU10
-                (LC2B1,0), ; VDU11
-                (LC44F,0), ; VDU12
-                (LC3F6,0), ; VDU13
-                (LC514,0), ; VDU14
-                (LC528,0), ; VDU15
-                (LC413,0), ; VDU16
-                (LC539,1), ; VDU17
-                (LC564,2), ; VDU18
-                (LC62D,5), ; VDU19
-                (LC5C5,0), ; VDU20
-                (LC519,0), ; VDU21
-                (LC794,1), ; VDU22
-                (LC67C,9), ; VDU23
-                (LC71F,8), ; VDU24
-                (LC69B,5), ; VDU25
-                (LC6AA,0), ; VDU26
-                (LC035,0), ; VDU27
-                (LC3A5,4), ; VDU28
-                (LC78A,4), ; VDU29
-                (LC47C,0), ; VDU30
-                (LC482,2), ; VDU31
-                (LCE2D,0), ; ???
-                ]
+_:=[(LC035,0)] ; VDU0
+_..=[(LC0E2,1)] ; VDU1
+_..=[(LC0EA,0)] ; VDU2
+_..=[(LC0EA,0)] ; VDU3
+_..=[(LC51E,0)] ; VDU4
+_..=[(LC52D,0)] ; VDU5
+_..=[(LC035,0)] ; VDU6
+_..=[(LEFB6,0)] ; VDU7
+_..=[(LC29A,0)] ; VDU8
+_..=[(LC24C,0)] ; VDU9
+_..=[(LC25B,0)] ; VDU10
+_..=[(LC2B1,0)] ; VDU11
+_..=[(LC44F,0)] ; VDU12
+_..=[(LC3F6,0)] ; VDU13
+_..=[(LC514,0)] ; VDU14
+_..=[(LC528,0)] ; VDU15
+_..=[(LC413,0)] ; VDU16
+_..=[(LC539,1)] ; VDU17
+_..=[(LC564,2)] ; VDU18
+_..=[(LC62D,5)] ; VDU19
+_..=[(LC5C5,0)] ; VDU20
+_..=[(LC519,0)] ; VDU21
+_..=[(LC794,1)] ; VDU22
+_..=[(LC67C,9)] ; VDU23
+_..=[(LC71F,8)] ; VDU24
+_..=[(LC69B,5)] ; VDU25
+_..=[(LC6AA,0)] ; VDU26
+_..=[(LC035,0)] ; VDU27
+_..=[(LC3A5,4)] ; VDU28
+_..=[(LC78A,4)] ; VDU29
+_..=[(LC47C,0)] ; VDU30
+_..=[(LC482,2)] ; VDU31
+_..=[(LCE2D,0)] ; ???
+vdu_routines=_
                 
 ; LSB of routine address
 LE027:

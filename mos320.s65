@@ -65,7 +65,20 @@ romServiceCallLanguageChange=$2a
 romServiceCallTubeSystemPostInitialisation=$FE    ;
 romServiceCallTubeMainInitialisation=$FF    ;
 
-                
+
+;-------------------------------------------------------------------------
+
+bufferNumberKeyboard=0          ;
+bufferNumberRS423Input=1        ;
+bufferNumberRS423Output=2       ;
+bufferNumberPrinter=3           ;
+bufferNumberSound0=4            ; Noise channel
+bufferNumberSound1=5            ;
+bufferNumberSound2=6            ;
+bufferNumberSound3=7            ;
+; bufferNumberSpeech=8            ;
+bufferNumberHighest=8           ;
+
 ;-------------------------------------------------------------------------
 
 uservIndex=0
@@ -5116,7 +5129,7 @@ LA076:
                 cpx #$0B                     ; A081= E0 0B       `.
                 bne LA076                    ; A083= D0 F1       Pq
 LA085:
-                jmp LF28F                    ; A085= 4C 8F F2    L.r
+                jmp badStringError                    ; A085= 4C 8F F2    L.r
 
 LA088:
                 stz $03D2,x                  ; A088= 9E D2 03    .R.
@@ -5407,7 +5420,7 @@ LA259:
 LA260:
                 txa                          ; A260= 8A          .
                 bne LA266                    ; A261= D0 03       P.
-                jmp LF28F                    ; A263= 4C 8F F2    L.r
+                jmp badStringError                    ; A263= 4C 8F F2    L.r
 
 LA266:
                 ldx #$FF                     ; A266= A2 FF       ".
@@ -5886,14 +5899,8 @@ LA506:
                 pha                          ; A50F= 48          H
                 sta $B7                      ; A510= 85 B7       .7
                 jsr LA923                    ; A512= 20 23 A9     #)
-                .byte $53                    ; A515= 53          S
-                adc $61                      ; A516= 65 61       ea
-                adc ($63)                    ; A518= 72 63       rc
-                pla                          ; A51A= 68          h
-                adc #$6E                     ; A51B= 69 6E       in
-                .byte $67                    ; A51D= 67          g
-                ora LA900                    ; A51E= 0D 00 A9    ..)
-                .byte $FF                    ; A521= FF          .
+                .text "Searching",13,0
+                lda #$ff
                 jsr LA17C                    ; A522= 20 7C A1     |!
                 pla                          ; A525= 68          h
                 sta $B5                      ; A526= 85 B5       .5
@@ -8540,7 +8547,7 @@ LB418:
                 txa                          ; B418= 8A          .
                 asl a                        ; B419= 0A          .
                 tax                          ; B41A= AA          *
-                jmp (LB42A,x)                ; B41B= 7C 2A B4    |*4
+                jmp (LB42C-2,x)                ; B41B= 7C 2A B4    |*4
 LB41E:
                 .byte $41,$42   ; B41E= 41 42       AB
                 .byte $43       ; B420= 43          C
@@ -8553,8 +8560,9 @@ LB41E:
                 .byte $68       ; B427= 68          h
                 .byte $6C       ; B428= 6C
                 .byte $6E       ; B429= 6E
-LB42A:
-                .word $6366
+                .byte $66
+                .byte $63
+LB42C:
                 .word LB4C5
                 .word LB485
                 .word LB493
@@ -16707,19 +16715,10 @@ LDFF4:
                 jsr XBA67                    ; DFF9= 20 67 BA     g:
                 bra LDFF1                    ; DFFC= 80 F3       .s
 
-                brk                          ; DFFE= 00          .
-                brk                          ; DFFF= 00          .
-                ora $6341                    ; E000= 0D 41 63    .Ac
-                .byte $6F                    ; E003= 6F          o
-                adc ($6E)                    ; E004= 72 6E       rn
-                jsr $4F4D                    ; E006= 20 4D 4F     MO
-                .byte $53                    ; E009= 53          S
-                brk                          ; E00A= 00          .
-                .byte $07                    ; E00B= 07          .
-                brk                          ; E00C= 00          . Space for "xxK"
-                brk                          ; E00D= 00          .
-                brk                          ; E00E= 00          .
-                brk                          ; E00F= 00          .
+                .text 0,0,13
+                .text "Acorn MOS",0,7
+                .byte 0,0,0,0   ;space for "xxK"
+                
                 php                          ; E010= 08          .
 ;ORA &000D        :\ E011= 0D 0D 00    ...
                 .byte $0D
@@ -17575,8 +17574,8 @@ LE47F:
                 bne LE499                    ; E480= D0 17       P.
                 lda #$8D                     ; E482= A9 8D       ).
                 jsr osbyte8C8D                    ; E484= 20 9A ED     .m
-                ldx #$08                     ; E487= A2 08       ".
-                ldy #$F4                     ; E489= A0 F4        t
+                ldx #<starRunBOOT                     ; E487= A2 08       ".
+                ldy #>starRunBOOT                     ; E489= A0 F4        t
                 dec $0267                    ; E48B= CE 67 02    Ng.
                 jsr OSCLI                   ; E48E= 20 F7 FF     w.
                 inc $0267                    ; E491= EE 67 02    ng.
@@ -20198,20 +20197,14 @@ gsreadEntryPoint:
                 jsr LF29C                    ; F283= 20 9C F2     .r
                 php                          ; F286= 08          .
                 lsr $E4                      ; F287= 46 E4       Fd
-                bcc LF28F                    ; F289= 90 04       ..
+                bcc badStringError                    ; F289= 90 04       ..
                 rol $E4                      ; F28B= 26 E4       &d
                 plp                          ; F28D= 28          (
                 rts                          ; F28E= 60          `
 
-LF28F:
+badStringError:
                 brk                          ; F28F= 00          .
-                sbc $6142,x                  ; F290= FD 42 61    }Ba
-                stz $20                      ; F293= 64 20       d
-                .byte $73                    ; F295= 73          s
-                stz $72,x                    ; F296= 74 72       tr
-                adc #$6E                     ; F298= 69 6E       in
-                .byte $67                    ; F29A= 67          g
-                brk                          ; F29B= 00          .
+                .text $fd,"Bad string",0
 LF29C:
                 clc                          ; F29C= 18          .
 LF29D:
@@ -20464,14 +20457,13 @@ oswrscEntryPoint:
                 jsr LF3AB                    ; F402= 20 AB F3     +s
                 jmp LDB5F                    ; F405= 4C 5F DB    L_[
 
-                .byte $2F                    ; F408= 2F          /
-                and ($42,x)                  ; F409= 21 42       !B
-LF40B:
-                .byte $4F                    ; F40B= 4F          O
-                .byte $4F                    ; F40C= 4F          O
-                .byte $54                    ; F40D= 54          T
-                ora LC0E0                    ; F40E= 0D E0 C0    .`@
-                ldy #$80                     ; F411= A0 80        .
+starRunBOOT:
+                .text "/!BOOT",13
+
+; Table to convert channel number to the bits required by the chip
+soundParameterTable:
+                .byte $e0,$c0,$a0,$80
+                
 LF413:
                 jmp LF520                    ; F413= 4C 20 F5    L u
 
@@ -20686,7 +20678,7 @@ LF5A3:
                 lsr a                        ; F5A7= 4A          J
                 lsr a                        ; F5A8= 4A          J
                 eor #$0F                     ; F5A9= 49 0F       I.
-                ora LF40B,x                  ; F5AB= 1D 0B F4    ..t
+                ora soundParameterTable-bufferNumberSound0,x                  ; F5AB= 1D 0B F4    ..t
                 ora #$10                     ; F5AE= 09 10       ..
                 bra LF5E6                    ; F5B0= 80 34       .4
 
@@ -20717,7 +20709,7 @@ LF5DA:
                 cpx #$04                     ; F5DD= E0 04       `.
                 bne LF605                    ; F5DF= D0 24       P$
                 and #$0F                     ; F5E1= 29 0F       ).
-                ora LF40B,x                  ; F5E3= 1D 0B F4    ..t
+                ora soundParameterTable-bufferNumberSound0,x                  ; F5E3= 1D 0B F4    ..t
 LF5E6:
                 php                          ; F5E6= 08          .
 LF5E7:
@@ -20801,7 +20793,7 @@ LF65C:
                 inc $083E                    ; F668= EE 3E 08    n>.
 LF66B:
                 and #$0F                     ; F66B= 29 0F       ).
-                ora LF40B,x                  ; F66D= 1D 0B F4    ..t
+                ora soundParameterTable-bufferNumberSound0,x                  ; F66D= 1D 0B F4    ..t
                 php                          ; F670= 08          .
                 sei                          ; F671= 78          x
                 jsr LF5E6                    ; F672= 20 E6 F5     fu

@@ -1,6 +1,7 @@
 ; -*- comment-column:45; -*-
 
                 .section mos
+mos: .block
 
 ; VDU driver entry block
 ; ======================
@@ -4361,14 +4362,14 @@ LDBE8:
                 sta $DA                      ; DBFC= 85 DA       .Z
                 bra LDC05                    ; DBFE= 80 05       ..
 
-LDC00:
+LDC00_code:
                 lda L8830,x                  ; DC00= BD 30 88    =0.
                 sta (ZMEMG),y                  ; DC03= 91 D6       .V
 LDC05:
                 sec                          ; DC05= 38          8
                 jsr LDA6C                    ; DC06= 20 6C DA     lZ
                 dex                          ; DC09= CA          J
-                bne LDC00                    ; DC0A= D0 F4       Pt
+                bne LDC00_code               ; DC0A= D0 F4       Pt
 LDC0C:
                 lda $E0                      ; DC0C= A5 E0       %`
                 trb $DA                      ; DC0E= 14 DA       .Z
@@ -10159,6 +10160,8 @@ LFBED:
                 .text "Graham Winterflood."
                 .text "   "
 
+                .endblock
+                
 E_USERV: ; ff00
                 jsr extendedVectorEntryPoint
 E_BRKV: ; ff03
@@ -10239,9 +10242,9 @@ extendedVectorEntryPoint:
                 sta $010A,x                  ; FF77= 9D 0A 01    ...
                 lda ACCCON                    ; FF7A= AD 34 FE    -4~
                 sta $0109,x                  ; FF7D= 9D 09 01    ...
-                jsr selectHAZEL                    ; FF80= 20 BA ED     :m
+                jsr mos.selectHAZEL          ; FF80= 20 BA ED     :m
                 lda extendedVectorSpace,y                  ; FF83= B9 9F 0D    9..
-                jsr selectROMA                    ; FF86= 20 92 E5     .e
+                jsr mos.selectROMA           ; FF86= 20 92 E5     .e
                 ply                          ; FF89= 7A          z
                 plx                          ; FF8A= FA          z
                 pla                          ; FF8B= 68          h
@@ -10259,9 +10262,9 @@ extendedVectorEntryPoint:
                 pla                          ; FF9E= 68          h
                 pla                          ; FF9F= 68          h
                 pla                          ; FFA0= 68          h
-                jsr selectMOSOrHAZEL                    ; FFA1= 20 B0 ED     0m
+                jsr mos.selectMOSOrHAZEL     ; FFA1= 20 B0 ED     0m
                 pla                          ; FFA4= 68          h
-                jsr selectROMA                    ; FFA5= 20 92 E5     .e
+                jsr mos.selectROMA           ; FFA5= 20 92 E5     .e
                 pla                          ; FFA8= 68          h
                 plp                          ; FFA9= 28          (
 rts:
@@ -10278,35 +10281,35 @@ osbyte9D:
                 brk
 
 OSWRSC:
-                jmp oswrscEntryPoint ; FFB3
-                .byte defaultVectorTable.end-defaultVectorTable
-                .word defaultVectorTable
+                jmp mos.oswrscEntryPoint ; FFB3
+                .byte mos.defaultVectorTable.end-mos.defaultVectorTable ;
+                .word mos.defaultVectorTable ;
 OSRDSC:
-                jmp osrdscEntryPoint ; FFB9
+                jmp mos.osrdscEntryPoint ; FFB9
 VDUCHR:
-                jmp vduChrEntryPoint ; FFBC
+                jmp mos.vduChrEntryPoint ; FFBC
 OSEVEN:
-                jmp eventEntryPoint ; FFBF
+                jmp mos.eventEntryPoint ; FFBF
 GSINIT:
-                jmp gsinitEntryPoint ; FFC2
+                jmp mos.gsinitEntryPoint ; FFC2
 GSREAD:
-                jmp gsreadEntryPoint ; FFC5
+                jmp mos.gsreadEntryPoint ; FFC5
 NVRDCH:
-                jmp osrdchEntryPoint                    ; FFC8
+                jmp mos.osrdchEntryPoint                    ; FFC8
 NVWRCH:
-                jmp oswrchEntryPoint                    ; FFCB
+                jmp mos.oswrchEntryPoint                    ; FFCB
 OSFIND:
-                jmp osfindEntryPoint                    ; FFCE
+                jmp mos.osfindEntryPoint                    ; FFCE
 OSGBPB:
-                jmp osgbpbEntryPoint                    ; FFD1
+                jmp mos.osgbpbEntryPoint                    ; FFD1
 OSBPUT:
-                jmp osbputEntryPoint                    ; FFD4
+                jmp mos.osbputEntryPoint                    ; FFD4
 OSBGET:
-                jmp osbgetEntryPoint                    ; FFD7
+                jmp mos.osbgetEntryPoint                    ; FFD7
 OSARGS:
-                jmp osargsEntryPoint ; FFDA
+                jmp mos.osargsEntryPoint ; FFDA
 OSFILE:         
-                jmp osfileEntryPoint ; FFDD
+                jmp mos.osfileEntryPoint ; FFDD
 OSRDCH:
                 jmp (RDCHV)                  ; FFE0
 OSASCI:
@@ -10328,9 +10331,9 @@ OSCLI:
 LFFFA:                                       ; FFFA NMIV
                 .word nmiEntryPoint
 LFFFC:                                       ; FFFB RESETV
-                .word resetEntryPoint
+                .word mos.resetEntryPoint
 LFFFE:                                       ; FFFE IRQV
-                .word irqEntryPoint
+                .word mos.irqEntryPoint
 
                 .send mos
                 

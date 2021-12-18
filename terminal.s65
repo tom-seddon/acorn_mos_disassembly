@@ -69,9 +69,9 @@ clearRAM:
                              ;first iteration, and we need to go back
                              ;to do main RAM
 L8073:
-                lda #<emptyCommandLine
+                lda #<mos.emptyCommandLine
                 sta hazel.commandLinePointer+0
-                lda #>emptyCommandLine
+                lda #>mos.emptyCommandLine
                 sta hazel.commandLinePointer+1
                 lda #ACCCON.Y|ACCCON.X ; page in MOS ROM, page in main
                                        ; RAM
@@ -84,9 +84,9 @@ L8073:
                 cmp #$09                     ; 808D= B0 F8       0x
                 bcs -
                 ldx #key_ctrl
-                jsr interrogateKeyboard
+                jsr mos.interrogateKeyboard
                 cpx #$80        ;Z=0 C=1 if CTRL+BREAK
-                jsr LF735
+                jsr mos.LF735
                 stz $028D                    ; 8099= 9C 8D 02    ...
                 ror a                        ; 809C= 6A          j
                 ldx #$9C                     ; 809D= A2 9C       ".
@@ -167,14 +167,14 @@ L8113:
                 pha
                 ldx $0256                    ; 812D= AE 56 02    .V.
 L8130:
-                lda defaultVectorTable-1,y         ; 8130= B9 D6 E2    9Vb
+                lda mos.defaultVectorTable-1,y ; 8130= B9 D6 E2    9Vb
                 sta vectors-1,y       ; 8133= 99 FF 01    ...
                 dey                   ; 8136= 88          .
                 cpy #EVENTV+1-vectors ; 8137= C0 21       @!
                 bcs L8130             ; 8139= B0 F5       0u
                 ldy #FILEV-vectors    ; 813B= A0 12        .
 L813D:
-                lda defaultVectorTable-1,y   ; 813D= B9 D6 E2    9Vb
+                lda mos.defaultVectorTable-1,y ; 813D= B9 D6 E2    9Vb
                 sta vectors-1,y   ; 8140= 99 FF 01    ...
                 dey                          ; 8143= 88          .
                 bne L813D                    ; 8144= D0 F7       Pw
@@ -205,8 +205,8 @@ L8164:
                 ldx #$A0                     ; 8172= A2 A0       "
 L8174:
                 stx $025A                    ; 8174= 8E 5A 02    .Z.
-                jsr selectTerminalROM                    ; 8177= 20 90 E5     .e
-                jsr LF107                    ; 817A= 20 07 F1     .q
+                jsr mos.selectTerminalROM    ; 8177= 20 90 E5     .e
+                jsr mos.LF107                ; 817A= 20 07 F1     .q
                 lda $028D                    ; 817D= AD 8D 02    -..
                 beq L8196                    ; 8180= F0 14       p.
                 jsr L8EA8                    ; 8182= 20 A8 8E     (.
@@ -235,7 +235,7 @@ L81A7:
                 sei                          ; 81B1= 78          x
                 bit $FC                      ; 81B2= 24 FC       $|
                 bvc L81B9                    ; 81B4= 50 03       P.
-                jsr LF8CF                    ; 81B6= 20 CF F8     Ox
+                jsr mos.LF8CF                ; 81B6= 20 CF F8     Ox
 L81B9:
                 ldx #$D2
                 stx systemVIA.ier
@@ -253,41 +253,41 @@ L81B9:
                 ldx #$08
 L81DD:
                 dex                          ; 81DD= CA          J
-                jsr LF55D                    ; 81DE= 20 5D F5     ]u
+                jsr mos.LF55D                ; 81DE= 20 5D F5     ]u
                 cpx #$04                     ; 81E1= E0 04       `.
                 bne L81DD                    ; 81E3= D0 F8       Px
-                jsr osbyte7A
+                jsr mos.osbyte7A             ;
                 stx $ED                      ; 81E8= 86 ED       .m
                 ldx #$00                     ; 81EA= A2 00       ".
-                jsr LE97D                    ; 81EC= 20 7D E9     }i
+                jsr mos.LE97D                ; 81EC= 20 7D E9     }i
                 lda serialRegisterULACopy                    ; 81EF= AD 82 02    -..
                 and #$7F                     ; 81F2= 29 7F       ).
-                jsr LEC89                    ; 81F4= 20 89 EC     .l
+                jsr mos.LEC89                ; 81F4= 20 89 EC     .l
                 jsr L8E84                    ; 81F7= 20 84 8E     ..
                 pha                          ; 81FA= 48          H
                 tax                          ; 81FB= AA          *
-                jsr osbyte08                    ; 81FC= 20 6B EC     kl
+                jsr mos.osbyte08             ; 81FC= 20 6B EC     kl
                 plx                          ; 81FF= FA          z
                 lda #$07                     ; 8200= A9 07       ).
-                jsr osbyte07                 ; 8202= 20 6D EC     ml
+                jsr mos.osbyte07             ; 8202= 20 6D EC     ml
                 jsr L98AE                    ; 8205= 20 AE 98     ..
                 bit #$02                     ; 8208= 89 02       ..
                 bne L8211                    ; 820A= D0 05       P.
                 lda #$F0                     ; 820C= A9 F0       )p
                 sta $0264                    ; 820E= 8D 64 02    .d.
 L8211:
-                jsr selectTerminalROM                    ; 8211= 20 90 E5     .e
+                jsr mos.selectTerminalROM    ; 8211= 20 90 E5     .e
                 ldx $0284                    ; 8214= AE 84 02    ...
                 beq L821C                    ; 8217= F0 03       p.
-                jsr osbyte12
+                jsr mos.osbyte12             ;
 L821C:
                 lda $028D                    ; 821C= AD 8D 02    -..
                 beq L8224                    ; 821F= F0 03       p.
-                jmp LE3A0                    ; 8221= 4C A0 E3    L c
+                jmp mos.LE3A0                ; 8221= 4C A0 E3    L c
 
 L8224:
                 lda $028F                    ; Select startup screen MODE
-                jsr LC799
+                jsr mos.LC799                ;
                 lda $028D                    ; 822A= AD 8D 02    -..
                 dec a                        ; 822D= 3A          :
                 bne L8284                    ; 822E= D0 54       PT
@@ -323,15 +323,15 @@ L8282:
                 bra L8282                    ; 8282= 80 FE       .~
 
 L8284:
-                jsr selectHAZEL                    ; 8284= 20 BA ED     :m
+                jsr mos.selectHAZEL          ; 8284= 20 BA ED     :m
                 stz hazel.moveSrcHandle
                 stz hazel.moveDestHandle
                 ldy #$CA                     ; 828D= A0 CA        J
-                jsr LEA7E                    ; 828F= 20 7E EA     ~j
-                jsr LF349                    ; 8292= 20 49 F3     Is
+                jsr mos.LEA7E                ; 828F= 20 7E EA     ~j
+                jsr mos.LF349                ; 8292= 20 49 F3     Is
                 lda $028D                    ; 8295= AD 8D 02    -..
                 beq L829D                    ; 8298= F0 03       p.
-                jsr LEDD0                    ; 829A= 20 D0 ED     Pm
+                jsr mos.LEDD0                ; 829A= 20 D0 ED     Pm
 L829D:
                 jsr L98AA                    ; 829D= 20 AA 98     *.
                 lsr a                        ; 82A0= 4A          J
@@ -345,16 +345,16 @@ L829D:
                 bne L82B4                    ; 82AF= D0 03       P.
                 tsb ACCCON                    ; 82B1= 0C 34 FE    .4~
 L82B4:
-                jsr LE375                    ; If Tube hardware present, jump to Tube PreInit
+                jsr mos.LE375 ; If Tube hardware present, jump to Tube PreInit
                 bcs L82C6
                 lda ACCCON                    ; Toggle Internal/External Tube
                 eor #$10
                 sta ACCCON
-                jsr LE375                    ; No Tube, skip past Tube PreInit
+                jsr mos.LE375        ; No Tube, skip past Tube PreInit
                 bcc L82D0
 L82C6:
                 ldx #$FF                     ; Service call &FF - Tube PreInit
-                jsr makeROMServiceCall
+                jsr mos.makeROMServiceCall   ;
                 bne L82D0                    ; Not claimed, step past
                 dec $027A                    ; Tube PreInit claimed, set TubeFlag to &FF, Tube present
 L82D0:
@@ -362,21 +362,21 @@ L82D0:
                 beq L82FC
                 ldy #$DC                     ; Start high workspace at &DC00 and work downwards
                 ldx #$24                     ; Ask ROMs how much private high workspace required
-                jsr makeROMServiceCall
+                jsr mos.makeROMServiceCall   ;
                 ldx #$21                     ; Ask ROMs for maximum shared high workspace required
-                jsr makeROMServiceCall
+                jsr mos.makeROMServiceCall   ;
                 phy                          ; Save top of shared workspace
                 ldx #$22                     ; Ask ROMs for private high workspace required
-                jsr makeROMServiceCall
+                jsr mos.makeROMServiceCall   ;
                 ldy #$0E                     ; Start low workspace at &0E00
                 ldx #$01                     ; Ask ROMs for maximum shared workspace
-                jsr makeROMServiceCall
+                jsr mos.makeROMServiceCall   ;
                 ldx #$02                     ; Ask ROMs for private workspace
-                jsr makeROMServiceCall
+                jsr mos.makeROMServiceCall   ;
                 sty $0244                    ; Set OSHWM - default PAGE
                 ply                          ; Get top of shared high workspace
                 ldx #$23                     ; Tell ROMs top of shared high workspace
-                jsr makeROMServiceCall
+                jsr mos.makeROMServiceCall   ;
 L82FC:
                 ldx #$21
 L82FE:
@@ -389,7 +389,7 @@ L82FE:
                 sta $F3
                 ldy #$27                     ; Y=>end of FS Info Blocks
                 ldx #$25                     ; Ask ROMs for FS Info Blocks
-                jsr makeROMServiceCall
+                jsr mos.makeROMServiceCall   ;
                 lda #$00                     ; Terminate FS Info blocks
                 sta ($F2),y
 
@@ -398,22 +398,22 @@ L82FE:
                 stz $0257
                 ldx #$FE
                 ldy $027A
-                jsr makeROMServiceCall                    ; Tube PostInit
+                jsr mos.makeROMServiceCall   ; Tube PostInit
                 and $0267
                 bpl L8340
                 ldy #$FF                     ; Print <NL>"Acorn MOS"
-                jsr LE7A1
+                jsr mos.LE7A1                ;
                 lda $028D                    ; Skip past if Soft Break
                 beq L833B
                 ldy #$0A                     ; Print <BELL> (space in message for "xxK")
-                jsr LE7A1
+                jsr mos.LE7A1                ;
 L833B:
                 ldy #$0F                     ; Print <NL><NL>
-                jsr LE7A1
+                jsr mos.LE7A1                ;
 L8340:
                 pla                          ; Restore Spool handle
                 sta $0257
-                jmp LE40E
+                jmp mos.LE40E                ;
 
 ; Default FS Info Blocks
 ; ======================
@@ -443,7 +443,7 @@ mos_command .macro name,routine,byte1,byte2
                 
 L8368:
 
-                .mos_command "CAT",callFSCV,$80,$05 ; XY=>parameters, FSC &05
+                .mos_command "CAT",mos.callFSCV,$80,$05 ; XY=>parameters, FSC &05
                 .mos_command "ADFS",L85AF,$00,$00   ;
                 .mos_command "APPEND",L9014,$80,$00 ; XY=>parameters
                 .mos_command "BASIC",L85A6,$00,$00  ;
@@ -455,31 +455,31 @@ L8368:
                 .mos_command "DUMP",L8F42,$80,$00   ; XY=>parameters
                 .mos_command "DELETE",L946A,$80,$00 ; XY=>parameters
                 .mos_command "EXEC",LA591,$80,$00   ; XY=>parameters
-                .mos_command "EX",callFSCV,$80,$09 ; XY=>parameters, FSC &09
+                .mos_command "EX",mos.callFSCV,$80,$09 ; XY=>parameters, FSC &09
                 .mos_command "FX",L93E5,$00,$FF ;
                 .mos_command "GOIO",L92FD,$00,$FF ;
                 .mos_command "GO",L92F5,$00,$FF   ;
                 .mos_command "HELP",L85CA,$00,$FF ;
-                .mos_command "INFO",callFSCV,$80,$0A ; XY=>parameters, FSC &0A
+                .mos_command "INFO",mos.callFSCV,$80,$0A ; XY=>parameters, FSC &0A
                 .mos_command "IGNORE",L9387,$00,$FF ;
                 .mos_command "INSERT",L871F,$00,$FF ;
                 .mos_command "KEY",L94C7,$00,$FF    ;
                 .mos_command "LOAD",L9316,$80,$00   ; XY=>parameters
                 .mos_command "LIST",L8EC0,$80,$00   ; XY=>parameters
-                .mos_command "LINE",callUSERV,$00,$01   ;
-                .mos_command "LIBFS",LE7F6,$00,$00  ;
+                .mos_command "LINE",mos.callUSERV,$00,$01 ;
+                .mos_command "LIBFS",mos.LE7F6,$00,$00    ;
                 .mos_command "MOTOR",L93EB,$00,$89 ; X,y=parameters, OSBYTE &89
                 .mos_command "MOVE",L90B6,$80,$00  ; XY=>parameters
                 .mos_command "OPT",L93EB,$80,$8B ; X,y=parameters, OSBYTE &8B
                 .mos_command "PRINT",L8EB9,$80,$00 ; XY=>parameters
-                .mos_command "RUN",callFSCV,$80,$04 ; XY=>parameters, FSC &04
+                .mos_command "RUN",mos.callFSCV,$80,$04 ; XY=>parameters, FSC &04
                 .mos_command "REMOVE",L9371,$80,$00 ; XY=>parameters
                 .mos_command "ROM",L93EB,$00,$8D ; X,y=parameters, OSBYTE &8D
                 .mos_command "ROMS",L86A6,$00,$FF ;
                 .mos_command "SAVE",L9318,$80,$00 ; XY=>parameters, OSFILE &00
                 .mos_command "SHADOW",L9466,$00,$FF  ;
                 .mos_command "SHOW",L9488,$00,$FF    ;
-                .mos_command "SHUT",LF373,$00,$00    ;
+                .mos_command "SHUT",mos.LF373,$00,$00 ;
                 .mos_command "SPOOL",L9433,$80,$00   ; XY=>parameters
                 .mos_command "SPOOLON",L9420,$80,$00 ; XY=>parameters
                 .mos_command "STATUS",L8895,$00,$FF  ;
@@ -488,8 +488,8 @@ L8368:
                 .mos_command "TIME",starTime,$00,$00   ;
                 .mos_command "TYPE",L8ECB,$80,$00   ; XY=>parameters
                 .mos_command "UNPLUG",L8722,$00,$FF ;
-                .mos_command "X",LE7FD,$00,$00      ;
-                .mos_command "",callFSCV,$00,$03       ; FSC &03
+                .mos_command "X",mos.LE7FD,$00,$00  ;
+                .mos_command "",mos.callFSCV,$00,$03 ; FSC &03
                 .byte $00
                 
 L84EE:
@@ -517,24 +517,24 @@ L84FF:
                 stx $F2                      ; 84FF= 86 F2       .r
                 sty $F3                      ; 8501= 84 F3       .s
                 lda hazel.currentFS
-                jsr selectFS                    ; 8506= 20 4D FB     M{
+                jsr mos.selectFS             ; 8506= 20 4D FB     M{
                 lda #$08                     ; 8509= A9 08       ).
-                jsr callFSCV                    ; 850B= 20 E5 F1     eq
+                jsr mos.callFSCV             ; 850B= 20 E5 F1     eq
                 ldy #$FF                     ; 850E= A0 FF        .
 L8510:
-                jsr incAndSkipSpaces                    ; 8510= 20 FE F2     ~r
+                jsr mos.incAndSkipSpaces     ; 8510= 20 FE F2     ~r
                 beq L84FE                    ; 8513= F0 E9       pi
                 cmp #$2A                     ; 8515= C9 2A       I*
                 beq L8510                    ; 8517= F0 F7       pw
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 8519= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 8519= 20 FF F2     .r
                 beq L84FE                    ; 851C= F0 E0       p`
                 cmp #$7C                     ; 851E= C9 7C       I|
                 beq L84FE                    ; 8520= F0 DC       p\
                 stz hazel.tempFSFlag      ; 8522= 9C C6 DF    .F_
                 cmp #$2D                     ; 8525= C9 2D       I-
                 bne L8535                    ; 8527= D0 0C       P.
-                jsr parseFileNameFS                    ; 8529= 20 A6 FA     &z
-                jsr selectFS                    ; 852C= 20 4D FB     M{
+                jsr mos.parseFileNameFS      ; 8529= 20 A6 FA     &z
+                jsr mos.selectFS             ; 852C= 20 4D FB     M{
                 sec                          ; 852F= 38          8
                 ror hazel.tempFSFlag      ; 8530= 6E C6 DF    nF_
                 lda ($F2),y                  ; 8533= B1 F2       1r
@@ -544,7 +544,7 @@ L8535:
                 iny                          ; 8539= C8          H
                 jsr L84F2                    ; 853A= 20 F2 84     r.
                 lda #$02                     ; 853D= A9 02       ).
-                jmp callFSCV                    ; 853F= 4C E5 F1    Leq
+                jmp mos.callFSCV             ; 853F= 4C E5 F1    Leq
 
 L8542:
                 sty $E6
@@ -562,7 +562,7 @@ L854E:
                 iny                          ; 8557= C8          H
 L8558:
                 lda ($F2),y                  ; 8558= B1 F2       1r
-                jsr isLetter                    ; 855A= 20 71 EA     qj
+                jsr mos.isLetter             ; 855A= 20 71 EA     qj
                 bcc L854E                    ; 855D= 90 EF       .o
                 lda ($B0)                    ; 855F= B2 B0       20
                 bmi L8582                    ; 8561= 30 1F       0.
@@ -595,7 +595,7 @@ L8585:
                 bmi L8592                    ; 858D= 30 03       0.
                 stz hazel.tempFSFlag      ; 858F= 9C C6 DF    .F_
 L8592:
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 8592= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 8592= 20 FF F2     .r
                 clc                          ; 8595= 18          .
                 php                          ; 8596= 08          .
                 jsr L84EE                    ; 8597= 20 EE 84     n.
@@ -618,7 +618,7 @@ L85A6:
                 ldx $024B                    ; Get BASIC ROM number
                 bmi L85AF                    ; If no BASIC ROM, jump to pass to ROMs and filing system
                 sec                          ;
-                jmp osbyte8E                    ; Enter ROM as a language
+                jmp mos.osbyte8E             ; Enter ROM as a language
 
 ; *ADFS - pass straight to ROMs/Filing System
 ; ===========================================
@@ -628,13 +628,13 @@ L85AF:
                 stz hazel.tempFSFlag      ; Clear filing system flag
                 ldy $E6
                 ldx #$04
-                jsr osbyte8F                    ; Service call 4 - Unknown command
+                jsr mos.osbyte8F    ; Service call 4 - Unknown command
                 beq L85A5                    ; Claimed, return
 L85C0:
                 lda $E6
                 jsr L84F3                    ; F2toXY
                 lda #$03
-                jmp callFSCV                    ; Pass to FSCV,3 - Unknown command
+                jmp mos.callFSCV ; mos.Pass to FSCV,3 - Unknown command
 
 L85CA:
                 ldx #$09                     ; 85CA= A2 09       ".
@@ -642,9 +642,9 @@ L85CA:
                 pha                          ; 85CE= 48          H
                 lda #$0E                     ; 85CF= A9 0E       ).
                 jsr OSWRCH                   ; 85D1= 20 EE FF     n.
-                jsr makeROMServiceCall                    ; 85D4= 20 72 EE     rn
+                jsr mos.makeROMServiceCall   ; 85D4= 20 72 EE     rn
                 ldx #$18                     ; 85D7= A2 18       ".
-                jsr makeROMServiceCall                    ; 85D9= 20 72 EE     rn
+                jsr mos.makeROMServiceCall   ; 85D9= 20 72 EE     rn
                 pla                          ; 85DC= 68          h
                 bit #$04                     ; 85DD= 89 04       ..
                 bne L860D                    ; 85DF= D0 2C       P,
@@ -652,7 +652,7 @@ L85CA:
                 jmp OSWRCH                   ; 85E3= 4C EE FF    Ln.
 
 L85E6:
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 85E6= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 85E6= 20 FF F2     .r
                 cmp #$26                     ; 85E9= C9 26       I&
                 bne L860E                    ; 85EB= D0 21       P!
                 iny                          ; 85ED= C8          H
@@ -713,7 +713,7 @@ L8634:
                 rts                          ; 8640= 60          `
 
 L8641:
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 8641= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 8641= 20 FF F2     .r
                 cmp #$0D                     ; 8644= C9 0D       I.
 L8646:
                 clc                          ; 8646= 18          .
@@ -753,7 +753,7 @@ L8670:
                 ldx #$FF                     ; 8670= A2 FF       ".
                 txs                          ; 8672= 9A          .
                 cli                          ; 8673= 58          X
-                jsr selectHAZEL                    ; 8674= 20 BA ED     :m
+                jsr mos.selectHAZEL          ; 8674= 20 BA ED     :m
                 lda #'*'                     ; 8677= A9 2A       )*
                 jsr OSWRCH                   ; 8679= 20 EE FF     n.
                 jsr L869D                    ; 867C= 20 9D 86     ..
@@ -769,12 +769,12 @@ L8684:
 L868D:
                 jsr OSNEWL                   ; 868D= 20 E7 FF     g.
                 ldy #$00                     ; 8690= A0 00        .
-                jsr LE7A7                    ; 8692= 20 A7 E7     'g
+                jsr mos.LE7A7                ; 8692= 20 A7 E7     'g
                 jsr OSNEWL                   ; 8695= 20 E7 FF     g.
                 bra L8661                    ; 8698= 80 C7       .G
 
 L869A:
-                jmp LFBED                    ; 869A= 4C ED FB    Lm{
+                jmp mos.LFBED                ; 869A= 4C ED FB    Lm{
 
 L869D:
                 lda #$00                     ; 869D= A9 00       ).
@@ -783,7 +783,7 @@ L869D:
                 jmp OSWORD                   ; 86A3= 4C F1 FF    Lq.
 
 L86A6:
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 86A6= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 86A6= 20 FF F2     .r
                 bne L869A                    ; 86A9= D0 EF       Po
                 ldy #$0F                     ; 86AB= A0 0F        .
 L86AD:
@@ -801,11 +801,11 @@ L86AD:
                 lda #$80                     ; 86C3= A9 80       ).
                 sta $F7                      ; 86C5= 85 F7       .w
                 plx                          ; 86C7= FA          z
-                jsr LE587                    ; 86C8= 20 87 E5     .e
+                jsr mos.LE587                ; 86C8= 20 87 E5     .e
                 dey                          ; 86CB= 88          .
                 bcc L8718                    ; 86CC= 90 4A       .J
 L86CE:
-                jsr osrdscEntryPoint                    ; 86CE= 20 FC F3     |s
+                jsr mos.osrdscEntryPoint     ; 86CE= 20 FC F3     |s
                 cmp #$20                     ; 86D1= C9 20       I
                 bcc L86E4                    ; 86D3= 90 0F       ..
                 cmp #$7F                     ; 86D5= C9 7F       I.
@@ -823,11 +823,11 @@ L86E4:
                 sta $F6                      ; 86E9= 85 F6       .v
                 lda #$80                     ; 86EB= A9 80       ).
                 sta $F7                      ; 86ED= 85 F7       .w
-                jsr osrdscEntryPoint                    ; 86EF= 20 FC F3     |s
+                jsr mos.osrdscEntryPoint     ; 86EF= 20 FC F3     |s
                 jsr LA865                    ; 86F2= 20 65 A8     e(
 L86F5:
                 phy                          ; 86F5= 5A          Z
-                jsr LE9BB                    ; 86F6= 20 BB E9     ;i
+                jsr mos.LE9BB                ; 86F6= 20 BB E9     ;i
                 sta $B0                      ; 86F9= 85 B0       .0
                 jsr L98B7                    ; 86FB= 20 B7 98     7.
                 and $B0                      ; 86FE= 25 B0       %0
@@ -861,10 +861,10 @@ L8722:
                 clc                          ; 8722= 18          .
 L8723:
                 php                          ; 8723= 08          .
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 8724= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 8724= 20 FF F2     .r
                 jsr L897D                    ; 8727= 20 7D 89     }.
                 tay                          ; 872A= A8          (
-                jsr LE9BB                    ; 872B= 20 BB E9     ;i
+                jsr mos.LE9BB                ; 872B= 20 BB E9     ;i
                 pha                          ; 872E= 48          H
                 jsr L98B7                    ; 872F= 20 B7 98     7.
                 sty $B0                      ; 8732= 84 B0       .0
@@ -997,7 +997,7 @@ L887A:
                 ldx #$28                     ; 887F= A2 28       "(
 L8881:
                 ldy $E6                      ; 8881= A4 E6       $f
-                jsr makeROMServiceCall                    ; 8883= 20 72 EE     rn
+                jsr mos.makeROMServiceCall   ; 8883= 20 72 EE     rn
                 bne L88AC                    ; 8886= D0 24       P$
                 rts                          ; 8888= 60          `
 
@@ -1008,7 +1008,7 @@ L8889:
                 lda L8787,x                  ; 888E= BD 87 87    =..
                 pha                          ; 8891= 48          H
 L8892:
-                jmp skipSpacesAndCheckForCRInStringInput                    ; 8892= 4C FF F2    L.r
+                jmp mos.skipSpacesAndCheckForCRInStringInput ; 8892= 4C FF F2    L.r
 
 L8895:
                 jsr L8934                    ; 8895= 20 34 89     4.
@@ -1022,7 +1022,7 @@ L889E:
                 pha                          ; 88A2= 48          H
                 lda L8789,x                  ; 88A3= BD 89 87    =..
                 pha                          ; 88A6= 48          H
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 88A7= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 88A7= 20 FF F2     .r
                 beq L8892                    ; 88AA= F0 E6       pf
 L88AC:
                 jmp L8976                    ; 88AC= 4C 76 89    Lv.
@@ -1106,7 +1106,7 @@ L8913:
                 asl a                        ; 8914= 0A          .
                 sta $B1                      ; 8915= 85 B1       .1
                 ldx #$00                     ; 8917= A2 00       ".
-                jsr LF30A                    ; 8919= 20 0A F3     .s
+                jsr mos.LF30A                ; 8919= 20 0A F3     .s
                 beq L8922                    ; 891C= F0 04       p.
                 jsr L898F                    ; 891E= 20 8F 89     ..
                 tax                          ; 8921= AA          *
@@ -1129,7 +1129,7 @@ L8930:
                 bra L8929                    ; 8932= 80 F5       .u
 
 L8934:
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 8934= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 8934= 20 FF F2     .r
                 sty $E6                      ; 8937= 84 E6       .f
                 beq L8979                    ; 8939= F0 3E       p>
                 ldx #$00                     ; 893B= A2 00       ".
@@ -1145,7 +1145,7 @@ L8947:
                 inx                          ; 8949= E8          h
 L894A:
                 lda ($F2),y                  ; 894A= B1 F2       1r
-                jsr isLetter                    ; 894C= 20 71 EA     qj
+                jsr mos.isLetter             ; 894C= 20 71 EA     qj
                 bcc L893F                    ; 894F= 90 EE       .n
 L8951:
                 lda L875C,x                  ; 8951= BD 5C 87    =\.
@@ -1180,7 +1180,7 @@ L8971:
                 jsr L85E6                    ; 8971= 20 E6 85     f.
                 bcs L8970                    ; 8974= B0 FA       0z
 L8976:
-                jmp LFBED                    ; 8976= 4C ED FB    Lm{
+                jmp mos.LFBED                ; 8976= 4C ED FB    Lm{
 
 L8979:
                 ldx #$01                     ; 8979= A2 01       ".
@@ -1194,7 +1194,7 @@ L897D:
                 bcs L8976                    ; 8985= B0 EF       0o
 L8987:
                 pha                          ; 8987= 48          H
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 8988= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 8988= 20 FF F2     .r
 L898B:
                 bne L8976                    ; 898B= D0 E9       Pi
                 pla                          ; 898D= 68          h
@@ -1646,7 +1646,7 @@ L8BF0:
                 .byte 0
                 ply                          ; 8D12= 7A
                 ldx #$28                     ; 8D13= A2 28       "(
-                jsr makeROMServiceCall                    ; 8D15= 20 72 EE     rn
+                jsr mos.makeROMServiceCall   ; 8D15= 20 72 EE     rn
                 jsr LA958                    ; 8D18= 20 58 A9     X)
                 .text "Where:"
                 .byte $0D
@@ -1734,7 +1734,7 @@ L8DA9:
                 jsr L8B17                    ; 8E51= 20 17 8B     ..
                 ply                          ; 8E54= 7A          z
                 ldx #$29                     ; 8E55= A2 29       ")
-                jmp makeROMServiceCall                    ; 8E57= 4C 72 EE    Lrn
+                jmp mos.makeROMServiceCall   ; 8E57= 4C 72 EE    Lrn
 
 L8E5A:
                 ldx #$18                     ; 8E5A= A2 18       ".
@@ -1910,9 +1910,9 @@ L8F42:
                 jsr L92BC                    ; 8F4D= 20 BC 92     <.
                 ldy #$00                     ; 8F50= A0 00        .
                 lsr hazel.tempFSFlag      ; 8F52= 4E C6 DF    NF_
-                jsr LF26D                    ; 8F55= 20 6D F2     mr
+                jsr mos.LF26D             ; 8F55= 20 6D F2     mr
 L8F58:
-                jsr gsreadEntryPoint                    ; 8F58= 20 7F F2     .r
+                jsr mos.gsreadEntryPoint     ; 8F58= 20 7F F2     .r
                 bcc L8F58                    ; 8F5B= 90 FB       .{
                 beq L8F79                    ; 8F5D= F0 1A       p.
                 ldx #$00                     ; 8F5F= A2 00       ".
@@ -1923,7 +1923,7 @@ L8F66:
                 sta $02F1,x                  ; 8F69= 9D F1 02    .q.
                 dex                          ; 8F6C= CA          J
                 bpl L8F66                    ; 8F6D= 10 F7       .w
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 8F6F= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 8F6F= 20 FF F2     .r
                 beq L8F79                    ; 8F72= F0 05       p.
                 ldx #$04                     ; 8F74= A2 04       ".
                 jsr L935B                    ; 8F76= 20 5B 93     [.
@@ -2051,7 +2051,7 @@ L904B:
                 ldy #$00                     ; 9051= A0 00        .
                 ldx #$00                     ; 9053= A2 00       ".
 L9055:
-                jsr LF29C                    ; 9055= 20 9C F2     .r
+                jsr mos.LF29C                ; 9055= 20 9C F2     .r
                 sta LDC00,x                  ; 9058= 9D 00 DC    ..\
                 lda #$01                     ; 905B= A9 01       ).
                 bit $E4                      ; 905D= 24 E4       $d
@@ -2121,7 +2121,7 @@ L90B6:
                 bit #$10                     ; Jump if not shadow screen, spare up to &8000
                 beq L90CE
 ; Shadow screen selected
-                jsr LF1C0                    ; Get screen bottom to XY
+                jsr mos.LF1C0                ; Get screen bottom to XY
                 cpy #$30                     ; Screen at &3000, no spare memory, jump to use Hazel
                 beq L90E2
 
@@ -2164,9 +2164,9 @@ L90E9:
                 phx                          ; And save it again
                 phy
                 ldy #$00                     ; Step past first parameter
-                jsr LF26D
+                jsr mos.LF26D                ;
 L9108:
-                jsr gsreadEntryPoint
+                jsr mos.gsreadEntryPoint     ;
                 bcc L9108
                 tya                          ; Save address of dest filename
                 clc
@@ -2405,7 +2405,7 @@ L927D:
                 lda #$89                     ; 9283= A9 89       ).
 L9285:
                 sta $FB                      ; 9285= 85 FB       .{
-                jsr LE598                    ; 9287= 20 98 E5     .e
+                jsr mos.LE598                ; 9287= 20 98 E5     .e
                 phy                          ; 928A= 5A          Z
                 ldy #$00                     ; 928B= A0 00        .
                 stz $FA                      ; 928D= 64 FA       dz
@@ -2421,7 +2421,7 @@ L9291:
                 bne L9291                    ; 929D= D0 F2       Pr
                 ply                          ; 929F= 7A          z
                 plp                          ; 92A0= 28          (
-                jmp selectTerminalROM                    ; 92A1= 4C 90 E5    L.e
+                jmp mos.selectTerminalROM    ; 92A1= 4C 90 E5    L.e
 
 L92A4:
                 ldx #$03                     ; 92A4= A2 03       ".
@@ -2449,7 +2449,7 @@ L92BC:
                 rts                          ; 92C8= 60          `
 
 L92C9:
-                jsr skipSpacesAndCheckForCRInStringInput                    ; Skip spaces
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; Skip spaces
                 jsr L8648                    ; 92CC= 20 48 86     H.
                 bcc L92F4                    ; 92CF= 90 23       .#
                 jsr L92BC                    ; 92D1= 20 BC 92     <.
@@ -2479,7 +2479,7 @@ L92F4:
 ; *GO (<addr>)
 ; ============
 L92F5:
-                jsr skipSpacesAndCheckForCRInStringInput                    ; Skip spaces
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; Skip spaces
                 bne L92FD                    ; Jump to read parameters
                 jmp L8661                    ; No parameters, enter CLICOM
 
@@ -2488,7 +2488,7 @@ L92F5:
 L92FD:
                 ldx #$00                     ; Use &02ED-&02F0
                 jsr L935B                    ; Read hex address
-                jsr skipSpacesAndCheckForCRInStringInput                    ; Skip spaces
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; Skip spaces
                 php                          ; Update &F2/3 to point to any further parameters
                 tya
                 clc
@@ -2518,9 +2518,9 @@ L931B:
                 ldy #$FF                     ; 9330= A0 FF        .
                 sty $02F3                    ; 9332= 8C F3 02    .s.
                 iny                          ; 9335= C8          H
-                jsr LF26D                    ; 9336= 20 6D F2     mr
+                jsr mos.LF26D                ; 9336= 20 6D F2     mr
 L9339:
-                jsr gsreadEntryPoint                    ; 9339= 20 7F F2     .r
+                jsr mos.gsreadEntryPoint     ; 9339= 20 7F F2     .r
                 bcc L9339                    ; 933C= 90 FB       .{
                 pla                          ; 933E= 68          h
                 pha                          ; 933F= 48          H
@@ -2556,7 +2556,7 @@ L9371:
                 bra L9369                    ; 937A= 80 ED       .m
 
 L937C:
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 937C= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 937C= 20 FF F2     .r
                 bne L93E2                    ; 937F= D0 61       Pa
                 lda #$00                     ; 9381= A9 00       ).
                 tay                          ; 9383= A8          (
@@ -2582,7 +2582,7 @@ L939B:
                 lda ($F2),y                  ; 939C= B1 F2       1r
                 cmp #$2B                     ; 939E= C9 2B       I+
                 bne L93A6                    ; 93A0= D0 04       P.
-                bit LE34E                    ; 93A2= 2C 4E E3    ,Nc
+                bit mos.LE34E                ; 93A2= 2C 4E E3    ,Nc
                 iny                          ; 93A5= C8          H
 L93A6:
                 ldx #$0E                     ; 93A6= A2 0E       ".
@@ -2617,7 +2617,7 @@ L93C1:
                 bcc L93E2                    ; 93DE= 90 02       ..
                 beq L9366                    ; 93E0= F0 84       p.
 L93E2:
-                jmp LFBED                    ; 93E2= 4C ED FB    Lm{
+                jmp mos.LFBED                ; 93E2= 4C ED FB    Lm{
 
 L93E5:
                 jsr L85E6                    ; 93E5= 20 E6 85     f.
@@ -2630,17 +2630,17 @@ L93EB:
                 pha                          ; 93F0= 48          H
                 stz $E5                      ; 93F1= 64 E5       de
                 stz $E4                      ; 93F3= 64 E4       dd
-                jsr LF308                    ; 93F5= 20 08 F3     .s
+                jsr mos.LF308                ; 93F5= 20 08 F3     .s
                 beq L9412                    ; 93F8= F0 18       p.
                 jsr L85E6                    ; 93FA= 20 E6 85     f.
                 bcc L93E2                    ; 93FD= 90 E3       .c
                 stx $E5                      ; 93FF= 86 E5       .e
-                jsr LF30A                    ; 9401= 20 0A F3     .s
+                jsr mos.LF30A                ; 9401= 20 0A F3     .s
                 beq L9412                    ; 9404= F0 0C       p.
                 jsr L85E6                    ; 9406= 20 E6 85     f.
                 bcc L93E2                    ; 9409= 90 D7       .W
                 stx $E4                      ; 940B= 86 E4       .d
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 940D= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 940D= 20 FF F2     .r
                 bne L93E2                    ; 9410= D0 D0       PP
 L9412:
                 ldy $E4                      ; 9412= A4 E4       $d
@@ -2658,7 +2658,7 @@ L9420:
 
 L9423:
                 ldx #romServiceCallSpoolExecClosureWarning
-                jsr makeROMServiceCall       ; 9425= 20 72 EE     rn
+                jsr mos.makeROMServiceCall   ; 9425= 20 72 EE     rn
                 beq L941F                    ; 9428= F0 F5       pu
                 jsr LA58B                    ; 942A= 20 8B A5     .%
                 lda $0257                    ; 942D= AD 57 02    -W.
@@ -2717,19 +2717,19 @@ L947C:
 
 L9488:
                 jsr L9473                    ; 9488 20 73 94
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 948B 20 FF F2
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 948B 20 FF F2
                 bne L947C                    ; 948E D0 EC
                 lda #$22                     ; 9490 A9 22
                 jsr OSWRCH                   ; 9492= 20 EE FF     n.
                 lda $F4                      ; 9495= A5 F4       %t
                 pha                          ; 9497= 48          H
-                jsr LE598                    ; 9498= 20 98 E5     .e
+                jsr mos.LE598                ; 9498= 20 98 E5     .e
                 lda L8000,x                  ; 949B= BD 00 80    =..
                 sta $F2                      ; 949E= 85 F2       .r
                 lda L8011,x                  ; 94A0= BD 11 80    =..
                 sta $F3                      ; 94A3= 85 F3       .s
                 ldy $E6                      ; 94A5= A4 E6       $f
-                jsr LEB55                    ; 94A7= 20 55 EB     Uk
+                jsr mos.LEB55                ; 94A7= 20 55 EB     Uk
                 tay                          ; 94AA= A8          (
                 beq L94BB                    ; 94AB= F0 0E       p.
 L94AD:
@@ -2743,7 +2743,7 @@ L94B8:
                 bne L94AD                    ; 94B9= D0 F2       Pr
 L94BB:
                 pla                          ; 94BB= 68          h
-                jsr selectROMA                    ; 94BC= 20 92 E5     .e
+                jsr mos.selectROMA           ; 94BC= 20 92 E5     .e
                 lda #$22                     ; 94BF= A9 22       )"
                 jsr OSWRCH                   ; 94C1= 20 EE FF     n.
                 jmp OSNEWL                   ; 94C4= 4C E7 FF    Lg.
@@ -2752,15 +2752,15 @@ L94C7:
                 jsr L9473                    ; 94C7= 20 73 94     s.
                 lda $F4                      ; 94CA= A5 F4       %t
                 pha                          ; 94CC= 48          H
-                jsr selectTerminalROMAndANDY                    ; 94CD= 20 7F E5     .e
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 94D0= 20 FF F2     .r
+                jsr mos.selectTerminalROMAndANDY ; 94CD= 20 7F E5     .e
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 94D0= 20 FF F2     .r
                 stz $B0                      ; 94D3= 64 B0       d0
                 beq L94EC                    ; 94D5= F0 15       p.
                 ldx #$00                     ; 94D7= A2 00       ".
                 sec                          ; 94D9= 38          8
-                jsr gsinitEntryPoint                    ; 94DA= 20 6E F2     nr
+                jsr mos.gsinitEntryPoint     ; 94DA= 20 6E F2     nr
 L94DD:
-                jsr gsreadEntryPoint                    ; 94DD= 20 7F F2     .r
+                jsr mos.gsreadEntryPoint     ; 94DD= 20 7F F2     .r
                 bcs L94E8                    ; 94E0= B0 06       0.
                 sta LDC00,x                  ; 94E2= 9D 00 DC    ..\
                 inx                          ; 94E5= E8          h
@@ -2771,7 +2771,7 @@ L94E8:
                 stx $B0                      ; 94EA= 86 B0       .0
 L94EC:
                 ldy $E6                      ; 94EC= A4 E6       $f
-                jsr LEB55                    ; 94EE= 20 55 EB     Uk
+                jsr mos.LEB55                ; 94EE= 20 55 EB     Uk
                 sta $B5                      ; 94F1= 85 B5       .5
                 sec                          ; 94F3= 38          8
                 sbc $B0                      ; 94F4= E5 B0       e0
@@ -2923,7 +2923,7 @@ L95F5:
 L95FF:
                 inc $0284                    ; 95FF= EE 84 02    n..
                 pla                          ; 9602= 68          h
-                jmp selectROMA                    ; 9603= 4C 92 E5    L.e
+                jmp mos.selectROMA           ; 9603= 4C 92 E5    L.e
 
 L9606:
                 tax                          ; 9606= AA          *
@@ -3446,38 +3446,38 @@ setRTCAddress:
 
 L9923:
                 lda #$03                     ; 9923= A9 03       ).
-                jsr LD298                    ; 9925= 20 98 D2     .R
+                jsr mos.LD298                ; 9925= 20 98 D2     .R
                 bcc L993C                    ; 9928= 90 12       ..
                 jsr L9930                    ; 992A= 20 30 99     0.
-                jsr LD8A9                    ; 992D= 20 A9 D8     )X
+                jsr mos.LD8A9                ; 992D= 20 A9 D8     )X
 L9930:
                 ldx #$20                     ; 9930= A2 20       "
-                jmp LE2B8                    ; 9932= 4C B8 E2    L8b
+                jmp mos.LE2B8                ; 9932= 4C B8 E2    L8b
 
 L9935:
                 lda #$02                     ; 9935= A9 02       ).
-                jsr LD298                    ; 9937= 20 98 D2     .R
+                jsr mos.LD298                ; 9937= 20 98 D2     .R
                 bcs L99A0                    ; 993A= B0 64       0d
 L993C:
-                jsr LD3D2                    ; 993C= 20 D2 D3     RS
+                jsr mos.LD3D2                ; 993C= 20 D2 D3     RS
                 jsr L9ABF                    ; 993F= 20 BF 9A     ?.
                 bra L994C                    ; 9942= 80 08       ..
 
 L9944:
-                jsr LD41A                    ; 9944= 20 1A D4     .T
+                jsr mos.LD41A                ; 9944= 20 1A D4     .T
                 beq L99A0                    ; 9947= F0 57       pW
-                jsr LD3D2                    ; 9949= 20 D2 D3     RS
+                jsr mos.LD3D2                ; 9949= 20 D2 D3     RS
 L994C:
                 lda $E1                      ; 994C= A5 E1       %a
                 bit #$20                     ; 994E= 89 20       .
                 beq L9957                    ; 9950= F0 05       p.
                 pha                          ; 9952= 48          H
-                jsr LD6A3                    ; 9953= 20 A3 D6     #V
+                jsr mos.LD6A3                ; 9953= 20 A3 D6     #V
                 pla                          ; 9956= 68          h
 L9957:
                 bit #$10                     ; 9957= 89 10       ..
                 beq L995E                    ; 9959= F0 03       p.
-                jsr LD698                    ; 995B= 20 98 D6     .V
+                jsr mos.LD698                ; 995B= 20 98 D6     .V
 L995E:
                 jsr L99FC                    ; 995E= 20 FC 99     |.
                 php                          ; 9961= 08          .
@@ -3496,7 +3496,7 @@ L995E:
                 beq L9992                    ; 9980= F0 10       p.
 L9982:
                 ldx #$37                     ; 9982= A2 37       "7
-                jsr LD24D                    ; 9984= 20 4D D2     MR
+                jsr mos.LD24D                ; 9984= 20 4D D2     MR
                 ldx #$42                     ; 9987= A2 42       "B
                 clv                          ; 9989= B8          8
 L998A:
@@ -3506,7 +3506,7 @@ L998C:
                 bvc L9992                    ; 998E= 50 02       P.
                 ldx #$37                     ; 9990= A2 37       "7
 L9992:
-                jsr LD24D                    ; 9992= 20 4D D2     MR
+                jsr mos.LD24D                ; 9992= 20 4D D2     MR
 L9995:
                 plp                          ; 9995= 28          (
                 bcc L994C                    ; 9996= 90 B4       .4
@@ -3514,20 +3514,20 @@ L9995:
 
 L9999:
                 lda #$01                     ; 9999= A9 01       ).
-                jsr LD298                    ; 999B= 20 98 D2     .R
+                jsr mos.LD298                ; 999B= 20 98 D2     .R
                 bcc L99A9                    ; 999E= 90 09       ..
 L99A0:
                 ldx #$24                     ; 99A0= A2 24       "$
                 bra L99DB                    ; 99A2= 80 37       .7
 
 L99A4:
-                jsr LD41A                    ; 99A4= 20 1A D4     .T
+                jsr mos.LD41A                ; 99A4= 20 1A D4     .T
                 beq L99A0                    ; 99A7= F0 F7       pw
 L99A9:
-                jsr LD3D2                    ; 99A9= 20 D2 D3     RS
+                jsr mos.LD3D2                ; 99A9= 20 D2 D3     RS
                 jsr L99C9                    ; 99AC= 20 C9 99     I.
 L99AF:
-                jsr LD5E6                    ; 99AF= 20 E6 D5     fU
+                jsr mos.LD5E6                ; 99AF= 20 E6 D5     fU
                 jsr L99C9                    ; 99B2= 20 C9 99     I.
                 lda L8830                    ; 99B5= AD 30 88    -0.
                 ora L8831                    ; 99B8= 0D 31 88    .1.
@@ -3539,17 +3539,17 @@ L99AF:
                 bra L99AF                    ; 99C7= 80 E6       .f
 
 L99C9:
-                jsr LD334                    ; 99C9= 20 34 D3     4S
+                jsr mos.LD334                ; 99C9= 20 34 D3     4S
                 jsr L99DE                    ; 99CC= 20 DE 99     ^.
                 bit L8848                    ; 99CF= 2C 48 88    ,H.
                 bmi L99FB                    ; 99D2= 30 27       0'
                 ldx #$46                     ; 99D4= A2 46       "F
 L99D6:
                 phx                          ; 99D6= DA          Z
-                jsr LD280                    ; 99D7= 20 80 D2     .R
+                jsr mos.LD280                ; 99D7= 20 80 D2     .R
                 plx                          ; 99DA= FA          z
 L99DB:
-                jmp LDB4C                    ; 99DB= 4C 4C DB    LL[
+                jmp mos.LDB4C                ; 99DB= 4C 4C DB    LL[
 
 L99DE:
                 ldx #$03                     ; 99DE= A2 03       ".
@@ -3562,7 +3562,7 @@ L99E0:
 L99EC:
                 ldy $0342                    ; 99EC= AC 42 03    ,B.
                 lda $0343                    ; 99EF= AD 43 03    -C.
-                jsr LC92E                    ; 99F2= 20 2E C9     .I
+                jsr mos.LC92E                ; 99F2= 20 2E C9     .I
                 sty $0342                    ; 99F5= 8C 42 03    .B.
                 sta $0343                    ; 99F8= 8D 43 03    .C.
 L99FB:
@@ -3587,7 +3587,7 @@ L9A0F:
                 lda L8847                    ; 9A1B= AD 47 88    -G.
                 bne L99EC                    ; 9A1E= D0 CC       PL
 L9A20:
-                jsr LD5E6                    ; 9A20= 20 E6 D5     fU
+                jsr mos.LD5E6                ; 9A20= 20 E6 D5     fU
                 lda L8832                    ; 9A23= AD 32 88    -2.
                 cmp $0344                    ; 9A26= CD 44 03    MD.
                 beq L9A0F                    ; 9A29= F0 E4       pd
@@ -3595,7 +3595,7 @@ L9A20:
                 bra L99EC                    ; 9A2C= 80 BE       .>
 
 L9A2E:
-                jsr LD334                    ; 9A2E= 20 34 D3     4S
+                jsr mos.LD334                ; 9A2E= 20 34 D3     4S
                 bit L8848                    ; 9A31= 2C 48 88    ,H.
                 bmi L9A3D                    ; 9A34= 30 07       0.
                 php                          ; 9A36= 08          .
@@ -3634,7 +3634,7 @@ L9A5A:
                 beq L9A79                    ; 9A70= F0 07       p.
                 ldx #$2C                     ; 9A72= A2 2C       ",
                 ldy #$46                     ; 9A74= A0 46        F
-                jsr LC91E                    ; 9A76= 20 1E C9     .I
+                jsr mos.LC91E                ; 9A76= 20 1E C9     .I
 L9A79:
                 lda #$10                     ; 9A79= A9 10       ).
                 bit L8849                    ; 9A7B= 2C 49 88    ,I.
@@ -3642,13 +3642,13 @@ L9A79:
                 beq L9A89                    ; 9A80= F0 07       p.
                 ldx #$37                     ; 9A82= A2 37       "7
                 ldy #$42                     ; 9A84= A0 42        B
-                jsr LC91E                    ; 9A86= 20 1E C9     .I
+                jsr mos.LC91E                ; 9A86= 20 1E C9     .I
 L9A89:
                 jsr L9ABF                    ; 9A89= 20 BF 9A     ?.
                 lda $E1                      ; 9A8C= A5 E1       %a
                 eor #$3C                     ; 9A8E= 49 3C       I<
                 rol a                        ; 9A90= 2A          *
-                jsr LC66F                    ; 9A91= 20 6F C6     oF
+                jsr mos.LC66F                ; 9A91= 20 6F C6     oF
                 ror a                        ; 9A94= 6A          j
                 sta $E1                      ; 9A95= 85 E1       .a
                 bit #$20                     ; 9A97= 89 20       .
@@ -3656,20 +3656,20 @@ L9A89:
                 pha                          ; 9A9B= 48          H
                 ldx #$2C                     ; 9A9C= A2 2C       ",
                 ldy #$46                     ; 9A9E= A0 46        F
-                jsr LD5CC                    ; 9AA0= 20 CC D5     LU
+                jsr mos.LD5CC                ; 9AA0= 20 CC D5     LU
                 tya                          ; 9AA3= 98          .
                 tax                          ; 9AA4= AA          *
                 ldy #$46                     ; 9AA5= A0 46        F
-                jsr LC91E                    ; 9AA7= 20 1E C9     .I
+                jsr mos.LC91E                ; 9AA7= 20 1E C9     .I
                 pla                          ; 9AAA= 68          h
 L9AAB:
                 bit #$10                     ; 9AAB= 89 10       ..
                 beq L9ABB                    ; 9AAD= F0 0C       p.
                 ldx #$37                     ; 9AAF= A2 37       "7
                 ldy #$42                     ; 9AB1= A0 42        B
-                jsr LD5CC                    ; 9AB3= 20 CC D5     LU
+                jsr mos.LD5CC                ; 9AB3= 20 CC D5     LU
                 ldy #$42                     ; 9AB6= A0 42        B
-                jsr LC91E                    ; 9AB8= 20 1E C9     .I
+                jsr mos.LC91E                ; 9AB8= 20 1E C9     .I
 L9ABB:
                 stz L8849                    ; 9ABB= 9C 49 88    .I.
 L9ABE:
@@ -3685,12 +3685,12 @@ L9AC1:
                 ldx #$1B                     ; 9AC9= A2 1B       ".
                 lda #$2C                     ; 9ACB= A9 2C       ),
                 jsr L9ADF                    ; 9ACD= 20 DF 9A     _.
-                jsr LD6A8                    ; 9AD0= 20 A8 D6     (V
+                jsr mos.LD6A8                ; 9AD0= 20 A8 D6     (V
                 ldy #$1B                     ; 9AD3= A0 1B        .
                 ldx #$28                     ; 9AD5= A2 28       "(
                 lda #$37                     ; 9AD7= A9 37       )7
                 jsr L9ADF                    ; 9AD9= 20 DF 9A     _.
-                jmp LD69D                    ; 9ADC= 4C 9D D6    L.V
+                jmp mos.LD69D                ; 9ADC= 4C 9D D6    L.V
 
 L9ADF:
                 pha                          ; 9ADF= 48          H
@@ -3805,7 +3805,7 @@ L9B75:
 L9B7F:
                 lda $0305,x                  ; 9B7F= BD 05 03    =..
                 ldy $0304,x                  ; 9B82= BC 04 03    <..
-                jsr LC92E                    ; 9B85= 20 2E C9     .I
+                jsr mos.LC92E                ; 9B85= 20 2E C9     .I
                 sta $0305,x                  ; 9B88= 9D 05 03    ...
                 tya                          ; 9B8B= 98          .
                 sta $0304,x                  ; 9B8C= 9D 04 03    ...
@@ -3828,19 +3828,19 @@ L9BA3:
                 ldx #$14                     ; 9BA7= A2 14       ".
                 ldy #$20                     ; 9BA9= A0 20
                 lda #$24                     ; 9BAB= A9 24       )$
-                jsr LD580                    ; 9BAD= 20 80 D5     .U
+                jsr mos.LD580                ; 9BAD= 20 80 D5     .U
                 ldy #$14                     ; 9BB0= A0 14        .
                 ldx #$24                     ; 9BB2= A2 24       "$
-                jsr LD5B7                    ; 9BB4= 20 B7 D5     7U
+                jsr mos.LD5B7                ; 9BB4= 20 B7 D5     7U
                 stx L8830                    ; 9BB7= 8E 30 88    .0.
                 ldx #$20                     ; 9BBA= A2 20       "
-                jsr LD5B7                    ; 9BBC= 20 B7 D5     7U
+                jsr mos.LD5B7                ; 9BBC= 20 B7 D5     7U
                 stx L8831                    ; 9BBF= 8E 31 88    .1.
                 ldx #$28                     ; 9BC2= A2 28       "(
-                jsr LD5B7                    ; 9BC4= 20 B7 D5     7U
+                jsr mos.LD5B7                ; 9BC4= 20 B7 D5     7U
                 sty L8833                    ; 9BC7= 8C 33 88    .3.
                 ldy L8831                    ; 9BCA= AC 31 88    ,1.
-                jsr LD5B7                    ; 9BCD= 20 B7 D5     7U
+                jsr mos.LD5B7                ; 9BCD= 20 B7 D5     7U
                 sty L8832                    ; 9BD0= 8C 32 88    .2.
                 ldy L8830                    ; 9BD3= AC 30 88    ,0.
                 jsr L9C0F                    ; 9BD6= 20 0F 9C     ..
@@ -3860,20 +3860,20 @@ L9BA3:
 L9BF7;
                 ldy #$14                     ; 9BF7= A0 14        .
                 ldx #$24                     ; 9BF9= A2 24       "$
-                jsr LD5B7                    ; 9BFB= 20 B7 D5     7U
+                jsr mos.LD5B7                ; 9BFB= 20 B7 D5     7U
                 sty L8832                    ; 9BFE= 8C 32 88    .2.
                 ldy #$20                     ; 9C01= A0 20
                 jsr L9C0F                    ; 9C03= 20 0F 9C     ..
                 lda L8832                    ; 9C06= AD 32 88    -2.
                 jsr L9C4D                    ; 9C09= 20 4D 9C     M.
 L9C0C:
-                jmp LDAE4                    ; 9C0C= 4C E4 DA    LdZ
+                jmp mos.LDAE4                ; 9C0C= 4C E4 DA    LdZ
 
 L9C0F:
-                jsr LD5B7                    ; 9C0F= 20 B7 D5     7U
+                jsr mos.LD5B7                ; 9C0F= 20 B7 D5     7U
                 stx L8830                    ; 9C12= 8E 30 88    .0.
                 ldx L8832                    ; 9C15= AE 32 88    .2.
-                jsr LD5B7                    ; 9C18= 20 B7 D5     7U
+                jsr mos.LD5B7                ; 9C18= 20 B7 D5     7U
                 sty L8832                    ; 9C1B= 8C 32 88    .2.
                 stx L8831                    ; 9C1E= 8E 31 88    .1.
                 ldy L8830                    ; 9C21= AC 30 88    ,0.
@@ -3915,13 +3915,13 @@ L9C67:
                 jsr L9CC0                    ; 9C69= 20 C0 9C     @.
                 ldx #$37                     ; 9C6C= A2 37       "7
                 jsr L9CC0                    ; 9C6E= 20 C0 9C     @.
-                jsr LDAE4                    ; 9C71= 20 E4 DA     dZ
+                jsr mos.LDAE4                ; 9C71= 20 E4 DA     dZ
                 ldx #$37                     ; 9C74= A2 37       "7
-                jsr LD726                    ; 9C76= 20 26 D7     &W
+                jsr mos.LD726                ; 9C76= 20 26 D7     &W
                 ldx #$2C                     ; 9C79= A2 2C       ",
-                jsr LD726                    ; 9C7B= 20 26 D7     &W
+                jsr mos.LD726                ; 9C7B= 20 26 D7     &W
                 ldy #$37                     ; 9C7E= A0 37        7
-                jsr LD5CC                    ; 9C80= 20 CC D5     LU
+                jsr mos.LD5CC                ; 9C80= 20 CC D5     LU
                 phx                          ; 9C83= DA          Z
                 ldx #$FC                     ; 9C84= A2 FC       "|
 L9C86:
@@ -3959,7 +3959,7 @@ L9CAC:
 L9CBE:
                 ldx $DE                      ; 9CBE= A6 DE       &^
 L9CC0:
-                jsr LD71D                    ; 9CC0= 20 1D D7     .W
+                jsr mos.LD71D                ; 9CC0= 20 1D D7     .W
 L9CC3:
                 lda $0300,x                  ; 9CC3= BD 00 03    =..
                 cmp $0342                    ; 9CC6= CD 42 03    MB.
@@ -3986,12 +3986,12 @@ L9CF8:
                 rts                          ; 9CF8= 60          `
 
 L9CF9:
-                jsr LDDA1                    ; 9CF9= 20 A1 DD     !]
+                jsr mos.LDDA1                ; 9CF9= 20 A1 DD     !]
                 stz $0336                    ; 9CFC= 9C 36 03    .6.
                 stz $0337                    ; 9CFF= 9C 37 03    .7.
-                jsr LDCB0                    ; 9D02= 20 B0 DC     0\
+                jsr mos.LDCB0                ; 9D02= 20 B0 DC     0\
                 bne L9D56                    ; 9D05= D0 4F       PO
-                jsr LDC1C                    ; 9D07= 20 1C DC     .\
+                jsr mos.LDC1C                ; 9D07= 20 1C DC     .\
 L9D0A:
                 bit $FF                      ; 9D0A= 24 FF       $.
                 bmi L9D56                    ; 9D0C= 30 48       0H
@@ -4019,14 +4019,14 @@ L9D0A:
                 beq L9D4B                    ; 9D3F= F0 0A       p.
                 sta $E0                      ; 9D41= 85 E0       .`
                 inc a                        ; 9D43= 1A          .
-                jsr LDC48                    ; 9D44= 20 48 DC     H\
+                jsr mos.LDC48                ; 9D44= 20 48 DC     H\
                 bcs L9D56                    ; 9D47= B0 0D       0.
                 lda $E0                      ; 9D49= A5 E0       %`
 L9D4B:
                 cmp $0302                    ; 9D4B= CD 02 03    M..
                 beq L9D0A                    ; 9D4E= F0 BA       p:
                 dec a                        ; 9D50= 3A          :
-                jsr LDC48                    ; 9D51= 20 48 DC     H\
+                jsr mos.LDC48                ; 9D51= 20 48 DC     H\
                 bcc L9D0A                    ; 9D54= 90 B4       .4
 L9D56:
                 rts                          ; 9D56= 60          `
@@ -4109,7 +4109,7 @@ L9DCC:
                 adc #$02
 L9DE3:
                 adc #$89                     ; Convert to TAPE/ROM select value
-                jsr LEDC0                    ; Call TAPE/ROM select routine
+                jsr mos.LEDC0           ; Call TAPE/ROM select routine
                 bra L9DCA                    ; Jump to claim and return
 
 L9DEA:
@@ -4150,7 +4150,7 @@ L9E17:
 L9E2A:
                 lda #$8C                     ; 9E2A= A9 8C       ).
 L9E2C:
-                jsr LEDC0                    ; 9E2C= 20 C0 ED     @m
+                jsr mos.LEDC0                ; 9E2C= 20 C0 ED     @m
                 lda #$00                     ; 9E2F= A9 00       ).
                 tay                          ; 9E31= A8          (
                 jsr LA1F9                    ; 9E32= 20 F9 A1     y!
@@ -4184,7 +4184,7 @@ L9E63:
                 dex                          ; 9E71= CA          J
                 bpl L9E63                    ; 9E72= 10 EF       .o
                 lda ($F2),y                  ; 9E74= B1 F2       1r
-                jsr isLetter                    ; 9E76= 20 71 EA     qj
+                jsr mos.isLetter             ; 9E76= 20 71 EA     qj
                 bcs L9E95                    ; 9E79= B0 1A       0.
 L9E7B:
                 lda ($F2),y                  ; 9E7B= B1 F2       1r
@@ -4193,7 +4193,7 @@ L9E7B:
                 iny                          ; 9E81= C8          H
                 cmp #$20                     ; 9E82= C9 20       I
                 bne L9E7B                    ; 9E84= D0 F5       Pu
-                jsr skipSpacesAndCheckForCRInStringInput                    ; 9E86= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput ; 9E86= 20 FF F2     .r
                 bne L9E61                    ; 9E89= D0 D6       PV
 L9E8B:
                 ply                          ; 9E8B= 7A          z
@@ -4237,11 +4237,11 @@ L9EB5:
                 bcc L9EC4                    ; 9EC0= 90 02       ..
                 inc $B1                      ; 9EC2= E6 B1       f1
 L9EC4:
-                jsr LE25C                    ; 9EC4= 20 5C E2     \b
+                jsr mos.LE25C                ; 9EC4= 20 5C E2     \b
                 cpx #$13                     ; 9EC7= E0 13       `.
                 beq L9EEF                    ; 9EC9= F0 24       p$
 L9ECB:
-                jsr LE252                    ; 9ECB= 20 52 E2     Rb
+                jsr mos.LE252                ; 9ECB= 20 52 E2     Rb
                 txa                          ; 9ECE= 8A          .
                 beq L9EA0                    ; 9ECF= F0 CF       pO
                 cpx #$14                     ; 9ED1= E0 14       `.
@@ -4250,7 +4250,7 @@ L9ECB:
                 cpx #$28                     ; 9ED7= E0 28       `(
                 beq L9EA0                    ; 9ED9= F0 C5       pE
                 bcs L9EE9                    ; 9EDB= B0 0C       0.
-                jsr LE25C                    ; 9EDD= 20 5C E2     \b
+                jsr mos.LE25C                ; 9EDD= 20 5C E2     \b
                 cpx #$27                     ; 9EE0= E0 27       `'
                 beq L9EEF                    ; 9EE2= F0 0B       p.
 L9EE4:
@@ -4266,7 +4266,7 @@ L9EEF:
                 bra L9EA0                    ; 9EF2= 80 AC       .,
 
 L9EF4:
-                jsr LE252                    ; 9EF4= 20 52 E2     Rb
+                jsr mos.LE252                ; 9EF4= 20 52 E2     Rb
                 txa                          ; 9EF7= 8A          .
                 beq L9E8B                    ; 9EF8= F0 91       p.
                 bra L9EEF                    ; 9EFA= 80 F3       .s
@@ -4534,10 +4534,10 @@ LA06B:
                 stx $F2                      ; A06B= 86 F2       .r
                 sty $F3                      ; A06D= 84 F3       .s
                 ldy #$00                     ; A06F= A0 00        .
-                jsr LF26D                    ; A071= 20 6D F2     mr
+                jsr mos.LF26D                ; A071= 20 6D F2     mr
                 ldx #$00                     ; A074= A2 00       ".
 LA076:
-                jsr gsreadEntryPoint                    ; A076= 20 7F F2     .r
+                jsr mos.gsreadEntryPoint     ; A076= 20 7F F2     .r
                 bcs LA088                    ; A079= B0 0D       0.
                 beq LA085                    ; A07B= F0 08       p.
                 sta $03D2,x                  ; A07D= 9D D2 03    .R.
@@ -4545,7 +4545,7 @@ LA076:
                 cpx #$0B                     ; A081= E0 0B       `.
                 bne LA076                    ; A083= D0 F1       Pq
 LA085:
-                jmp badStringError                    ; A085= 4C 8F F2    L.r
+                jmp mos.badStringError       ; A085= 4C 8F F2    L.r
 
 LA088:
                 stz $03D2,x                  ; A088= 9E D2 03    .R.
@@ -4706,8 +4706,8 @@ LA17C:
                 pha                          ; A17C= 48          H
                 lda $0247                    ; A17D= AD 47 02    -G.
                 beq LA18B                    ; A180= F0 09       p.
-                jsr LF6FC                    ; A182= 20 FC F6     |v
-                jsr LF701                    ; A185= 20 01 F7     .w
+                jsr mos.LF6FC                ; A182= 20 FC F6     |v
+                jsr mos.LF701                ; A185= 20 01 F7     .w
                 clv                          ; A188= B8          8
                 bcs LA1DB                    ; A189= B0 50       0P
 LA18B:
@@ -4725,7 +4725,7 @@ LA1A1:
                 lda $0247                    ; A1A1= AD 47 02    -G.
                 beq LA1DD                    ; A1A4= F0 37       p7
 LA1A6:
-                jsr LF717                    ; A1A6= 20 17 F7     .w
+                jsr mos.LF717                ; A1A6= 20 17 F7     .w
 LA1A9:
                 lda #$FF                     ; A1A9= A9 FF       ).
                 sta $03C6                    ; A1AB= 8D C6 03    .F.
@@ -4836,7 +4836,7 @@ LA259:
 LA260:
                 txa                          ; A260= 8A          .
                 bne LA266                    ; A261= D0 03       P.
-                jmp badStringError                    ; A263= 4C 8F F2    L.r
+                jmp mos.badStringError       ; A263= 4C 8F F2    L.r
 
 LA266:
                 ldx #$FF                     ; A266= A2 FF       ".
@@ -5134,7 +5134,7 @@ LA422:
                 dex                          ; *OPT 2
                 beq LA43D
 LA433:
-                jmp LFBED                    ; *OPT 4+ - error Bad command (*BUG* should be Bad option)
+                jmp mos.LFBED ; *OPT 4+ - error Bad command (*BUG* should be Bad option)
 
 ; *OPT 1 - set message level
 ; --------------------------
@@ -5190,7 +5190,7 @@ LA45D:
                 dec $C0
                 lda $0247                    ; A45F= AD 47 02    -G.
                 beq LA46B                    ; A462= F0 07       p.
-                jsr LF710                    ; A464= 20 10 F7     .w
+                jsr mos.LF710                ; A464= 20 10 F7     .w
                 tay                          ; A467= A8          (
                 clc                          ; A468= 18          .
                 bra LA485                    ; A469= 80 1A       ..
@@ -5360,7 +5360,7 @@ LA56B:
                 beq LA584                    ; A56B= F0 17       p.
                 pha                          ; A56D= 48          H
                 lda #$07                     ; A56E= A9 07       ).
-                jsr callFSCV                    ; A570= 20 E5 F1     eq
+                jsr mos.callFSCV             ; A570= 20 E5 F1     eq
                 pla                          ; A573= 68          h
                 clc                          ; A574= 18          .
                 php                          ; A575= 08          .
@@ -5459,7 +5459,7 @@ LA608:
                 inc $03C7                    ; A615= EE C7 03    nG.
 LA618:
                 ldx #$FF                     ; A618= A2 FF       ".
-                bit LE34E                    ; A61A= 2C 4E E3    ,Nc
+                bit mos.LE34E                ; A61A= 2C 4E E3    ,Nc
                 bra LA670                    ; A61D= 80 51       .Q
 
 LA61F:
@@ -5522,7 +5522,7 @@ LA678:
                 lda $0247                    ; A678= AD 47 02    -G.
                 beq LA62E                    ; A67B= F0 B1       p1
 LA67D:
-                jsr LF710                    ; A67D= 20 10 F7     .w
+                jsr mos.LF710                ; A67D= 20 10 F7     .w
                 cmp #$2B                     ; A680= C9 2B       I+
                 bne LA608                    ; A682= D0 84       P.
                 lda #$08                     ; A684= A9 08       ).
@@ -5530,7 +5530,7 @@ LA67D:
                 beq LA68D                    ; A688= F0 03       p.
                 jsr LA05D                    ; A68A= 20 5D A0     ]
 LA68D:
-                jsr LF701                    ; A68D= 20 01 F7     .w
+                jsr mos.LF701                ; A68D= 20 01 F7     .w
                 bcc LA67D                    ; A690= 90 EB       .k
                 clv                          ; A692= B8          8
                 rts                          ; A693= 60          `
@@ -5540,7 +5540,7 @@ LA694:
                 beq LA6A6                    ; A697= F0 0D       p.
                 phx                          ; A699= DA          Z
                 phy                          ; A69A= 5A          Z
-                jsr LF710                    ; A69B= 20 10 F7     .w
+                jsr mos.LF710                ; A69B= 20 10 F7     .w
                 sta $BD                      ; A69E= 85 BD       .=
                 lda #$FF                     ; A6A0= A9 FF       ).
                 sta $C0                      ; A6A2= 85 C0       .@
@@ -5710,7 +5710,7 @@ LA7AB:
                 stz $BA                      ; A7AD= 64 BA       d:
                 lda $03CA                    ; A7AF= AD CA 03    -J.
                 sta $03DF                    ; A7B2= 8D DF 03    ._.
-                jsr LEF1B                    ; A7B5= 20 1B EF     .o
+                jsr mos.LEF1B                ; A7B5= 20 1B EF     .o
                 beq LA821                    ; A7B8= F0 67       pg
                 lda #$0D                     ; A7BA= A9 0D       ).
                 jsr OSWRCH                   ; A7BC= 20 EE FF     n.
@@ -5775,12 +5775,12 @@ LA822:
                 lda $0247                    ; A822= AD 47 02    -G.
                 beq LA82D                    ; A825= F0 06       p.
                 jsr LA9CA                    ; A827= 20 CA A9     J)
-                jmp LFBED                    ; A82A= 4C ED FB    Lm{
+                jmp mos.LFBED                ; A82A= 4C ED FB    Lm{
 
 LA82D:
                 jsr LAA5A                    ; A82D= 20 5A AA     Z*
                 jsr LAAA0                    ; A830= 20 A0 AA      *
-                jsr LEF1B                    ; A833= 20 1B EF     .o
+                jsr mos.LEF1B                ; A833= 20 1B EF     .o
                 beq LA821                    ; A836= F0 E9       pi
                 jsr LA923                    ; A838= 20 23 A9     #)
                 ; EOR ($45)                  ; A83B= 52 45       RE
@@ -5948,7 +5948,7 @@ LA918:
 LA922:
                 phy                          ; A922= 5A          Z
 LA923:
-                jsr LEF1B                    ; A923= 20 1B EF     .o
+                jsr mos.LEF1B                ; A923= 20 1B EF     .o
                 tay                          ; A926= A8          (
 LA927:
                 pla                          ; A927= 68          h
@@ -6004,7 +6004,7 @@ LA96A:
                 rts                          ; A96A= 60          `
 
 LA96B:
-                jsr isLetter                    ; A96B= 20 71 EA     qj
+                jsr mos.isLetter             ; A96B= 20 71 EA     qj
                 eor $03B2,x                  ; A96E= 5D B2 03    ]2.
                 bcs LA975                    ; A971= B0 02       0.
                 and #$DF                     ; A973= 29 DF       )_
@@ -6044,7 +6044,7 @@ LA9A0:
                 bra LA9A0                    ; A9AF= 80 EF       .o
 
 LA9B1:
-                jsr LEF1B                    ; A9B1= 20 1B EF     .o
+                jsr mos.LEF1B                ; A9B1= 20 1B EF     .o
                 beq LA9BB                    ; A9B4= F0 05       p.
 LA9B6:
                 lda #$07                     ; A9B6= A9 07       ).
@@ -6070,7 +6070,7 @@ LA9D6:
 LA9D7:
                 jsr LAA12                    ; A9D7= 20 12 AA     .*
                 lda $0250                    ; A9DA= AD 50 02    -P.
-                jmp LE921                    ; A9DD= 4C 21 E9    L!i
+                jmp mos.LE921                ; A9DD= 4C 21 E9    L!i
 
 LA9E0:
                 plp                          ; A9E0= 28          (
@@ -6989,7 +6989,7 @@ LAE88:
                 bra LAE6A                    ; AE91= 80 D7       .W
 
 LAE93:
-                .word E_INSV
+                .word E_INSV             ;
                 .word E_REMV
 LAE97:
                 .word LAED4
@@ -7195,7 +7195,7 @@ LAFCE:
 
                 .byte $0F                    ; AFD2= 0F          .
                 .byte $0F                    ; AFD3= 0F          .
-                cmp LDFDE,x                  ; AFD4= DD DE DF    ]^_
+                cmp mos.LDFDE,x              ; AFD4= DD DE DF    ]^_
                 cpx #$E1                     ; AFD7= E0 E1       `a
                 .byte $E2                    ; AFD9= E2          b
                 .byte $E3                    ; AFDA= E3          c

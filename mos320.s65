@@ -232,6 +232,9 @@ numBytes: .fill 4
 ptr: .fill 4
                 .ends
 
+                ; HAZEL buffer for * commands?
+LDC00=$dc00
+                
                 ; NAUG p260
                 .virtual $df00
 hazel: .block

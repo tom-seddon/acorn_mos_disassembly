@@ -5454,7 +5454,7 @@ LE22C:
                 rts                          ; E23C= 60          `
 
 osbyteA5:
-                jsr LF3AB                    ; E23D= 20 AB F3     +s
+                jsr withMOSROM               ; E23D= 20 AB F3     +s
                 bit STATE                      ; E240= 24 D0       $P
                 bvc LE252                    ; E242= 50 0E       P.
                 jsr LE2AE                    ; E244= 20 AE E2     .b
@@ -6120,7 +6120,7 @@ LE616:
                 dex                          ; E618= CA          J
                 bmi LE64E                    ; E619= 30 33       03
                 bvs LE64D                    ; E61B= 70 30       p0
-                jsr LF384                    ; E61D= 20 84 F3     .s
+                jsr withTerminalROM          ; E61D= 20 84 F3     .s
                 jmp terminal.LA45D           ; E620= 4C 5D A4    L]$
 
 LE623:
@@ -6425,7 +6425,7 @@ emptyCommandLine=*+1                         ;arbitrary place that's
 LE818:
                 ldy #$DC                     ; E818= A0 DC        \
                 ldx #$00                     ; E81A= A2 00       ".
-                jsr LF384                    ; E81C= 20 84 F3     .s
+                jsr withTerminalROM          ; E81C= 20 84 F3     .s
                 jmp terminal.L84FF           ; E81F= 4C FF 84    L..
 
                 ; OSWRCH
@@ -6702,7 +6702,7 @@ LE9A4:
 ; D.2-33
 ;
 osbyte77:                       ;e9b5
-                jsr LF384                    ; E9B5= 20 84 F3     .s
+                jsr withTerminalROM          ; E9B5= 20 84 F3     .s
                 jmp terminal.L9423           ; E9B8= 4C 23 94    L#.
 
 LE9BB:
@@ -7023,11 +7023,11 @@ LEB58:
                 rts                          ; EB5C= 60          `
 
 LEB5D:
-                jsr LF3AB                    ; EB5D= 20 AB F3     +s
+                jsr withMOSROM               ; EB5D= 20 AB F3     +s
                 jmp LDF78                    ; EB60= 4C 78 DF    Lx_
 
 LEB63:
-                jsr LF3AB                    ; EB63= 20 AB F3     +s
+                jsr withMOSROM               ; EB63= 20 AB F3     +s
                 jmp LDF5E                    ; EB66= 4C 5E DF    L^_
 
 ; OSBYTE Dispatch Table
@@ -7156,7 +7156,7 @@ osbyte7E:                       ;ec3c
                 bne LEC54                    ; EC45= D0 0D       P.
                 cli                          ; EC47= 58          X
                 stz $0269                    ; EC48= 9C 69 02    .i.
-                jsr LF384                    ; EC4B= 20 84 F3     .s
+                jsr withTerminalROM          ; EC4B= 20 84 F3     .s
                 jsr terminal.LA591           ; EC4E= 20 91 A5     .%
                 jsr LE947                    ; EC51= 20 47 E9     Gi
 LEC54:
@@ -7454,11 +7454,11 @@ osbyteUnused:                   ;ed84
                 rts                          ; ED8D= 60          `
 
 osbyteA1:
-                jsr LF384                    ; ED8E= 20 84 F3     .s
+                jsr withTerminalROM          ; ED8E= 20 84 F3     .s
                 jmp terminal.L98B2           ; ED91= 4C B2 98    L2.
 
 osbyteA2:
-                jsr LF384                    ; ED94= 20 84 F3     .s
+                jsr withTerminalROM          ; ED94= 20 84 F3     .s
                 jmp terminal.L98DC           ; ED97= 4C DC 98    L\.
 
 ; OSBYTE &8C (140) - Select TAPE
@@ -7780,7 +7780,7 @@ LEF2E:
 osword0E:                       ;ef2f
                 cmp #$03                     ; EF2F= C9 03       I.
                 bcs LEF08                    ; EF31= B0 D5       0U
-                jsr LF384                    ; EF33= 20 84 F3     .s
+                jsr withTerminalROM          ; EF33= 20 84 F3     .s
                 jmp terminal.L97B4           ; EF36= 4C B4 97    L4.
 
 ;-------------------------------------------------------------------------
@@ -8189,7 +8189,7 @@ osbyteA0:
                 rts                          ; F106= 60          `
 
 LF107:
-                jsr LF384                    ; F107= 20 84 F3     .s
+                jsr withTerminalROM          ; F107= 20 84 F3     .s
                 jsr terminal.L8B3A           ; F10A= 20 3A 8B     :.
                 sty $0254                    ; F10D= 8C 54 02    .T.
                 jsr terminal.L8B3F           ; F110= 20 3F 8B     ?.
@@ -8231,8 +8231,8 @@ LF147:
                 bne LF146                    ; F14D= D0 F7       Pw
                 rts                          ; F14F= 60          `
 
-osword09:                       ;f150
-                jsr LF3AB                    ; F150= 20 AB F3     +s
+osword09:                                    ;f150
+                jsr withMOSROM               ; sF150= 20 AB F3     +s
                 ldy #$03                     ; F153= A0 03        .
 LF155:
                 lda ($F0),y                  ; F155= B1 F0       1p
@@ -8269,8 +8269,8 @@ LF180:
                 plx                          ; F189= FA          z
                 jmp selectROMX                    ; F18A= 4C 81 E5    L.e
 
-osword0C:                       ;f18d
-                jsr LF3AB                    ; F18D= 20 AB F3     +s
+osword0C:                                    ;f18d
+                jsr withMOSROM               ; F18D= 20 AB F3     +s
                 php                          ; F190= 08          .
                 and $0360                    ; F191= 2D 60 03    -`.
                 tax                          ; F194= AA          *
@@ -8278,8 +8278,8 @@ osword0C:                       ;f18d
                 lda ($F0),y                  ; F196= B1 F0       1p
                 jmp LC639                    ; F198= 4C 39 C6    L9F
 
-osword0D:                       ;f19b
-                jsr LF3AB                    ; F19B= 20 AB F3     +s
+osword0D:                                    ;f19b
+                jsr withMOSROM               ; F19B= 20 AB F3     +s
                 lda #$03                     ; F19E= A9 03       ).
                 jsr LF1A5                    ; F1A0= 20 A5 F1     %q
                 lda #$07                     ; F1A3= A9 07       ).
@@ -8331,7 +8331,7 @@ LF1D8:
                 bra LF1CC
 
 osbyte87: ;F1DC:
-                jsr LF3AB                    ; F1DC= 20 AB F3     +s
+                jsr withMOSROM               ; F1DC= 20 AB F3     +s
                 jmp LDDF8                    ; F1DF= 4C F8 DD    Lx]
 
 osbyte8B: ;LF1E2:
@@ -8344,7 +8344,7 @@ callFSCV:                                    ;f1e5
 ; OSWORD &0F - Write to RTC
 ; =========================
 osword0F:                       ;f1e8
-                jsr LF384                    ; Page in ROM 15
+                jsr withTerminalROM       ; Page in ROM 15
                 jmp terminal.L9656        ; Jump to OSWORD &0F routine
 
 
@@ -8388,11 +8388,11 @@ osbyte6D:;f20f
                 rts
 
 osbyte14:                       ;f21c
-                jsr LF384                    ; F21C= 20 84 F3     .s
+                jsr withTerminalROM          ; F21C= 20 84 F3     .s
                 jmp terminal.L92A4           ; F21F= 4C A4 92    L$.
 
 osbyte19:                       ;f222
-                jsr LF384                    ; F222= 20 84 F3     .s
+                jsr withTerminalROM          ; F222= 20 84 F3     .s
                 jmp terminal.L92A8           ; F225= 4C A8 92    L(.
 
 ; OSBYTE &16 - Increment ROM polling semaphore
@@ -8652,80 +8652,106 @@ LF373:
                 ldx #romServiceCallCloseAllOpenFiles 
                 jmp makeROMServiceCall
 
-LF378:
-                php                          ; F378= 08          .
-                pha                          ; F379= 48          H
-                phx                          ; F37A= DA          Z
-                tsx                          ; F37B= BA          :
-                lda $0104,x                  ; F37C= BD 04 01    =..
-                jsr selectROMA                    ; F37F= 20 92 E5     .e
-                bra LF3E1                    ; F382= 80 5D       .]
+;-------------------------------------------------------------------------
+;
+; Return thunk used by withTerminalROM.
+;
+; On entry here, the old value of $f4 is at the top of the stack.
+; 
+withTerminalROMReturnThunk:
+                php                          ; S=[p; old ROMSEL]
+                pha                          ; S=[a; p; old ROMSEL]
+                phx                          ; S=[x; a; p; old ROMSEL]
+                tsx
+                lda $0104,x                  ; get old ROMSEL
+                jsr selectROMA               ; re-select old ROM
+                bra returnThunkSuffix
 
-LF384:
-                pha                          ; F384= 48          H
-                pha                          ; F385= 48          H
-                pha                          ; F386= 48          H
-                php                          ; F387= 08          .
-                pha                          ; F388= 48          H
-                phx                          ; F389= DA          Z
-                tsx                          ; F38A= BA          :
-                lda $0107,x                  ; F38B= BD 07 01    =..
-                sta $0104,x                  ; F38E= 9D 04 01    ...
-                lda $0108,x                  ; F391= BD 08 01    =..
-                sta $0105,x                  ; F394= 9D 05 01    ...
-                lda $F4                      ; F397= A5 F4       %t
-                sta $0108,x                  ; F399= 9D 08 01    ...
-                lda #>LF378-1                ; F39C= A9 F3       )s
-                sta $0107,x                  ; F39E= 9D 07 01    ...
-                lda #<LF378-1                ; F3A1= A9 77       )w
-                sta $0106,x                  ; F3A3= 9D 06 01    ...
+;-------------------------------------------------------------------------
+;
+; Select the Terminal ROM. Rearrange the stack so that the original
+; ROM is re-selected when withTerminalROM's caller itself returns.
+;
+withTerminalROM:
+                pha                          ; S=[A]
+                pha                          ; S=[A; A]
+                pha                          ; S=[A; A; A]
+                php                          ; S=[P; A; A; A]
+                pha                          ; S=[A; P; A; A; A]
+                phx                          ; S=[X; A; P; A; A; A]
+                tsx                          ; S=[X; A; P; A; A; A; RL; RH]
+                lda $0107,x                  ; get RL
+                sta $0104,x                  ; overwrite placeholder A
+                lda $0108,x                  ; get RH
+                sta $0105,x                  ; overwrite placeholder A
+                lda $F4                      ; get ROMSEL
+                sta $0108,x                  ; overwrite RH
+
+                ; put return thunk in the right spot
+                lda #>withTerminalROMReturnThunk-1                
+                sta $0107,x                  
+                lda #<withTerminalROMReturnThunk-1                
+                sta $0106,x
+                
                 jsr selectTerminalROM      ; F3A6= 20 90 E5     .e
-                bra LF3D3                    ; F3A9= 80 28       .(
+                bra popXAPThenRTS
 
-LF3AB:
-                pha                          ; F3AB= 48          H
-                pha                          ; F3AC= 48          H
-                pha                          ; F3AD= 48          H
-                php                          ; F3AE= 08          .
-                pha                          ; F3AF= 48          H
-                phx                          ; F3B0= DA          Z
-                tsx                          ; F3B1= BA          :
-                lda $0108,x                  ; F3B2= BD 08 01    =..
-                sta $0105,x                  ; F3B5= 9D 05 01    ...
-                lda $0107,x                  ; F3B8= BD 07 01    =..
-                sta $0104,x                  ; F3BB= 9D 04 01    ...
-                lda #>LF3D7-1                ; F3BE= A9 F3       )s
+;-------------------------------------------------------------------------
+;
+; Select the MOS ROM (i.e., no HAZEL). Rearrange the stack so that the
+; original HAZEL state is restored when withMOSROM's caller itself
+; returns.
+; 
+withMOSROM:
+                pha                          ; S=[A]
+                pha                          ; S=[A; A]
+                pha                          ; S=[A; A; A]
+                php                          ; S=[P; A; A; A]
+                pha                          ; S=[A; P; A; A; A]
+                phx                          ; S=[X; A; P; A; A; A]
+                tsx                          ; S=[X; A; P; A; A; A; RL; RH]
+                lda $0108,x                  ; get RH
+                sta $0105,x                  ; overwrite placeholder A
+                lda $0107,x                  ; get RL
+                sta $0104,x                  ; overwrite placeholder A
+
+                ; put return thunk in the right spot
+                lda #>withMOSROMReturnThunk-1 ; F3BE= A9 F3       )s
                 sta $0107,x                  ; F3C0= 9D 07 01    ...
-                lda #<LF3D7-1                ; F3C3= A9 D6       )V
+                lda #<withMOSROMReturnThunk-1 ; F3C3= A9 D6       )V
                 sta $0106,x                  ; F3C5= 9D 06 01    ...
-                lda ACCCON                   ; F3C8= AD 34 FE    -4~
-                sta $0108,x                  ; F3CB= 9D 08 01    ...
-                lda #$08                     ; F3CE= A9 08       ).
-                trb ACCCON                   ; F3D0= 1C 34 FE    .4~
-LF3D3:
+
+                lda ACCCON                   ; get ACCCON
+                sta $0108,x                  ; overwrite RH
+                lda #ACCCON.Y
+                trb ACCCON                   ; HAZEL off
+popXAPThenRTS:
+                ; S=[X; A; P; RL; RH; thunkRL; thunkRH; old ACCCON/ROMSEL]
                 plx                          ; F3D3= FA          z
                 pla                          ; F3D4= 68          h
                 plp                          ; F3D5= 28          (
                 rts                          ; F3D6= 60          `
 
-LF3D7:
-                php                          ; F3D7= 08          .
-                pha                          ; F3D8= 48          H
-                phx                          ; F3D9= DA          Z
-                tsx                          ; F3DA= BA          :
-                lda $0104,x                  ; F3DB= BD 04 01    =..
-                jsr selectMOSOrHAZEL                    ; F3DE= 20 B0 ED     0m
-LF3E1:
-                lda $0103,x                  ; F3E1= BD 03 01    =..
-                sta $0104,x                  ; F3E4= 9D 04 01    ...
-                plx                          ; F3E7= FA          z
-                pla                          ; F3E8= 68          h
-                plp                          ; F3E9= 28          (
-                plp                          ; F3EA= 28          (
-                rts                          ; F3EB= 60          `
+withMOSROMReturnThunk:
+                php                          ; S=[P]
+                pha                          ; S=[A; P]
+                phx                          ; S=[X; A; P]
+                tsx                          ; S=[X; A; P; old ACCCON]
+                lda $0104,x                  ; get old ACCCON
+                jsr selectMOSOrHAZEL         ; re-select old HAZEL state
+returnThunkSuffix:
+                ; double up P, as that's the easiest way of ending up
+                ; discarding the TOS without affecting the flags.
+                lda $0103,x
+                sta $0104,x
+                plx
+                pla
+                plp
+                plp
+                rts
 
 vduChrEntryPoint:
-                jsr LF3AB                    ; F3EC= 20 AB F3     +s
+                jsr withMOSROM               ; F3EC= 20 AB F3     +s
                 ldx $F4                      ; F3EF= A6 F4       &t
                 phx                          ; F3F1= DA          Z
                 jsr selectTerminalROMAndANDY                    ; F3F2= 20 7F E5     .e
@@ -8734,11 +8760,11 @@ vduChrEntryPoint:
                 jmp selectROMX                    ; F3F9= 4C 81 E5    L.e
 
 osrdscEntryPoint:
-                jsr LF3AB                    ; F3FC= 20 AB F3     +s
+                jsr withMOSROM               ; F3FC= 20 AB F3     +s
                 jmp LC018                    ; F3FF= 4C 18 C0    L.@
 
 oswrscEntryPoint:
-                jsr LF3AB                    ; F402= 20 AB F3     +s
+                jsr withMOSROM               ; F402= 20 AB F3     +s
                 jmp LDB5F                    ; F405= 4C 5F DB    L_[
 
 starRunBOOT:

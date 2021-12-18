@@ -309,18 +309,28 @@ hasACCCONChanged:                ;dfdd
 ; &8D00–FF    RAM  Current definitions of characters &A0–BF.
 ; &8E00–FF    RAM  Current definitions of characters &C0–DF.
 ; &8F00–FF    RAM  Current definitions of characters &E0–FF.
-                
+
+L8000=$8000
 L8001=$8001
 L8002=$8002
 L8004=$8004
 L8010=$8010
+L8011=$8011
+L8012=$8012
                 ;l8011=$8011
                 ;l8012=$8012
 L8021=$8021
+
+; see $d40d, $d4ae
+;
+; (suspect these are actually references to $8840-$104 and $8848-$104)
+L873C=$873c
+L8744=$8744
+                
 L8400=$8400
 L8500=$8500
 L8600=$8600
-L8820=$8820
+L8700=$8700
 L8786=$8786
 L8787=$8787
 L8788=$8788
@@ -330,6 +340,7 @@ L87FF=$87FF
 L8800=$8800
 L8803=$8803
 L8804=$8804
+L8820=$8820
 L8836=$8836
 L8837=$8837
 L883C=$883C

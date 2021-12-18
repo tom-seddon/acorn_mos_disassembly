@@ -1,19 +1,15 @@
-               .section terminal 
-L8000:                                       ; Language entry point
-                jmp LAF77
-L8003:                                       ; Service entry point
-                jmp L9D72
-L8006:                                       ; ROM type=SERV+LANG+6502
-                .byte $C2
-L8007:                                       ; (C) offset
-                .byte L8011-L8000
-L8008:                                       ; Version 1.xx
+; -*- comment-column:45; -*-
+
+                .section terminal
+terminal: .block
+                jmp LAF77                    ; Language entry point
+                jmp L9D72                    ; Service entry point
+                .byte $C2                    ; ROM type=SERV+LANG+6502
+                .byte copyrightText-1-terminal ; (C) offset
                 .byte $01
-L8009:                                       ; ROM title
                 .text "TERMINAL"
-L8011:
                 .byte 0
-L8012:
+copyrightText:
                 .text "(C)1984 Acorn"
                 .byte 0
                 
@@ -489,7 +485,7 @@ L8368:
                 .mos_command "STATUS",L8895,$00,$FF  ;
                 .mos_command "TAPE",L93EB,$00,$8C ; X,y=parameters, OSBYTE &8C
                 .mos_command "TV",L93EB,$00,$90 ; X,y=parameters, OSBYTE &90
-                .mos_command "TIME",L8744,$00,$00   ;
+                .mos_command "TIME",starTime,$00,$00   ;
                 .mos_command "TYPE",L8ECB,$80,$00   ; XY=>parameters
                 .mos_command "UNPLUG",L8722,$00,$FF ;
                 .mos_command "X",LE7FD,$00,$00      ;
@@ -835,7 +831,6 @@ L86F5:
                 sta $B0                      ; 86F9= 85 B0       .0
                 jsr L98B7                    ; 86FB= 20 B7 98     7.
                 and $B0                      ; 86FE= 25 B0       %0
-L8700:
                 bne L8710                    ; 8700= D0 0E       P.
                 jsr LA958                    ; 8702= 20 58 A9     X)
                 .text " unplugged"
@@ -875,18 +870,17 @@ L8723:
                 sty $B0                      ; 8732= 84 B0       .0
                 pla                          ; 8734= 68          h
                 plp                          ; 8735= 28          (
-                bcc L873C                    ; 8736= 90 04       ..
+                bcc +                    ; 8736= 90 04       ..
                 ora $B0                      ; 8738= 05 B0       .0
                 bra L8740                    ; 873A= 80 04       ..
-
-L873C:
++
                 eor #$FF                     ; 873C= 49 FF       I.
                 and $B0                      ; 873E= 25 B0       %0
 L8740:
                 tay                          ; 8740= A8          (
                 jmp L98E4                    ; 8741= 4C E4 98    Ld.
 
-L8744:
+starTime:
                 stz LDC00                    ; 8744= 9C 00 DC    ..\
                 ldx #<LDC00                  ; 8747= A2 00       ".
                 ldy #>LDC00                  ; 8749= A0 DC        \
@@ -2663,8 +2657,8 @@ L9420:
                 bra L9433                    ; 9421= 80 10       ..
 
 L9423:
-                ldx #$10                     ; 9423= A2 10       ".
-                jsr makeROMServiceCall                    ; 9425= 20 72 EE     rn
+                ldx #romServiceCallSpoolExecClosureWarning
+                jsr makeROMServiceCall       ; 9425= 20 72 EE     rn
                 beq L941F                    ; 9428= F0 F5       pu
                 jsr LA58B                    ; 942A= 20 8B A5     .%
                 lda $0257                    ; 942D= AD 57 02    -W.
@@ -6556,12 +6550,12 @@ getLanguageParasiteAddr: .proc
                 lda $8000,x
                 bne -
                 
-                lda $8001,x
+                lda $8000+1,x
                 sta tubeLanguageParasiteAddr+0
-                lda $8002,x
+                lda $8000+2,x
                 sta tubeLanguageParasiteAddr+1
-                ldy L8003,x                  
-                lda L8004,x
+                ldy $8000+3,x                  
+                lda $8000+4,x
 LAC60:
                 sta tubeLanguageParasiteAddr+3
                 sty tubeLanguageParasiteAddr+2
@@ -11132,4 +11126,5 @@ LB900:
                 .byte %11111111
                 .byte %11111111
 
-                .send terminal
+                .endblock
+                .endsection terminal

@@ -1,3 +1,5 @@
+; -*- comment-column:45; -*-
+
                 .section mos
 
 ; VDU driver entry block
@@ -1974,7 +1976,6 @@ LCC2C:
                 clc                          ; CC2E= 18          .
                 adc $0328                    ; CC2F= 6D 28 03    m(.
                 tax                          ; CC32= AA          *
-LCC33:
                 pla                          ; CC33= 68          h
                 adc $0329                    ; CC34= 6D 29 03    m).
                 bvc LCC56                    ; CC37= 50 1D       P.
@@ -2956,7 +2957,7 @@ LD24D:
                 bra LD268                    ; D263= 80 03       ..
 
 LD265:
-                jsr L9B09                    ; D265= 20 09 9B     ..
+                jsr terminal.L9B09           ; D265= 20 09 9B     ..
 LD268:
                 ldy #$00                     ; D268= A0 00        .
                 jsr LD270                    ; D26A= 20 70 D2     pR
@@ -3885,7 +3886,7 @@ LD8D7:
                 ldy #$24                     ; D8D7= A0 24        $
                 lda #$20                     ; D8D9= A9 20       )
                 ldx #$28                     ; D8DB= A2 28       "(
-                jsr L9B09                    ; D8DD= 20 09 9B     ..
+                jsr terminal.L9B09           ; D8DD= 20 09 9B     ..
                 bit $DB                      ; D8E0= 24 DB       $[
                 bvs LD8EC                    ; D8E2= 70 08       p.
                 lda $032E                    ; D8E4= AD 2E 03    -..
@@ -4410,11 +4411,11 @@ LDC48:
 LDC52:
                 jsr LDC1C                    ; DC52= 20 1C DC     .\
                 bcs LDC47                    ; DC55= B0 F0       0p
-                jsr L9D57                    ; DC57= 20 57 9D     W.
+                jsr terminal.L9D57           ; DC57= 20 57 9D     W.
                 bcs LDC46                    ; DC5A= B0 EA       0j
 LDC5C:
                 jsr LDCC1                    ; DC5C= 20 C1 DC     A\
-                jsr L9D57                    ; DC5F= 20 57 9D     W.
+                jsr terminal.L9D57           ; DC5F= 20 57 9D     W.
                 bcs LDC46                    ; DC62= B0 E2       0b
                 jsr LDCD7                    ; DC64= 20 D7 DC     W\
                 jsr LDCB8                    ; DC67= 20 B8 DC     8\
@@ -5109,42 +5110,42 @@ LE048:
                 .next
                 
 LE069:
-                .word LCEFB      ; E069= FB CE        ..
-                .word LCF2B      ; E06B= 2B CF        +.
-                .word LCF57      ; E06D= 57 CF        W.
-                .word LCF57      ; E06F= 57 CF        W.
-                .word LCF57      ; E071= 57 CF        W.
-                .word LCF57      ; E073= 57 CF        W.
-                .word LCFDF      ; E075= DF CF        ..
-                .word LCFE6      ; E077= E6 CF        ..
-                .word LD069      ; E079= 69 D0        i.
+                .word LCEFB                  ; E069= FB CE        ..
+                .word LCF2B                  ; E06B= 2B CF        +.
+                .word LCF57                  ; E06D= 57 CF        W.
+                .word LCF57                  ; E06F= 57 CF        W.
+                .word LCF57                  ; E071= 57 CF        W.
+                .word LCF57                  ; E073= 57 CF        W.
+                .word LCFDF                  ; E075= DF CF        ..
+                .word LCFE6                  ; E077= E6 CF        ..
+                .word LD069                  ; E079= 69 D0        i.
 LE07B:
-                .word LD10F      ; E07B= 0F D1        ..
-                .word LD110      ; E07D= 10 D1        ..
-                .word LCF6D      ; E07F= 6D CF        m.
-                .word LCF96      ; E081= 96 CF        ..
-                .word LCF96      ; E083= 96 CF        ..
-                .word LCF96      ; E085= 96 CF        ..
-                .word LCF96      ; E087= 96 CF        ..
-                .word LD11E      ; E089= 1E D1        ..
-                .word LDB4A      ; E08B= 4A DB        J.
-                .word LDC6C      ; E08D= 6C DC
-                .word L9BF7      ; E08F= F7 9B
-                .word LDC75      ; E091= 75 DC       u\
-                .word LC448      ; E093= 48 C4
-                .word LDC6C      ; E095= 6C DC
-                .word L9BA3      ; E097= A3 9B
-                .word LDC75      ; E099= 75 DC       u\
-                .word L9CF9      ; E09B= F9 9C
-                .word L9CF9      ; E09D= F9 9C
-                .word L99A4      ; E09F= A4 99
-                .word L9944      ; E0A1= 44 99
-                .word L9999      ; E0A3= 99 99
-                .word L9935      ; E0A5= 35 99       5.
-                .word L9923      ; E0A7= 23 99
-                .word LDFDF      ; E0A9= DF DF
-                .word LDFE9      ; E0AB= E9 DF       i_
-                .word LDFF4      ; E0AD= F4 DF
+                .word LD10F                  ; E07B= 0F D1        ..
+                .word LD110                  ; E07D= 10 D1        ..
+                .word LCF6D                  ; E07F= 6D CF        m.
+                .word LCF96                  ; E081= 96 CF        ..
+                .word LCF96                  ; E083= 96 CF        ..
+                .word LCF96                  ; E085= 96 CF        ..
+                .word LCF96                  ; E087= 96 CF        ..
+                .word LD11E                  ; E089= 1E D1        ..
+                .word LDB4A                  ; E08B= 4A DB        J.
+                .word LDC6C                  ; E08D= 6C DC
+                .word terminal.L9BF7         ; E08F= F7 9B
+                .word LDC75                  ; E091= 75 DC       u\
+                .word LC448                  ; E093= 48 C4
+                .word LDC6C                  ; E095= 6C DC
+                .word terminal.L9BA3         ; E097= A3 9B
+                .word LDC75                  ; E099= 75 DC       u\
+                .word terminal.L9CF9         ; E09B= F9 9C
+                .word terminal.L9CF9         ; E09D= F9 9C
+                .word terminal.L99A4         ; E09F= A4 99
+                .word terminal.L9944         ; E0A1= 44 99
+                .word terminal.L9999         ; E0A3= 99 99
+                .word terminal.L9935         ; E0A5= 35 99       5.
+                .word terminal.L9923         ; E0A7= 23 99
+                .word LDFDF                  ; E0A9= DF DF
+                .word LDFE9                  ; E0AB= E9 DF       i_
+                .word LDFF4                  ; E0AD= F4 DF
 
 ; Times 40 lookup table, high bytes
 LE0AF:
@@ -5360,7 +5361,7 @@ LE188:
                 .byte $33                    ; E1BA= 33          3
                 bit $1E                      ; E1BB= 24 1E       $.
                 .byte $02                    ; E1BD= 02          .
-                ora L931B,y                  ; E1BE= 19 1B 93    ...
+                .byte $19,$1b,$93            ; E1BE= 19 1B 93    ...
                 ora ($72)                    ; E1C1= 12 72       .r
 LE1C3:
                 .byte $13                    ; E1C3= 13          .
@@ -5380,8 +5381,8 @@ LE1C3:
                 lda $0F                      ; E1D6= A5 0F       %.
                 lda $5A                      ; E1D8= A5 5A       %Z
                 lda $5A                      ; E1DA= A5 5A       %Z
-                beq LE238                    ; E1DC= F0 5A       pZ
-                beq LE23A                    ; E1DE= F0 5A       pZ
+                .byte $f0,$5a                ; E1DC= F0 5A       pZ
+                .byte $f0,$5a                ; E1DE= F0 5A       pZ
                 sbc $FA,x                    ; E1E0= F5 FA       uz
                 sbc $FA,x                    ; E1E2= F5 FA       uz
                 .byte $0B                    ; E1E4= 0B          .
@@ -5401,7 +5402,7 @@ LE1C3:
                 .byte $00
                 .byte $CC
                 brk                          ; E1F7= 00          .
-                cpy LCC33                    ; E1F8= CC 33 CC    L3L
+                .byte $cc,$33,$cc            ; E1F8= CC 33 CC    L3L
                 .byte $33                    ; E1FB= 33          3
                 .byte $FF                    ; E1FC= FF          .
                 .byte $33                    ; E1FD= 33          3
@@ -5447,9 +5448,7 @@ LE22C:
                 adc #$88                     ; E233= 69 88       i.
                 sta $DF                      ; E235= 85 DF       ._
                 tya                          ; E237= 98          .
-LE238:
                 and #$F8                     ; E238= 29 F8       )x
-LE23A:
                 sta $DE                      ; E23A= 85 DE       .^
                 rts                          ; E23C= 60          `
 
@@ -5680,7 +5679,7 @@ resetEntryPoint:                ;e364
                 lda #$53              ;
                 sta LFE8E             ; ???
                 jsr selectTerminalROM ; Page in ROM 15 and continue
-                jmp reset
+                jmp terminal.reset
 
 ; Check if a coprocessor is attached to the Tube
 ; ----------------------------------------------
@@ -5701,7 +5700,7 @@ LE389:
                 jsr LE9BB                    ; E38B= 20 BB E9     ;i
                 sta $FC                      ; E38E= 85 FC       .|
                 jsr selectTerminalROM                    ; E390= 20 90 E5     .e
-                jsr L98B7                    ; E393= 20 B7 98     7.
+                jsr terminal.L98B7           ; E393= 20 B7 98     7.
                 tya                          ; E396= 98          .
                 and $FC                      ; E397= 25 FC       %|
                 cmp #$01                     ; E399= C9 01       I.
@@ -5747,7 +5746,7 @@ LE3DB:
                 bra LE3EC                    ; E3DD= 80 0D       ..
 
 LE3DF:
-                lda L8006                    ; E3DF= AD 06 80    -..
+                lda $8006                    ; E3DF= AD 06 80    -..
                 sta $02A1,x                  ; E3E2= 9D A1 02    .!.
                 and #$8F                     ; E3E5= 29 8F       ).
                 bne LE3EC                    ; E3E7= D0 03       P.
@@ -5756,8 +5755,8 @@ LE3EC:
                 inx                          ; E3EC= E8          h
                 cpx #$10                     ; E3ED= E0 10       `.
                 bcc LE3A0                    ; E3EF= 90 AF       ./
-                jsr selectTerminalROM                    ; E3F1= 20 90 E5     .e
-                jmp L8224                    ; E3F4= 4C 24 82    L$.
+                jsr selectTerminalROM        ; E3F1= 20 90 E5     .e
+                jmp terminal.L8224           ; E3F4= 4C 24 82    L$.
 
 ;-------------------------------------------------------------------------
 ;
@@ -5774,10 +5773,10 @@ LE3EC:
 isROMValid: .proc ;e3f7
                 jsr selectROMX
                 ldx #$03
-                ldy L8007       ; fetch ROM copyright offset pointer
+                ldy $8007       ; fetch ROM copyright offset pointer
                 clc             ; assume no match
 -
-                lda L8000,y     ; fetch possible ROM copyright char
+                lda $8000,y     ; fetch possible ROM copyright char
                 eor LE513,x     ; Z=1 if it matches "\x0(C)"
                 bne +           ; branch taken if no match
                 iny             ; next copyright byte
@@ -5793,7 +5792,7 @@ isROMValid: .proc ;e3f7
 ; End of STARTUP code
 ; ===================
 LE40E:
-                sec                          ; Call Break Intercept Vector
+                sec                      ; Call Break Intercept Vector
                 jsr LF349
                 ldx #$27                     ; Service call &27 - Break pressed
                 jsr makeROMServiceCall
@@ -5825,7 +5824,7 @@ LE431:
                 jsr selectTerminalROM                    ; E449= 20 90 E5     .e
 LE44C:
                 phy                          ; E44C= 5A          Z
-                jsr L8EA4                    ; E44D= 20 A4 8E     $.
+                jsr terminal.L8EA4           ; E44D= 20 A4 8E     $.
                 and #$0F                     ; E450= 29 0F       ).
                 ply                          ; E452= 7A          z
                 tax                          ; E453= AA          *
@@ -5843,8 +5842,8 @@ LE454:
                 bra LE478                    ; E46A= 80 0C       ..
 
 LE46C:
-                lda #$03                     ; Filing System selection
-                jsr L8003
+                lda #romServiceCallAutoBoot  ; Filing System selection
+                jsr $8003
                 tax                          ; E471= AA          *
                 jsr selectTerminalROM                    ; E472= 20 90 E5     .e
                 txa                          ; E475= 8A          .
@@ -5885,8 +5884,8 @@ LE4A3:
                 cpx #$1F                     ; 16+UTILS ROM, re-enter Supervisor or Tube CLI
                 beq LE509
 LE4BB:
-                jsr selectTerminalROM                    ; Page in ROM 15 - UTILS ROM
-                jsr L8E9C                    ; Read configured LANG
+                jsr selectTerminalROM     ; Page in ROM 15 - UTILS ROM
+                jsr terminal.L8E9C        ; Read configured LANG
                 tax
 LE4C2:
                 clc
@@ -5896,14 +5895,14 @@ osbyte8E: ;LE4C3:
                 php                          ; E4C8= 08          .
                 bcc LE4E1                    ; E4C9= 90 16       ..
                 jsr selectROMX                    ; E4CB= 20 81 E5     .e
-                lda L8006                    ; E4CE= AD 06 80    -..
+                lda $8006                    ; E4CE= AD 06 80    -..
                 and #$0D                     ; E4D1= 29 0D       ).
                 beq LE4DA                    ; E4D3= F0 05       p.
                 bit $027A                    ; E4D5= 2C 7A 02    ,z.
                 bpl LE52E                    ; E4D8= 10 54       .T
 LE4DA:
                 phx                          ; E4DA= DA          Z
-                ldx #$2A                     ; E4DD= 20 72 EE     rn
+                ldx #romServiceCallLanguageChange
                 jsr makeROMServiceCall
                 plx                          ; E4E0= FA          z
 LE4E1:
@@ -5919,18 +5918,18 @@ LE4E1:
                 lda #$01                     ; E4F7= A9 01       ).
                 bit $027A                    ; E4F9= 2C 7A 02    ,z.
                 bmi LE510                    ; E4FC= 30 12       0.
-                lda L8006                    ; E4FE= AD 06 80    -..
+                lda $8006                    ; E4FE= AD 06 80    -..
                 and #$0D                     ; E501= 29 0D       ).
                 bne LE52E                    ; E503= D0 29       P)
                 inc a                        ; E505= 1A          .
-                jmp L8000                    ; E506= 4C 00 80    L..
+                jmp $8000                    ; E506= 4C 00 80    L..
 
 LE509:
                 lda #$00                     ; E509= A9 00       ).
                 bit $027A                    ; E50B= 2C 7A 02    ,z.
                 bpl LE579                    ; E50E= 10 69       .i
 LE510:
-                jmp tubeHost.copyLanguage
+                jmp terminal.tubeHost.copyLanguage
 
 LE513:
                 .text ")C("
@@ -5972,8 +5971,8 @@ LE565:
                 jmp LE496                    ; E576= 4C 96 E4    L.d
 
 LE579:
-                jsr selectTerminalROM                    ; E579= 20 90 E5     .e
-                jmp L8661                    ; E57C= 4C 61 86    La.
+                jsr selectTerminalROM        ; E579= 20 90 E5     .e
+                jmp terminal.L8661           ; E57C= 4C 61 86    La.
 
 ;-------------------------------------------------------------------------
 ;-------------------------------------------------------------------------
@@ -6121,7 +6120,7 @@ LE616:
                 bmi LE64E                    ; E619= 30 33       03
                 bvs LE64D                    ; E61B= 70 30       p0
                 jsr LF384                    ; E61D= 20 84 F3     .s
-                jmp LA45D                    ; E620= 4C 5D A4    L]$
+                jmp terminal.LA45D           ; E620= 4C 5D A4    L]$
 
 LE623:
                 ldy ACIA+1                    ; E623= AC 09 FE    ,.~
@@ -6426,7 +6425,7 @@ LE818:
                 ldy #$DC                     ; E818= A0 DC        \
                 ldx #$00                     ; E81A= A2 00       ".
                 jsr LF384                    ; E81C= 20 84 F3     .s
-                jmp L84FF                    ; E81F= 4C FF 84    L..
+                jmp terminal.L84FF           ; E81F= 4C FF 84    L..
 
                 ; OSWRCH
                 ; ======
@@ -6703,7 +6702,7 @@ LE9A4:
 ;
 osbyte77:                       ;e9b5
                 jsr LF384                    ; E9B5= 20 84 F3     .s
-                jmp L9423                    ; E9B8= 4C 23 94    L#.
+                jmp terminal.L9423           ; E9B8= 4C 23 94    L#.
 
 LE9BB:
                 lda #$00                     ; E9BB= A9 00       ).
@@ -7157,7 +7156,7 @@ osbyte7E:                       ;ec3c
                 cli                          ; EC47= 58          X
                 stz $0269                    ; EC48= 9C 69 02    .i.
                 jsr LF384                    ; EC4B= 20 84 F3     .s
-                jsr LA591                    ; EC4E= 20 91 A5     .%
+                jsr terminal.LA591           ; EC4E= 20 91 A5     .%
                 jsr LE947                    ; EC51= 20 47 E9     Gi
 LEC54:
                 ldx #$FF                     ; EC54= A2 FF       ".
@@ -7167,7 +7166,7 @@ osbyte7D: ;EC57
                 ror $FF                      ; EC57= 66 FF       f.
                 bit $027A                    ; EC59= 2C 7A 02    ,z.
                 bpl LECD9                    ; EC5C= 10 7B       .{
-                jmp tubeHost.copyEscapeStatus     ; EC5E= 4C 03 04    L..
+                jmp terminal.tubeHost.copyEscapeStatus
 
 osbyte89:
                 lda serialRegisterULACopy                    ; EC61= AD 82 02    -..
@@ -7455,11 +7454,11 @@ osbyteUnused:                   ;ed84
 
 osbyteA1:
                 jsr LF384                    ; ED8E= 20 84 F3     .s
-                jmp L98B2                    ; ED91= 4C B2 98    L2.
+                jmp terminal.L98B2           ; ED91= 4C B2 98    L2.
 
 osbyteA2:
                 jsr LF384                    ; ED94= 20 84 F3     .s
-                jmp L98DC                    ; ED97= 4C DC 98    L\.
+                jmp terminal.L98DC           ; ED97= 4C DC 98    L\.
 
 ; OSBYTE &8C (140) - Select TAPE
 ; ==============================
@@ -7781,7 +7780,7 @@ osword0E:                       ;ef2f
                 cmp #$03                     ; EF2F= C9 03       I.
                 bcs LEF08                    ; EF31= B0 D5       0U
                 jsr LF384                    ; EF33= 20 84 F3     .s
-                jmp L97B4                    ; EF36= 4C B4 97    L4.
+                jmp terminal.L97B4           ; EF36= 4C B4 97    L4.
 
 ;-------------------------------------------------------------------------
 ;
@@ -8190,9 +8189,9 @@ osbyteA0:
 
 LF107:
                 jsr LF384                    ; F107= 20 84 F3     .s
-                jsr L8B3A                    ; F10A= 20 3A 8B     :.
+                jsr terminal.L8B3A           ; F10A= 20 3A 8B     :.
                 sty $0254                    ; F10D= 8C 54 02    .T.
-                jsr L8B3F                    ; F110= 20 3F 8B     ?.
+                jsr terminal.L8B3F           ; F110= 20 3F 8B     ?.
                 ldx $0255                    ; F113= AE 55 02    .U.
                 sty $0255                    ; F116= 8C 55 02    .U.
                 rts                          ; F119= 60          `
@@ -8345,7 +8344,7 @@ callFSCV:                                    ;f1e5
 ; =========================
 osword0F:                       ;f1e8
                 jsr LF384                    ; Page in ROM 15
-                jmp L9656                    ; Jump to OSWORD &0F routine
+                jmp terminal.L9656        ; Jump to OSWORD &0F routine
 
 
 ; Set TAPE/ROM extended vectors
@@ -8363,19 +8362,19 @@ LF1F9:
 ; TAPE/ROM extended vector values
 ; -------------------------------
 LF1FA:
-                .word LA08C                  ; FILEV
+                .word terminal.LA08C         ; FILEV
                 .byte 15
-                .word L9F29                  ; ARGSV
+                .word terminal.L9F29         ; ARGSV
                 .byte 15
-                .word LA2EA                  ; BPUTV
+                .word terminal.LA2EA         ; BPUTV
                 .byte 15
-                .word LA34B                  ; BGETV
+                .word terminal.LA34B         ; BGETV
                 .byte 15
-                .word LA36D                  ; GBPBV
+                .word terminal.LA36D         ; GBPBV
                 .byte 15
-                .word LA1F9                  ; FINDV
+                .word terminal.LA1F9         ; FINDV
                 .byte 15
-                .word L9F8C                  ; FSCV
+                .word terminal.L9F8C         ; FSCV
                 .byte 15
 
 ; OSBYTE &6x - Make temporary FS permanant
@@ -8389,11 +8388,11 @@ osbyte6D:;f20f
 
 osbyte14:                       ;f21c
                 jsr LF384                    ; F21C= 20 84 F3     .s
-                jmp L92A4                    ; F21F= 4C A4 92    L$.
+                jmp terminal.L92A4           ; F21F= 4C A4 92    L$.
 
 osbyte19:                       ;f222
                 jsr LF384                    ; F222= 20 84 F3     .s
-                jmp L92A8                    ; F225= 4C A8 92    L(.
+                jmp terminal.L92A8           ; F225= 4C A8 92    L(.
 
 ; OSBYTE &16 - Increment ROM polling semaphore
 ; ========================================
@@ -8649,7 +8648,7 @@ osbyte93:
                 rts                          ; F372= 60          `
 
 LF373:
-                ldx #$26                     ; F375= 4C 72 EE    Lrn
+                ldx #romServiceCallCloseAllOpenFiles 
                 jmp makeROMServiceCall
 
 LF378:

@@ -1,0 +1,160 @@
+CRTC=$FE00
+ACIA=$fe08
+SERPROC=$fe10
+HADC=$fe18
+TUBE=$fee0
+ROMSEL=$fe30
+;ACCCON=$fe34
+VCONTROL=$fe20
+VPALETTE=$fe21
+
+                .virtual $fe34
+ACCCON: .block
+;D=1 = display shadow RAM; D=0 = display main RAM
+D=$01
+
+;E=1 = VDU code ($c000-$dfff in MOS ROM) accesses shadow RAM; E=0 =
+;VDU code accesses main RAM
+E=$02
+
+;X=1 = shadow RAM at $3000; X=0 = main RAM at $3000
+X=$04
+
+;Y=1 = HAZEL at $c000; Y=0 = MOS ROM at $c000
+Y=$08
+
+;ITU=1 = access internal Tube; ITU=0 = access external Tube
+ITU=$10
+
+;IFJ=1 = $fc00...$fdff accesses cartridge; IFJ=0 = $fc00...$fdff
+;accesses 1MHz bus
+IFJ=$20
+
+; TST=1 = read MOS ROM at $fc00...$feff; TST=0 = read I/O at
+; $fc00...$feff
+TST=$40
+
+;IRR=1 = IRQ to CPU
+IRR=$80
+                .bend
+                .endv
+
+                VIA: .struct                    ;
+orb:
+irb:
+                .fill 1         ;0
+ora:
+ira:
+                .fill 1         ;1
+ddrb:
+                .fill 1         ;2
+ddra:
+                .fill 1         ;3
+t1cL:
+                .fill 1         ;4
+t1cH:
+                .fill 1         ;5
+t1lL:
+                .fill 1         ;6
+t1lH:
+                .fill 1         ;7
+t2cL:
+                .fill 1         ;8
+t2cH:
+                .fill 1         ;9
+sr:
+                .fill 1         ;10
+acr:
+                .fill 1         ;11
+pcr:
+                .fill 1         ;12
+ifr:
+                .fill 1         ;13
+ier:
+                .fill 1         ;14
+oraNoHandshake:
+iraNoHandshake:
+                .fill 1         ;15
+                .ends
+
+                                .virtual $fe40
+systemVIA: .dstruct VIA
+                .endv
+
+                .virtual $fe60
+userVIA: .dstruct VIA
+                .endv
+
+; see App Note 004 - the Tube
+                
+                .virtual $fee0
+tube: .block
+; Parasite to Host: Carries the OSWRCH call. Data register is a FIFO
+; that can handle a VDU command length (10 bytes).
+;
+; Host to Parasite: There is a 1 byte buffer. It is used to generate
+; IRQ's in the parasite from events in the host.
+
+; write/read (clears IRQ)
+status1: .block
+; App Note 004 p13
+Q=$01                           ;enable HIRQ from R4
+I=$02                           ;enable PIRQ from R1
+J=$04                           ;enable PIRQ from R3
+M=$08                           ;enable PNMI from R3
+V=$10                           ;2-byte R3
+P=$20                           ;activate PRST
+T=$40                           ;clear all Tube registers
+S=$80                           ;set/clear bits
+                .bend
+                .fill 1
+
+; bit 7 - data available/IRQ
+; bit 6 - not full
+data1:
+                .fill 1
+
+; Used to implement OS calls that take a long time or that cannot
+; interrupt Host tasks. The parasite passes a byte describing the
+; required task. The two processors then exchange data until the task
+; is complete. OS calls handled through this register include: OSRDCH,
+; OSCLI, OSBYTE, OSWORD, OSBPUT, OSBGET, OSFIND, OSARGS, OSFILE,
+; OSGBPB.
+
+; write/read
+status2:
+                .fill 1
+
+; bit 7 - data available
+; bit 6 - not full
+data2:
+                .fill 1
+
+; Used for the background task of fast data transfer between the two
+; processors.
+
+; write/read
+status3:
+                .fill 1
+
+; bit 7 - data available/NMI
+; bit 6 - not full
+data3:
+                .fill 1
+
+; Used as the control channel for block transfers going through
+; Register 3, and also the transfer register for error strings from
+; host to parasite. In both cases, the host interrupts the parasite by
+; placing a byte into the Register. In the former case it is a byte
+; describing the required action, in the latter it is an error code.
+
+; write (sets IRQ)/read (clears IRQ)
+status4:
+                .fill 1
+
+; bit 7 - data available/IRQ
+; bit 6 - not full/IRQ
+data4:
+                .fill 1
+                .bend
+                .endv

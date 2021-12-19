@@ -820,7 +820,7 @@ L86A6:
                 ldy #$0F                     ; 86AB= A0 0F        .
 L86AD:
                 iny                          ; 86AD= C8          H
-                jsr LA927                    ; 86AE= 20 27 A9     ')
+                jsr printFollowingMessage    ; 86AE= 20 27 A9     ')
                 .text "ROM "
                 .byte $00
                 tya                          ; 86B6= 98          .
@@ -5815,17 +5815,6 @@ LA82D:
                 jsr mos.LEF1B                ; A833= 20 1B EF     .o
                 beq LA821                    ; A836= F0 E9       pi
                 jsr LA923                    ; A838= 20 23 A9     #)
-                ; EOR ($45)                  ; A83B= 52 45       RE
-                ; EQUB $43                   ; A83D= 43          C
-                ; EQUB $4F                   ; A83E= 4F          O
-                ; EOR ($44)                  ; A83F= 52 44       RD
-                ; JSR $6874                  ; A841= 20 74 68     th
-                ; ADC $6E                    ; A844= 65 6E       en
-                ; JSR $4552                  ; A846= 20 52 45     RE
-                ; EQUB $54                   ; A849= 54          T
-                ; EOR $52,x                  ; A84A= 55 52       UR
-                ; LSR $2000                  ; A84C= 4E 00 20    N.
-                ; BRA LA7F9                  ; A84F= 80 A8       .(
                 .text "RECORD then RETURN"
                 .byte $00
 
@@ -5887,11 +5876,6 @@ LA891:
                 .byte $11
                 .text "Escape"
                 .byte $00
-                ; ORA ($45),y                ; A899= 11 45       .E
-                ; EQUB $73                   ; A89B= 73          s
-                ; EQUB $63                   ; A89C= 63          c
-                ; ADC ($70,x)                ; A89D= 61 70       ap
-                ; ADC $00                    ; A89F= 65 00       e.
 LA8A1:
                 tya                          ; A8A1= 98          .
                 beq LA8B1                    ; A8A2= F0 0D       p.
@@ -5900,11 +5884,6 @@ LA8A1:
                 .text "Loading"
                 .byte $0D
                 .byte $00
-                ; ORA $6F4C                  ; A8A7= 0D 4C 6F    .Lo
-                ; ADC ($64,x)                ; A8AA= 61 64       ad
-                ; ADC #$6E                   ; A8AC= 69 6E       in
-                ; EQUB $67                   ; A8AE= 67          g
-                ; ORA $6400                  ; A8AF= 0D 00 64    ..d
 LA8B1:
                 stz $BA                      ; A8B1= 64 BA          :
                 ldx #$FF                     ; A8B3= A2 FF       ".
@@ -5982,46 +5961,64 @@ LA922:
 LA923:
                 jsr mos.LEF1B                ; A923= 20 1B EF     .o
                 tay                          ; A926= A8          (
-LA927:
-                pla                          ; A927= 68          h
-                sta $B8                      ; A928= 85 B8       .8
-                pla                          ; A92A= 68          h
-                sta $B9                      ; A92B= 85 B9       .9
-                phy                          ; A92D= 5A          Z
-                tya                          ; A92E= 98          .
-                php                          ; A92F= 08          .
-LA930:
-                inc $B8                      ; A930= E6 B8       f8
-                bne LA936                    ; A932= D0 02       P.
-                inc $B9                      ; A934= E6 B9       f9
-LA936:
-                lda ($B8)                    ; A936= B2 B8       28
-                beq LA94D                    ; A938= F0 13       p.
-                plp                          ; A93A= 28          (
-                php                          ; A93B= 08          .
-                beq LA930                    ; A93C= F0 F2       pr
-                ldy $B8                      ; A93E= A4 B8       $8
-                phy                          ; A940= 5A          Z
-                ldy $B9                      ; A941= A4 B9       $9
-                jsr OSASCI                   ; A943= 20 E3 FF     c.
-                sty $B9                      ; A946= 84 B9       .9
-                ply                          ; A948= 7A          z
-                sty $B8                      ; A949= 84 B8       .8
-                bra LA930                    ; A94B= 80 E3       .c
 
-LA94D:
-                plp                          ; A94D= 28          (
-                inc $B8                      ; A94E= E6 B8       f8
-                bne LA954                    ; A950= D0 02       P.
-                inc $B9                      ; A952= E6 B9       f9
-LA954:
-                ply                          ; A954= 7A          z
+;-------------------------------------------------------------------------
+;
+; Print 0-terminated message using address from stack.
+;
+; entry:
+;
+; S=[StrL; StrH] - where Str = (address of string)-1
+; Y = 0 to print message; otherwise, don't print message
+; 
+printFollowingMessage:                       ;
+                pla
+                sta printMessageAddress+0
+                pla
+                sta printMessageAddress+1
+                phy                          ;save initial Y
+                tya                          ;Z=1 if Y=0
+                php                          ;save Y=0 state
+fetchNextChar:
+                inc printMessageAddress+0
+                bne +
+                inc printMessageAddress+1
++
+                lda (printMessageAddress)   ;fetch next char to print
+                beq printingFinished        ;branch taken if last char
+                plp                         ;restore Y=0 state
+                php                         ;save Y=0 state
+                beq fetchNextChar ;branch taken if Y=0 - i.e., skip the
+                                  ;printing
+
+                ; save printMessageAddress while calling OSASCI - not
+                ; obvious why? Does this routine have to be
+                ; re-entrant?
+                ldy printMessageAddress+0
+                phy                          
+                ldy printMessageAddress+1
+                jsr OSASCI                   
+                sty printMessageAddress+1
+                ply                          
+                sty printMessageAddress+0
+                
+                bra fetchNextChar
+
+printingFinished:
+                plp                          ;discard Y=0 state
+                inc printMessageAddress+0
+                bne +
+                inc printMessageAddress+1
++
+                ply                          ;restore initial Y
 LA955:
-                jmp ($00B8)                  ; A955= 6C B8 00    l8.
+                jmp (printMessageAddress)
 
 LA958:
                 ldy #$01                     ; A958= A0 01        .
-                bra LA927                    ; A95A= 80 CB       .K
+                bra printFollowingMessage    ; A95A= 80 CB       .K
+
+;-------------------------------------------------------------------------
 
 LA95C:
                 ldx #$FF                     ; A95C= A2 FF       ".
@@ -6055,7 +6052,7 @@ LA978:
                 beq LA99D                    ; A983= F0 18       p.
                 jsr LAA12                    ; A985= 20 12 AA     .*
                 tay                          ; A988= A8          (
-                jsr LA927                    ; A989= 20 27 A9     ')
+                jsr printFollowingMessage    ; A989= 20 27 A9     ')
                 .byte $0D
                 .byte $07
                 .text "Rewind tape"

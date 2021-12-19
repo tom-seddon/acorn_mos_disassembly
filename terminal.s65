@@ -353,7 +353,7 @@ L82B4:
                 jsr mos.LE375        ; No Tube, skip past Tube PreInit
                 bcc L82D0
 L82C6:
-                ldx #$FF                     ; Service call &FF - Tube PreInit
+                ldx #romServiceCallTubeMainInitialisation
                 jsr mos.makeROMServiceCall   ;
                 bne L82D0                    ; Not claimed, step past
                 dec $027A                    ; Tube PreInit claimed, set TubeFlag to &FF, Tube present
@@ -361,21 +361,21 @@ L82D0:
                 lda $028D                    ; Soft Break, don't ask about workspace
                 beq L82FC
                 ldy #$DC                     ; Start high workspace at &DC00 and work downwards
-                ldx #$24                     ; Ask ROMs how much private high workspace required
+                ldx #romServiceCallCountDynamicHAZELWorkspace ; Ask ROMs how much private high workspace required
                 jsr mos.makeROMServiceCall   ;
-                ldx #$21                     ; Ask ROMs for maximum shared high workspace required
+                ldx #romServiceCallAbsoluteHAZELWorkspaceClaim ; Ask ROMs for maximum shared high workspace required
                 jsr mos.makeROMServiceCall   ;
                 phy                          ; Save top of shared workspace
-                ldx #$22                     ; Ask ROMs for private high workspace required
+                ldx #romServiceCallPrivateHAZELWorkspaceClam ; Ask ROMs for private high workspace required
                 jsr mos.makeROMServiceCall   ;
                 ldy #$0E                     ; Start low workspace at &0E00
-                ldx #$01                     ; Ask ROMs for maximum shared workspace
+                ldx #romServiceCallAbsoluteWorkspaceClaim ; Ask ROMs for maximum shared workspace
                 jsr mos.makeROMServiceCall   ;
-                ldx #$02                     ; Ask ROMs for private workspace
+                ldx #romServiceCallPrivateWorkspaceClaim ; Ask ROMs for private workspace
                 jsr mos.makeROMServiceCall   ;
                 sty $0244                    ; Set OSHWM - default PAGE
                 ply                          ; Get top of shared high workspace
-                ldx #$23                     ; Tell ROMs top of shared high workspace
+                ldx #romServiceCallTopOfHAZELWorkspace ; Tell ROMs top of shared high workspace
                 jsr mos.makeROMServiceCall   ;
 L82FC:
                 ldx #$21
@@ -396,7 +396,7 @@ L82FE:
                 lda $0257                    ; Save Spool handle and disable Spooling
                 pha
                 stz $0257
-                ldx #$FE
+                ldx #romServiceCallTubeSystemPostInitialisation
                 ldy $027A
                 jsr mos.makeROMServiceCall   ; Tube PostInit
                 and $0267
@@ -1026,7 +1026,7 @@ maybe_configure_routines=_
 L887A:
                 jsr L8934                    ; 887A 20 34 89
                 bcs L8889                    ; 887D= B0 0A       0.
-                ldx #$28                     ; 887F= A2 28       "(
+                ldx #romServiceCallUnknownCONFIG
 L8881:
                 ldy $E6                      ; 8881= A4 E6       $f
                 jsr mos.makeROMServiceCall   ; 8883= 20 72 EE     rn
@@ -1677,7 +1677,7 @@ L8BF0:
                 .text "TV       [<D>[,<D>]]",13
                 .byte 0
                 ply                          ; 8D12= 7A
-                ldx #$28                     ; 8D13= A2 28       "(
+                ldx #romServiceCallUnknownCONFIG
                 jsr mos.makeROMServiceCall   ; 8D15= 20 72 EE     rn
                 jsr LA958                    ; 8D18= 20 58 A9     X)
                 .text "Where:"
@@ -1765,7 +1765,7 @@ L8DA9:
                 .text "TV       ",0
                 jsr L8B17                    ; 8E51= 20 17 8B     ..
                 ply                          ; 8E54= 7A          z
-                ldx #$29                     ; 8E55= A2 29       ")
+                ldx #romServiceCallUnknownSTATUS
                 jmp mos.makeROMServiceCall   ; 8E57= 4C 72 EE    Lrn
 
 L8E5A:

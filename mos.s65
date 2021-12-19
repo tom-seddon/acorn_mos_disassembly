@@ -5795,7 +5795,7 @@ isROMValid: .proc ;e3f7
 LE40E:
                 sec                      ; Call Break Intercept Vector
                 jsr LF349
-                ldx #$27                     ; Service call &27 - Break pressed
+                ldx #romServiceCallInformReset
                 jsr makeROMServiceCall
                 ldy $0256                    ; Get Exec handle, skip past if closed
                 beq LE424
@@ -5850,7 +5850,7 @@ LE46C:
                 txa                          ; E475= 8A          .
                 beq LE4A3                    ; E476= F0 2B       p+
 LE478:
-                ldx #$03                     ; E47A= 20 72 EE     rn
+                ldx #romServiceCallAutoBoot
                 jsr makeROMServiceCall
                 beq LE4A3                    ; E47D= F0 24       p$
 LE47F:
@@ -6060,7 +6060,7 @@ LE5A9:
                 lda $F4                      ; E5BB= A5 F4       %t
                 sta $024A                    ; E5BD= 8D 4A 02    .J.
                 stx $F0                      ; E5C0= 86 F0       .p
-                ldx #$06                     ; E5C4= 20 72 EE     rn
+                ldx #romServiceCallBreakInstruction
                 jsr makeROMServiceCall
                 ldx $028C                    ; E5C7= AE 8C 02    ...
                 jsr selectROMX                    ; E5CA= 20 81 E5     .e
@@ -6165,7 +6165,7 @@ LE65B:
                 bmi LE62F                    ; E65F= 30 CE       0N
                 bvs LE64D                    ; E661= 70 EA       pj
 LE663:
-                ldx #$05                     ; E665= 20 72 EE     rn
+                ldx #romServiceCallUnrecognisedInterrupt
                 jsr makeROMServiceCall
                 beq LE64D                    ; E668= F0 E3       pc
                 pla                          ; E66A= 68          h
@@ -6283,7 +6283,7 @@ LE73B:
                 jsr LE933                    ; E73B= 20 33 E9     3i
                 ldy $0243                    ; E73E= AC 43 02    ,C.
                 beq LE748                    ; E741= F0 05       p.
-                ldx #$15                     ; E745= 20 72 EE     rn
+                ldx #romServiceCallPollingInterrupt
                 jsr makeROMServiceCall
 LE748:
                 bit HADC+0                   ; E748= 2C 18 FE    ,.~
@@ -7457,7 +7457,7 @@ LED83:
 ; ===========================
 ; Pass to sideways ROMs
 osbyteUnused:                   ;ed84
-                ldx #$07                     ; ED86= 20 72 EE     rn
+                ldx #romServiceCallUnrecognisedOSBYTE
                 jsr makeROMServiceCall
                 ldx $F0                      ; ED89= A6 F0       &p
                 eor #$00                     ; ED8B= 49 00       I.
@@ -9210,7 +9210,7 @@ LF6FC:
 LF701:
                 inc $F5                      ; F701= E6 F5       fu
                 ldy $F5                      ; F703= A4 F5       $u
-                ldx #$0D                     ; F705= A2 0D       ".
+                ldx #romServiceCallROMFilingSystemInitialize
 LF707:
                 php                          ; F707= 08          .
                 jsr makeROMServiceCall                    ; F708= 20 72 EE     rn
@@ -9992,7 +9992,7 @@ selectFS:                               ;fb4d
                 iny                          ; FB5E= C8          H
 LFB5F:
                 phy                          ; FB5F= 5A          Z
-                ldx #$12                     ; Service call &12 - Select filing system
+                ldx #romServiceCallInitialiseFilingSystem
                 jsr makeROMServiceCall
                 pla                          ; FB65= 68          h
                 plx                          ; FB66= FA          z

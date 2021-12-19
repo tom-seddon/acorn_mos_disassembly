@@ -5570,7 +5570,7 @@ defaultVectorTable: .block
                 .word LE565 ; BRKV=$202
                 .word LE5FF ; IRQ1V=$204
                 .word LE60C ; IRQ2V=$206
-                .word LE802 ; CLIV=$208
+                .word oscliEntryPoint ; CLIV=$208
                 .word osbyteEntryPoint ; BYTEV=$20a
                 .word oswordEntryPoint ; WORDV=$20c
                 .word oswrchEntryPoint ; WRCHV=$20e
@@ -6404,30 +6404,40 @@ LE7FD:
 LE800:
                 bra LE800                    ; E800= 80 FE       .~
 
+;-------------------------------------------------------------------------
+;
 ; OSCLI
-; =====
-LE802:
-                jsr selectHAZEL                    ; E802= 20 BA ED     :m
-                stx $F2                      ; E805= 86 F2       .r
-                sty $F3                      ; E807= 84 F3       .s
-                ldy #$00                     ; E809= A0 00        .
-LE80B:
-                lda ($F2),y                  ; E80B= B1 F2       1r
-                sta LDC00,y                  ; E80D= 99 00 DC    ..\
+;
+; MasRef D.4-1
+;
+
+oscliEntryPoint: .block
+                jsr selectHAZEL
+                stx stringInputBufferAddress+0
+                sty stringInputBufferAddress+1
+                ldy #$00
+-
+                lda (stringInputBufferAddress),y
+                sta hazel.commandLine,y
 emptyCommandLine=*+1                         ;arbitrary place that's
                                              ;just a 13 byte...
-                cmp #$0D                     ; E810= C9 0D       I.
-                beq LE818                    ; E812= F0 04       p.
-                iny                          ; E814= C8          H
-                bne LE80B                    ; E815= D0 F4       Pt
-                rts                          ; E817= 60          `
+                cmp #$0D
+                beq +     ;branch taken if end of command line reached
+                iny
+                bne -
+                
+                ; OSCLI is a no-op if the command line is too long.
+                rts
 
-LE818:
-                ldy #$DC                     ; E818= A0 DC        \
-                ldx #$00                     ; E81A= A2 00       ".
++
+                ldy #>hazel.commandLine      ; E818= A0 DC        \
+                ldx #<hazel.commandLine      ; E81A= A2 00       ".
                 jsr withTerminalROM          ; E81C= 20 84 F3     .s
-                jmp terminal.L84FF           ; E81F= 4C FF 84    L..
+                jmp terminal.oscli           ; E81F= 4C FF 84    L..
+                .endblock
 
+emptyCommandLine=oscliEntryPoint.emptyCommandLine
+                
                 ; OSWRCH
                 ; ======
 oswrchEntryPoint:

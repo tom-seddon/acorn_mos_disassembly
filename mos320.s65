@@ -54,6 +54,7 @@ romServiceCallSpoolExecClosureWarning=$10    ;
 ;romServiceCallFontImplosionExplosionWarning=$11    ;
 romServiceCallInitialiseFilingSystem=$12    ; (Issued from paged ROMs, not the OS)
 romServiceCallPollingInterrupt=$15
+romServiceCallReserved=$18
 romServiceCallAbsoluteHAZELWorkspaceClaim=$21
 romServiceCallPrivateHAZELWorkspaceClam=$22
 romServiceCallTopOfHAZELWorkspace=$23
@@ -67,7 +68,22 @@ romServiceCallLanguageChange=$2a
 romServiceCallTubeSystemPostInitialisation=$FE    ;
 romServiceCallTubeMainInitialisation=$FF    ;
 
+;-------------------------------------------------------------------------
 
+fscOPT=0
+fscCheckEOF=1
+fscStarSlash=2
+fscUnknownCommand=3
+fscStarRun=4
+fscStarCat=5
+fscNewFS=6
+fscFileHandleRange=7
+fscStarCommand=8
+fscStarEX=9
+fscStarINFO=10
+fscRUNLibrary=11
+fscRENAME=12
+                
 ;-------------------------------------------------------------------------
 
 bufferNumberKeyboard=0          ;
@@ -232,12 +248,15 @@ numBytes: .fill 4
 ptr: .fill 4
                 .ends
 
-                ; HAZEL buffer for * commands?
-LDC00=$dc00
-                
                 ; NAUG p260
-                .virtual $df00
+                .virtual $dc00
 hazel: .block
+commandLine:                    ;dc00
+                .fill 256
+ddxx:                           ;dd00
+                .fill 256
+dexx:
+                .fill 256
 currentFS:                      ;df00
                 .fill 1
 activeFS:                       ;df01

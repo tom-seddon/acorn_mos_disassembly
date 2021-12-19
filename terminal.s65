@@ -441,12 +441,12 @@ mos_command .macro name,routine,byte1,byte2
                 .byte \byte2
                 .endm
                 
-L8368:
+mosCommandTable:
 
                 .mos_command "CAT",mos.callFSCV,$80,$05 ; XY=>parameters, FSC &05
-                .mos_command "ADFS",L85AF,$00,$00   ;
+                .mos_command "ADFS",passStarCommandThrough,$00,$00   ;
                 .mos_command "APPEND",L9014,$80,$00 ; XY=>parameters
-                .mos_command "BASIC",L85A6,$00,$00  ;
+                .mos_command "BASIC",starBASIC,$00,$00  ;
                 .mos_command "BUILD",L900F,$80,$00  ; XY=>parameters
                 .mos_command "CLOSE",L937C,$00,$FF  ;
                 .mos_command "CONFIGURE",L887A,$00,$FF ;
@@ -513,44 +513,44 @@ L84FE:
 
 ; Prepare OSCLI command line
 ; ==========================
-L84FF:
-                stx $F2                      ; 84FF= 86 F2       .r
-                sty $F3                      ; 8501= 84 F3       .s
+oscli:
+                stx stringInputBufferAddress+0 ; 84FF= 86 F2       .r
+                sty stringInputBufferAddress+1 ; 8501= 84 F3       .s
                 lda hazel.currentFS
                 jsr mos.selectFS             ; 8506= 20 4D FB     M{
-                lda #$08                     ; 8509= A9 08       ).
+                lda #fscStarCommand          ; 8509= A9 08       ).
                 jsr mos.callFSCV             ; 850B= 20 E5 F1     eq
                 ldy #$FF                     ; 850E= A0 FF        .
 L8510:
                 jsr mos.incAndSkipSpaces     ; 8510= 20 FE F2     ~r
                 beq L84FE                    ; 8513= F0 E9       pi
-                cmp #$2A                     ; 8515= C9 2A       I*
+                cmp #'*'                     ; 8515= C9 2A       I*
                 beq L8510                    ; 8517= F0 F7       pw
                 jsr mos.skipSpacesAndCheckForCRInStringInput ; 8519= 20 FF F2     .r
                 beq L84FE                    ; 851C= F0 E0       p`
-                cmp #$7C                     ; 851E= C9 7C       I|
+                cmp #'|'                     ; 851E= C9 7C       I|
                 beq L84FE                    ; 8520= F0 DC       p\
                 stz hazel.tempFSFlag      ; 8522= 9C C6 DF    .F_
-                cmp #$2D                     ; 8525= C9 2D       I-
+                cmp #'-'                  ; 8525= C9 2D       I-
                 bne L8535                    ; 8527= D0 0C       P.
                 jsr mos.parseFileNameFS      ; 8529= 20 A6 FA     &z
                 jsr mos.selectFS             ; 852C= 20 4D FB     M{
                 sec                          ; 852F= 38          8
                 ror hazel.tempFSFlag      ; 8530= 6E C6 DF    nF_
-                lda ($F2),y                  ; 8533= B1 F2       1r
+                lda (stringInputBufferAddress),y ; 8533= B1 F2       1r
 L8535:
-                cmp #$2F                     ; 8535= C9 2F       I/
+                cmp #'/'                     ; 8535= C9 2F       I/
                 bne L8542                    ; 8537= D0 09       P.
                 iny                          ; 8539= C8          H
                 jsr L84F2                    ; 853A= 20 F2 84     r.
-                lda #$02                     ; 853D= A9 02       ).
+                lda #fscStarSlash            ; 853D= A9 02       ).
                 jmp mos.callFSCV             ; 853F= 4C E5 F1    Leq
 
 L8542:
                 sty $E6
-                lda #<L8368                  ; Point to command table
+                lda #<mosCommandTable
                 sta $B0
-                lda #>L8368
+                lda #>mosCommandTable
                 sta $B1
                 bra L8558
 
@@ -577,7 +577,7 @@ L856D:
                 iny                          ; 856D= C8          H
 L856E:
                 jsr L859B                    ; Get byte from table, update pointer
-                beq L85AF                    ; Zero byte
+                beq passStarCommandThrough   ; Zero byte
                 bpl L856E                    ; Loop until b7 set
                 bcs L8585                    ; 8575= B0 0E       0.
                 jsr L859B                    ; 8577= 20 9B 85     ..
@@ -614,20 +614,20 @@ L85A5:
 
 ; *BASIC
 ; ======
-L85A6:
+starBASIC:
                 ldx $024B                    ; Get BASIC ROM number
-                bmi L85AF                    ; If no BASIC ROM, jump to pass to ROMs and filing system
+                bmi passStarCommandThrough ; If no BASIC ROM, jump to pass to ROMs and filing system
                 sec                          ;
                 jmp mos.osbyte8E             ; Enter ROM as a language
 
 ; *ADFS - pass straight to ROMs/Filing System
 ; ===========================================
-L85AF:
+passStarCommandThrough:
                 bit hazel.tempFSFlag      ; Check filing system flag
                 bmi L85C0                    ; If ... skip ROM service call
                 stz hazel.tempFSFlag      ; Clear filing system flag
                 ldy $E6
-                ldx #$04
+                ldx #romServiceCallUnrecognisedCommand
                 jsr mos.osbyte8F    ; Service call 4 - Unknown command
                 beq L85A5                    ; Claimed, return
 L85C0:
@@ -637,107 +637,139 @@ L85C0:
                 jmp mos.callFSCV ; mos.Pass to FSCV,3 - Unknown command
 
 L85CA:
-                ldx #$09                     ; 85CA= A2 09       ".
-                lda STATE                      ; 85CC= A5 D0       %P
-                pha                          ; 85CE= 48          H
-                lda #$0E                     ; 85CF= A9 0E       ).
-                jsr OSWRCH                   ; 85D1= 20 EE FF     n.
-                jsr mos.makeROMServiceCall   ; 85D4= 20 72 EE     rn
-                ldx #$18                     ; 85D7= A2 18       ".
-                jsr mos.makeROMServiceCall   ; 85D9= 20 72 EE     rn
-                pla                          ; 85DC= 68          h
-                bit #$04                     ; 85DD= 89 04       ..
-                bne L860D                    ; 85DF= D0 2C       P,
-                lda #$0F                     ; 85E1= A9 0F       ).
-                jmp OSWRCH                   ; 85E3= 4C EE FF    Ln.
+                ldx #romServiceCallHelp      ;
+                lda STATE                    ;
+                pha                          ;save STATE
+                lda #14
+                jsr OSWRCH                   ; paged mode ON
+                jsr mos.makeROMServiceCall   ; 
+                ldx #romServiceCallReserved  ;???
+                jsr mos.makeROMServiceCall
+                pla                          ;restore STATE
+                bit #STATE.isPagedScrolling  ;was paged mode on originally?
+                bne parseDone   ;taken if paged mode was originally on
+                                ;(branch target is an arbitrary nearby
+                                ;RTS)
+                lda #15         ;restore non-paged mode
+                jmp OSWRCH
 
-L85E6:
+;-------------------------------------------------------------------------
+;
+; Read a byte value (0-255) from a string. If the number has a '&'
+; prefix, interpret it as hex.
+;
+; entry:
+;
+; (stringInputBufferAddress),y - string
+;
+; exit:
+;
+; X = result
+; C=0 if error
+; Z=1 if CR encountered
+; 
+parseNumberFromString:
                 jsr mos.skipSpacesAndCheckForCRInStringInput ; 85E6= 20 FF F2     .r
-                cmp #$26                     ; 85E9= C9 26       I&
-                bne L860E                    ; 85EB= D0 21       P!
-                iny                          ; 85ED= C8          H
-                jsr L8648                    ; 85EE= 20 48 86     H.
-                bcc L8646                    ; 85F1= 90 53       .S
-                sta $E6                      ; 85F3= 85 E6       .f
-                jsr L8648                    ; 85F5= 20 48 86     H.
-                bcc L8608                    ; 85F8= 90 0E       ..
-                ldx #$04                     ; 85FA= A2 04       ".
-L85FC:
-                asl $E6                      ; 85FC= 06 E6       .f
-                dex                          ; 85FE= CA          J
-                bne L85FC                    ; 85FF= D0 FB       P{
-                tsb $E6                      ; 8601= 04 E6       .f
-                jsr L8648                    ; 8603= 20 48 86     H.
-                bcs L8631                    ; 8606= B0 29       0)
-L8608:
+                cmp #'&'                     ; hex value incoming?
+                bne parseDecimal             ; taken if not hex value
+parseHex:
+                iny                          ; skip '&'
+                jsr readHexDigit             ; read first hex digit
+                bcc errorReadingString
+                sta $E6                      ; save first hex digit
+                jsr readHexDigit             ; read second hex digih
+                bcc parsedValue         ; taken if not hex digit
+                ; The first digit read was actually the high nybble,
+                ; and the current digit read is therefore the low
+                ; nybble.
+                ;
+                ; Shift saved digit 4 bits left.
+                ldx #$04                     
+-
+                asl $E6                      
+                dex                          
+                bne -
+                tsb $E6                      ; insert low nybble
+                jsr readHexDigit             ; read third hex digit
+                bcs errorReadingString2 ; 3+-digit hex values are not valid
+parsedValue:
                 ldx $E6                      ; 8608= A6 E6       &f
                 cmp #$0D                     ; 860A= C9 0D       I.
                 sec                          ; 860C= 38          8
-L860D:
+parseDone:
                 rts                          ; 860D= 60          `
 
-L860E:
-                jsr L8634                    ; 860E= 20 34 86     4.
-                bcc L8646                    ; 8611= 90 33       .3
-L8613:
-                sta $E6                      ; 8613= 85 E6       .f
-                jsr L8633                    ; 8615= 20 33 86     3.
-                bcc L8608                    ; 8618= 90 EE       .n
-                tax                          ; 861A= AA          *
-                lda $E6                      ; 861B= A5 E6       %f
-                asl a                        ; 861D= 0A          .
-                bcs L8646                    ; 861E= B0 26       0&
-                asl a                        ; 8620= 0A          .
-                bcs L8646                    ; 8621= B0 23       0#
-                adc $E6                      ; 8623= 65 E6       ef
-                bcs L8646                    ; 8625= B0 1F       0.
-                asl a                        ; 8627= 0A          .
-                bcs L8646                    ; 8628= B0 1C       0.
-                sta $E6                      ; 862A= 85 E6       .f
-                txa                          ; 862C= 8A          .
-                adc $E6                      ; 862D= 65 E6       ef
-                bcc L8613                    ; 862F= 90 E2       .b
-L8631:
+parseDecimal:
+                jsr readDigitFromString
+                bcc errorReadingString      ;branch taken if not digit
+parseDecimalDigit:
+                sta $E6                     ;save current value
+                jsr readNextDigitFromString
+                bcc parsedValue ;branch taken if not digit, meaning number
+                                     ;parsed successfully
+                tax                         ;X=digit
+
+                ; calculate (value*4+value)*2 - i.e., value*10. Carry
+                ; at any point indicates the value was greater than
+                ; 255, and therefore an error.
+                lda $E6                     ;value
+                asl a                       ;value*2
+                bcs errorReadingString      
+                asl a                       ;value*4
+                bcs errorReadingString      
+                adc $E6                     ;value*5
+                bcs errorReadingString      
+                asl a                       ;value*10
+                bcs errorReadingString
+                sta $E6                      ;save value*10
+                txa                          ;A=digit
+                adc $E6                      ;value*10+digit
+                bcc parseDecimalDigit
+errorReadingString2:
                 clc                          ; 8631= 18          .
                 rts                          ; 8632= 60          `
 
-L8633:
+readNextDigitFromString:
                 iny                          ; 8633= C8          H
-L8634:
-                lda ($F2),y                  ; 8634= B1 F2       1r
-                cmp #$3A                     ; 8636= C9 3A       I:
-                bcs L8646                    ; 8638= B0 0C       0.
-                cmp #$30                     ; 863A= C9 30       I0
-                bcc L8646                    ; 863C= 90 08       ..
-                and #$0F                     ; 863E= 29 0F       ).
-                rts                          ; 8640= 60          `
+
+; check if current string input byte is a digit.
+;
+; exit: C=1 if digit; C=0 if not digit
+readDigitFromString:
+                lda (stringInputBufferAddress),y
+                cmp #'9'+1
+                bcs errorReadingString       ;taken if not ASCII decimal digit
+                cmp #'0'
+                bcc errorReadingString       ;taken if not ASCII decimal digit
+                and #$0F         ;convert ASCII decimaldigit to number
+                rts
 
 L8641:
                 jsr mos.skipSpacesAndCheckForCRInStringInput ; 8641= 20 FF F2     .r
-                cmp #$0D                     ; 8644= C9 0D       I.
-L8646:
-                clc                          ; 8646= 18          .
-                rts                          ; 8647= 60          `
+                cmp #$0D
+errorReadingString:
+                clc
+                rts
 
-L8648:
-                jsr L8634                    ; 8648= 20 34 86     4.
-                bcs L865A                    ; 864B= B0 0D       0.
-                and #$DF                     ; 864D= 29 DF       )_
-                cmp #$47                     ; 864F= C9 47       IG
-                bcs L8641                    ; 8651= B0 EE       0n
-L8653:
-                cmp #$41                     ; 8653= C9 41       IA
-                bcc L8641                    ; 8655= 90 EA       .j
-                eor #$48                     ; 8657= 49 48       IH
-                inc a                        ; 8659= 1A          .
-L865A:
+readHexDigit:
+                jsr readDigitFromString
+                bcs +                        ; branch taken if digit
+                and #$DF                     ; convert to upper case
+                cmp #'F'+1
+                bcs L8641    ; branch taken if not ASCII A-F hex digit
+                cmp #'A'
+                bcc L8641     ;branch taken if not ASCII A-F hex digit
+                ; convert ASCII A-F hex digit to number.
+                eor #$48
+                inc a
++
                 iny                          ; 865A= C8          H
                 rts                          ; 865B= 60          `
 
 ; OSWORD 0 control block for *commands
 ; ====================================
 L865C:
-                .word LDC00			; address
+                .word hazel.commandLine      ; address
                 .byte $F0			; max # chars
                 .byte $20			; min ASCII char
                 .byte $7E			; max ASCII char
@@ -761,8 +793,8 @@ L8670:
                 jmp LA891                    ; 8681= 4C 91 A8    L.(
 
 L8684:
-                ldx #<LDC00     ; 8684= A2 00       ".
-                ldy #>LDC00     ; 8686= A0 DC        \
+                ldx #<hazel.commandLine      ; 8684= A2 00       ".
+                ldy #>hazel.commandLine      ; 8686= A0 DC        \
                 jsr OSCLI      ; 8688= 20 F7 FF     w.
                 bra L8670       ; 868B= 80 E3       .c
 
@@ -881,14 +913,14 @@ L8740:
                 jmp L98E4                    ; 8741= 4C E4 98    Ld.
 
 starTime:
-                stz LDC00                    ; 8744= 9C 00 DC    ..\
-                ldx #<LDC00                  ; 8747= A2 00       ".
-                ldy #>LDC00                  ; 8749= A0 DC        \
+                stz hazel.commandLine        ; 8744= 9C 00 DC    ..\
+                ldx #<hazel.commandLine      ; 8747= A2 00       ".
+                ldy #>hazel.commandLine      ; 8749= A0 DC        \
                 lda #$0E                     ; 874B= A9 0E       ).
                 jsr OSWORD                   ; 874D= 20 F1 FF     q.
                 ldx #255-24                  ; 8750= A2 E7       "g
 L8752:
-                lda LDC00-(255-24),x         ; 8752= BD 19 DB    =.[
+                lda hazel.commandLine-(255-24),x ; 8752= BD 19 DB    =.[
                 jsr OSASCI                   ; 8755= 20 E3 FF     c.
                 inx                          ; 8758= E8          h
                 bne L8752                    ; 8759= D0 F7       Pw
@@ -1177,7 +1209,7 @@ L8970:
                 rts                          ; 8970= 60          `
 
 L8971:
-                jsr L85E6                    ; 8971= 20 E6 85     f.
+                jsr parseNumberFromString    ; 8971= 20 E6 85     f.
                 bcs L8970                    ; 8974= B0 FA       0z
 L8976:
                 jmp mos.LFBED                ; 8976= 4C ED FB    Lm{
@@ -1187,7 +1219,7 @@ L8979:
                 bra L8951                    ; 897B= 80 D4       .T
 
 L897D:
-                jsr L85E6                    ; 897D= 20 E6 85     f.
+                jsr parseNumberFromString    ; 897D= 20 E6 85     f.
                 bcc L8976                    ; 8980= 90 F4       .t
                 txa                          ; 8982= 8A          .
                 cmp #$10                     ; 8983= C9 10       I.
@@ -1207,7 +1239,7 @@ L898F:
                 rts                          ; 8996= 60          `
 
 L8997:
-                jsr L85E6                    ; 8997= 20 E6 85     f.
+                jsr parseNumberFromString    ; 8997= 20 E6 85     f.
                 bcc L8976                    ; 899A= 90 DA       .Z
                 txa                          ; 899C= 8A          .
                 bra L8987                    ; 899D= 80 E8       .h
@@ -2038,7 +2070,7 @@ L9036:
                 bcc L904B                    ; 903A= 90 0F       ..
                 jsr OSNEWL                   ; 903C= 20 E7 FF     g.
                 lda #$0D                     ; 903F= A9 0D       ).
-                sta LDC00,y                  ; 9041= 99 00 DC    ..\
+                sta hazel.commandLine,y      ; 9041= 99 00 DC    ..\
 L9044:
                 phy                          ; 9044= 5A          Z
                 lda #$7E                     ; 9045= A9 7E       )~
@@ -2052,7 +2084,7 @@ L904B:
                 ldx #$00                     ; 9053= A2 00       ".
 L9055:
                 jsr mos.LF29C                ; 9055= 20 9C F2     .r
-                sta LDC00,x                  ; 9058= 9D 00 DC    ..\
+                sta hazel.commandLine,x      ; 9058= 9D 00 DC    ..\
                 lda #$01                     ; 905B= A9 01       ).
                 bit $E4                      ; 905D= 24 E4       $d
                 bne L906C                    ; 905F= D0 0B       P.
@@ -2450,7 +2482,7 @@ L92BC:
 
 L92C9:
                 jsr mos.skipSpacesAndCheckForCRInStringInput ; Skip spaces
-                jsr L8648                    ; 92CC= 20 48 86     H.
+                jsr readHexDigit             ; 92CC= 20 48 86     H.
                 bcc L92F4                    ; 92CF= 90 23       .#
                 jsr L92BC                    ; 92D1= 20 BC 92     <.
 L92D4:
@@ -2470,7 +2502,7 @@ L92DB:
                 dey                          ; 92EA= 88          .
                 bne L92DB                    ; 92EB= D0 EE       Pn
                 ply                          ; 92ED= 7A          z
-                jsr L8648                    ; 92EE= 20 48 86     H.
+                jsr readHexDigit             ; 92EE= 20 48 86     H.
                 bcs L92D4                    ; 92F1= B0 E1       0a
                 sec                          ; 92F3= 38          8
 L92F4:
@@ -2620,7 +2652,7 @@ L93E2:
                 jmp mos.LFBED                ; 93E2= 4C ED FB    Lm{
 
 L93E5:
-                jsr L85E6                    ; 93E5= 20 E6 85     f.
+                jsr parseNumberFromString    ; 93E5= 20 E6 85     f.
                 bcc L93E2                    ; 93E8= 90 F8       .x
                 txa                          ; 93EA= 8A          .
 L93EB:
@@ -2632,12 +2664,12 @@ L93EB:
                 stz $E4                      ; 93F3= 64 E4       dd
                 jsr mos.LF308                ; 93F5= 20 08 F3     .s
                 beq L9412                    ; 93F8= F0 18       p.
-                jsr L85E6                    ; 93FA= 20 E6 85     f.
+                jsr parseNumberFromString    ; 93FA= 20 E6 85     f.
                 bcc L93E2                    ; 93FD= 90 E3       .c
                 stx $E5                      ; 93FF= 86 E5       .e
                 jsr mos.LF30A                ; 9401= 20 0A F3     .s
                 beq L9412                    ; 9404= F0 0C       p.
-                jsr L85E6                    ; 9406= 20 E6 85     f.
+                jsr parseNumberFromString    ; 9406= 20 E6 85     f.
                 bcc L93E2                    ; 9409= 90 D7       .W
                 stx $E4                      ; 940B= 86 E4       .d
                 jsr mos.skipSpacesAndCheckForCRInStringInput ; 940D= 20 FF F2     .r
@@ -2705,7 +2737,7 @@ L946A:
                 jmp LA54D                    ; 9470= 4C 4D A5    LM%
 
 L9473:
-                jsr L85E6                    ; 9473= 20 E6 85     f.
+                jsr parseNumberFromString    ; 9473= 20 E6 85     f.
                 bcc L947C                    ; 9476= 90 04       ..
                 cpx #$10                     ; 9478= E0 10       `.
                 bcc L941F                    ; 947A= 90 A3       .#
@@ -2762,7 +2794,7 @@ L94C7:
 L94DD:
                 jsr mos.gsreadEntryPoint     ; 94DD= 20 7F F2     .r
                 bcs L94E8                    ; 94E0= B0 06       0.
-                sta LDC00,x                  ; 94E2= 9D 00 DC    ..\
+                sta hazel.commandLine,x      ; 94E2= 9D 00 DC    ..\
                 inx                          ; 94E5= E8          h
                 bra L94DD                    ; 94E6= 80 F5       .u
 
@@ -2915,7 +2947,7 @@ L95DF:
 L95F3:
                 ldy #$00                     ; 95F3= A0 00        .
 L95F5:
-                lda LDC00,y                  ; 95F5= B9 00 DC    9.\
+                lda hazel.commandLine,y      ; 95F5= B9 00 DC    9.\
                 sta ($B3),y                  ; 95F8= 91 B3       .3
                 iny                          ; 95FA= C8          H
                 dec $B0                      ; 95FB= C6 B0       F0

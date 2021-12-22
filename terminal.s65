@@ -328,7 +328,7 @@ L8284:
                 stz hazel.moveDestHandle
                 ldy #$CA                     ; 828D= A0 CA        J
                 jsr mos.LEA7E                ; 828F= 20 7E EA     ~j
-                jsr mos.LF349                ; 8292= 20 49 F3     Is
+                jsr mos.osbyte247EntryPoint  ; 8292= 20 49 F3     Is
                 lda $028D                    ; 8295= AD 8D 02    -..
                 beq L829D                    ; 8298= F0 03       p.
                 jsr mos.LEDD0                ; 829A= 20 D0 ED     Pm
@@ -378,9 +378,9 @@ L82D0:
                 ldx #romServiceCallTopOfHAZELWorkspace ; Tell ROMs top of shared high workspace
                 jsr mos.makeROMServiceCall   ;
 L82FC:
-                ldx #$21
+                ldx #3*size(fsInfoBlock)
 L82FE:
-                lda L8347-1,x                ; Copy initial FS info blocks for CFS, TAPE, ROM
+                lda defaultFsInfoBlocks-1,x                ; Copy initial FS info blocks for CFS, TAPE, ROM
                 sta hazel.fsInfoBlocks-1,x
                 dex
                 bne L82FE
@@ -417,7 +417,7 @@ L8340:
 
 ; Default FS Info Blocks
 ; ======================
-L8347:
+defaultFsInfoBlocks:
                 .text "CFS     "
                 .byte $01
                 .byte $02
@@ -445,9 +445,9 @@ mosCommandTable:
 
                 .mos_command "CAT",mos.callFSCV,$80,$05 ; XY=>parameters, FSC &05
                 .mos_command "ADFS",passStarCommandThrough,$00,$00   ;
-                .mos_command "APPEND",L9014,$80,$00 ; XY=>parameters
+                .mos_command "APPEND",starAPPEND,$80,$00 ; XY=>parameters
                 .mos_command "BASIC",starBASIC,$00,$00  ;
-                .mos_command "BUILD",L900F,$80,$00  ; XY=>parameters
+                .mos_command "BUILD",starBUILD,$80,$00  ; XY=>parameters
                 .mos_command "CLOSE",L937C,$00,$FF  ;
                 .mos_command "CONFIGURE",L887A,$00,$FF ;
                 .mos_command "CODE",L93EB,$00,$88 ; X,y=parameters, OSBYTE &88
@@ -788,7 +788,7 @@ L8670:
                 jsr mos.selectHAZEL          ; 8674= 20 BA ED     :m
                 lda #'*'                     ; 8677= A9 2A       )*
                 jsr OSWRCH                   ; 8679= 20 EE FF     n.
-                jsr L869D                    ; 867C= 20 9D 86     ..
+                jsr readCommandLine                    ; 867C= 20 9D 86     ..
                 bcc L8684                    ; 867F= 90 03       ..
                 jmp LA891                    ; 8681= 4C 91 A8    L.(
 
@@ -808,7 +808,7 @@ L868D:
 L869A:
                 jmp mos.LFBED                ; 869A= 4C ED FB    Lm{
 
-L869D:
+readCommandLine:
                 lda #$00                     ; 869D= A9 00       ).
                 ldx #<L865C                  ; 869F= A2 5C       "\
                 ldy #>L865C                  ; 86A1= A0 86        .
@@ -826,7 +826,7 @@ L86AD:
                 tya                          ; 86B6= 98          .
                 dec a                        ; 86B7= 3A          :
                 pha                          ; 86B8= 48          H
-                jsr LA873                    ; 86B9= 20 73 A8     s(
+                jsr printHexDigit                    ; 86B9= 20 73 A8     s(
                 jsr L9F0C                    ; 86BC= 20 0C 9F     ..
                 lda #$09                     ; 86BF= A9 09       ).
                 sta $F6                      ; 86C1= 85 F6       .v
@@ -1628,7 +1628,7 @@ L8BE4:
                 bne L8BEA                    ; 8BE6= D0 02       P.
                 bcs L8BEE                    ; 8BE8= B0 04       0.
 L8BEA:
-                jsr LA873                    ; 8BEA= 20 73 A8     s(
+                jsr printHexDigit                    ; 8BEA= 20 73 A8     s(
                 clc                          ; 8BED= 18          .
 L8BEE:
                 pla                          ; 8BEE= 68          h
@@ -1877,7 +1877,7 @@ L8ED8:
                 bit hazel.fsFlags      ; 8EE1= 2C C2 DF    ,B_
                 bvs L8EEB                    ; 8EE4= 70 05       p.
                 pha                          ; 8EE6= 48          H
-                jsr L91EB                    ; 8EE7= 20 EB 91     k.
+                jsr printLineNumber          ; 8EE7= 20 EB 91     k.
                 pla                          ; 8EEA= 68          h
 L8EEB:
                 bit hazel.fsFlags      ; 8EEB= 2C C2 DF    ,B_
@@ -1942,7 +1942,7 @@ L8F42:
                 jsr L92BC                    ; 8F4D= 20 BC 92     <.
                 ldy #$00                     ; 8F50= A0 00        .
                 lsr hazel.tempFSFlag      ; 8F52= 4E C6 DF    NF_
-                jsr mos.LF26D             ; 8F55= 20 6D F2     mr
+                jsr mos.gsinitForFilenameParsing
 L8F58:
                 jsr mos.gsreadEntryPoint     ; 8F58= 20 7F F2     .r
                 bcc L8F58                    ; 8F5B= 90 FB       .{
@@ -1964,11 +1964,11 @@ L8F79:
                 ldx $F2                      ; 8F7B= A6 F2       &r
                 asl hazel.tempFSFlag      ; 8F7D= 0E C6 DF    .F_
                 jsr LA545                    ; 8F80= 20 45 A5     E%
-                lda #$02                     ; 8F83= A9 02       ).
-                jsr L9461                    ; 8F85= 20 61 94     a.
+                lda #$02                     ;read length of file
+                jsr callOSARGSWithBuffer
                 ldx #$03                     ; 8F88= A2 03       ".
 L8F8A:
-                lda $A8,x                    ; 8F8A= B5 A8       5(
+                lda osargsBuffer,x           ; 8F8A= B5 A8       5(
                 cmp $02ED,x                  ; 8F8C= DD ED 02    ]m.
                 bcc L8FFB                    ; 8F8F= 90 6A       .j
                 bne L8F96                    ; 8F91= D0 03       P.
@@ -2041,47 +2041,57 @@ L8FFB:
                 jsr LAAED                    ; 8FFE= 20 ED AA     m*
                 .text $b7,"Outside file",0
 
+;-------------------------------------------------------------------------
+;
 ; *BUILD
-; ======
-L900F:
-                lsr hazel.fsFlags      ; 900F= 4E C2 DF    NB_
-                bra L9018                    ; 9012= 80 04       ..
-L9014:
-                sec                          ; 9014= 38          8
-                ror hazel.fsFlags      ; 9015= 6E C2 DF    nB_
-L9018:
-                stz hazel.lineNumberBCD+0      ; 9018= 9C C3 DF    .C_
-                stz hazel.lineNumberBCD+1      ; 901B= 9C C4 DF    .D_
-                lda #$80                     ; 901E= A9 80       ).
-                bit hazel.fsFlags      ; 9020= 2C C2 DF    ,B_
-                bpl L9027                    ; 9023= 10 02       ..
-                lda #$C0                     ; 9025= A9 C0       )@
-L9027:
-                jsr OSFIND                   ; 9027= 20 CE FF     N.
-                tay                          ; 902A= A8          (
-                beq L8FF8                    ; 902B= F0 CB       pK
-                sty $02ED                    ; 902D= 8C ED 02    .m.
-                jsr L945A                    ; 9030= 20 5A 94     Z.
+; 
+starBUILD:
+                lsr hazel.fsFlags            ;clear bit 7 of fsFlags
+                bra starBUILDOrAPPEND
+
+;-------------------------------------------------------------------------
+;
+; *APPEND
+; 
+starAPPEND:
+                sec
+                ror hazel.fsFlags            ;set bit 7 of fsFlags
+starBUILDOrAPPEND:
+                ; bit 7 of fsFlags indicates *BUILD (clear) or *APPEND
+                ; (set).
+                stz hazel.lineNumberBCD+0    ;reset line number
+                stz hazel.lineNumberBCD+1    ;reset line number
+                lda #$80                     ;open for output. Assume *BUILD
+                bit hazel.fsFlags            ;test *BUILD/*APPEND
+                bpl +                        ;branch taken if *BUILD
+                lda #$C0                     ;*APPEND, so open for update
++
+                jsr OSFIND                   ;open the file
+                tay                          ;Y=file handle
+                beq L8FF8                    ;branch taken if open failed
+                sty $02ED                    ;save file handle
+                jsr setPTRToEOF ;move to EOF (effective no-op when *BUILD)
 L9033:
-                jsr L91EB                    ; 9033= 20 EB 91     k.
+                jsr printLineNumber
 L9036:
-                jsr L869D                    ; 9036= 20 9D 86     ..
-                php                          ; 9039= 08          .
-                bcc L904B                    ; 903A= 90 0F       ..
-                jsr OSNEWL                   ; 903C= 20 E7 FF     g.
-                lda #$0D                     ; 903F= A9 0D       ).
-                sta hazel.commandLine,y      ; 9041= 99 00 DC    ..\
+                jsr readCommandLine
+                php
+                bcc L904B
+                ; Handle ESCAPE
+                jsr OSNEWL
+                lda #$0D
+                sta hazel.commandLine,y      ;terminate current line
 L9044:
-                phy                          ; 9044= 5A          Z
-                lda #$7E                     ; 9045= A9 7E       )~
-                jsr OSBYTE                   ; 9047= 20 F4 FF     t.
-                ply                          ; 904A= 7A          z
+                phy                          ;save line length
+                lda #$7E
+                jsr OSBYTE                   ;acknowledge ESCAPE
+                ply                          ;restore line length
 L904B:
-                tya                          ; 904B= 98          .
-                beq L909E                    ; 904C= F0 50       pP
-                jsr L90AB                    ; 904E= 20 AB 90     +.
-                ldy #$00                     ; 9051= A0 00        .
-                ldx #$00                     ; 9053= A2 00       ".
+                tya                          ;A=line length
+                beq L909E                    ;taken if line empty
+                jsr setStringInputBufferToCommandLine
+                ldy #$00                     
+                ldx #$00                     
 L9055:
                 jsr mos.LF29C                ; 9055= 20 9C F2     .r
                 sta hazel.commandLine,x      ; 9058= 9D 00 DC    ..\
@@ -2132,13 +2142,14 @@ L909E:
                 jsr OSBPUT                   ; 90A6= 20 D4 FF     T.
                 bra L9033                    ; 90A9= 80 88       ..
 
-L90AB:
-                lda #$41                     ; 90AB= A9 41       )A
-                sta $E4                      ; 90AD= 85 E4       .d
-                stz $F2                      ; 90AF= 64 F2       dr
-                lda #$DC                     ; 90B1= A9 DC       )\
-                sta $F3                      ; 90B3= 85 F3       .s
-                rts                          ; 90B5= 60          `
+setStringInputBufferToCommandLine:
+                lda #$41
+                sta $E4
+                .cerror (<hazel.commandLine)!=0,"no"
+                stz stringInputBufferAddress+0
+                lda #>hazel.commandLine
+                sta stringInputBufferAddress+1
+                rts
 
 ; *MOVE
 ; =====
@@ -2196,7 +2207,7 @@ L90E9:
                 phx                          ; And save it again
                 phy
                 ldy #$00                     ; Step past first parameter
-                jsr mos.LF26D                ;
+                jsr mos.gsinitForFilenameParsing
 L9108:
                 jsr mos.gsreadEntryPoint     ;
                 bcc L9108
@@ -2321,55 +2332,55 @@ L91BD:
                 jsr OSFILE
                 bra L91B5                    ; Jump to restore ACCCON and exit
 
-L91EB:
-                ldx #$00                     ; 91EB= A2 00       ".
-                sec                          ; 91ED= 38          8
-                jsr L922E                    ; 91EE= 20 2E 92     ..
-                inx                          ; 91F1= E8          h
-                jsr L922E                    ; 91F2= 20 2E 92     ..
+printLineNumber:
+                ldx #$00
+                sec
+                jsr adcLineNumberBCDX        ;increment line number LSB
+                inx                          
+                jsr adcLineNumberBCDX        ;carry into line number MSB
 L91F5:
-                sec                          ; 91F5= 38          8
-                lda hazel.lineNumberBCD+1      ; 91F6= AD C4 DF    -D_
-                jsr L9211                    ; 91F9= 20 11 92     ..
-                lda hazel.lineNumberBCD+0      ; 91FC= AD C3 DF    -C_
-                pha                          ; 91FF= 48          H
-                php                          ; 9200= 08          .
-                lsr a                        ; 9201= 4A          J
-                lsr a                        ; 9202= 4A          J
-                lsr a                        ; 9203= 4A          J
-                lsr a                        ; 9204= 4A          J
-                plp                          ; 9205= 28          (
-                jsr L921C                    ; 9206= 20 1C 92     ..
-                pla                          ; 9209= 68          h
-                clc                          ; 920A= 18          .
-                jsr L921C                    ; 920B= 20 1C 92     ..
-                jmp L9F0C                    ; 920E= 4C 0C 9F    L..
+                sec                          ;printing leading 0s
+                lda hazel.lineNumberBCD+1    ;get line number MSB
+                jsr printPossiblyLeading0s
+                lda hazel.lineNumberBCD+0    ;get line number LSB
+                pha                          ;save line number LSB
+                php                          ;save C
+                lsr a
+                lsr a
+                lsr a
+                lsr a
+                plp                          ;restore  C
+                jsr printPossiblyLeading0    ;print line number 3rd digit
+                pla                          ;restore line number LSB
+                clc                ;always print line number 4th digit
+                jsr printPossiblyLeading0    ;
+                jmp L9F0C                    ;
 
-L9211:
-                pha                          ; 9211= 48          H
-                php                          ; 9212= 08          .
-                lsr a                        ; 9213= 4A          J
-                lsr a                        ; 9214= 4A          J
-                lsr a                        ; 9215= 4A          J
-                lsr a                        ; 9216= 4A          J
-                plp                          ; 9217= 28          (
-                jsr L921C                    ; 9218= 20 1C 92     ..
-                pla                          ; 921B= 68          h
-L921C:
-                and #$0F                     ; 921C= 29 0F       ).
-                bne L9229                    ; 921E= D0 09       P.
-                bcc L9229                    ; 9220= 90 07       ..
-                lda #$20                     ; 9222= A9 20       )
-                jsr OSWRCH                   ; 9224= 20 EE FF     n.
-                sec                          ; 9227= 38          8
-                rts                          ; 9228= 60          `
+printPossiblyLeading0s:
+                pha                          ;save value
+                php                          ;save C
+                lsr a
+                lsr a
+                lsr a
+                lsr a
+                plp                          ;restore C
+                jsr printPossiblyLeading0    ;print 1st digit
+                pla                          ;restore value
+printPossiblyLeading0:
+                and #$0F                     ;get digit to print
+                bne printNonLeading0         ;always print if non-0
+                bcc printNonLeading0 ;branch taken if not leading 0
+                lda #$20             ;print space instead of leading 0
+                jsr OSWRCH
+                sec                ;indicate still in leading 0s state
+                rts
 
-L9229:
-                jsr LA873                    ; 9229= 20 73 A8     s(
-                clc                          ; 922C= 18          .
-                rts                          ; 922D= 60          `
+printNonLeading0:
+                jsr printHexDigit            ;print digit
+                clc                          ;no longer in leading 0s state
+                rts                          ;
 
-L922E:
+adcLineNumberBCDX:
                 lda #$00                     ; 922E= A9 00       ).
                 sed                          ; 9230= F8          x
                 adc hazel.lineNumberBCD,x    ; 9231= 7D C3 DF    }C_
@@ -2550,7 +2561,7 @@ L931B:
                 ldy #$FF                     ; 9330= A0 FF        .
                 sty $02F3                    ; 9332= 8C F3 02    .s.
                 iny                          ; 9335= C8          H
-                jsr mos.LF26D                ; 9336= 20 6D F2     mr
+                jsr mos.gsinitForFilenameParsing
 L9339:
                 jsr mos.gsreadEntryPoint     ; 9339= 20 7F F2     .r
                 bcc L9339                    ; 933C= 90 FB       .{
@@ -2717,14 +2728,14 @@ L944D:
                 beq L93E2                    ; 9454= F0 8C       p.
                 sta $0257                    ; 9456= 8D 57 02    .W.
                 tay                          ; 9459= A8          (
-L945A:
-                lda #$02                     ; 945A= A9 02       ).
-                jsr L9461                    ; 945C= 20 61 94     a.
+setPTRToEOF:
+                lda #$02                     ;read length of file
+                jsr callOSARGSWithBuffer
 L945F:
-                lda #$01                     ; 945F= A9 01       ).
-L9461:
-                ldx #$A8                     ; 9461= A2 A8       "(
-                jmp OSARGS                   ; 9463= 4C DA FF    LZ.
+                lda #$01                     ;set file pointer
+callOSARGSWithBuffer:
+                ldx #osargsBuffer
+                jmp OSARGS
 
 L9466:
                 lda #$72                     ; 9466= A9 72       )r
@@ -4566,7 +4577,7 @@ LA06B:
                 stx $F2                      ; A06B= 86 F2       .r
                 sty $F3                      ; A06D= 84 F3       .s
                 ldy #$00                     ; A06F= A0 00        .
-                jsr mos.LF26D                ; A071= 20 6D F2     mr
+                jsr mos.gsinitForFilenameParsing
                 ldx #$00                     ; A074= A2 00       ".
 LA076:
                 jsr mos.gsreadEntryPoint     ; A076= 20 7F F2     .r
@@ -5845,14 +5856,14 @@ LA86A:
                 lsr a                        ; A86C= 4A          J
                 lsr a                        ; A86D= 4A          J
                 lsr a                        ; A86E= 4A          J
-                jsr LA873                    ; A86F= 20 73 A8     s(
+                jsr printHexDigit
                 pla                          ; A872= 68          h
-LA873:
-                and #$0F                     ; A873= 29 0F       ).
-                ora #$30                     ; A875= 09 30       .0
-                cmp #$3A                     ; A877= C9 3A       I:
-                bcc LA87D                    ; A879= 90 02       ..
-                adc #$06                     ; A87B= 69 06       i.
+printHexDigit:
+                and #$0F
+                ora #'0'                     ;+'0'
+                cmp #'9'+1
+                bcc LA87D                    ;taken if <='9'
+                adc #'A'-('9'+1)-1           ;adjust - -1 because C set
 LA87D:
                 jmp OSWRCH                   ; A87D= 4C EE FF    Ln.
 

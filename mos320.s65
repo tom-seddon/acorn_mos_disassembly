@@ -31,7 +31,18 @@ tubeHostAddr=$400
                 
 ;-------------------------------------------------------------------------
 
+osargsBuffer=$a8                ;4-byte ZP buffer for use with OSARGS
 printMessageAddress=$b8
+                
+                .virtual $e4
+stringInputOptions: .block
+doubleQuotes=$80
+spaceNotATerminator=$40
+goodString=$01
+                .endblock
+                .endvirtual
+stringInputPlingFlag=$e5        ;bit 7 set if last char was '!'
+                
 stringInputBufferAddress=$f2    ;word
 
 ;-------------------------------------------------------------------------
@@ -411,7 +422,6 @@ tubeLanguageParasiteAddr: .fill 4
                 .endv
 
 ; MasRef E.4-4
-
                 .virtual $d0
 STATE: .block
                 .fill 1

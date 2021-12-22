@@ -5794,7 +5794,7 @@ isROMValid: .proc ;e3f7
 ; ===================
 LE40E:
                 sec                      ; Call Break Intercept Vector
-                jsr LF349
+                jsr osbyte247EntryPoint
                 ldx #romServiceCallInformReset
                 jsr makeROMServiceCall
                 ldy $0256                    ; Get Exec handle, skip past if closed
@@ -8470,103 +8470,123 @@ LF261:
                 plp                          ; F26B= 28          (
                 rts                          ; F26C= 60          `
 
-LF26D:
-                clc                          ; F26D= 18          .
-gsinitEntryPoint:
-                ror $E4                      ; F26E= 66 E4       fd
-                jsr skipSpacesAndCheckForCRInStringInput                    ; F270= 20 FF F2     .r
-                iny                          ; F273= C8          H
-                cmp #$22                     ; F274= C9 22       I"
-                beq LF27A                    ; F276= F0 02       p.
-                dey                          ; F278= 88          .
-                clc                          ; F279= 18          .
-LF27A:
-                ror $E4                      ; F27A= 66 E4       fd
-                cmp #$0D                     ; F27C= C9 0D       I.
-                rts                          ; F27E= 60          `
+;-------------------------------------------------------------------------
 
+gsinitForFilenameParsing:
+                clc
+
+
+;-------------------------------------------------------------------------
+;
+; GSINIT
+;
+; MasRef D.10-1
+; 
+gsinitEntryPoint:
+                ror stringInputOptions    ;put C into bit 7
+                jsr skipSpacesAndCheckForCRInStringInput
+                iny
+                cmp #'"'
+                beq +                       ; C=1 if double quotes
+                dey
+                clc                         ; clear double quotes flag
++
+                ror stringInputOptions ; set doubleQuotes; move bit 7 into spaceNotATerminator
+                cmp #$0D                     ; set Z if initial CR
+                rts
+
+;-------------------------------------------------------------------------
+;
+; GSREAD
+;
+; MasRef D.10-2
+; MasRef C.5-8 has the | syntax
+; 
 gsreadEntryPoint:
-                lda #$01                     ; F27F= A9 01       ).
-                tsb $E4                      ; F281= 04 E4       .d
+                lda #stringInputOptions.goodString
+                tsb stringInputOptions
                 jsr LF29C                    ; F283= 20 9C F2     .r
-                php                          ; F286= 08          .
-                lsr $E4                      ; F287= 46 E4       Fd
-                bcc badStringError                    ; F289= 90 04       ..
-                rol $E4                      ; F28B= 26 E4       &d
-                plp                          ; F28D= 28          (
-                rts                          ; F28E= 60          `
+                php                          ; save flags
+                lsr stringInputOptions       ; move goodString into C
+                bcc badStringError           ; branch taken if bad string
+                rol stringInputOptions       ; reinstate goodString
+                plp                          ; restore flags
+                rts                          ;
 
 badStringError:
-                brk                          ; F28F= 00          .
+                brk                          ; 
                 .text $fd,"Bad string",0
 LF29C:
-                clc                          ; F29C= 18          .
+                clc                          ; last char not !
 LF29D:
-                stz $E5                      ; F29D= 64 E5       de
-                ror $E5                      ; F29F= 66 E5       fe
-                lda ($F2),y                  ; F2A1= B1 F2       1r
-                cmp #$0D                     ; F2A3= C9 0D       I.
-                bne LF2B0                    ; F2A5= D0 09       P.
-                bit $E4                      ; F2A7= 24 E4       $d
-                bpl LF2CB                    ; F2A9= 10 20       .
-LF2AB:
-                lda #$01                     ; F2AB= A9 01       ).
-                trb $E4                      ; F2AD= 14 E4       .d
-                rts                          ; F2AF= 60          `
+                ; C=1 at this point if |! was the last sequence seen.
+                stz stringInputPlingFlag
+                ror stringInputPlingFlag     ; set ! flag as required
+                lda (stringInputBufferAddress),y
+                cmp #13                      ;EOL?
+                bne notRETURN                ;taken if not EOL
+                bit stringInputOptions
+                bpl finishedString           ;taken if !doubleQuotes
+badString:
+                lda #stringInputOptions.goodString
+                trb stringInputOptions
+                rts
 
-LF2B0:
-                cmp #$20                     ; F2B0= C9 20       I
-                bcc LF2AB                    ; F2B2= 90 F7       .w
-                bne LF2BC                    ; F2B4= D0 06       P.
-                bit $E4                      ; F2B6= 24 E4       $d
-                bmi LF2F8                    ; F2B8= 30 3E       0>
-                bvc LF2CB                    ; F2BA= 50 0F       P.
-LF2BC:
-                cmp #$22                     ; F2BC= C9 22       I"
-                bne LF2D0                    ; F2BE= D0 10       P.
-                bit $E4                      ; F2C0= 24 E4       $d
-                bpl LF2F8                    ; F2C2= 10 34       .4
-                iny                          ; F2C4= C8          H
-                lda ($F2),y                  ; F2C5= B1 F2       1r
-                cmp #$22                     ; F2C7= C9 22       I"
-                beq LF2F8                    ; F2C9= F0 2D       p-
-LF2CB:
-                jsr skipSpacesAndCheckForCRInStringInput                    ; F2CB= 20 FF F2     .r
-                sec                          ; F2CE= 38          8
-                rts                          ; F2CF= 60          `
+notRETURN:
+                cmp #' '
+                bcc badString ;taken if unprintable control char
+                bne notSPACE
+                bit stringInputOptions ;N=doubleQuotes, V=spaceNotATerminator
+                bmi finishUpReadClearV ;taken if quoted
+                bvc finishedString ;taken if space is a terminator
+notSPACE:
+                cmp #'"'
+                bne notDOUBLEQUOTE         ;taken if not quotes
+                bit stringInputOptions ;N=doubleQuotes, V=spaceNotATerminator
+                bpl finishUpReadClearV ;taken if not double quotes
+                iny
+                lda (stringInputBufferAddress),y
+                cmp #'"'
+                beq finishUpReadClearV       ;taken if quotes
+finishedString:
+                jsr skipSpacesAndCheckForCRInStringInput
+                sec
+                rts
 
-LF2D0:
-                cmp #$7C                     ; F2D0= C9 7C       I|
-                bne LF2F8                    ; F2D2= D0 24       P$
-                iny                          ; F2D4= C8          H
-                lda ($F2),y                  ; F2D5= B1 F2       1r
-                cmp #$7C                     ; F2D7= C9 7C       I|
-                beq LF2F8                    ; F2D9= F0 1D       p.
-                cmp #$22                     ; F2DB= C9 22       I"
-                beq LF2F8                    ; F2DD= F0 19       p.
-                cmp #$21                     ; F2DF= C9 21       I!
-                bne LF2E6                    ; F2E1= D0 03       P.
-                iny                          ; F2E3= C8          H
-                bra LF29D                    ; F2E4= 80 B7       .7
+notDOUBLEQUOTE:
+                cmp #'|'
+                bne finishUpReadClearV       ;taken if not |
+                iny                          ;skip |
+                lda (stringInputBufferAddress),y
+                cmp #'|'
+                beq finishUpReadClearV ;branch taken if "||" - literal |
+                cmp #'"'
+                beq finishUpReadClearV ;branch taken if "|\"" - literal "
+                cmp #'!'
+                bne LF2E6                    ;taken if not "|!"
+
+                ; Handle |! - ASCII 128-255
+                iny                          ;skip !
+                bra LF29D
 
 LF2E6:
-                cmp #$20                     ; F2E6= C9 20       I
-                bcc LF2AB                    ; F2E8= 90 C1       .A
-                cmp #$3F                     ; F2EA= C9 3F       I?
-                beq LF2F6                    ; F2EC= F0 08       p.
-                jsr LF336                    ; F2EE= 20 36 F3     6s
+                cmp #' '
+                bcc badString ;taken if | followed by a non-printable char
+                cmp #'?'                     
+                beq ascii127                 ;taken if "|?" - CHR$127
+                jsr implementCTRLCodes       ; F2EE= 20 36 F3     6s
                 bit LE34E                    ; F2F1= 2C 4E E3    ,Nc
                 bra LF2F9                    ; F2F4= 80 03       ..
 
-LF2F6:
-                lda #$7F                     ; F2F6= A9 7F       ).
-LF2F8:
+ascii127:
+                lda #$7F
+finishUpReadClearV:
                 clv                          ; F2F8= B8          8
 LF2F9:
-                iny                          ; F2F9= C8          H
-                ora $E5                      ; F2FA= 05 E5       .e
-                clc                          ; F2FC= 18          .
-                rts                          ; F2FD= 60          `
+                iny                          
+                ora stringInputPlingFlag ;if it was a |! char, set bit 7
+                clc
+                rts
 
 incAndSkipSpaces:
                 iny                          ; F2FE= C8          H
@@ -8587,51 +8607,69 @@ LF30A:
                 iny                          ; F311= C8          H
                 rts                          ; F312= 60          `
 
-LF313:
-                cmp #$30                     ; F313= C9 30       I0
-                beq LF335                    ; F315= F0 1E       p.
-                cmp #$40                     ; F317= C9 40       I@
-                beq LF335                    ; F319= F0 1A       p.
-                bcc LF32F                    ; F31B= 90 12       ..
-                cmp #$7F                     ; F31D= C9 7F       I.
-                beq LF335                    ; F31F= F0 14       p.
-                bcs LF333                    ; F321= B0 10       0.
-LF323:
-                eor #$30                     ; F323= 49 30       I0
-                cmp #$6F                     ; F325= C9 6F       Io
-                beq LF32D                    ; F327= F0 04       p.
-                cmp #$50                     ; F329= C9 50       IP
-                bne LF32F                    ; F32B= D0 02       P.
-LF32D:
-                eor #$1F                     ; F32D= 49 1F       I.
-LF32F:
-                cmp #$21                     ; F32F= C9 21       I!
-                bcc LF335                    ; F331= 90 02       ..
-LF333:
-                eor #$10                     ; F333= 49 10       I.
-LF335:
+;-------------------------------------------------------------------------
+;
+; Modify character in A as if the SHIFT key is being pressed.
+;
+implementShift:
+                cmp #'0'
+                beq gotShiftedChar           ;taken if SHIFT+0 - no change
+                cmp #$40
+                beq gotShiftedChar           ;taken if SHIFT+@ - no change
+                bcc shiftMaybeNumber ;taken if probably a "number" (ASCII 33-63)
+                cmp #$7F
+                beq gotShiftedChar  ;taken if SHIFT+DELETE - no change
+                bcs shiftNumber     ;taken if SHIFT+CHR$>=127 - ???
+flipBitsForShift:
+                eor #$30                     ;
+                cmp #$6F                     ;
+                beq +                        ;taken if originally _
+                cmp #$50                     ;
+                bne shiftMaybeNumber         ;taken if not originally GBP
++
+                eor #$1F                     ;extra step for GBP/_ toggle
+shiftMaybeNumber:
+                cmp #' '+1
+                bcc gotShiftedChar         ;taken if non-printing char
+shiftNumber:
+                eor #$10                     ;
+gotShiftedChar:
                 rts                          ; F335= 60          `
 
-LF336:
+;-------------------------------------------------------------------------
+;
+; See MasRef C.5-8
+;
+; 
+implementCTRLCodes:
                 cmp #$7F                     ; F336= C9 7F       I.
-                beq LF348                    ; F338= F0 0E       p.
-                bcs LF323                    ; F33A= B0 E7       0g
-                cmp #$60                     ; F33C= C9 60       I`
-                bne LF342                    ; F33E= D0 02       P.
-                lda #$5F                     ; F340= A9 5F       )_
-LF342:
-                cmp #$40                     ; F342= C9 40       I@
-                bcc LF348                    ; F344= 90 02       ..
-                and #$1F                     ; F346= 29 1F       ).
-LF348:
+                beq gotCtrlChar
+                bcs flipBitsForShift         ;taken if CHR$>=128
+                cmp #$60
+                bne +                        ;taken if not GBP
+                lda #'_'                     ;GBP and _ are equivalent
++
+                cmp #$40                     ;
+                bcc gotCtrlChar              ;taken if CHR$<64
+                and #$1F                     ;|@=0, |A=1, |a=1, etc.
+gotCtrlChar:
                 rts                          ; F348= 60          `
 
-LF349:
+;-------------------------------------------------------------------------
+
+osbyte247EntryPoint:
                 lda $0287                    ; F349= AD 87 02    -..
                 eor #$4C                     ; F34C= 49 4C       IL
                 bne LF363                    ; F34E= D0 13       P.
                 jmp $0287                    ; F350= 4C 87 02    L..
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 144 (&90)
+; Set vertical screen shift and interlace
+;
+; MasRef D.2-44
+; 
 osbyte90:
                 lda $0290                    ; F353= AD 90 02    -..
                 stx $0290                    ; F356= 8E 90 02    ...
@@ -8643,20 +8681,40 @@ osbyte90:
 LF363:
                 rts                          ; F363= 60          `
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 149 (&95) – write to JIM
+;
+; MasRef D.2-45
+; 
 osbyte95:
-                tya                          ; F364= 98          .
-                sta $FD00,x                  ; F365= 9D 00 FD    ..}
-                rts                          ; F368= 60          `
+                tya
+                sta $FD00,x
+                rts
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 151 (&97) – write to SHEILA
+;
+; MasRef D.2-45
+; 
 osbyte97:
-                tya                          ; F369= 98          .
-                sta $FE00,x                  ; F36A= 9D 00 FE    ..~
-                rts                          ; F36D= 60          `
+                tya
+                sta $FE00,x
+                rts
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 147 (&93) – write to FRED
+;
+; MasRef D.2-45
+; 
 osbyte93:
-                tya                          ; F36E= 98          .
-                sta $FC00,x                  ; F36F= 9D 00 FC    ..|
-                rts                          ; F372= 60          `
+                tya
+                sta $FC00,x
+                rts
+
+;-------------------------------------------------------------------------
 
 LF373:
                 ldx #romServiceCallCloseAllOpenFiles 
@@ -9369,11 +9427,11 @@ LF7F6:
                 ldx $ED                      ; F7FF= A6 ED       &m
 LF801:
                 bne LF794                    ; F801= D0 91       P.
-                jsr LF336                    ; F803= 20 36 F3     6s
+                jsr implementCTRLCodes       ; F803= 20 36 F3     6s
 LF806:
                 rol $FA                      ; F806= 26 FA       &z
                 bmi LF811                    ; F808= 30 07       0.
-                jsr LF313                    ; F80A= 20 13 F3     .s
+                jsr implementShift           ; F80A= 20 13 F3     .s
                 rol $FA                      ; F80D= 26 FA       &z
                 bra LF81D                    ; F80F= 80 0C       ..
 
@@ -9382,7 +9440,7 @@ LF811:
                 bmi LF822                    ; F813= 30 0D       0.
                 jsr isLetter                    ; F815= 20 71 EA     qj
                 bcs LF822                    ; F818= B0 08       0.
-                jsr LF313                    ; F81A= 20 13 F3     .s
+                jsr implementShift           ; F81A= 20 13 F3     .s
 LF81D:
                 ldx $025A                    ; F81D= AE 5A 02    .Z.
                 bpl LF82D                    ; F820= 10 0B       ..
@@ -9391,7 +9449,7 @@ LF822:
                 bpl LF82D                    ; F824= 10 07       ..
                 ldx $ED                      ; F826= A6 ED       &m
                 bne LF801                    ; F828= D0 D7       PW
-                jsr LF313                    ; F82A= 20 13 F3     .s
+                jsr implementShift           ; F82A= 20 13 F3     .s
 LF82D:
                 cmp $026C                    ; F82D= CD 6C 02    Ml.
                 bne LF839                    ; F830= D0 07       P.
@@ -9543,17 +9601,23 @@ LF8FF:
                 bit LE34E                    ; Set V
 callKEYV:                                    ;f902
                 jmp (KEYV)                  ; Jump to KEYV
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 131 (&83) - Read Operating System High Water Mark (OSHWM)
+;
+; MasRef D.2-40
+; 
 osbyte83:
                 ldy $0244                    ; F905= AC 44 02    ,D.
                 ldx #$00                     ; F908= A2 00       ".
-LF90A:
                 rts                          ; F90A= 60          `
 
 ;-------------------------------------------------------------------------
 ;
-; OSBYTE $78
+; OSBYTE 120 ($78) - Write keys pressed information
 ;
-; D.2-33
+; MasRef D.2-33
 ;
 osbyte78:                          ;f90b
                 sty $EC                      ; F90B= 84 EC       .l

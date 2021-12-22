@@ -325,8 +325,9 @@ hasACCCONChanged:                ;dfdd
 ; Presumed addresses in ANDY that don't happen to coincide with other
 ; labels.
 ; 
-; MasRef E.4-5
+; MasRef E.4-5, MasRef F.6-10
 ;
+; &8000-83FF  RAM  Soft key expansions buffer
 ; &8400–87FF  RAM  VDU workspace.
 ; &8800–07    RAM  ECF pattern 1 definition.
 ; &8808–0F    RAM  ECF pattern 2 definition.
@@ -344,6 +345,15 @@ hasACCCONChanged:                ;dfdd
 ; &8E00–FF    RAM  Current definitions of characters &C0–DF.
 ; &8F00–FF    RAM  Current definitions of characters &E0–FF.
 
+                .virtual $8000
+andy: .block
+                .fill $900
+softCharacterDefinitions:
+                .fill (256-32)*8
+                .cerror *!=$9000,"ANDY is the wrong size"
+                .endblock
+                .endvirtual
+                
 L8000=$8000
 L8001=$8001
 L8002=$8002

@@ -5585,17 +5585,17 @@ fsVectors: .block
                 .word E_FSCV ; FSCV=$21e
 end:
                 .bend
-                .word rts ; EVENTV=$220
-                .word rts ; UPTV=$222
-                .word rts ; NETV=$224
-                .word rts ; VDUV=$226 
+                .word rtsFFAA ; EVENTV=$220
+                .word rtsFFAA ; UPTV=$222
+                .word rtsFFAA ; NETV=$224
+                .word rtsFFAA ; VDUV=$226 
                 .word LF74C ; KEYV=$228 
                 .word LEA43 ; INSV=$22a 
                 .word LE9F8 ; REMV=$22c 
                 .word LE97B ; CNPV=$22e 
-                .word rts ; IND1V=$230
-                .word rts ; IND2V=$232
-                .word rts ; IND3V=$234
+                .word rtsFFAA ; IND1V=$230
+                .word rtsFFAA ; IND2V=$232
+                .word rtsFFAA ; IND3V=$234
 end:
                 .bend
                 
@@ -5976,7 +5976,6 @@ LE579:
                 jmp terminal.L8661           ; E57C= 4C 61 86    La.
 
 ;-------------------------------------------------------------------------
-;-------------------------------------------------------------------------
 ;
 ; Select paged ROM bank 15 - TERMINAL - with ANDY paged in,
 ;
@@ -6031,12 +6030,18 @@ selectROMA:                   ;e592
                 rts
 
 ;-------------------------------------------------------------------------
+;
+; Select paged ROM bank 15 - TERMINAL - with ANDY paged in,
+;
+; Preserves A/X/Y
 
-LE598:
-                phx                          ; E598= DA          Z
-                jsr selectTerminalROMAndANDY                    ; E599= 20 7F E5     .e
-                plx                          ; E59C= FA          z
-                rts                          ; E59D= 60          `
+selectTerminalROMAndANDY2:
+                phx
+                jsr selectTerminalROMAndANDY
+                plx
+                rts
+
+;-------------------------------------------------------------------------
 
 irqEntryPoint:
                 sta $FC                      ; E59E= 85 FC       .|
@@ -6986,7 +6991,7 @@ LEB07:
                 bne LEAC3                    ; EB10= D0 B1       P1
                 lda $F4                      ; EB12= A5 F4       %t
                 pha                          ; EB14= 48          H
-                jsr LE598                    ; EB15= 20 98 E5     .e
+                jsr selectTerminalROMAndANDY2 ; EB15= 20 98 E5     .e
                 lda ($F8)                    ; EB18= B2 F8       2x
                 plx                          ; EB1A= FA          z
                 jsr selectROMX                    ; EB1B= 20 81 E5     .e
@@ -7014,7 +7019,7 @@ LEB32:
                 sta $02C9                    ; EB36= 8D C9 02    .I.
                 lda $F4                      ; EB39= A5 F4       %t
                 pha                          ; EB3B= 48          H
-                jsr LE598                    ; EB3C= 20 98 E5     .e
+                jsr selectTerminalROMAndANDY2 ; EB3C= 20 98 E5     .e
                 jsr LEB55                    ; EB3F= 20 55 EB     Uk
                 sta $0268                    ; EB42= 8D 68 02    .h.
                 lda L8000,y                  ; EB45= B9 00 80    9..
@@ -7081,8 +7086,8 @@ osbyteAndOSWORDRoutineTable:
                 .word osbyte70 ;Select main/shadow memory for VDU access D.2-31
                 .word osbyte71 ;Select main/shadow memory for display D.2-31
                 .word osbyte72 ;Write usage of shadow memory D.2-31
-                .word rts      ;Unused
-                .word rts      ;Unused
+                .word rtsFFAA  ;Unused
+                .word rtsFFAA  ;Unused
                 .word osbyte75 ;Read VDU status D.2-32
                 .word osbyte76 ;Reflect keyboard status in keyboard LEDs D.2-33
                 .word osbyte77 ;Close all *SPOOL/*SPOOLON or *EXEC files D.2-33
@@ -8388,8 +8393,12 @@ LF1FA:
                 .word terminal.L9F8C         ; FSCV
                 .byte 15
 
-; OSBYTE &6x - Make temporary FS permanant
-; ========================================
+;-------------------------------------------------------------------------
+;
+; OSBYTE 109 (&6D) Make temporary Filing System permanent
+;
+; MasRef D.2-30
+; 
 osbyte6D:;f20f
                 ldx hazel.activeFS; Copy active FS to current FS
                 stx hazel.currentFS
@@ -8397,13 +8406,25 @@ osbyte6D:;f20f
                 sta hazel.currentFSROM
                 rts
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 20 (&14) Restore default font definitions
+;
+; MasRef D.2-24
+; 
 osbyte14:                       ;f21c
                 jsr withTerminalROM          ; F21C= 20 84 F3     .s
-                jmp terminal.L92A4           ; F21F= 4C A4 92    L$.
+                jmp terminal.restoreFont32To126
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 25 (&19) Restore a group of font definitions
+;
+; MasRef D.2-28
+; 
 osbyte19:                       ;f222
                 jsr withTerminalROM          ; F222= 20 84 F3     .s
-                jmp terminal.L92A8           ; F225= 4C A8 92    L(.
+                jmp terminal.osbyte19           ; F225= 4C A8 92    L(.
 
 ; OSBYTE &16 - Increment ROM polling semaphore
 ; ========================================
@@ -10367,7 +10388,7 @@ extendedVectorEntryPoint:
                 jsr mos.selectROMA           ; FFA5= 20 92 E5     .e
                 pla                          ; FFA8= 68          h
                 plp                          ; FFA9= 28          (
-rts:
+rtsFFAA:
                 rts                          ; FFAA= 60          `
 
 osbyte96:

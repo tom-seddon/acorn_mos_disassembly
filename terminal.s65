@@ -119,7 +119,7 @@ L80CB:
                 lda #$01                     ; 80D2= A9 01       ).
 L80D4:
                 sta $0366                    ; 80D4= 8D 66 03    .f.
-                jsr L927B                    ; 80D7= 20 7B 92     {.
+                jsr restoreFont32To255
                 ply                          ; 80DA= 7A          z
                 ldx #$92                     ; 80DB= A2 92       ".
                 bra L80F7                    ; 80DD= 80 18       ..
@@ -2145,7 +2145,7 @@ L909E:
 setStringInputBufferToCommandLine:
                 lda #$41
                 sta $E4
-                .cerror (<hazel.commandLine)!=0,"no"
+                .cerror (<hazel.commandLine)!=0,"hazel.commandLine must be page aligned"
                 stz stringInputBufferAddress+0
                 lda #>hazel.commandLine
                 sta stringInputBufferAddress+1
@@ -2386,7 +2386,7 @@ adcLineNumberBCDX:
                 adc hazel.lineNumberBCD,x    ; 9231= 7D C3 DF    }C_
                 sta hazel.lineNumberBCD,x    ; 9234= 9D C3 DF    .C_
                 cld                          ; 9237= D8          X
-L9238:
+rts9238:
                 rts                          ; 9238= 60          `
 
 L9239:
@@ -2438,51 +2438,94 @@ L926D:
                 ply                          ; 9277= 7A          z
                 jmp OSNEWL                   ; 9278= 4C E7 FF    Lg.
 
-L927B:
-                ldx #$07                     ; 927B= A2 07       ".
-L927D:
-                php                          ; 927D= 08          .
-                sei                          ; 927E= 78          x
-                lda #$B9                     ; 927F= A9 B9       )9
-                sta $F1                      ; 9281= 85 F1       .q
-                lda #$89                     ; 9283= A9 89       ).
-L9285:
-                sta $FB                      ; 9285= 85 FB       .{
-                jsr mos.LE598                ; 9287= 20 98 E5     .e
-                phy                          ; 928A= 5A          Z
-                ldy #$00                     ; 928B= A0 00        .
-                stz $FA                      ; 928D= 64 FA       dz
-                stz $F0                      ; 928F= 64 F0       dp
-L9291:
-                lda ($F0),y                  ; 9291= B1 F0       1p
-                sta ($FA),y                  ; 9293= 91 FA       .z
-                iny                          ; 9295= C8          H
-                bne L9291                    ; 9296= D0 F9       Py
+;-------------------------------------------------------------------------
+;
+; Restore entire font.
+; 
+restoreFont32To255:
+                ldx #$07                     ;224 chars - 32-255
+                
+                ; fall through to restoreFont32ToN
+
+;-------------------------------------------------------------------------
+;
+; Restore part of the font, starting from char 32.
+;
+; entry:
+;
+; X = number of pages of font data to restore - X*32 chars will be
+; restored
+; 
+restoreFont32ToN:
+                php
+                sei
+                lda #>LB900                ;start at beginning of font
+                sta $F1
+                lda #>andy.softCharacterDefinitions ;write to beginning of soft character definitions
+                
+                ; fall through to restoreFontPart
+
+;-------------------------------------------------------------------------
+;
+; Restore part of the font.
+;
+; entry:
+;
+; ?$f1 = MSB of font data
+;
+; A = MSB of dest page in ANDY - should be part of the soft character
+; definitions!
+;
+; X = number of pages of font data to restore - X*32 chars will be
+; restored
+;
+; preserves: Y
+
+restoreFontPart:
+                sta $FB                      ;save MSB of dest
+                jsr mos.selectTerminalROMAndANDY2
+                phy                          ;
+                ldy #$00                     ;
+                stz $FA                      ;initialize LSB of src
+                stz $F0                      ;initialize LSB of dest
+-
+                lda ($F0),y                  
+                sta ($FA),y                  
+                iny                          
+                bne -
                 inc $F1                      ; 9298= E6 F1       fq
                 inc $FB                      ; 929A= E6 FB       f{
                 dex                          ; 929C= CA          J
-                bne L9291                    ; 929D= D0 F2       Pr
+                bne -
                 ply                          ; 929F= 7A          z
                 plp                          ; 92A0= 28          (
                 jmp mos.selectTerminalROM    ; 92A1= 4C 90 E5    L.e
 
-L92A4:
-                ldx #$03                     ; 92A4= A2 03       ".
-                bra L927D                    ; 92A6= 80 D5       .U
+restoreFont32To126:
+                ldx #$03                     ;96 chars - 32-126
+                bra restoreFont32ToN         ; 92A6= 80 D5       .U
 
-L92A8:
-                txa                          ; 92A8= 8A          .
-                beq L927B                    ; 92A9= F0 D0       pP
-                cmp #$08                     ; 92AB= C9 08       I.
-                bcs L9238                    ; 92AD= B0 89       0.
-                php                          ; 92AF= 08          .
-                sei                          ; 92B0= 78          x
-                adc #$B8                     ; 92B1= 69 B8       i8
-                sta $F1                      ; 92B3= 85 F1       .q
-                txa                          ; 92B5= 8A          .
-                ldx #$01                     ; 92B6= A2 01       ".
-                adc #$88                     ; 92B8= 69 88       i.
-                bra L9285                    ; 92BA= 80 C9       .I
+;-------------------------------------------------------------------------
+;
+; OSBYTE 25 (&19) Restore a group of font definitions
+;
+; MasRef D.2-28
+; 
+osbyte19:
+                txa                          ;A=group identifier
+                beq restoreFont32To255   ;taken if group 0 - all chars
+                cmp #$08
+                bcs rts9238         ;taken if group >= 8 (not invalid)
+                php
+                sei
+                adc #(>LB900)-1 ;form address of ROM font data for group
+                sta $F1
+                txa
+                ldx #$01                   ;copy 1 page, 32 chars
+                adc #(>andy.softCharacterDefinitions)-1 ;get page in ANDY for group
+                bra restoreFontPart
+
+;-------------------------------------------------------------------------
 
 L92BC:
                 stz $02ED,x                  ; 92BC= 9E ED 02    .m.
@@ -2766,7 +2809,7 @@ L9488:
                 jsr OSWRCH                   ; 9492= 20 EE FF     n.
                 lda $F4                      ; 9495= A5 F4       %t
                 pha                          ; 9497= 48          H
-                jsr mos.LE598                ; 9498= 20 98 E5     .e
+                jsr mos.selectTerminalROMAndANDY2 ; 9498= 20 98 E5     .e
                 lda L8000,x                  ; 949B= BD 00 80    =..
                 sta $F2                      ; 949E= 85 F2       .r
                 lda L8011,x                  ; 94A0= BD 11 80    =..
@@ -8926,6 +8969,7 @@ LB8FB:
 ; Default font
 ; ============
 LB900:
+                .cerror (<LB900)!=0,"font data must be page aligned"
                 ; CHR$32 -  
                 .byte %00000000
                 .byte %00000000

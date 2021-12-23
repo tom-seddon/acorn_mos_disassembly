@@ -323,16 +323,16 @@ LC105:
                 clc                          ; C106= 18          .
 LC107:
                 pha                          ; C107= 48          H
-                lda $D8                      ; C108= A5 D8       %X
+                lda ZMEMT+0                      ; C108= A5 D8       %X
                 sta $E0                      ; C10A= 85 E0       .`
-                lda $D9                      ; C10C= A5 D9       %Y
+                lda ZMEMT+1                      ; C10C= A5 D9       %Y
                 sta $E1                      ; C10E= 85 E1       .a
                 ldy $034F                    ; C110= AC 4F 03    ,O.
                 dey                          ; C113= 88          .
                 bne LC124                    ; C114= D0 0E       P.
                 lda $0338                    ; C116= AD 38 03    -8.
                 bcs LC132                    ; C119= B0 17       0.
-                lda ($D8)                    ; C11B= B2 D8       2X
+                lda (ZMEMT)                    ; C11B= B2 D8       2X
                 sta $0338                    ; C11D= 8D 38 03    .8.
                 lda #$7F                     ; C120= A9 7F       ).
                 bra LC132                    ; C122= 80 0E       ..
@@ -630,7 +630,7 @@ LC2F2:
                 lda $034A                    ; C2FE= AD 4A 03    -J.
                 sbc $034F                    ; C301= ED 4F 03    mO.
                 sta $034A                    ; C304= 8D 4A 03    .J.
-                sta $D8                      ; C307= 85 D8       .X
+                sta ZMEMT+0                      ; C307= 85 D8       .X
                 bcs LC336                    ; C309= B0 2B       0+
                 dec $034B                    ; C30B= CE 4B 03    NK.
                 bra LC32B                    ; C30E= 80 1B       ..
@@ -643,7 +643,7 @@ LC310:
                 lda $034A                    ; C31B= AD 4A 03    -J.
                 adc $034F                    ; C31E= 6D 4F 03    mO.
                 sta $034A                    ; C321= 8D 4A 03    .J.
-                sta $D8                      ; C324= 85 D8       .X
+                sta ZMEMT+0                      ; C324= 85 D8       .X
                 bcc LC337                    ; C326= 90 0F       ..
                 inc $034B                    ; C328= EE 4B 03    nK.
 LC32B:
@@ -653,7 +653,7 @@ LC32E:
                 sec                          ; C330= 38          8
                 sbc $0354                    ; C331= ED 54 03    mT.
 LC334:
-                sta $D9                      ; C334= 85 D9       .Y
+                sta ZMEMT+1                      ; C334= 85 D9       .Y
 LC336:
                 clc                          ; C336= 18          .
 LC337:
@@ -668,7 +668,7 @@ LC338:
                 lda $034A                    ; C344= AD 4A 03    -J.
                 sbc $0352                    ; C347= ED 52 03    mR.
                 sta $034A                    ; C34A= 8D 4A 03    .J.
-                sta $D8                      ; C34D= 85 D8       .X
+                sta ZMEMT+0                      ; C34D= 85 D8       .X
                 lda $034B                    ; C34F= AD 4B 03    -K.
                 sbc $0353                    ; C352= ED 53 03    mS.
                 sta $034B                    ; C355= 8D 4B 03    .K.
@@ -682,7 +682,7 @@ LC35A:
                 lda $034A                    ; C365= AD 4A 03    -J.
                 adc $0352                    ; C368= 6D 52 03    mR.
                 sta $034A                    ; C36B= 8D 4A 03    .J.
-                sta $D8                      ; C36E= 85 D8       .X
+                sta ZMEMT+0                      ; C36E= 85 D8       .X
                 lda $034B                    ; C370= AD 4B 03    -K.
                 adc $0353                    ; C373= 6D 53 03    mS.
                 sta $034B                    ; C376= 8D 4B 03    .K.
@@ -1276,8 +1276,8 @@ LC6DD:
                 sec                          ; C6E5= 38          8
                 sbc $0354                    ; C6E6= ED 54 03    mT.
 LC6E9:
-                stx $D8                      ; C6E9= 86 D8       .X
-                sta $D9                      ; C6EB= 85 D9       .Y
+                stx ZMEMT+0                      ; C6E9= 86 D8       .X
+                sta ZMEMT+1                      ; C6EB= 85 D9       .Y
 
 ;-------------------------------------------------------------------------
 ;
@@ -1792,8 +1792,8 @@ LC97F:
                 plx                          ; C98B= FA          z
                 lda #$00                     ; C98C= A9 00       ).
                 jsr LCC5D                    ; C98E= 20 5D CC     ]L
-                stx $D8                      ; C991= 86 D8       .X
-                sta $D9                      ; C993= 85 D9       .Y
+                stx ZMEMT+0                      ; C991= 86 D8       .X
+                sta ZMEMT+1                      ; C993= 85 D9       .Y
                 jsr getDefaultBoundsForCurrentScreenMODE                    ; C995= 20 A2 E2     "b
                 jsr LCAAE                    ; C998= 20 AE CA     .J
                 bra LC9B8                    ; C99B= 80 1B       ..
@@ -1828,8 +1828,8 @@ LC9C6:
                 ldx $0328                    ; C9D0= AE 28 03    .(.
                 jsr LCC5D                    ; C9D3= 20 5D CC     ]L
                 jsr LCC88                    ; C9D6= 20 88 CC     .L
-                stx $D8                      ; C9D9= 86 D8       .X
-                sta $D9                      ; C9DB= 85 D9       .Y
+                stx ZMEMT+0                      ; C9D9= 86 D8       .X
+                sta ZMEMT+1                      ; C9DB= 85 D9       .Y
                 lda #$00                     ; C9DD= A9 00       ).
                 ldx $032A                    ; C9DF= AE 2A 03    .*.
                 jsr LCC7D                    ; C9E2= 20 7D CC     }L
@@ -1852,8 +1852,8 @@ LCA08:
                 ldx #$00                     ; CA08= A2 00       ".
                 jsr LCBF3                    ; CA0A= 20 F3 CB     sK
                 ldx #$80                     ; CA0D= A2 80       ".
-                stx $D9                      ; CA0F= 86 D9       .Y
-                stz $D8                      ; CA11= 64 D8       dX
+                stx ZMEMT+1                      ; CA0F= 86 D9       .Y
+                stz ZMEMT+0                      ; CA11= 64 D8       dX
                 ldy $DE                      ; CA13= A4 DE       $^
                 ldx $DF                      ; CA15= A6 DF       &_
 LCA17:
@@ -1861,8 +1861,8 @@ LCA17:
                 jsr LCC97                    ; CA1A= 20 97 CC     .L
                 jsr LCC94                    ; CA1D= 20 94 CC     .L
                 jsr LCC57                    ; CA20= 20 57 CC     WL
-                stx $D8                      ; CA23= 86 D8       .X
-                sta $D9                      ; CA25= 85 D9       .Y
+                stx ZMEMT+0                      ; CA23= 86 D8       .X
+                sta ZMEMT+1                      ; CA25= 85 D9       .Y
                 dec $032B                    ; CA27= CE 2B 03    N+.
                 bpl LC9C6                    ; CA2A= 10 9A       ..
                 rts                          ; CA2C= 60          `
@@ -1895,8 +1895,8 @@ LCA63:
                 ldx #$00                     ; CA63= A2 00       ".
                 jsr LCBB4                    ; CA65= 20 B4 CB     4K
                 ldx $034E                    ; CA68= AE 4E 03    .N.
-                stx $D9                      ; CA6B= 86 D9       .Y
-                stz $D8                      ; CA6D= 64 D8       dX
+                stx ZMEMT+1                      ; CA6B= 86 D9       .Y
+                stz ZMEMT+0                      ; CA6D= 64 D8       dX
                 ldy $E0                      ; CA6F= A4 E0       $`
                 ldx $E1                      ; CA71= A6 E1       &a
 LCA73:
@@ -1943,9 +1943,9 @@ LCAB3:
                 sta $DB                      ; CAB8= 85 DB       .[
                 jsr LCAC9                    ; CABA= 20 C9 CA     IJ
                 ldx $DA                      ; CABD= A6 DA       &Z
-                stx $D8                      ; CABF= 86 D8       .X
+                stx ZMEMT+0                      ; CABF= 86 D8       .X
                 lda $DB                      ; CAC1= A5 DB       %[
-                sta $D9                      ; CAC3= 85 D9       .Y
+                sta ZMEMT+1                      ; CAC3= 85 D9       .Y
                 dec $DC                      ; CAC5= C6 DC       F\
                 bne LCAB3                    ; CAC7= D0 EA       Pj
 LCAC9:
@@ -1966,8 +1966,8 @@ LCACE:
                 rts                          ; CAE7= 60          `
 
 LCAE8:
-                ldx $D8                      ; CAE8= A6 D8       &X
-                lda $D9                      ; CAEA= A5 D9       %Y
+                ldx ZMEMT+0                      ; CAE8= A6 D8       &X
+                lda ZMEMT+1                      ; CAEA= A5 D9       %Y
                 jsr LCC2C                    ; CAEC= 20 2C CC     ,L
                 bra LCB6A                    ; CAEF= 80 79       .y
 
@@ -2011,8 +2011,8 @@ LCB33:
                 jsr LCBB4                    ; CB37= 20 B4 CB     4K
                 lda $034E                    ; CB3A= AD 4E 03    -N.
                 bvs LCB45                    ; CB3D= 70 06       p.
-                sta $D9                      ; CB3F= 85 D9       .Y
-                stz $D8                      ; CB41= 64 D8       dX
+                sta ZMEMT+1                      ; CB3F= 85 D9       .Y
+                stz ZMEMT+0                      ; CB41= 64 D8       dX
                 bra LCB49                    ; CB43= 80 04       ..
 
 LCB45:
@@ -2031,9 +2031,9 @@ LCB4F:
 LCB5A:
                 jsr LCBB4                    ; CB5A= 20 B4 CB     4K
                 ldx $DC                      ; CB5D= A6 DC       &\
-                stx $D8                      ; CB5F= 86 D8       .X
+                stx ZMEMT+0                      ; CB5F= 86 D8       .X
                 lda $DD                      ; CB61= A5 DD       %]
-                sta $D9                      ; CB63= 85 D9       .Y
+                sta ZMEMT+1                      ; CB63= 85 D9       .Y
                 dec $032B                    ; CB65= CE 2B 03    N+.
                 bne LCB23                    ; CB68= D0 B9       P9
 LCB6A:
@@ -2044,17 +2044,17 @@ LCB6A:
                 ldy $DE                      ; CB74= A4 DE       $^
                 jsr LCB84                    ; CB76= 20 84 CB     .K
                 lda $034E                    ; CB79= AD 4E 03    -N.
-                sta $D9                      ; CB7C= 85 D9       .Y
-                stz $D8                      ; CB7E= 64 D8       dX
+                sta ZMEMT+1                      ; CB7C= 85 D9       .Y
+                stz ZMEMT+0                      ; CB7E= 64 D8       dX
                 ldx $E1                      ; CB80= A6 E1       &a
                 ldy $E0                      ; CB82= A4 E0       $`
 LCB84:
                 tya                          ; CB84= 98          .
                 clc                          ; CB85= 18          .
-                adc $D8                      ; CB86= 65 D8       eX
-                sta $D8                      ; CB88= 85 D8       .X
+                adc ZMEMT+0                      ; CB86= 65 D8       eX
+                sta ZMEMT+0                      ; CB88= 85 D8       .X
                 bcs LCB8E                    ; CB8A= B0 02       0.
-                dec $D9                      ; CB8C= C6 D9       FY
+                dec ZMEMT+1                      ; CB8C= C6 D9       FY
 LCB8E:
                 tya                          ; CB8E= 98          .
                 eor #$FF                     ; CB8F= 49 FF       I.
@@ -2065,14 +2065,14 @@ LCB8E:
                 bra LCB9C                    ; CB98= 80 02       ..
 
 LCB9A:
-                sta ($D8),y                  ; CB9A= 91 D8       .X
+                sta (ZMEMT),y                  ; CB9A= 91 D8       .X
 LCB9C:
                 iny                          ; CB9C= C8          H
-                sta ($D8),y                  ; CB9D= 91 D8       .X
+                sta (ZMEMT),y                  ; CB9D= 91 D8       .X
 LCB9F:
                 iny                          ; CB9F= C8          H
                 bne LCB9A                    ; CBA0= D0 F8       Px
-                inc $D9                      ; CBA2= E6 D9       fY
+                inc ZMEMT+1                      ; CBA2= E6 D9       fY
                 dex                          ; CBA4= CA          J
                 bpl LCB9A                    ; CBA5= 10 F3       .s
                 rts                          ; CBA7= 60          `
@@ -2097,10 +2097,10 @@ LCBB4:
 LCBBF:
                 tya                          ; CBBF= 98          .
                 clc                          ; CBC0= 18          .
-                adc $D8                      ; CBC1= 65 D8       eX
-                sta $D8                      ; CBC3= 85 D8       .X
+                adc ZMEMT+0                      ; CBC1= 65 D8       eX
+                sta ZMEMT+0                      ; CBC3= 85 D8       .X
                 bcs LCBC9                    ; CBC5= B0 02       0.
-                dec $D9                      ; CBC7= C6 D9       FY
+                dec ZMEMT+1                      ; CBC7= C6 D9       FY
 LCBC9:
                 tya                          ; CBC9= 98          .
                 eor #$FF                     ; CBCA= 49 FF       I.
@@ -2111,16 +2111,16 @@ LCBC9:
 
 LCBD2:
                 lda ($DA),y                  ; CBD2= B1 DA       1Z
-                sta ($D8),y                  ; CBD4= 91 D8       .X
+                sta (ZMEMT),y                  ; CBD4= 91 D8       .X
 LCBD6:
                 iny                          ; CBD6= C8          H
                 lda ($DA),y                  ; CBD7= B1 DA       1Z
-                sta ($D8),y                  ; CBD9= 91 D8       .X
+                sta (ZMEMT),y                  ; CBD9= 91 D8       .X
 LCBDB:
                 iny                          ; CBDB= C8          H
                 bne LCBD2                    ; CBDC= D0 F4       Pt
                 inc $DB                      ; CBDE= E6 DB       f[
-                inc $D9                      ; CBE0= E6 D9       fY
+                inc ZMEMT+1                      ; CBE0= E6 D9       fY
                 dex                          ; CBE2= CA          J
                 bpl LCBD2                    ; CBE3= 10 ED       .m
 LCBE5:
@@ -2150,10 +2150,10 @@ LCBF3:
 LCC01:
                 pla                          ; CC01= 68          h
                 sec                          ; CC02= 38          8
-                adc $D8                      ; CC03= 65 D8       eX
-                sta $D8                      ; CC05= 85 D8       .X
+                adc ZMEMT+0                      ; CC03= 65 D8       eX
+                sta ZMEMT+0                      ; CC05= 85 D8       .X
                 bcs LCC0B                    ; CC07= B0 02       0.
-                dec $D9                      ; CC09= C6 D9       FY
+                dec ZMEMT+1                      ; CC09= C6 D9       FY
 LCC0B:
                 tya                          ; CC0B= 98          .
                 lsr a                        ; CC0C= 4A          J
@@ -2163,21 +2163,21 @@ LCC11:
                 dex                          ; CC11= CA          J
                 bmi LCBE5                    ; CC12= 30 D1       0Q
                 dec $DB                      ; CC14= C6 DB       F[
-                dec $D9                      ; CC16= C6 D9       FY
+                dec ZMEMT+1                      ; CC16= C6 D9       FY
                 bra LCC1E                    ; CC18= 80 04       ..
 
 LCC1A:
                 lda ($DA),y                  ; CC1A= B1 DA       1Z
-                sta ($D8),y                  ; CC1C= 91 D8       .X
+                sta (ZMEMT),y                  ; CC1C= 91 D8       .X
 LCC1E:
                 dey                          ; CC1E= 88          .
                 lda ($DA),y                  ; CC1F= B1 DA       1Z
-                sta ($D8),y                  ; CC21= 91 D8       .X
+                sta (ZMEMT),y                  ; CC21= 91 D8       .X
 LCC23:
                 dey                          ; CC23= 88          .
                 bne LCC1A                    ; CC24= D0 F4       Pt
                 lda ($DA)                    ; CC26= B2 DA       2Z
-                sta ($D8)                    ; CC28= 92 D8       .X
+                sta (ZMEMT)                    ; CC28= 92 D8       .X
                 bra LCC11                    ; CC2A= 80 E5       .e
 
 LCC2C:
@@ -2219,10 +2219,10 @@ LCC5E:
                 php                          ; CC5E= 08          .
                 pha                          ; CC5F= 48          H
                 txa                          ; CC60= 8A          .
-                adc $D8                      ; CC61= 65 D8       eX
+                adc ZMEMT+0                      ; CC61= 65 D8       eX
                 tax                          ; CC63= AA          *
                 pla                          ; CC64= 68          h
-                adc $D9                      ; CC65= 65 D9       eY
+                adc ZMEMT+1                      ; CC65= 65 D9       eY
                 bpl +
                 sec
                 sbc vduv.screenSizeHighByte ;handle wraparound at end
@@ -2260,9 +2260,9 @@ LCC94:
                 jsr LCAC9                    ; CC94= 20 C9 CA     IJ
 LCC97:
                 ldx $DC                      ; CC97= A6 DC       &\
-                stx $D8                      ; CC99= 86 D8       .X
+                stx ZMEMT+0                      ; CC99= 86 D8       .X
                 lda $DD                      ; CC9B= A5 DD       %]
-                sta $D9                      ; CC9D= 85 D9       .Y
+                sta ZMEMT+1                      ; CC9D= 85 D9       .Y
                 rts                          ; CC9F= 60          `
 
 LCCA0:
@@ -2366,7 +2366,7 @@ LCD28:
 
 LCD29:
                 adc vduv.screenTopLeftAddress+0
-                sta $D8                      ; store it
+                sta ZMEMT+0                      ; store it
                 txa
                 adc vduv.screenTopLeftAddress+1 ; window start address hi
                 tay
@@ -2393,8 +2393,8 @@ LCD4A:
 LCD4E:
                 clc                          ; CD4E= 18          .
 LCD4F:
-                adc $D8                      ; CD4F= 65 D8       eX
-                sta $D8                      ; CD51= 85 D8       .X
+                adc ZMEMT+0                      ; CD4F= 65 D8       eX
+                sta ZMEMT+0                      ; CD51= 85 D8       .X
                 sta vduv.textCursorCRTCAddress+0
                 tax                          ; CD56= AA          *
                 tya                          ; CD57= 98          .
@@ -2404,7 +2404,7 @@ LCD4F:
                 sec                          ; CD5F= 38          8
                 sbc vduv.screenSizeHighByte
 LCD63:
-                sta $D9                      ; CD63= 85 D9       .Y
+                sta ZMEMT+1                      ; CD63= 85 D9       .Y
                 clc                          ; CD65= 18          .
                 rts                          ; CD66= 60          `
 
@@ -2519,7 +2519,7 @@ LCE21:
                 lda ($DE),y                  ; CE21= B1 DE       1^
                 ora ZORA                      ; CE23= 05 D2       .R
                 eor ZEOR                      ; CE25= 45 D3       ES
-                sta ($D8),y                  ; CE27= 91 D8       .X
+                sta (ZMEMT),y                  ; CE27= 91 D8       .X
                 dey                          ; CE29= 88          .
                 bpl LCE21                    ; CE2A= 10 F5       .u
                 rts                          ; CE2C= 60          `
@@ -2544,12 +2544,12 @@ LCE4B:
                 lda #$20                     ; CE4B= A9 20       )
 LCE4D:
                 jsr LDDE5                    ; CE4D= 20 E5 DD     e]
-                sta ($D8)                    ; CE50= 92 D8       .X
+                sta (ZMEMT)                    ; CE50= 92 D8       .X
                 rts                          ; CE52= 60          `
 
 LCE53:
-                lda $D9                      ; CE53= A5 D9       %Y
-                ldx $D8                      ; CE55= A6 D8       &X
+                lda ZMEMT+1                      ; CE53= A5 D9       %Y
+                ldx ZMEMT+0                      ; CE55= A6 D8       &X
                 jsr LCEE7                    ; CE57= 20 E7 CE     gN
 LCE5A:
                 lda ($DE),y                  ; CE5A= B1 DE       1^
@@ -2568,14 +2568,14 @@ LCE5A:
                 lda LE013,x                  ; CE6F= BD 13 E0    =.`
                 ora ZORA                      ; CE72= 05 D2       .R
                 eor ZEOR                      ; CE74= 45 D3       ES
-                sta ($D8),y                  ; CE76= 91 D8       .X
+                sta (ZMEMT),y                  ; CE76= 91 D8       .X
                 dey                          ; CE78= 88          .
                 bpl LCE5A                    ; CE79= 10 DF       ._
                 rts                          ; CE7B= 60          `
 
 LCE7C:
-                lda $D9                      ; CE7C= A5 D9       %Y
-                ldx $D8                      ; CE7E= A6 D8       &X
+                lda ZMEMT+1                      ; CE7C= A5 D9       %Y
+                ldx ZMEMT+0                      ; CE7E= A6 D8       &X
                 jsr LCED9                    ; CE80= 20 D9 CE     YN
 LCE83:
                 lda ($DE),y                  ; CE83= B1 DE       1^
@@ -2597,7 +2597,7 @@ LCE83:
                 lsr a                        ; CE9E= 4A          J
                 lsr a                        ; CE9F= 4A          J
                 jsr LCEA9                    ; CEA0= 20 A9 CE     )N
-                sta ($D8),y                  ; CEA3= 91 D8       .X
+                sta (ZMEMT),y                  ; CEA3= 91 D8       .X
                 dey                          ; CEA5= 88          .
                 bpl LCE83                    ; CEA6= 10 DB       .[
                 rts                          ; CEA8= 60          `
@@ -2923,9 +2923,9 @@ LD039:
 LD03D:
                 tax
                 lda vduv.screenTopLeftAddress+0
-                sta $D8
+                sta ZMEMT+0
                 lda vduv.screenTopLeftAddress+1
-                sta $D9
+                sta ZMEMT+1
                 jsr callScrollRoutine
                 jmp LC6D8                    ; D04B= 4C D8 C6    LXF
 
@@ -4976,7 +4976,7 @@ LDDF8:
 LDE03:
                 ldy $0360                    ; DE03= AC 60 03    ,`.
                 bne LDE1F                    ; DE06= D0 17       P.
-                lda ($D8)                    ; DE08= B2 D8       2X
+                lda (ZMEMT)                    ; DE08= B2 D8       2X
                 jsr LDDE5                    ; DE0A= 20 E5 DD     e]
                 jsr LDDE5                    ; DE0D= 20 E5 DD     e]
 LDE10:
@@ -5027,8 +5027,8 @@ LDE4D:
                 bra LDE3B                    ; DE54= 80 E5       .e
 
 LDE56:
-                ldx $D8                      ; DE56= A6 D8       &X
-                lda $D9                      ; DE58= A5 D9       %Y
+                ldx ZMEMT+0                      ; DE56= A6 D8       &X
+                lda ZMEMT+1                      ; DE58= A5 D9       %Y
                 jsr LCED9                    ; DE5A= 20 D9 CE     YN
                 ldy #$07                     ; DE5D= A0 07        .
 LDE5F:
@@ -5036,19 +5036,19 @@ LDE5F:
                 cpx #$03                     ; DE62= E0 03       `.
                 beq LDE6F                    ; DE64= F0 09       p.
                 bcs LDE7B                    ; DE66= B0 13       0.
-                lda ($D8),y                  ; DE68= B1 D8       1X
+                lda (ZMEMT),y                  ; DE68= B1 D8       1X
                 eor $0358                    ; DE6A= 4D 58 03    MX.
                 bra LDE91                    ; DE6D= 80 22       ."
 
 LDE6F:
-                lda ($D8),y                  ; DE6F= B1 D8       1X
+                lda (ZMEMT),y                  ; DE6F= B1 D8       1X
                 jsr LDEA2                    ; DE71= 20 A2 DE     "^
                 lda ($DA),y                  ; DE74= B1 DA       1Z
                 jsr LDEA2                    ; DE76= 20 A2 DE     "^
                 bra LDE8F                    ; DE79= 80 14       ..
 
 LDE7B:
-                lda ($D8),y                  ; DE7B= B1 D8       1X
+                lda (ZMEMT),y                  ; DE7B= B1 D8       1X
                 jsr LDE98                    ; DE7D= 20 98 DE     .^
                 lda ($DA),y                  ; DE80= B1 DA       1Z
                 jsr LDE98                    ; DE82= 20 98 DE     .^
@@ -5497,7 +5497,7 @@ modeMaxColumn:
 LE111:
 ;STZ LF4D8        :\ E111= 9C D8 F4    .Xt
                 .byte $9C
-                .byte $D8
+                .byte $d8
                 .byte $F4
 ;STZ LC488        :\ E114= 9C 88 C4    ..D
                 .byte $9C

@@ -647,10 +647,6 @@ tubeClaimantID: .fill 1
 tubeLanguageParasiteAddr: .fill 4
                 .endv
 
-
-
-
-                
 ; MasRef E.4-4
                 .virtual $d0
 STATE: .block

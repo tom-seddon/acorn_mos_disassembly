@@ -327,9 +327,8 @@ hasACCCONChanged:                ;dfdd
 ; VDU variables
 ; 
 ; MasRef E.4-1
-; 
-                .virtual $300
-vdu: .block
+;
+VDUVariables: .struct
 ; &00 2 Graphics window left column. (p)
 graphicsWindowPixelsLeft: .fill 2
 ; &02 2 Graphics window bottom row. (p)
@@ -519,7 +518,10 @@ backgroundGraphicsColour: .fill 1
 currentPalette: .fill 16
 ; &7F 1 Reserved.
 reserved: .fill 1
-                .endblock
+                .endstruct
+
+                .virtual $300
+vduv: .dstruct VDUVariables
                 .endvirtual
 
 ; vduQueueItemAddr: .function index
@@ -645,6 +647,10 @@ tubeClaimantID: .fill 1
 tubeLanguageParasiteAddr: .fill 4
                 .endv
 
+
+
+
+                
 ; MasRef E.4-4
                 .virtual $d0
 STATE: .block

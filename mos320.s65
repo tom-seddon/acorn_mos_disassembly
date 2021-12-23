@@ -355,26 +355,92 @@ graphicsCursorPositionX: .fill 2
 ; &12 2 Graphics cursor Y coordinate. (e)
 graphicsCursorPositionY: .fill 2
 ; &14 2 Previous graphics cursor X coordinate. (p)
-oldGraphicsCursorPositionX: .fill 2
+oldGraphicsCursorPixelsX: .fill 2
 ; &16 2 Previous graphics cursor Y coordinate. (p)
-oldGraphicsCursorPositionY: .fill 2
+oldGraphicsCursorPixelsY: .fill 2
 ; &18 1 Text cursor X coordinate (from left of screen) when not cursor editing. When cursor editing, normally the input cursor X coordinate, but the output cursor X coordinate within an “unknown PLOT codes” routine.
 textCursorXPosition: .fill 1
-; &19 1 Text cursor Y coordinate (from top of screen) when not cursor editing. When cursor editing, normally the input cursor Y coordinate, but the output cursor Y coordinate within an “unknown PLOT codes” routine.
+; &19 1 Text cursor Y coordinate (from top of screen) when not cursor editing. When cursor editing, normally t.lsthe input cursor Y coordinate, but the output cursor Y coordinate within an “unknown PLOT codes” routine.
 textCursorYPosition: .fill 1
 ; &1A 1 Y produced by GADDR (see next section) so that (ZMEMG),Y addresses the correct byte.
 graphicsCursorVerticalOffsetInCell: .fill 1
 ; &1B–&23 VDU queue: &23 contains last byte of queue, other bytes immediately precede it.
 queueSize=9
-queueBegin:
-queue: .fill queueSize
+queueBegin: .fill queueSize
 queueEnd:
 ; &24 2 Graphics cursor X coordinate. (p)
 graphicsCursorPixelsX: .fill 2
 ; &26 2 Graphics cursor Y coordinate. (p)
 graphicsCursorPixelsY: .fill 2
 ; &28–&49 Workspace. But variable &38 must not be used in a Teletext mode (mode 7 or 135).
-workspace: .fill $22
+workspace28:
+                .fill 1
+workspace29:
+                .fill 1
+workspace2A:
+                .fill 1
+workspace2B:
+                .fill 1
+workspace2C:
+                .fill 1
+workspace2D:
+                .fill 1
+workspace2E:
+                .fill 1
+workspace2F:
+                .fill 1
+workspace30:
+                .fill 1
+workspace31:
+                .fill 1
+workspace32:
+                .fill 1
+workspace33:
+                .fill 1
+workspace34:
+                .fill 1
+workspace35:
+                .fill 1
+workspace36:
+                .fill 1
+workspace37:
+                .fill 1
+workspace38:
+                .fill 1
+workspace39:
+                .fill 1
+workspace3A:
+                .fill 1
+workspace3B:
+                .fill 1
+workspace3C:
+                .fill 1
+workspace3D:
+                .fill 1
+workspace3E:
+                .fill 1
+workspace3F:
+                .fill 1
+workspace40:
+                .fill 1
+workspace41:
+                .fill 1
+workspace42:
+                .fill 1
+workspace43:
+                .fill 1
+workspace44:
+                .fill 1
+workspace45:
+                .fill 1
+workspace46:
+                .fill 1
+workspace47:
+                .fill 1
+workspace48:
+                .fill 1
+workspace49:
+                .fill 1
 ; &4A 2 Address at which the 6845 is to display the text cursor.
 textCursorCRTCAddress: .fill 2
 ; &4C 2 Number of bytes in a character row of the text window.
@@ -422,7 +488,17 @@ editCursorXPosition: .fill 1
 ; &65 1 Output cursor Y coordinate when cursor editing, but input cursor Y coordinate when cursor editing and inside an ‘unknown PLOT codes’ routine.
 editCursorYPosition: .fill 1
 ; &66 1 Cursor control flags (as set by VDU 23 16).
-cursorFlags: .fill 1
+cursorFlags: .block
+                .fill 1
+; MasRef E.3-18
+noSpecialVDU5Actions=$40
+noMoveCursorAfterPrint=$20
+noVerticalScroll=$10
+swapAxes=$08                    ;if set, X=vert; if clear, X=horiz
+invertVertical=$04              ;if set, vert=up; if clear, vert=down
+invertHorizontal=$02            ;if set, horiz=left; if clear, horiz=right
+scrollProtect=$01
+                .endblock
 ; &67 1 Dot pattern (as set by VDU 23 6).
 dotPattern: .fill 1
 ; &68 1 Current state of dot pattern.
@@ -595,7 +671,9 @@ ZTEMPB: .fill 2                      ;Temporary space
 ZTEMPC: .fill 2                      ;Temporary space
 ZTEMPD: .fill 2                      ;Temporary space
 
-                .endv                
+                .endv
+
+vduWriteCursor=$d8     
 
 nmiEntryPoint=$d00
                 
@@ -610,3 +688,4 @@ beword .macro value
 
                 .include "terminal.s65"
                 .include "mos.s65"
+                

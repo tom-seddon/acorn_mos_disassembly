@@ -321,6 +321,134 @@ hasACCCONChanged:                ;dfdd
                 .fill 1
                 .bend
                 .endv
+
+;-------------------------------------------------------------------------
+;
+; VDU variables
+; 
+; MasRef E.4-1
+; 
+                .virtual $300
+vdu: .block
+; &00 2 Graphics window left column. (p)
+graphicsWindowPixelsLeft: .fill 2
+; &02 2 Graphics window bottom row. (p)
+graphicsWindowPixelsBottom: .fill 2
+; &04 2 Graphics window right column. (p)
+graphicsWindowPixelsRight: .fill 2
+; &06 2 Graphics window top row. (p)
+graphicsWindowPixelsTop: .fill 2
+; &08 1 Text window left column.
+textWindowLeft: .fill 1
+; &09 1 Text window bottom row.
+textWindowBottom: .fill 1
+; &0A 1 Text window right column.
+textWindowRight: .fill 1
+; &0B 1 Text window top row.
+textWindowTop: .fill 1
+; &0C 2 Graphics origin X coordinate. (e)
+graphicsWindowOriginX: .fill 2
+; &0E 2 Graphics origin Y coordinate. (e)
+graphicsWindowOriginY: .fill 2
+; &10 2 Graphics cursor X coordinate. (e)
+graphicsCursorPositionX: .fill 2
+; &12 2 Graphics cursor Y coordinate. (e)
+graphicsCursorPositionY: .fill 2
+; &14 2 Previous graphics cursor X coordinate. (p)
+oldGraphicsCursorPositionX: .fill 2
+; &16 2 Previous graphics cursor Y coordinate. (p)
+oldGraphicsCursorPositionY: .fill 2
+; &18 1 Text cursor X coordinate (from left of screen) when not cursor editing. When cursor editing, normally the input cursor X coordinate, but the output cursor X coordinate within an “unknown PLOT codes” routine.
+textCursorXPosition: .fill 1
+; &19 1 Text cursor Y coordinate (from top of screen) when not cursor editing. When cursor editing, normally the input cursor Y coordinate, but the output cursor Y coordinate within an “unknown PLOT codes” routine.
+textCursorYPosition: .fill 1
+; &1A 1 Y produced by GADDR (see next section) so that (ZMEMG),Y addresses the correct byte.
+graphicsCursorVerticalOffsetInCell: .fill 1
+; &1B–&23 VDU queue: &23 contains last byte of queue, other bytes immediately precede it.
+queueSize=9
+queueBegin:
+queue: .fill queueSize
+queueEnd:
+; &24 2 Graphics cursor X coordinate. (p)
+graphicsCursorPixelsX: .fill 2
+; &26 2 Graphics cursor Y coordinate. (p)
+graphicsCursorPixelsY: .fill 2
+; &28–&49 Workspace. But variable &38 must not be used in a Teletext mode (mode 7 or 135).
+workspace: .fill $22
+; &4A 2 Address at which the 6845 is to display the text cursor.
+textCursorCRTCAddress: .fill 2
+; &4C 2 Number of bytes in a character row of the text window.
+textWindowWidthInBytes: .fill 2
+; &4E 1 Most significant byte of address of first byte of screen memory.
+startScreenAddressHighByte: .fill 1
+; &4F 1 Number of bytes in a character.
+bytesPerCharacter: .fill 1
+; &50 2 Address of byte in top left corner of screen display.
+screenTopLeftAddress: .fill 2
+; &52 2 Number of bytes in a character row of the whole screen.
+bytesPerCharacterRow: .fill 2
+; &54 1 Most significant byte of number of bytes of screen memory.
+screenSizeHighByte: .fill 1
+; &55 1 Current screen mode (in range 0–7, i.e. without regard to ‘shadowing’).
+currentScreenMODE: .fill 1
+; &56 1 Memory mode: 0 for 20K modes, 1 for 16K modes, 2 for 10K modes, 3 for 8K modes, 4 for 1K modes.
+currentScreenMODEGroup: .fill 1
+; &57 1 Foreground text colour mask.
+foregroundTextColour: .fill 1
+; &58 1 Background text colour mask.
+backgroundTextColour: .fill 1
+; &59 1 0 if plotting graphics foreground, 8 if plotting graphics background.
+graphicsPlotState: .fill 1
+; &5A 1 Current graphics plot mode (usually set to one of following two reduced mod 16).
+graphicsPlotMode: .fill 1
+; &5B 1 Current graphics foreground plot mode (as set by VDU 18).
+foregroundGCOLMode: .fill 1
+; &5C 1 Current graphics background plot mode (as set by VDU 18).
+backgroundGCOLMode: .fill 1
+; &5D 2 Address of routine to process current VDU sequence.
+jumpVector: .fill 2
+; &5F 1 Value for 6845 register 10 to revert to on leaving cursor editing.
+lastCursorStartRegisterValue: .fill 1
+; &60 1 (Number of logical colours)−1 (0 if Teletext).
+numberOfLogicalColoursMinusOne: .fill 1
+; &61 1 (Number of pixels/byte)−1 (0 if not graphics).
+pixelsPerByteMinusOne: .fill 1
+; &62 1 Mask for leftmost pixel in a byte.
+colourMaskLeft: .fill 1
+; &63 1 Mask for rightmost pixel in a byte.
+colourMaskRight: .fill 1
+; &64 1 Output cursor X coordinate when cursor editing, but input cursor X coordinate when cursor editing and inside an ‘unknown PLOT codes’ routine.
+editCursorXPosition: .fill 1
+; &65 1 Output cursor Y coordinate when cursor editing, but input cursor Y coordinate when cursor editing and inside an ‘unknown PLOT codes’ routine.
+editCursorYPosition: .fill 1
+; &66 1 Cursor control flags (as set by VDU 23 16).
+cursorFlags: .fill 1
+; &67 1 Dot pattern (as set by VDU 23 6).
+dotPattern: .fill 1
+; &68 1 Current state of dot pattern.
+dotPatternState: .fill 1
+; &69 1 0 if colour being plotted is solid, non-zero if colour is an ECF
+isColourECF: .fill 1
+; &6A 1 0 if graphics foreground colour is solid, non-zero if foreground colour is an ECF
+isForegroundECF: .fill 1
+; &6B 1 0 if graphics background colour is solid, non-zero if background colour is an ECF
+isBackgroundECF: .fill 1
+; &6C 1 Top bit set when cursor is in “column 81”.
+column81: .fill 1
+; &6D 1 Current graphics foreground colour (as set by VDU 18).
+foregroundGraphicsColour: .fill 1
+; &6E 1 Current graphics background colour (as set by VDU 18)
+backgroundGraphicsColour: .fill 1
+; &6F–&7E Software copy of the current palette.
+currentPalette: .fill 16
+; &7F 1 Reserved.
+reserved: .fill 1
+                .endblock
+                .endvirtual
+
+; vduQueueItemAddr: .function index
+;                 .cerror index<0||index>=vdu.queueSize,"bad VDU queue index"
+;                 .endfunction vdu.queue+vdu.queueSize-1-index
                 
 ; Presumed addresses in ANDY that don't happen to coincide with other
 ; labels.
@@ -347,12 +475,22 @@ hasACCCONChanged:                ;dfdd
 
                 .virtual $8000
 andy: .block
-                .fill $900
+                .fill $800
+ecfPatterns:
+ecfPattern1: .fill 8
+ecfPattern2: .fill 8
+ecfPattern3: .fill 8
+ecfPattern4: .fill 8
+fgECFPattern: .fill 8
+bgECFPattern: .fill 8
+                .fill 208
 softCharacterDefinitions:
                 .fill (256-32)*8
+                .cerror (<andy.softCharacterDefinitions)!=0,"Soft character definitions must be page aligned"
                 .cerror *!=$9000,"ANDY is the wrong size"
                 .endblock
                 .endvirtual
+                
                 
 L8000=$8000
 L8001=$8001

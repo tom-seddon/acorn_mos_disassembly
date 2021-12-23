@@ -145,34 +145,49 @@ LC018:                                       ; Fetch byte from ROM Y
 LC024:
                 jmp ($035D)                  ; C024= 6C 5D 03    l].
 
-                ; VDU DRIVER ENTRY POINT
-                ; ======================
-LC027:
-                ldx $026A                    ; C027= AE 6A 02    .j.
-                beq LC059                    ; C02A= F0 2D       p-
-                sta $0224,x                  ; C02C= 9D 24 02    .$.
-                inc $026A                    ; C02F= EE 6A 02    nj.
-                beq LC036                    ; C032= F0 02       p.
-LC034:
-                clc                          ; C034= 18          .
-LC035:
+;-------------------------------------------------------------------------
+;
+; VDU driver entry point
+;
+; Output to VDU.
+; 
+outputToVDU:
+                ldx $026A                    ;get VDU queue length
+                beq LC059                    ;taken if empty
+                sta vdu.queueEnd-1-255,x     ;add to queue
+                inc $026A                     ;one more in the queue...
+                beq LC036                    ;taken if queue now filled
+clcThenRTS:
+                clc
+
+;-------------------------------------------------------------------------
+;
+; VDU 0 (&00) Null [MasRef E.3-1]
+; VDU 6 (&06) Enable VDU driver [MasRef E.3-3]
+; VDU 27 (&1B) Null [MasRef E.3-34]
+;
+vdu0EntryPoint:
+vdu6EntryPoint:
+vdu27EntryPoint:
+rtsC035:
                 rts                          ; C035= 60          `
 
+;-------------------------------------------------------------------------
+
 LC036:
-                bit STATE                      ; C036= 24 D0       $P
-                bpl LC053                    ; C038= 10 19       ..
-                ldy $035E                    ; C03A= AC 5E 03    ,^.
-                cpy #$C0                     ; C03D= C0 C0       @@
-LC03F:
-                bne LC034                    ; C03F= D0 F3       Ps
-                ldy $035D                    ; C041= AC 5D 03    ,].
-                cpy #$E2                     ; C044= C0 E2       @b
-                bne LC034                    ; C046= D0 EC       Pl
+                bit STATE
+                bpl LC053              ;branch taken if not VDU21 mode
+                ldy vdu.jumpVector+1
+                cpy #>vdu1EntryPoint
+                bne clcThenRTS
+                ldy vdu.jumpVector+0
+                cpy #<vdu1EntryPoint
+                bne clcThenRTS
 LC048:
-                tax                          ; C048= AA          *
-                lda STATE                      ; C049= A5 D0       %P
-                lsr a                        ; C04B= 4A          J
-                bcc LC035                    ; C04C= 90 E7       .g
+                tax
+                lda STATE
+                lsr a                       ;C set if isPrinterEnabled
+                bcc rtsC035              ;taken if printer not enabled
                 txa                          ; C04E= 8A          .
 LC04F:
                 clc                          ; C04F= 18          .
@@ -192,7 +207,7 @@ LC059:
                 pha                          ; C064= 48          H
                 lda #$42                     ; C065= A9 42       )B
                 trb STATE                      ; C067= 14 D0       .P
-                jsr LCF50                    ; C069= 20 50 CF     PO
+                jsr showCursor                 ; C069= 20 50 CF     PO
                 pla                          ; C06C= 68          h
 LC06D:
                 cmp #$20                     ; C06D= C9 20       I
@@ -261,7 +276,7 @@ LC0D1:
                 php                          ; C0D1= 08          .
                 pha                          ; C0D2= 48          H
                 lda STATE                      ; C0D3= A5 D0       %P
-                eor #$02                     ; C0D5= 49 02       I.
+                eor #STATE.isScrollingDisabled
                 sta STATE                      ; C0D7= 85 D0       .P
                 jsr LE2AE                    ; C0D9= 20 AE E2     .b
                 jsr LC6D8                    ; C0DC= 20 D8 C6     XF
@@ -271,12 +286,22 @@ LC0E0:
 LC0E1:
                 rts                          ; C0E1= 60          `
 
-LC0E2:
+;-------------------------------------------------------------------------
+;
+; VDU 1 (&01) Send next character to printer only [MasRef E.3-2]
+; 
+vdu1EntryPoint:
                 jsr LC0CA                    ; C0E2= 20 CA C0     J@
                 jsr LC048                    ; C0E5= 20 48 C0     H@
                 bra LC0FA                    ; C0E8= 80 10       ..
-                
-LC0EA:
+
+;-------------------------------------------------------------------------
+;
+; VDU 2 (&02) Enable printer [MasRef E.3-2]
+; VDU 3 (&03) Disable printer [MasRef E.3-3]
+; 
+vdu2EntryPoint:
+vdu3EntryPoint:
                 pha                          ; C0EA= 48          H
                 jsr LC0CA                    ; C0EB= 20 CA C0     J@
                 jsr LE93A                    ; C0EE= 20 3A E9     :i
@@ -286,8 +311,8 @@ LC0EA:
                 and #$01                     ; C0F6= 29 01       ).
                 trb STATE                      ; C0F8= 14 D0       .P
 LC0FA:
-                bit STATE                      ; C0FA= 24 D0       $P
-                bvc LC0E1                    ; C0FC= 50 E3       Pc
+                bit STATE
+                bvc LC0E1                    ;taken if not cursor editing
                 jsr LC0D1                    ; C0FE= 20 D1 C0     Q@
                 php                          ; C101= 08          .
                 sec                          ; C102= 38          8
@@ -492,7 +517,7 @@ LC241:
 LC249:
                 jmp LC4DF                    ; C249= 4C DF C4    L_D
 
-LC24C:
+vdu9EntryPoint:
                 jsr LD12D                    ; C24C= 20 2D D1     -Q
                 bcs LC235                    ; C24F= B0 E4       0d
                 lda #$00                     ; C251= A9 00       ).
@@ -500,8 +525,8 @@ LC24C:
                 bcc LC273                    ; C256= 90 1B       ..
 LC258:
                 jsr LC38F                    ; C258= 20 8F C3     .C
-LC25B:
-                jsr LE2D2                    ; C25B= 20 D2 E2     Rb
+vdu10EntryPoint:
+                jsr testVDU5State                    ; C25B= 20 D2 E2     Rb
                 bne LC23F                    ; C25E= D0 DF       P_
                 clc                          ; C260= 18          .
                 jsr LC88E                    ; C261= 20 8E C8     .H
@@ -517,7 +542,7 @@ LC273:
                 jmp LC6ED                    ; C273= 4C ED C6    LmF
 
 LC276:
-                jsr LE2D2                    ; C276= 20 D2 E2     Rb
+                jsr testVDU5State                    ; C276= 20 D2 E2     Rb
                 bne LC235                    ; C279= D0 BA       P:
                 jsr LC2E9                    ; C27B= 20 E9 C2     iB
                 bcc LC273                    ; C27E= 90 F3       .s
@@ -538,8 +563,8 @@ LC296:
                 lda #$0E                     ; C296= A9 0E       ).
                 bra LC241                    ; C298= 80 A7       .'
 
-LC29A:
-                jsr LE2D2                    ; C29A= 20 D2 E2     Rb
+vdu8EntryPoint:
+                jsr testVDU5State                    ; C29A= 20 D2 E2     Rb
                 bne LC28C                    ; C29D= D0 ED       Pm
                 lsr $036C                    ; C29F= 4E 6C 03    Nl.
                 bit $036C                    ; C2A2= 2C 6C 03    ,l.
@@ -548,8 +573,8 @@ LC29A:
                 jsr LC2E9                    ; C2A9= 20 E9 C2     iB
                 bcc LC273                    ; C2AC= 90 C5       .E
                 jsr LC38F                    ; C2AE= 20 8F C3     .C
-LC2B1:
-                jsr LE2D2                    ; C2B1= 20 D2 E2     Rb
+vdu11EntryPoint:
+                jsr testVDU5State                    ; C2B1= 20 D2 E2     Rb
                 bne LC296                    ; C2B4= D0 E0       P`
                 dec $0269                    ; C2B6= CE 69 02    Ni.
                 bpl LC2BE                    ; C2B9= 10 03       ..
@@ -693,7 +718,7 @@ LC3A2:
 LC3A4:
                 rts                          ; C3A4= 60          `
 
-LC3A5:
+vdu28EntryPoint:
                 ldx $0355                    ; C3A5= AE 55 03    .U.
                 lda $0321                    ; C3A8= AD 21 03    -!.
                 cmp $0323                    ; C3AB= CD 23 03    M#.
@@ -715,7 +740,7 @@ LC3C2:
                 tsb STATE                      ; C3CC= 04 D0       .P
                 ldx #$20                     ; C3CE= A2 20       "
                 ldy #$08                     ; C3D0= A0 08        .
-                jsr LC91E                    ; C3D2= 20 1E C9     .I
+                jsr copyFourBytesWithinVDUVariables
                 jsr LE2AE                    ; C3D5= 20 AE E2     .b
                 jsr LCCDA                    ; C3D8= 20 DA CC     ZL
                 bcc LC3E0                    ; C3DB= 90 03       ..
@@ -729,16 +754,16 @@ LC3E8:
                 pha                          ; C3EA= 48          H
                 and #$DF                     ; C3EB= 29 DF       )_
                 sta STATE                      ; C3ED= 85 D0       .P
-                jsr LC47C                    ; C3EF= 20 7C C4     |D
+                jsr vdu30EntryPoint            ; C3EF= 20 7C C4     |D
                 pla                          ; C3F2= 68          h
                 sta STATE                      ; C3F3= 85 D0       .P
                 rts                          ; C3F5= 60          `
 
-LC3F6:
+vdu13EntryPoint:
                 lda $0366                    ; C3F6= AD 66 03    -f.
                 and #$0E                     ; C3F9= 29 0E       ).
                 tax                          ; C3FB= AA          *
-                jsr LE2D2                    ; C3FC= 20 D2 E2     Rb
+                jsr testVDU5State                    ; C3FC= 20 D2 E2     Rb
                 bne LC40A                    ; C3FF= D0 09       P.
                 lsr $036C                    ; C401= 4E 6C 03    Nl.
                 jsr LC38F                    ; C404= 20 8F C3     .C
@@ -750,8 +775,8 @@ LC40A:
                 jmp LC4DF                    ; C40D= 4C DF C4    L_D
 
 LC410:
-                jsr LC47C                    ; C410= 20 7C C4     |D
-LC413:
+                jsr vdu30EntryPoint          ; C410= 20 7C C4     |D
+vdu16EntryPoint:
                 lda $0361                    ; C413= AD 61 03    -a.
                 beq LC3A4                    ; C416= F0 8C       p.
                 ldx #$00                     ; C418= A2 00       ".
@@ -760,7 +785,7 @@ LC413:
 LC420:
                 ldx #$2A                     ; C420= A2 2A       "*
                 ldy #$2E                     ; C422= A0 2E        .
-                jsr LE2B2                    ; C424= 20 B2 E2     2b
+                jsr exchangeTwoVDUBytes
 LC427:
                 ldx #$28                     ; C427= A2 28       "(
                 ldy #$2C                     ; C429= A0 2C        ,
@@ -784,7 +809,7 @@ LC448:
 
                 ; VDU 12 - CLS
                 ; ============
-LC44F:
+vdu12EntryPoint:
                 lda #$20
                 bit STATE
                 bne LC410                    ; VDU 5 mode
@@ -808,15 +833,15 @@ LC46A:
                 cpx $0309                    ; C476= EC 09 03    l..
                 inx                          ; C479= E8          h
                 bcc LC46A                    ; C47A= 90 EE       .n
-LC47C:
+vdu30EntryPoint:
                 stz $0323                    ; C47C= 9C 23 03    .#.
                 stz $0322                    ; C47F= 9C 22 03    .".
-LC482:
+vdu31EntryPoint:
                 lda $0366                    ; C482= AD 66 03    -f.
                 and #$0E                     ; C485= 29 0E       ).
                 tax                          ; C487= AA          *
 LC488:
-                jsr LE2D2                    ; C488= 20 D2 E2     Rb
+                jsr testVDU5State                    ; C488= 20 D2 E2     Rb
                 bne LC4CF                    ; C48B= D0 42       PB
                 lda $0318                    ; C48D= AD 18 03    -..
                 pha                          ; C490= 48          H
@@ -893,34 +918,53 @@ LC50A:
                 sta $0310,x                  ; C510= 9D 10 03    ...
                 rts                          ; C513= 60          `
                 
-LC514:
+vdu14EntryPoint:
                 stz $0269                    ; C514= 9C 69 02    .i.
                 lda #$91                     ; C517= A9 91       ).
-LC519:
+vdu21EntryPoint:
                 eor #$95                     ; C519= 49 95       I.
 LC51B:
                 tsb STATE                      ; C51B= 04 D0       .P
                 rts                          ; C51D= 60          `
-                
-LC51E:
+
+;-------------------------------------------------------------------------
+;
+; VDU 4 (&04) Print at text cursor [MasRef E.3-2]
+; 
+vdu4EntryPoint:
                 lda $0361                    ; C51E= AD 61 03    -a.
                 beq LC52C                    ; C521= F0 09       p.
-                jsr LCF50                    ; C523= 20 50 CF     PO
+                jsr showCursor               ; C523= 20 50 CF     PO
                 lda #$2B                     ; C526= A9 2B       )+
-LC528:
+
+                ; fall through to vdu15EntryPoint
+
+;-------------------------------------------------------------------------
+;
+; VDU 15 (&0F) Page mode off [MasRef E.3-6]
+; 
+vdu15EntryPoint:
                 eor #$0B                     ; C528= 49 0B       I.
                 trb STATE                      ; C52A= 14 D0       .P
 LC52C:
                 rts                          ; C52C= 60          `
 
-LC52D:
+;-------------------------------------------------------------------------
+;
+; VDU 5 (&05) Print text at graphics cursor [MasRef E.3-3]
+;
+vdu5EntryPoint:
                 lda $0361                    ; C52D= AD 61 03    -a.
                 beq LC52C                    ; C530= F0 FA       pz
                 lda #$20                     ; C532= A9 20       )
-                jsr LCF53                    ; C534= 20 53 CF     SO
+                jsr hideCursor               ; C534= 20 53 CF     SO
                 bra LC51B                    ; C537= 80 E2       .b
-                
-LC539:
+
+;-------------------------------------------------------------------------
+;
+; VDU 17 (&11) Define text colour [MasRef E.3-7]
+; 
+vdu17EntryPoint:
                 ldy #$00                     ; C539= A0 00        .
                 lda $0323                    ; C53B= AD 23 03    -#.
                 bpl LC541                    ; C53E= 10 01       ..
@@ -943,8 +987,12 @@ LC541:
                 sta ZORA                      ; C561= 85 D2       .R
 LC563:
                 rts                          ; C563= 60          `
-                
-LC564:
+
+;-------------------------------------------------------------------------
+;
+; VDU 18 (&12) Define graphics colour [MasRef E.3-7]
+; 
+vdu18EntryPoint:
                 ldy #$00                     ; C564= A0 00        .
                 lda $0323                    ; C566= AD 23 03    -#.
                 bpl LC56C                    ; C569= 10 01       ..
@@ -1002,7 +1050,11 @@ LC5BF:
                 sta $0358                    ; C5C1= 8D 58 03    .X.
                 rts                          ; C5C4= 60          `
 
-LC5C5:
+;-------------------------------------------------------------------------
+;
+; VDU 20 (&14) Restore default logical colours [MasRef E.3-10]
+; 
+vdu20EntryPoint:
                 ldx #$05                     ; C5C5= A2 05       ".
 LC5C7:
                 stz $0357,x                  ; C5C7= 9E 57 03    .W.
@@ -1034,7 +1086,7 @@ LC5E0:
                 bcc LC620                    ; C5FE= 90 20       .
                 stx $0320                    ; C600= 8E 20 03    . .
 LC603:
-                jsr LC62D                    ; C603= 20 2D C6     -F
+                jsr vdu19EntryPoint          ; C603= 20 2D C6     -F
                 dec $0320                    ; C606= CE 20 03    N .
                 dec $031F                    ; C609= CE 1F 03    N..
                 bpl LC603                    ; C60C= 10 F5       .u
@@ -1044,7 +1096,7 @@ LC60F:
                 ldx #$07                     ; C60F= A2 07       ".
                 stx $0320                    ; C611= 8E 20 03    . .
 LC614:
-                jsr LC62D                    ; C614= 20 2D C6     -F
+                jsr vdu19EntryPoint          ; C614= 20 2D C6     -F
                 lsr $0320                    ; C617= 4E 20 03    N .
                 dec $031F                    ; C61A= CE 1F 03    N..
                 bpl LC614                    ; C61D= 10 F5       .u
@@ -1057,7 +1109,14 @@ LC620:
                 stz $031F                    ; C627= 9C 1F 03    ...
 LC62A:
                 stx $0320                    ; C62A= 8E 20 03    . .
-LC62D:
+
+                ; fall through to VDU19
+
+;-------------------------------------------------------------------------
+;
+; VDU 19 (&13) Define logical colour [MasRef E.3-9]
+; 
+vdu19EntryPoint:
                 php                          ; C62D= 08          .
                 sei                          ; C62E= 78          x
                 lda $031F                    ; C62F= AD 1F 03    -..
@@ -1115,28 +1174,39 @@ LC66F:
                 ror a                        ; C67A= 6A          j
                 rts                          ; C67B= 60          `
 
-LC67C:
-                lda $031B                    ; C67C= AD 1B 03    -..
-                cmp #$20                     ; C67F= C9 20       I
-                bcc LC691                    ; C681= 90 0E       ..
-                jsr LE22C                    ; C683= 20 2C E2     ,b
+;-------------------------------------------------------------------------
+;
+; VDU 23 (&17) Various functions [MasRef E.3-12]
+; 
+vdu23EntryPoint:
+                lda vdu.queue+0              ;get VDU 23 code
+                cmp #$20                     
+                bcc LC691         ;branch taken if <32 - i.e., special
+                
+                ; copy the 8 bytes of character definition to the
+                ; appropriate place.
+                jsr getSoftCharacterDefinitionAddress
                 ldy #$07                     ; C686= A0 07        .
 LC688:
-                lda $031C,y                  ; C688= B9 1C 03    9..
+                lda vdu.queue+1,y                  ; C688= B9 1C 03    9..
                 sta ($DE),y                  ; C68B= 91 DE       .^
                 dey                          ; C68D= 88          .
                 bpl LC688                    ; C68E= 10 F8       .x
                 rts                          ; C690= 60          `
 
 LC691:
-                asl a                        ; C691= 0A          .
-                tax                          ; C692= AA          *
-                lsr a                        ; C693= 4A          J
-                cmp #$11                     ; C694= C9 11       I.
-                bcs LC6A7                    ; C696= B0 0F       0.
-                jmp (LE069,x)                ; C698= 7C 69 E0    |i`
+                asl a
+                tax
+                lsr a
+                cmp #$11
+                bcs LC6A7                    ;taken if invalid code
+                jmp (vdu23EntryPointTable,x) ; C698= 7C 69 E0    |i`
 
-LC69B:
+;-------------------------------------------------------------------------
+;
+; VDU 25 (&19) PLOT commands [MasRef E.3-21]
+; 
+vdu25EntryPoint:
                 ldx $0361                    ; C69B= AE 61 03    .a.
                 beq LC6A3                    ; C69E= F0 03       p.
                 jmp LD146                    ; C6A0= 4C 46 D1    LFQ
@@ -1147,7 +1217,11 @@ LC6A3:
 LC6A7:
                 jmp (VDUV)                  ; C6A7= 6C 26 02    l&.
 
-LC6AA:
+;-------------------------------------------------------------------------
+;
+; VDU 26 (&1A) Restore default windows [MasRef E.3-34]
+; 
+vdu26EntryPoint:
                 ldx #$2C                     ; C6AA= A2 2C       ",
 LC6AC:
                 stz $0300,x                  ; C6AC= 9E 00 03    ...
@@ -1164,10 +1238,10 @@ LC6AC:
                 sty $0321                    ; C6C5= 8C 21 03    .!.
                 dec $0322                    ; C6C8= CE 22 03    N".
                 dec $0320                    ; C6CB= CE 20 03    N .
-                jsr LC71F                    ; C6CE= 20 1F C7     .G
+                jsr vdu24EntryPoint          ; C6CE= 20 1F C7     .G
                 lda #$08                     ; C6D1= A9 08       ).
                 trb STATE                      ; C6D3= 14 D0       .P
-                jmp LC47C                    ; C6D5= 4C 7C C4    L|D
+                jmp vdu30EntryPoint            ; C6D5= 4C 7C C4    L|D
 
 LC6D8:
                 jsr LCCFA                    ; C6D8= 20 FA CC     zL
@@ -1213,7 +1287,11 @@ LC711:
                 stx CRTC+1                   ; C71B= 8E 01 FE    ..~
                 rts                          ; C71E= 60          `
 
-LC71F:
+;-------------------------------------------------------------------------
+;
+; VDU 24 (&18) Define graphics window [MasRef E.3-21]
+; 
+vdu24EntryPoint:
                 jsr LC779                    ; C71F= 20 79 C7     yG
                 ldx #$02                     ; C722= A2 02       ".
 LC724:
@@ -1252,13 +1330,13 @@ LC724:
                 beq LC772                    ; C76E= F0 02       p.
                 bpl LC779                    ; C770= 10 07       ..
 LC772:
-                ldy #$00                     ; C772= A0 00        .
-                ldx #$1C                     ; C774= A2 1C       ".
-                jsr LC904                    ; C776= 20 04 C9     .I
+                ldy #vdu.graphicsWindowPixelsLeft-vdu
+                ldx #vdu.queue+1-vdu
+                jsr copyEightBytesWithinVDUVariables
 LC779:
-                ldx #$10                     ; C779= A2 10       ".
-                ldy #$28                     ; C77B= A0 28        (
-                jmp LE2BA                    ; C77D= 4C BA E2    L:b
+                ldx #vdu.graphicsCursorPositionX-vdu
+                ldy #vdu.workspace+0-vdu
+                jmp exchangeFourVDUBytes                    ; C77D= 4C BA E2    L:b
 
 LC780:
                 jsr LC93B                    ; C780= 20 3B C9     ;I
@@ -1266,13 +1344,21 @@ LC780:
                 stx $034D                    ; C786= 8E 4D 03    .M.
                 rts                          ; C789= 60          `
 
-LC78A:
-                ldx #$20                     ; C78A= A2 20       "
-                ldy #$0C                     ; C78C= A0 0C        .
-                jsr LC91E                    ; C78E= 20 1E C9     .I
+;-------------------------------------------------------------------------
+;
+; VDU 29 (&1D) Define graphics origin [MasRef E.3-35]
+; 
+vdu29EntryPoint:
+                ldx #vdu.queueEnd-4-vdu
+                ldy #vdu.graphicsWindowOriginX-vdu
+                jsr copyFourBytesWithinVDUVariables
                 jmp LC4DF                    ; C791= 4C DF C4    L_D
 
-LC794:
+;-------------------------------------------------------------------------
+;
+; VDU 22 (&16) Select screen mode [MasRef E.3-11]
+; 
+vdu22EntryPoint:
                 lda $0323                    ; C794= AD 23 03    -#.
                 bra LC7BC                    ; C797= 80 23       .#
 
@@ -1363,17 +1449,17 @@ LC803:
                 ldy #$0B                     ; C83C= A0 0B        .
 LC83E:
                 lda LE188,x                  ; C83E= BD 88 E1    =.a
-                jsr LCF01                    ; C841= 20 01 CF     .O
+                jsr setCRTCRegister          ; C841= 20 01 CF     .O
                 dex                          ; C844= CA          J
                 dey                          ; C845= 88          .
                 bpl LC83E                    ; C846= 10 F6       .v
                 plp                          ; C848= 28          (
-                jsr LC5C5                    ; C849= 20 C5 C5     EE
+                jsr vdu20EntryPoint          ; C849= 20 C5 C5     EE
                 jsr LCF6D                    ; C84C= 20 6D CF     mO
                 lda #$AA                     ; C84F= A9 AA       )*
                 sta $0367                    ; C851= 8D 67 03    .g.
                 sta $0368                    ; C854= 8D 68 03    .h.
-                jsr LC6AA                    ; C857= 20 AA C6     *F
+                jsr vdu26EntryPoint          ; C857= 20 AA C6     *F
                 lda $034C                    ; C85A= AD 4C 03    -L.
                 ldx $034D                    ; C85D= AE 4D 03    .M.
                 sta $0352                    ; C860= 8D 52 03    .R.
@@ -1396,7 +1482,7 @@ LC866:
                 tax                          ; C882= AA          *
                 ldy #$00                     ; C883= A0 00        .
                 jsr LCB84                    ; C885= 20 84 CB     .K
-                jmp LC47C                    ; C888= 4C 7C C4    L|D
+                jmp vdu30EntryPoint          ; C888= 4C 7C C4    L|D
 
 LC88B:
                 jsr LC8CF                    ; Clear paged mode counter
@@ -1480,42 +1566,81 @@ LC8F9:
 
 LC902:
                 ldy #$28                     ; C902= A0 28        (
-LC904:
+                
+;-------------------------------------------------------------------------
+;
+; Copy 8 bytes in the VDU variables.
+;
+; entry:
+;
+; X = source offset
+;
+; Y = dest offset
+; 
+copyEightBytesWithinVDUVariables:
                 lda #$08                     ; C904= A9 08       ).
-                bra LC920                    ; C906= 80 18       ..
+                bra copyABytesWithinVDUVariables
 
 LC908:
                 ldx #$4C                     ; C908= A2 4C       "L
                 ldy #$28                     ; C90A= A0 28        (
 LC90C:
                 lda #$02                     ; C90C= A9 02       ).
-                bra LC920                    ; C90E= 80 10       ..
+                bra copyABytesWithinVDUVariables
 
 LC910:
                 ldx #$08                     ; C910= A2 08       ".
                 ldy #$2C                     ; C912= A0 2C        ,
-                bra LC91E                    ; C914= 80 08       ..
+                bra copyFourBytesWithinVDUVariables
 
 LC916:
                 ldx #$20                     ; C916= A2 20       "
-                bra LC91E                    ; C918= 80 04       ..
+                bra copyFourBytesWithinVDUVariables
 
 LC91A:
                 ldy #$14                     ; C91A= A0 14        .
 LC91C:
                 ldx #$24                     ; C91C= A2 24       "$
-LC91E:
-                lda #$04                     ; C91E= A9 04       ).
-LC920:
+
+;-------------------------------------------------------------------------
+;
+; Copy 4 bytes in the VDU variables.
+;
+; entry:
+;
+; X = source offset
+;
+; Y = dest offset
+; 
+copyFourBytesWithinVDUVariables:
+                lda #$04
+
+                ; fall through to copyABytesWithinVDUVariables
+
+;-------------------------------------------------------------------------
+;
+; Copy some bytes in the VDU variables.
+;
+; entry:
+;
+; A = number of bytes
+;
+; X = source offset
+;
+; Y = dest offset
+; 
+copyABytesWithinVDUVariables:
                 pha                          ; C920= 48          H
-                lda $0300,x                  ; C921= BD 00 03    =..
-                sta $0300,y                  ; C924= 99 00 03    ...
+                lda vdu,x
+                sta vdu,y
                 inx                          ; C927= E8          h
                 iny                          ; C928= C8          H
                 pla                          ; C929= 68          h
                 dec a                        ; C92A= 3A          :
-                bne LC920                    ; C92B= D0 F3       Ps
+                bne copyABytesWithinVDUVariables
                 rts                          ; C92D= 60          `
+
+;-------------------------------------------------------------------------
 
 LC92E:
                 pha                          ; C92E= 48          H
@@ -2218,7 +2343,7 @@ LCD88:
                 bra LCDE6                    ; CD94= 80 50       .P
 
 LCD96:
-                jsr LE22C                    ; CD96= 20 2C E2     ,b
+                jsr getSoftCharacterDefinitionAddress                    ; CD96= 20 2C E2     ,b
                 stz $0359                    ; CD99= 9C 59 03    .Y.
                 lda $035B                    ; CD9C= AD 5B 03    -[.
                 and #$0F                     ; CD9F= 29 0F       ).
@@ -2285,7 +2410,7 @@ LCE0C:
                 bcs LCD96                    ; CE0F= B0 85       0.
                 ldx $0360                    ; CE11= AE 60 03    .`.
                 beq LCE4D                    ; CE14= F0 37       p7
-                jsr LE22C                    ; CE16= 20 2C E2     ,b
+                jsr getSoftCharacterDefinitionAddress                    ; CE16= 20 2C E2     ,b
 LCE19:
                 ldy #$07                     ; CE19= A0 07        .
                 cpx #$03                     ; CE1B= E0 03       `.
@@ -2304,9 +2429,9 @@ LCE2D:
                 lda #$20                     ; CE2D= A9 20       )
                 bit $0366                    ; CE2F= 2C 66 03    ,f.
                 bne LCE37                    ; CE32= D0 03       P.
-                jsr LC29A                    ; CE34= 20 9A C2     .B
+                jsr vdu8EntryPoint           ; CE34= 20 9A C2     .B
 LCE37:
-                jsr LE2D2                    ; CE37= 20 D2 E2     Rb
+                jsr testVDU5State                    ; CE37= 20 D2 E2     Rb
                 bne LCDFB                    ; CE3A= D0 BF       P?
                 ldx $0360                    ; CE3C= AE 60 03    .`.
                 beq LCE4B                    ; CE3F= F0 0A       p.
@@ -2434,96 +2559,146 @@ LCEF6:
                 sta $E1                      ; CEF8= 85 E1       .a
                 rts                          ; CEFA= 60          `
 
-LCEFB:
-                lda $031D                    ; CEFB= AD 1D 03    -..
-                ldy $031C                    ; CEFE= AC 1C 03    ,..
-LCF01:
-                cpy #$07                     ; CF01= C0 07       @.
-                bcc LCF24                    ; CF03= 90 1F       ..
-                bne LCF0A                    ; CF05= D0 03       P.
-                adc $0290                    ; CF07= 6D 90 02    m..
-LCF0A:
-                cpy #$08                     ; CF0A= C0 08       @.
-                bne LCF15                    ; CF0C= D0 07       P.
-                ora #$00                     ; CF0E= 09 00       ..
-                bmi LCF15                    ; CF10= 30 03       0.
-                eor $0291                    ; CF12= 4D 91 02    M..
-LCF15:
+;-------------------------------------------------------------------------
+;
+; VDU 23 0 Control 6845 CRTC directly [MasRef E.3-12]
+; 
+vdu23_0_EntryPoint:
+                lda vdu.queue+2              ;get value
+                ldy vdu.queue+1              ;get register
+
+                ; fall through to setCRTCRegister
+
+;-------------------------------------------------------------------------
+;
+; Set a CRTC register, adjusting and/or noting values if appropriate.
+;
+; entry:
+;
+; Y = register to set
+;
+; A = value
+
+setCRTCRegister:
+                cpy #$07
+                bcc setCRTCRegisterRaw
+                bne +        ;taken if not setting R7
+
+                ; Setting R7 (vsync position), so apply the *TV offset.
+                adc $0290
++
+                cpy #$08
+                bne +                    ;taken if not setting R8
+
+                ; Setting R8 (interlace/delay register), so apply the
+                ; *TV interlace setting.
+                ora #$00
+                bmi +       ;branch taken if bit 7 set - this is taken
+                            ;to imply the mode being set is Mode 7
+                eor $0291 ;apply *TV interlace setting
++
                 cpy #$0A                     ; CF15= C0 0A       @.
-                bne LCF24                    ; CF17= D0 0B       P.
-                sta $035F                    ; CF19= 8D 5F 03    ._.
-                jsr LE2D2                    ; CF1C= 20 D2 E2     Rb
-                bne LCF2A                    ; CF1F= D0 09       P.
-                lda $035F                    ; CF21= AD 5F 03    -_.
-LCF24:
+                bne setCRTCRegisterRaw
+
+                ; Setting R10 (cursor start register). Note the new
+                ; setting in the VDU variable. If in VDU5 mode, reuse
+                ; the result of testVDU5State - i.e., 32 - as the
+                ; setting, hiding the cursor.
+                sta vdu.lastCursorStartRegisterValue
+                jsr testVDU5State
+                bne rtsCF2A
+                lda vdu.lastCursorStartRegisterValue
+
+                ; fall through to setCRTCRegisterRaw
+
+;-------------------------------------------------------------------------
+;
+; Set a CRTC register.
+; 
+setCRTCRegisterRaw:
                 sty CRTC+0                   ; CF24= 8C 00 FE    ..~
                 sta CRTC+1                   ; CF27= 8D 01 FE    ..~
-LCF2A:
+rtsCF2A:
                 rts                          ; CF2A= 60          `
 
-LCF2B:
-                jsr LE2D2                    ; CF2B= 20 D2 E2     Rb
-                bne LCF2A                    ; CF2E= D0 FA       Pz
-                lda $031C                    ; CF30= AD 1C 03    -..
-                and #$03                     ; CF33= 29 03       ).
-                asl a                        ; CF35= 0A          .
-                tax                          ; CF36= AA          *
-                lda #$20                     ; CF37= A9 20       )
-                jmp (LCF3C,x)                ; CF39= 7C 3C CF    |<O
+;-------------------------------------------------------------------------
+;
+; VDU 23 1 Turn cursor on/off [MasRef E.3-12]
+; 
+vdu23_1_EntryPoint:
+                jsr testVDU5State
+                bne rtsCF2A                  ;taken if VDU5
+                lda vdu.queue+1              ;get new cursor state
+                and #$03                     ;mask off bits of interest
+                asl a
+                tax
+                lda #$20 ;R10 value for hiding the cursor - save a few
+                         ;bytes by loading this here
+                jmp (LCF3C,x)
 
 LCF3C:
-                .word LCF53                  ; CF3C= 53 CF       S.
-                .word LCF50                  ; CF3E= 50 CF       P.
-                .word LCF44                  ; CF40= 44 CF       D.
-                .word LCF4B                  ; CF42= 4B CF       K.
+                .word hideCursor            ; 23,1,0... - hide
+                .word showCursor            ; 23,1,1... - show
+                .word steadyCursor          ; 23,1,2... - steady
+                .word slowFlashCursor       ; 23,1,3... - flash slowly
 
-LCF44:
-                lda #$60                     ; CF44= A9 60       )`
-                trb $035F                    ; CF46= 1C 5F 03    ._.
-                bra LCF50                    ; CF49= 80 05       ..
+steadyCursor:
+                lda #%01100000
+                trb vdu.lastCursorStartRegisterValue ;steady cursor
+                bra showCursor
 
-LCF4B:
-                lda #$60                     ; CF4B= A9 60       )`
-                tsb $035F                    ; CF4D= 0C 5F 03    ._.
-LCF50:
-                lda $035F                    ; CF50= AD 5F 03    -_.
-LCF53:
-                ldy #$0A                     ; CF53= A0 0A        .
-                bra LCF24                    ; CF55= 80 CD       .M
+slowFlashCursor:
+                lda #%01100000
+                tsb vdu.lastCursorStartRegisterValue ;slow blink cursor
+showCursor:
+                lda vdu.lastCursorStartRegisterValue
+hideCursor:
+                ldy #$0A
+                bra setCRTCRegisterRaw
 
-LCF57:
-                sbc #$01                     ; CF57= E9 01       i.
-                asl a                        ; CF59= 0A          .
-                asl a                        ; CF5A= 0A          .
-                asl a                        ; CF5B= 0A          .
-                adc #$07                     ; CF5C= 69 07       i.
-                tay                          ; CF5E= A8          (
-                ldx #$07                     ; CF5F= A2 07       ".
-LCF61:
-                lda $031C,x                  ; CF61= BD 1C 03    =..
-                sta L8800,y                  ; CF64= 99 00 88    ...
-                dey                          ; CF67= 88          .
-                dex                          ; CF68= CA          J
-                bpl LCF61                    ; CF69= 10 F6       .v
+;-------------------------------------------------------------------------
+;
+; VDU 23 2–5 Set ECF patterns [MasRef E.3-13]
+; 
+vdu23_2_EntryPoint:
+vdu23_3_EntryPoint:
+vdu23_4_EntryPoint:
+vdu23_5_EntryPoint:
+                sbc #$01  ;subtract 2 (C=0 on entry...) to get pattern
+                          ;index
+                asl a                 
+                asl a                 
+                asl a                        ;index*8
+                adc #$07                     ;index*8+7
+                tay
+                ldx #$07
+-
+                lda vdu.queue+1,x
+                sta andy.ecfPatterns,y
+                dey
+                dex
+                bpl -
                 bra LCF93                    ; CF6B= 80 26       .&
 
+;-------------------------------------------------------------------------
+
 LCF6D:
-                lda $0355                    ; CF6D= AD 55 03    -U.
-                bne LCF73                    ; CF70= D0 01       P.
-                dec a                        ; CF72= 3A          :
-LCF73:
-                and #$03                     ; CF73= 29 03       ).
-                inc a                        ; CF75= 1A          .
-                asl a                        ; CF76= 0A          .
-                asl a                        ; CF77= 0A          .
-                asl a                        ; CF78= 0A          .
-                asl a                        ; CF79= 0A          .
+                lda vdu.currentScreenMODE
+                bne +
+                dec a                        ;treat MODE 0 as MODE 255??
++
+                and #$03 ;0=mode 4, 1=mode 1/5, 2=mode 2/6, 3=mode 0/3/7
+                inc a  ;1=mode 4, 2=mode 1/5, 3=mode 2/6, 4=mode 0/3/7
+                asl a
+                asl a
+                asl a
+                asl a
                 tax                          ; CF7A= AA          *
-                ldy #$1C                     ; CF7B= A0 1C        .
+                ldy #28                     ; CF7B= A0 1C        .
 LCF7D:
                 lda LE1C3,x                  ; CF7D= BD C3 E1    =Ca
-                sta L87FF,y                  ; CF80= 99 FF 87    ...
-                sta L8803,y                  ; CF83= 99 03 88    ...
+                sta andy.ecfPatterns-1,y
+                sta andy.ecfPatterns+4-1,y
                 dex                          ; CF86= CA          J
                 dey                          ; CF87= 88          .
                 tya                          ; CF88= 98          .
@@ -2578,21 +2753,29 @@ LCFC7:
                 bpl LCFC7                    ; CFDB= 10 EA       .j
                 bra LCF93                    ; CFDD= 80 B4       .4
 
-LCFDF:
-                lda $031C                    ; CFDF= AD 1C 03    -..
-                sta $0367                    ; CFE2= 8D 67 03    .g.
-                rts                          ; CFE5= 60          `
+;-------------------------------------------------------------------------
+;
+; VDU 23 6 Set dotted lines pattern [MasRef E.3-13]
+; 
+vdu23_6_EntryPoint:
+                lda vdu.queue+1
+                sta vdu.dotPattern
+                rts
 
-LCFE6:
-                lda $031C                    ; CFE6= AD 1C 03    -..
-                bne LCFF5                    ; CFE9= D0 0A       P.
-                jsr LC910                    ; CFEB= 20 10 C9     .I
-                lda STATE                      ; CFEE= A5 D0       %P
-                and #$08                     ; CFF0= 29 08       ).
-                asl a                        ; CFF2= 0A          .
-                bra LD006                    ; CFF3= 80 11       ..
+;-------------------------------------------------------------------------
+;
+; VDU 23 7 Scroll window directly [MasRef E.3-14]
+; 
+vdu23_7_EntryPoint:
+                lda vdu.queue+1
+                bne scrollEntireScreen
+                jsr LC910
+                lda STATE
+                and #STATE.isTextWindow
+                asl a ;A=$10 (text window active) or $00 (no text window)
+                bra LD006
 
-LCFF5:
+scrollEntireScreen:
                 lda #$00                     ; CFF5= A9 00       ).
                 sta $032C                    ; CFF7= 8D 2C 03    .,.
                 sta $032F                    ; CFFA= 8D 2F 03    ./.
@@ -2765,15 +2948,15 @@ LD11E:
 LD12D:
                 pha                          ; D12D= 48          H
                 phx                          ; D12E= DA          Z
-                jsr LE2D2                    ; D12F= 20 D2 E2     Rb
+                jsr testVDU5State                    ; D12F= 20 D2 E2     Rb
                 sec                          ; D132= 38          8
                 bne LD143                    ; D133= D0 0E       P.
                 clc                          ; D135= 18          .
                 bit $036C                    ; D136= 2C 6C 03    ,l.
                 bpl LD143                    ; D139= 10 08       ..
                 php                          ; D13B= 08          .
-                jsr LC3F6                    ; D13C= 20 F6 C3     vC
-                jsr LC25B                    ; D13F= 20 5B C2     [B
+                jsr vdu13EntryPoint          ; D13C= 20 F6 C3     vC
+                jsr vdu10EntryPoint          ; D13F= 20 5B C2     [B
                 plp                          ; D142= 28          (
 LD143:
                 plx                          ; D143= FA          z
@@ -3007,7 +3190,7 @@ LD2AD:
                 tsb $E0                      ; D2AF= 04 E0       .`
                 ldx #$2C                     ; D2B1= A2 2C       ",
                 ldy #$28                     ; D2B3= A0 28        (
-                jsr LC91E                    ; D2B5= 20 1E C9     .I
+                jsr copyFourBytesWithinVDUVariables
                 bit $0335                    ; D2B8= 2C 35 03    ,5.
                 php                          ; D2BB= 08          .
                 ldx #$2C                     ; D2BC= A2 2C       ",
@@ -3206,7 +3389,7 @@ LD425:
                 ldx #$24                     ; D425= A2 24       "$
 LD427:
                 ldy #$1B                     ; D427= A0 1B        .
-                jsr LC91E                    ; D429= 20 1E C9     .I
+                jsr copyFourBytesWithinVDUVariables
                 ldx #$1B                     ; D42C= A2 1B       ".
                 jsr LD268                    ; D42E= 20 68 D2     hR
                 jsr LD486                    ; D431= 20 86 D4     .T
@@ -3626,12 +3809,12 @@ LD6FD:
                 pha                          ; D6FF= 48          H
                 inc a                        ; D700= 1A          .
                 tay                          ; D701= A8          (
-                jsr LE2B2                    ; D702= 20 B2 E2     2b
+                jsr exchangeTwoVDUBytes     ; D702= 20 B2 E2     2b
                 inx                          ; D705= E8          h
                 inx                          ; D706= E8          h
                 iny                          ; D707= C8          H
                 iny                          ; D708= C8          H
-                jsr LE2B2                    ; D709= 20 B2 E2     2b
+                jsr exchangeTwoVDUBytes     ; D709= 20 B2 E2     2b
                 plx                          ; D70C= FA          z
                 jsr LD711                    ; D70D= 20 11 D7     .W
                 dex                          ; D710= CA          J
@@ -4438,7 +4621,7 @@ LDC83:
                 php                          ; DC83= 08          .
                 ldx #$2E                     ; DC84= A2 2E       ".
                 ldy #$14                     ; DC86= A0 14        .
-                jsr LC91E                    ; DC88= 20 1E C9     .I
+                jsr copyFourBytesWithinVDUVariables
                 plp                          ; DC8B= 28          (
                 php                          ; DC8C= 08          .
                 beq LDC91                    ; DC8D= F0 02       p.
@@ -4487,7 +4670,7 @@ LDCC9:
 
 LDCD2:
                 ldy #$2E                     ; DCD2= A0 2E        .
-                jsr LC91E                    ; DCD4= 20 1E C9     .I
+                jsr copyFourBytesWithinVDUVariables
 LDCD7:
                 ldx #$04                     ; DCD7= A2 04       ".
 LDCD9:
@@ -4704,7 +4887,7 @@ LDE1F:
                 jsr selectTerminalROMAndANDY                    ; DE25= 20 7F E5     .e
                 lda #$20                     ; DE28= A9 20       )
                 tax                          ; DE2A= AA          *
-                jsr LE22C                    ; DE2B= 20 2C E2     ,b
+                jsr getSoftCharacterDefinitionAddress                    ; DE2B= 20 2C E2     ,b
 LDE2E:
                 ldy #$07                     ; DE2E= A0 07        .
 LDE30:
@@ -4918,7 +5101,7 @@ LDF78:
                 bvs LDF96                    ; DF7E= 70 16       p.
                 lda $035F                    ; DF80= AD 5F 03    -_.
                 and #$DF                     ; DF83= 29 DF       )_
-                jsr LCF53                    ; DF85= 20 53 CF     SO
+                jsr hideCursor               ; DF85= 20 53 CF     SO
                 ldx #$18                     ; DF88= A2 18       ".
                 ldy #$64                     ; DF8A= A0 64        d
                 jsr LC90C                    ; DF8C= 20 0C C9     .I
@@ -4961,7 +5144,7 @@ LDFC5:
 LDFC6:
                 lsr $036C                    ; DFC6= 4E 6C 03    Nl.
 LDFC9:
-                jsr LC027                    ; DFC9= 20 27 C0     '@
+                jsr outputToVDU
 LDFCC:
                 pla                          ; DFCC= 68          h
 LDFCD:
@@ -5049,38 +5232,38 @@ LE023:
 ;
 
 ; each routine is (address, number of additional VDU bytes)
-_:=[(LC035,0)] ; VDU0
-_..=[(LC0E2,1)] ; VDU1
-_..=[(LC0EA,0)] ; VDU2
-_..=[(LC0EA,0)] ; VDU3
-_..=[(LC51E,0)] ; VDU4
-_..=[(LC52D,0)] ; VDU5
-_..=[(LC035,0)] ; VDU6
-_..=[(LEFB6,0)] ; VDU7
-_..=[(LC29A,0)] ; VDU8
-_..=[(LC24C,0)] ; VDU9
-_..=[(LC25B,0)] ; VDU10
-_..=[(LC2B1,0)] ; VDU11
-_..=[(LC44F,0)] ; VDU12
-_..=[(LC3F6,0)] ; VDU13
-_..=[(LC514,0)] ; VDU14
-_..=[(LC528,0)] ; VDU15
-_..=[(LC413,0)] ; VDU16
-_..=[(LC539,1)] ; VDU17
-_..=[(LC564,2)] ; VDU18
-_..=[(LC62D,5)] ; VDU19
-_..=[(LC5C5,0)] ; VDU20
-_..=[(LC519,0)] ; VDU21
-_..=[(LC794,1)] ; VDU22
-_..=[(LC67C,9)] ; VDU23
-_..=[(LC71F,8)] ; VDU24
-_..=[(LC69B,5)] ; VDU25
-_..=[(LC6AA,0)] ; VDU26
-_..=[(LC035,0)] ; VDU27
-_..=[(LC3A5,4)] ; VDU28
-_..=[(LC78A,4)] ; VDU29
-_..=[(LC47C,0)] ; VDU30
-_..=[(LC482,2)] ; VDU31
+_:=[(vdu0EntryPoint,0)] ; VDU0
+_..=[(vdu1EntryPoint,1)] ; VDU1
+_..=[(vdu2EntryPoint,0)] ; VDU2
+_..=[(vdu3EntryPoint,0)] ; VDU3
+_..=[(vdu4EntryPoint,0)] ; VDU4
+_..=[(vdu5EntryPoint,0)] ; VDU5
+_..=[(vdu6EntryPoint,0)] ; VDU6
+_..=[(vdu7EntryPoint,0)] ; VDU7
+_..=[(vdu8EntryPoint,0)] ; VDU8
+_..=[(vdu9EntryPoint,0)] ; VDU9
+_..=[(vdu10EntryPoint,0)] ; VDU10
+_..=[(vdu11EntryPoint,0)] ; VDU11
+_..=[(vdu12EntryPoint,0)] ; VDU12
+_..=[(vdu13EntryPoint,0)] ; VDU13
+_..=[(vdu14EntryPoint,0)] ; VDU14
+_..=[(vdu15EntryPoint,0)] ; VDU15
+_..=[(vdu16EntryPoint,0)] ; VDU16
+_..=[(vdu17EntryPoint,1)] ; VDU17
+_..=[(vdu18EntryPoint,2)] ; VDU18
+_..=[(vdu19EntryPoint,5)] ; VDU19
+_..=[(vdu20EntryPoint,0)] ; VDU20
+_..=[(vdu21EntryPoint,0)] ; VDU21
+_..=[(vdu22EntryPoint,1)] ; VDU22
+_..=[(vdu23EntryPoint,9)] ; VDU23
+_..=[(vdu24EntryPoint,8)] ; VDU24
+_..=[(vdu25EntryPoint,5)] ; VDU25
+_..=[(vdu26EntryPoint,0)] ; VDU26
+_..=[(vdu27EntryPoint,0)] ; VDU27
+_..=[(vdu28EntryPoint,4)] ; VDU28
+_..=[(vdu29EntryPoint,4)] ; VDU29
+_..=[(vdu30EntryPoint,0)] ; VDU30
+_..=[(vdu31EntryPoint,2)] ; VDU31
 _..=[(LCE2D,0)] ; ???
 vdu_routines=_
                 
@@ -5109,16 +5292,26 @@ LE048:
                 .byte (16-vdu_routines[i][1])|(((>vdu_routines[i][0])&$0f)<<4)
                 .endif
                 .next
-                
-LE069:
-                .word LCEFB                  ; E069= FB CE        ..
-                .word LCF2B                  ; E06B= 2B CF        +.
-                .word LCF57                  ; E06D= 57 CF        W.
-                .word LCF57                  ; E06F= 57 CF        W.
-                .word LCF57                  ; E071= 57 CF        W.
-                .word LCF57                  ; E073= 57 CF        W.
-                .word LCFDF                  ; E075= DF CF        ..
-                .word LCFE6                  ; E077= E6 CF        ..
+
+;-------------------------------------------------------------------------
+;
+; entry:
+;
+; C=0
+;
+; A = vdu 23 code
+;
+; VDU queue = the full 9 bytes of the VDU 23
+; 
+vdu23EntryPointTable:
+                .word vdu23_0_EntryPoint
+                .word vdu23_1_EntryPoint
+                .word vdu23_2_EntryPoint
+                .word vdu23_3_EntryPoint
+                .word vdu23_4_EntryPoint
+                .word vdu23_5_EntryPoint
+                .word vdu23_6_EntryPoint
+                .word vdu23_7_EntryPoint
                 .word LD069                  ; E079= 69 D0        i.
 LE07B:
                 .word LD10F                  ; E07B= 0F D1        ..
@@ -5260,7 +5453,7 @@ LE14B:
                 .byte $03                    ; E153= 03          .
                 tsb $300F                    ; E154= 0C 0F 30    ..0
                 .byte $33                    ; E157= 33          3
-                bit LC03F,x                  ; E158= 3C 3F C0    <?@
+                .byte $3c,$3f,$c0
                 .byte $C3                    ; E15B= C3          C
 ;CPY LF0CF        :\ E15C= CC CF F0    LOp
                 .byte $CC
@@ -5439,19 +5632,32 @@ LE20C:
                 .word LCAF1     ; E226= F1 CA        ..
                 .word LCAFA     ; E228= FA CA        ..
                 .word LCAFA     ; E22A= FA CA
-LE22C:
-                asl a                        ; E22C= 0A          .
-                rol a                        ; E22D= 2A          *
-                rol a                        ; E22E= 2A          *
-                tay                          ; E22F= A8          (
-                and #$03                     ; E230= 29 03       ).
-                rol a                        ; E232= 2A          *
-                adc #$88                     ; E233= 69 88       i.
-                sta $DF                      ; E235= 85 DF       ._
-                tya                          ; E237= 98          .
-                and #$F8                     ; E238= 29 F8       )x
-                sta $DE                      ; E23A= 85 DE       .^
-                rts                          ; E23C= 60          `
+
+;-------------------------------------------------------------------------
+;
+; Get address of soft character definition.
+;
+; entry:
+;
+; A = character (32-255)
+;
+; exit:
+;
+; ($de) = address
+; 
+getSoftCharacterDefinitionAddress:
+                asl a                        ;a bcdefgh0
+                rol a                        ;b cdefgh0a
+                rol a                        ;c defgh0ab
+                tay
+                and #$03                     ;c 000000ab
+                rol a                        ;0 00000abc
+                adc #(>andy.softCharacterDefinitions)-1
+                sta $DF
+                tya                          ;0 defgh0ab
+                and #$F8                     ;0 defgh000
+                sta $DE                      ;
+                rts                          ;
 
 osbyteA5:
                 jsr withMOSROM               ; E23D= 20 AB F3     +s
@@ -5531,37 +5737,46 @@ LE2AC:
                 rts                          ; E2AD= 60          `
 
 LE2AE:
-                ldx #$18                     ; E2AE= A2 18       ".
-                ldy #$64                     ; E2B0= A0 64        d
-LE2B2:
-                lda #$02                     ; E2B2= A9 02       ).
-                bra LE2BC                    ; E2B4= 80 06       ..
+                ldx #vdu.textCursorXPosition-vdu
+                ldy #vdu.editCursorXPosition-vdu
+exchangeTwoVDUBytes:
+                lda #$02
+                bra exchangeVDUVariables
 
 LE2B6:
-                ldx #$24                     ; E2B6= A2 24       "$
+                ldx #vdu.graphicsCursorPixelsX-vdu
 LE2B8:
-                ldy #$14                     ; E2B8= A0 14        .
-LE2BA:
+                ldy #vdu.oldGraphicsCursorPositionX-vdu
+exchangeFourVDUBytes:
                 lda #$04                     ; E2BA= A9 04       ).
-LE2BC:
-                pha                          ; E2BC= 48          H
-                lda $0300,x                  ; E2BD= BD 00 03    =..
-                pha                          ; E2C0= 48          H
-                lda $0300,y                  ; E2C1= B9 00 03    9..
-                sta $0300,x                  ; E2C4= 9D 00 03    ...
-                pla                          ; E2C7= 68          h
-                sta $0300,y                  ; E2C8= 99 00 03    ...
-                inx                          ; E2CB= E8          h
-                iny                          ; E2CC= C8          H
-                pla                          ; E2CD= 68          h
-                dec a                        ; E2CE= 3A          :
-                bne LE2BC                    ; E2CF= D0 EB       Pk
+exchangeVDUVariables:
+                pha                          ;save count remaining
+                lda vdu,x
+                pha
+                lda vdu,y
+                sta vdu,x
+                pla
+                sta vdu,y
+                inx
+                iny
+                pla
+                dec a
+                bne exchangeVDUVariables
                 rts                          ; E2D1= 60          `
 
-LE2D2:
-                lda STATE                      ; E2D2= A5 D0       %P
-                and #$20                     ; E2D4= 29 20       )
-                rts                          ; E2D6= 60          `
+;-------------------------------------------------------------------------
+;
+; Test current VDU4/VDU5 status.
+;
+; exit:
+;
+; Z=1 if VDU5 mode
+testVDU5State:
+                lda STATE
+                and #STATE.isVDU5
+                rts
+
+;-------------------------------------------------------------------------
 
 ; Default vector table
 ; ====================
@@ -6446,10 +6661,10 @@ emptyCommandLine=oscliEntryPoint.emptyCommandLine
                 ; OSWRCH
                 ; ======
 oswrchEntryPoint:
-                pha                          ; E822= 48          H
-                phx                          ; E823= DA          Z
-                phy                          ; E824= 5A          Z
-                pha                          ; E825= 48          H
+                pha                          ;S=[ch]
+                phx                          ;S=[x; ch]
+                phy                          ;S=[y; x; ch]
+                pha                          ;S=[ch; y; x; ch]
                 bit $0260                    ; E826= 2C 60 02    ,`.
                 bpl LE833                    ; E829= 10 08       ..
                 tay                          ; E82B= A8          (
@@ -6460,20 +6675,20 @@ LE833:
                 lda #$02                     ; E833= A9 02       ).
                 bit $027C                    ; E835= 2C 7C 02    ,|.
                 bne LE862                    ; E838= D0 28       P(
-                pla                          ; E83A= 68          h
-                pha                          ; E83B= 48          H
-                tax                          ; E83C= AA          *
-                lda ACCCON                    ; E83D= AD 34 FE    -4~
-                pha                          ; E840= 48          H
-                lda #$08                     ; E841= A9 08       ).
-                trb ACCCON                    ; E843= 1C 34 FE    .4~
-                lda $F4                      ; E846= A5 F4       %t
-                pha                          ; E848= 48          H
-                lda #$8F                     ; E849= A9 8F       ).
-                sta $F4                      ; E84B= 85 F4       .t
-                sta ROMSEL                   ; E84D= 8D 30 FE    .0~
-                txa                          ; E850= 8A          .
-                jsr LC027                    ; E851= 20 27 C0     '@
+                pla                          ;restore char to print
+                pha                          ;save it again
+                tax                          ;X=char to print
+                lda ACCCON                   ;
+                pha                          ;S=[old ACCCON; ch; y; x; ch]
+                lda #ACCCON.Y
+                trb ACCCON                   ;MOS ROM at $c000
+                lda $F4                      
+                pha          ;S=[old ROMSEL; old ACCCON; ch; y; x; ch]
+                lda #$8F
+                sta $F4
+                sta ROMSEL                   ;page in ANDY+Terminal
+                txa                          ;A=char to print
+                jsr outputToVDU
                 pla                          ; E854= 68          h
                 sta $F4                      ; E855= 85 F4       .t
                 sta ROMSEL                   ; E857= 8D 30 FE    .0~
@@ -6940,7 +7155,7 @@ LEABD:
                 rts                          ; EABE= 60          `
 
 LEABF:
-                jsr LEFB6                    ; EABF= 20 B6 EF     6o
+                jsr vdu7EntryPoint           ; EABF= 20 B6 EF     6o
                 plx                          ; EAC2= FA          z
 LEAC3:
                 jsr osbyte91                    ; EAC3= 20 F4 E9     ti
@@ -7914,7 +8129,7 @@ osbyte75:
                 ldx STATE                      ; EFB3= A6 D0       &P
                 rts                          ; EFB5= 60          `
 
-LEFB6:
+vdu7EntryPoint:
                 php                          ; EFB6= 08          .
                 sei                          ; EFB7= 78          x
                 lda $0263                    ; EFB8= AD 63 02    -c.
@@ -8270,7 +8485,7 @@ LF169:
                 bra LF147                    ; F173= 80 D2       .R
 
 osword0A:                                    ;f175
-                jsr LE22C                    ; F175= 20 2C E2     ,b
+                jsr getSoftCharacterDefinitionAddress                    ; F175= 20 2C E2     ,b
                 ldy #$00                     ; F178= A0 00        .
                 lda $F4                      ; F17A= A5 F4       %t
                 pha                          ; F17C= 48          H
@@ -8844,7 +9059,7 @@ vduChrEntryPoint:
                 ldx $F4                      ; F3EF= A6 F4       &t
                 phx                          ; F3F1= DA          Z
                 jsr selectTerminalROMAndANDY                    ; F3F2= 20 7F E5     .e
-                jsr LC027                    ; F3F5= 20 27 C0     '@
+                jsr outputToVDU
                 plx                          ; F3F8= FA          z
                 jmp selectROMX                    ; F3F9= 4C 81 E5    L.e
 

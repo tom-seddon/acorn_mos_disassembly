@@ -3720,7 +3720,7 @@ L9A5A:
                 beq L9A79                    ; 9A70= F0 07       p.
                 ldx #$2C                     ; 9A72= A2 2C       ",
                 ldy #$46                     ; 9A74= A0 46        F
-                jsr mos.LC91E                ; 9A76= 20 1E C9     .I
+                jsr mos.copyFourBytesWithinVDUVariables
 L9A79:
                 lda #$10                     ; 9A79= A9 10       ).
                 bit L8849                    ; 9A7B= 2C 49 88    ,I.
@@ -3728,7 +3728,7 @@ L9A79:
                 beq L9A89                    ; 9A80= F0 07       p.
                 ldx #$37                     ; 9A82= A2 37       "7
                 ldy #$42                     ; 9A84= A0 42        B
-                jsr mos.LC91E                ; 9A86= 20 1E C9     .I
+                jsr mos.copyFourBytesWithinVDUVariables
 L9A89:
                 jsr L9ABF                    ; 9A89= 20 BF 9A     ?.
                 lda $E1                      ; 9A8C= A5 E1       %a
@@ -3746,7 +3746,7 @@ L9A89:
                 tya                          ; 9AA3= 98          .
                 tax                          ; 9AA4= AA          *
                 ldy #$46                     ; 9AA5= A0 46        F
-                jsr mos.LC91E                ; 9AA7= 20 1E C9     .I
+                jsr mos.copyFourBytesWithinVDUVariables
                 pla                          ; 9AAA= 68          h
 L9AAB:
                 bit #$10                     ; 9AAB= 89 10       ..
@@ -3755,7 +3755,7 @@ L9AAB:
                 ldy #$42                     ; 9AB1= A0 42        B
                 jsr mos.LD5CC                ; 9AB3= 20 CC D5     LU
                 ldy #$42                     ; 9AB6= A0 42        B
-                jsr mos.LC91E                ; 9AB8= 20 1E C9     .I
+                jsr mos.copyFourBytesWithinVDUVariables
 L9ABB:
                 stz L8849                    ; 9ABB= 9C 49 88    .I.
 L9ABE:

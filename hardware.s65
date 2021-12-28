@@ -1,4 +1,40 @@
-CRTC=$FE00
+;-------------------------------------------------------------------------
+
+                .virtual $fe00
+                
+CRTC: .block
+
+                .virtual 8
+R8: .block
+normalSync=%00000000
+interlaceSync=%00000001
+normalSyncAlt=%00000010
+interlaceSyncAndVideo=%00000011
+
+displayDelay0=0<<4
+displayDelay1=1<<4
+displayDelay2=2<<4
+displayDisable=3<<4
+
+cursorDelay0=0<<6
+cursorDelay1=1<<6
+cursorDelay2=2<<6
+cursorDisable=3<<6
+                .endblock
+                .endvirtual
+                
+                .virtual 10
+R10: .block
+blink=$40
+slowBlink=$20
+                .endblock
+                .endvirtual
+                
+                .endblock
+
+                .endvirtual
+                
+;-------------------------------------------------------------------------
 ACIA=$fe08
 SERPROC=$fe10
 HADC=$fe18

@@ -171,6 +171,7 @@ IND3V=vectors+ind3vIndex*2
 
 extendedVectorSpace=$d9f
 
+pagedModeCounter=$0269
 serialRegisterULACopy=$0282
                 
 key_space=$62
@@ -337,6 +338,7 @@ graphicsWindowPixelsBottom: .fill 2
 graphicsWindowPixelsRight: .fill 2
 ; &06 2 Graphics window top row. (p)
 graphicsWindowPixelsTop: .fill 2
+textWindow:
 ; &08 1 Text window left column.
 textWindowLeft: .fill 1
 ; &09 1 Text window bottom row.

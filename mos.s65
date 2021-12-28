@@ -281,7 +281,7 @@ LC0D1:
                 lda STATE                      ; C0D3= A5 D0       %P
                 eor #STATE.isScrollingDisabled
                 sta STATE                      ; C0D7= 85 D0       .P
-                jsr LE2AE                    ; C0D9= 20 AE E2     .b
+                jsr exchangeEditCursorPositionAndTextCursorPosition                    ; C0D9= 20 AE E2     .b
                 jsr LC6D8                    ; C0DC= 20 D8 C6     XF
                 pla                          ; C0DF= 68          h
 LC0E0:
@@ -579,9 +579,9 @@ vdu8EntryPoint:
 vdu11EntryPoint:
                 jsr testVDU5State                    ; C2B1= 20 D2 E2     Rb
                 bne LC296                    ; C2B4= D0 E0       P`
-                dec $0269                    ; C2B6= CE 69 02    Ni.
+                dec pagedModeCounter                    ; C2B6= CE 69 02    Ni.
                 bpl LC2BE                    ; C2B9= 10 03       ..
-                inc $0269                    ; C2BB= EE 69 02    ni.
+                inc pagedModeCounter                    ; C2BB= EE 69 02    ni.
 LC2BE:
                 lda #$0E                     ; C2BE= A9 0E       ).
                 jsr LC2E9                    ; C2C0= 20 E9 C2     iB
@@ -710,11 +710,11 @@ LC38F:
                 rts                          ; C396= 60          `
 
 LC397:
-                jsr LE2AE                    ; C397= 20 AE E2     .b
+                jsr exchangeEditCursorPositionAndTextCursorPosition                    ; C397= 20 AE E2     .b
                 plx                          ; C39A= FA          z
                 phx                          ; C39B= DA          Z
                 jsr LC2EF                    ; C39C= 20 EF C2     oB
-                jsr LE2AE                    ; C39F= 20 AE E2     .b
+                jsr exchangeEditCursorPositionAndTextCursorPosition                    ; C39F= 20 AE E2     .b
 LC3A2:
                 plx                          ; C3A2= FA          z
                 sec                          ; C3A3= 38          8
@@ -744,12 +744,12 @@ LC3C2:
                 ldx #VDUVariables.queueEnd-4
                 ldy #VDUVariables.textWindowLeft
                 jsr copyFourBytesWithinVDUVariables
-                jsr LE2AE                    ; C3D5= 20 AE E2     .b
+                jsr exchangeEditCursorPositionAndTextCursorPosition                    ; C3D5= 20 AE E2     .b
                 jsr LCCDA                    ; C3D8= 20 DA CC     ZL
                 bcc LC3E0                    ; C3DB= 90 03       ..
                 jsr LC3E8                    ; C3DD= 20 E8 C3     hC
 LC3E0:
-                jsr LE2AE                    ; C3E0= 20 AE E2     .b
+                jsr exchangeEditCursorPositionAndTextCursorPosition                    ; C3E0= 20 AE E2     .b
                 jsr LCCDA                    ; C3E3= 20 DA CC     ZL
                 bcc LC407                    ; C3E6= 90 1F       ..
 LC3E8:
@@ -927,7 +927,7 @@ LC50A:
                 rts                          ; C513= 60          `
                 
 vdu14EntryPoint:
-                stz $0269                    ; C514= 9C 69 02    .i.
+                stz pagedModeCounter                    ; C514= 9C 69 02    .i.
                 lda #$91                     ; C517= A9 91       ).
 vdu21EntryPoint:
                 eor #$95                     ; C519= 49 95       I.
@@ -1556,7 +1556,7 @@ LC866:
                 jsr LC6DD                    ; C871= 20 DD C6     ]F
                 ldy #$0C
                 jsr setCRTCAddressRegisters
-                stz $0269                    ; C879= 9C 69 02    .i.
+                stz pagedModeCounter                    ; C879= 9C 69 02    .i.
                 sec                          ; C87C= 38          8
                 lda #$80                     ; C87D= A9 80       ).
                 sbc vduv.startScreenAddressHighByte
@@ -1599,7 +1599,7 @@ LC8BB:
                 sec                          ; C8C0= 38          8
                 pla                          ; C8C1= 68          h
                 sbc ZTEMP+0
-                cmp $0269                    ; C8C4= CD 69 02    Mi.
+                cmp pagedModeCounter                    ; C8C4= CD 69 02    Mi.
                 bcs LC8D3                    ; C8C7= B0 0A       0.
 LC8C9:
                 jsr osbyte76                    ; C8C9= 20 30 F2     0r
@@ -1607,17 +1607,17 @@ LC8C9:
                 bpl LC8C9                    ; C8CD= 10 FA       .z
 
 LC8CF:
-                stz $0269                    ; Clear paged mode counter
+                stz pagedModeCounter                    ; Clear paged mode counter
                 nop                          ; C8D2= EA          j
 LC8D3:
-                inc $0269                    ; C8D3= EE 69 02    ni.
+                inc pagedModeCounter                    ; C8D3= EE 69 02    ni.
 LC8D6:
                 rts                          ; C8D6= 60          `
 
 LC8D7:
-                lda $0366                    ; C8D7= AD 66 03    -f.
-                and #$0E                     ; C8DA= 29 0E       ).
-                lsr a                        ; C8DC= 4A          J
+                lda vduv.cursorFlags
+                and #vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal
+                lsr a                        ;xvh
                 tax                          ; C8DD= AA          *
                 lda LE204,x                  ; C8DE= BD 04 E2    =.b
                 tax                          ; C8E1= AA          *
@@ -3044,7 +3044,7 @@ LD051:
 vdu23_8_EntryPoint:
                 stz $0334                    ; D069= 9C 34 03    .4.
                 stz $0335                    ; D06C= 9C 35 03    .5.
-                jsr LE252                    ; D06F= 20 52 E2     Rb
+                jsr getTextCursorPositionWithColumn81                    ; D06F= 20 52 E2     Rb
                 stx $0336                    ; D072= 8E 36 03    .6.
                 sty $0337                    ; D075= 8C 37 03    .7.
                 jsr LE25C                    ; D078= 20 5C E2     \b
@@ -5694,39 +5694,27 @@ LDFF4:
                 .byte $0D
                 .byte $0D
 LE013:
-                .byte $00
-                ; ORA ($22),y                ; E014= 11 22       ."
-                ; EQUB $33                   ; E016= 33          3
-                ; EQUB $44                   ; E017= 44          D
-                ; EOR $66,x                  ; E018= 55 66       Uf
-                ; EQUB $77                   ; E01A= 77          w
-                ; DEY                        ; E01B= 88          .
-                ; STA LBBAA,y                ; E01C= 99 AA BB    .*;
-                ; CPY LEEDD                  ; E01F= CC DD EE    L]n
-                ; EQUB $FF                   ; E022= FF          .
-                .byte $11
-                .byte $22
-                .byte $33
-                .byte $44
-                .byte $55
-                .byte $66
-                .byte $77
-                .byte $88
-                .byte $99
-                .byte $AA
-                .byte $BB
-                .byte $CC
-                .byte $DD
-                .byte $EE
-                .byte $FF
+                .byte %00000000;$00
+                .byte %00010001;$11
+                .byte %00100010;$22
+                .byte %00110011;$33
+                .byte %01000100;$44
+                .byte %01010101;$55
+                .byte %01100110;$66
+                .byte %01110111;$77
+                .byte %10001000;$88
+                .byte %10011001;$99
+                .byte %10101010;$AA
+                .byte %10111011;$BB
+                .byte %11001100;$CC
+                .byte %11011101;$DD
+                .byte %11101110;$EE
+                .byte %11111111;$FF
 LE023:
-                ; BRK                        ; E023= 00          .
-                ; EOR $AA,x                  ; E024= 55 AA       U*
-                ; EQUB $FF                   ; E026= FF          .
-                .byte $00
-                .byte $55
-                .byte $AA
-                .byte $FF
+                .byte %00000000;$00
+                .byte %01010101;$55
+                .byte %10101010;$AA
+                .byte %11111111;$FF
 
 ; VDU control code dispatch tables
 ; ================================
@@ -6093,71 +6081,71 @@ crtcRegisterLastIndexForScreenMODEGroup:
                 .byte (crtcRegisterValues8KB-crtcRegisterValues)+$0B
                 .byte (crtcRegisterValues1KB-crtcRegisterValues)+$0B
 crtcRegisterValues:
-crtcRegisterValues20KB:
-                .byte $7F
-                .byte $50
-                .byte $62
-                .byte $28
-                .byte $26
-                .byte $00
-                .byte $20
-                .byte $22
-                .byte $01
-                .byte $07
-                .byte $67
-                .byte $08
-crtcRegisterValues16KB:
-                .byte $7F
-                .byte $50
-                .byte $62
-                .byte $28
-                .byte $1e
-                .byte $02
-                .byte $19
-                .byte $1B
-                .byte $01
-                .byte $09
-                .byte $67
-                .byte $09
-crtcRegisterValues10KB:
-                .byte $3f
-                .byte $28
-                .byte $31
-                .byte $24
-                .byte $26
-                .byte $00
-                .byte $20
-                .byte $22
-                .byte $01
-                .byte $07
-                .byte $67
-                .byte $08
-crtcRegisterValues8KB:
-                .byte $3F
-                .byte $28
-                .byte $31
-                .byte $24
-                .byte $1e
-                .byte $02
-                .byte $19
-                .byte $1B
-                .byte $01
-                .byte $09
-                .byte $67
-                .byte $09
-crtcRegisterValues1KB:
-                .byte $3f
-                .byte $28
-                .byte $33
-                .byte $24
-                .byte $1e
-                .byte $02
-                .byte $19
-                .byte $1b
-                .byte $93
-                .byte $12
-                .byte $72
-                .byte $13
+crtcRegisterValues20KB:                   ;MODEs 0/1/2
+                .byte $7F            ;R0 - Horizontal Total
+                .byte $50            ;R1 - Horizontal Displayed
+                .byte $62            ;R2 - Horizontal Sync
+                .byte $28            ;R3 - Sync Width (%vvvvhhhh)
+                .byte $26            ;R4 - Vertical Total
+                .byte $00            ;R5 - Vertical Total Adjust
+                .byte $20            ;R6 - Vertical Displayed
+                .byte $22            ;R7 - Vertical Sync Position
+                .byte CRTC.R8.cursorDelay0|CRTC.R8.displayDelay0|CRTC.R8.interlaceSync ;R8 - Interlace/Delay
+                .byte $07               ;R9 - Scan lines per character
+                .byte CRTC.R10.blink|CRTC.R10.slowBlink|7 ;R10 - Cursor blink/start
+                .byte 8                    ;R11 - Cursor End
+crtcRegisterValues16KB:                    ;MODE 3
+                .byte $7F                 ;R0 - Horizontal Total      
+                .byte $50                 ;R1 - Horizontal Displayed  
+                .byte $62                 ;R2 - Horizontal Sync       
+                .byte $28                 ;R3 - Sync Width (%vvvvhhhh)
+                .byte $1e                 ;R4 - Vertical Total        
+                .byte $02                 ;R5 - Vertical Total Adjust 
+                .byte $19                 ;R6 - Vertical Displayed    
+                .byte $1B                 ;R7 - Vertical Sync Position
+                .byte CRTC.R8.cursorDelay0|CRTC.R8.displayDelay0|CRTC.R8.interlaceSync ;R8 - Interlace/Delay
+                .byte $09               ;R9 - Scan lines per character
+                .byte CRTC.R10.blink|CRTC.R10.slowBlink|7 ;R10 - Cursor blink/start
+                .byte 9                      ;R11 - Cursor End
+crtcRegisterValues10KB:                      ;MODEs 4/5
+                .byte $3f                 ;R0 - Horizontal Total      
+                .byte $28                 ;R1 - Horizontal Displayed  
+                .byte $31                 ;R2 - Horizontal Sync       
+                .byte $24                 ;R3 - Sync Width (%vvvvhhhh)
+                .byte $26                 ;R4 - Vertical Total        
+                .byte $00                 ;R5 - Vertical Total Adjust 
+                .byte $20                 ;R6 - Vertical Displayed    
+                .byte $22                 ;R7 - Vertical Sync Position
+                .byte CRTC.R8.cursorDelay0|CRTC.R8.displayDelay0|CRTC.R8.interlaceSync ;R8 - Interlace/Delay
+                .byte $07               ;R9 - Scan lines per character
+                .byte CRTC.R10.blink|CRTC.R10.slowBlink|7 ;R10 - Cursor blink/start
+                .byte 8                      ;R11 - Cursor End
+crtcRegisterValues8KB:                       ;MODE 6
+                .byte $3F                 ;R0 - Horizontal Total      
+                .byte $28                 ;R1 - Horizontal Displayed  
+                .byte $31                 ;R2 - Horizontal Sync       
+                .byte $24                 ;R3 - Sync Width (%vvvvhhhh)
+                .byte $1e                 ;R4 - Vertical Total        
+                .byte $02                 ;R5 - Vertical Total Adjust 
+                .byte $19                 ;R6 - Vertical Displayed    
+                .byte $1B                 ;R7 - Vertical Sync Position
+                .byte CRTC.R8.cursorDelay0|CRTC.R8.displayDelay0|CRTC.R8.interlaceSync ;R8 - Interlace/Delay
+                .byte $09               ;R9 - Scan lines per character
+                .byte CRTC.R10.blink|CRTC.R10.slowBlink|7 ;R10 - Cursor blink/start
+                .byte 9                      ;R11 - Cursor End
+crtcRegisterValues1KB:                       ;MODE 7
+                .byte $3f                 ;R0 - Horizontal Total      
+                .byte $28                 ;R1 - Horizontal Displayed  
+                .byte $33                 ;R2 - Horizontal Sync       
+                .byte $24                 ;R3 - Sync Width (%vvvvhhhh)
+                .byte $1e                 ;R4 - Vertical Total        
+                .byte $02                 ;R5 - Vertical Total Adjust 
+                .byte $19                 ;R6 - Vertical Displayed    
+                .byte $1b                 ;R7 - Vertical Sync Position
+                .byte CRTC.R8.cursorDelay2|CRTC.R8.displayDelay1|CRTC.R8.interlaceSyncAndVideo ;R8 - Interlace/Delay
+                .byte $12               ;R9 - Scan lines per character
+                .byte CRTC.R10.blink|CRTC.R10.slowBlink|18 ;R10 - Cursor blink/start
+                .byte 19                     ;R11 - Cursor End
                 
 ;-------------------------------------------------------------------------
 ;
@@ -6190,14 +6178,17 @@ defaultECFPatterns:
                 .byte $cc,$33,$cc,$33        ;1 - Grey
                 .byte $ff,$33,$ff,$33        ;2 - Light grey
                 .byte $03,$0c,$30,$c0        ;4 - Hatching
+                
 LE204:
-                ora ($01,x)                  ; E204= 01 01       ..
-                .byte $03                    ; E206= 03          .
-                .byte $03                    ; E207= 03          .
-                .byte $02                    ; E208= 02          .
-                brk                          ; E209= 00          .
-                .byte $02                    ; E20A= 02          .
-                brk                          ; E20B= 00          .
+                .byte $01                    ;---
+                .byte $01                    ;--h
+                .byte $03                    ;-v-
+                .byte $03                    ;-vh
+                .byte $02                    ;x--
+                .byte $00                    ;x-h
+                .byte $02                    ;xv-
+                .byte $00                    ;xvh
+                
 scrollRoutinesTable:
                 .word LC95F     ; E20C= 5F C9        _.
                 .word LC96B     ; E20E= 6B C9        k.
@@ -6242,26 +6233,37 @@ getSoftCharacterDefinitionAddress:
                 sta $DE                      ;
                 rts                          ;
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 165 (&A5) Read output cursor position [MasRef D.2-50]
+;
 osbyteA5:
-                jsr withMOSROM               ; E23D= 20 AB F3     +s
-                bit STATE                      ; E240= 24 D0       $P
-                bvc LE252                    ; E242= 50 0E       P.
-                jsr LE2AE                    ; E244= 20 AE E2     .b
-                jsr LE252                    ; E247= 20 52 E2     Rb
+                jsr withMOSROM
+                bit STATE
+                bvc getTextCursorPositionWithColumn81                    ;taken if cursor editing
+                jsr exchangeEditCursorPositionAndTextCursorPosition
+                jsr getTextCursorPositionWithColumn81                    ; E247= 20 52 E2     Rb
                 phx                          ; E24A= DA          Z
                 phy                          ; E24B= 5A          Z
-                jsr LE2AE                    ; E24C= 20 AE E2     .b
+                jsr exchangeEditCursorPositionAndTextCursorPosition
                 ply                          ; E24F= 7A          z
                 plx                          ; E250= FA          z
                 rts                          ; E251= 60          `
 
-LE252:
-                jsr LE26D                    ; E252= 20 6D E2     mb
-                bit $036C                    ; E255= 2C 6C 03    ,l.
-                bpl LE25B                    ; E258= 10 01       ..
-                inx                          ; E25A= E8          h
-LE25B:
+;-------------------------------------------------------------------------
+;
+; Get text cursor position, taking the column 81 flag into account and
+; reporting the X coordinate as N+1 in that case.
+; 
+getTextCursorPositionWithColumn81:
+                jsr getTextCursorPosition
+                bit vduv.column81
+                bpl +                       ;taken if not at column 81
+                inx                         ;X=81
++
                 rts                          ; E25B= 60          `
+
+;-------------------------------------------------------------------------
 
 LE25C:
                 sec                          ; E25C= 38          8
@@ -6272,43 +6274,65 @@ LE25C:
                 tay                          ; E266= A8          (
                 bra LE279                    ; E267= 80 10       ..
 
-osbyte86: ;E269:
+;-------------------------------------------------------------------------
+;
+; OSBYTE 134 (&86) Read text cursor position [MasRef D.2-41]
+;
+osbyte86:
                 bit STATE
-                bvc osbyteA5       ;branch taken if not cursor editing
-LE26D:
-                lda #$02                     ; E26D= A9 02       ).
-                ldy #$10                     ; E26F= A0 10        .
-                ldx #$00                     ; E271= A2 00       ".
-                jsr LE28A                    ; E273= 20 8A E2     .b
-                pha                          ; E276= 48          H
-                lda #$04                     ; E277= A9 04       ).
+                bvc osbyteA5       ;taken if not cursor editing
+getTextCursorPosition:
+                lda #VDUVariables.cursorFlags.invertHorizontal
+                ldy #VDUVariables.textCursorXPosition-VDUVariables.textWindow
+                ldx #VDUVariables.textWindowLeft-VDUVariables.textWindow
+                jsr getTextWindowRelativePosition
+                pha                          ;save X position
+                lda #VDUVariables.cursorFlags.invertVertical
 LE279:
-                iny                          ; E279= C8          H
-                ldx #$03                     ; E27A= A2 03       ".
-                jsr LE28A                    ; E27C= 20 8A E2     .b
-                tax                          ; E27F= AA          *
-                tay                          ; E280= A8          (
+                iny               ;i.e., offset of textCursorYPosition
+                ldx #VDUVariables.textWindowTop-VDUVariables.textWindow
+                jsr getTextWindowRelativePosition
+                tax                          ;X = Y position
+                tay                          ;Y = Y position
                 lda #vduv.cursorFlags.swapAxes
                 bit vduv.cursorFlags
-                beq plxThenRTS
-                ply                          ; E288= 7A          z
-                rts                          ; E289= 60          `
+                beq plxThenRTS ;taken if axes unswapped - so X = X position, Y = Y position
+                ply                          ;Y = Y position, X = X position
+                rts                          
 
-LE28A:
-                sec                          ; E28A= 38          8
-                bit $0366                    ; E28B= 2C 66 03    ,f.
-                beq LE29B                    ; E28E= F0 0B       p.
-                txa                          ; E290= 8A          .
-                eor #$02                     ; E291= 49 02       I.
-                tax                          ; E293= AA          *
-                lda $0308,x                  ; E294= BD 08 03    =..
-                sbc $0308,y                  ; E297= F9 08 03    y..
-                rts                          ; E29A= 60          `
+;-------------------------------------------------------------------------
+;
+; Get text window-relative cursor position, taking into account cursor
+; flags.
+;
+; entry:
+;
+; A = cursorFlags bit for axis of interest - invertHorizontal or invertVertical
+;
+; X = offset in VDU variables of text window minimum for axis of interest
+;
+; Y = offset in VDU variables of cursor position for axis of interest
+;
+; exit:
+;
+; A = text window-relative coordinate
+;
+getTextWindowRelativePosition:
+                sec                     ;C=1 ready for the subtraction
+                bit vduv.cursorFlags ;test cursor flags inversion bit of interest
+                beq axisNotInverted
+axisInverted:
+                txa
+                eor #$02                     ;swap min and max
+                tax
+                lda vduv.textWindow,x
+                sbc vduv.textWindow,y
+                rts
 
-LE29B:
-                lda $0308,y                  ; E29B= B9 08 03    9..
-                sbc $0308,x                  ; E29E= FD 08 03    }..
-                rts                          ; E2A1= 60          `
+axisNotInverted:
+                lda vduv.textWindow,y
+                sbc vduv.textWindow,x
+                rts                  
 
 ;-------------------------------------------------------------------------
 ;
@@ -6332,20 +6356,61 @@ plxThenRTS:
                 rts
 
 ;-------------------------------------------------------------------------
-
-LE2AE:
+;
+; Swap edit cursor position and text cursor position.
+;
+exchangeEditCursorPositionAndTextCursorPosition:
                 ldx #VDUVariables.textCursorXPosition
                 ldy #VDUVariables.editCursorXPosition
+
+;-------------------------------------------------------------------------
+;
+; Swap 2 bytes in the VDU variables.
+;
+; entry:
+;
+; X = offset of one set of 2 bytes
+;
+; Y = offset of the other set of 2 bytes
+;
 exchangeTwoVDUBytes:
                 lda #$02
                 bra exchangeVDUVariables
 
+;-------------------------------------------------------------------------
+;
+; Swap graphics cursor and old graphics cursor.
+;
 LE2B6:
                 ldx #VDUVariables.graphicsCursorPixelsX
 LE2B8:
                 ldy #VDUVariables.oldGraphicsCursorPixelsX
+
+;-------------------------------------------------------------------------
+;
+; Swap 4 bytes in the VDU variables.
+;
+; entry:
+;
+; X = offset of one set of 4 bytes
+;
+; Y = offset of the other set of 4 bytes
+;
 exchangeFourVDUBytes:
                 lda #$04                     ; E2BA= A9 04       ).
+
+;-------------------------------------------------------------------------
+;
+; Swap bytes in the VDU variables.
+;
+; entry:
+;
+; A = number of bytes to swap
+;
+; X = offset of one set of bytes
+;
+; Y = offset of the other set of bytes
+;
 exchangeVDUVariables:
                 pha                          ;save count remaining
                 lda vduv,x
@@ -7982,7 +8047,7 @@ osbyte7E:                       ;ec3c
                 lda $0276                    ; EC42= AD 76 02    -v.
                 bne LEC54                    ; EC45= D0 0D       P.
                 cli                          ; EC47= 58          X
-                stz $0269                    ; EC48= 9C 69 02    .i.
+                stz pagedModeCounter                    ; EC48= 9C 69 02    .i.
                 jsr withTerminalROM          ; EC4B= 20 84 F3     .s
                 jsr terminal.LA591           ; EC4E= 20 91 A5     .%
                 jsr LE947                    ; EC51= 20 47 E9     Gi
@@ -8830,7 +8895,7 @@ LF031:
                 lda ($F0),y                  ; F03B= B1 F0       1p
                 sta $E9                      ; F03D= 85 E9       .i
                 dey                          ; F03F= 88          .
-                stz $0269                    ; F040= 9C 69 02    .i.
+                stz pagedModeCounter                    ; F040= 9C 69 02    .i.
                 lda ($F0)                    ; F043= B2 F0       2p
                 sta $E8                      ; F045= 85 E8       .h
                 cli                          ; F047= 58          X

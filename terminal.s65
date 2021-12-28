@@ -806,7 +806,7 @@ L868D:
                 bra L8661                    ; 8698= 80 C7       .G
 
 L869A:
-                jmp mos.LFBED                ; 869A= 4C ED FB    Lm{
+                jmp mos.badCommandError
 
 readCommandLine:
                 lda #$00                     ; 869D= A9 00       ).
@@ -1212,7 +1212,7 @@ L8971:
                 jsr parseNumberFromString    ; 8971= 20 E6 85     f.
                 bcs L8970                    ; 8974= B0 FA       0z
 L8976:
-                jmp mos.LFBED                ; 8976= 4C ED FB    Lm{
+                jmp mos.badCommandError
 
 L8979:
                 ldx #$01                     ; 8979= A2 01       ".
@@ -2703,7 +2703,7 @@ L93C1:
                 bcc L93E2                    ; 93DE= 90 02       ..
                 beq L9366                    ; 93E0= F0 84       p.
 L93E2:
-                jmp mos.LFBED                ; 93E2= 4C ED FB    Lm{
+                jmp mos.badCommandError
 
 L93E5:
                 jsr parseNumberFromString    ; 93E5= 20 E6 85     f.
@@ -3079,6 +3079,8 @@ L964B:
 L9655:
                 rts                          ; Otherwise exit silently
 
+;-------------------------------------------------------------------------
+; 
 ; OSWORD &0F routine
 ; ==================
 ; (&F0)=>control block
@@ -3086,7 +3088,7 @@ L9655:
 ; Y=0
 ; Uses OSFILE control block at &2ED-&2FF as workspace
 ;
-L9656:
+osword0F:
                 stz $02ED
                 eor #$0F                     ; len=15, set date
                 beq L9665
@@ -5220,7 +5222,7 @@ LA422:
                 dex                          ; *OPT 2
                 beq LA43D
 LA433:
-                jmp mos.LFBED ; *OPT 4+ - error Bad command (*BUG* should be Bad option)
+                jmp mos.badCommandError ; *OPT 4+ - error Bad command (*BUG* should be Bad option)
 
 ; *OPT 1 - set message level
 ; --------------------------
@@ -5861,7 +5863,7 @@ LA822:
                 lda $0247                    ; A822= AD 47 02    -G.
                 beq LA82D                    ; A825= F0 06       p.
                 jsr LA9CA                    ; A827= 20 CA A9     J)
-                jmp mos.LFBED                ; A82A= 4C ED FB    Lm{
+                jmp mos.badCommandError
 
 LA82D:
                 jsr LAA5A                    ; A82D= 20 5A AA     Z*
@@ -9921,6 +9923,7 @@ LB900:
                 .byte %00000000
 
                 ; CHR$127
+chr127:
                 .byte %11111111
                 .byte %11111111
                 .byte %11111111

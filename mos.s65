@@ -155,11 +155,11 @@ LC024:
 ; Output to VDU.
 ; 
 outputToVDU:
-                ldx $026A                    ;get VDU queue length
-                beq LC059                    ;taken if empty
+                ldx vduQueueNegativeLength  ;get VDU queue length
+                beq outputCharToVDU                    ;taken if empty
                 sta vduv.queueEnd-1-255,x     ;add to queue
-                inc $026A                     ;one more in the queue...
-                beq LC036                    ;taken if queue now filled
+                inc vduQueueNegativeLength  ;one more in the queue...
+                beq outputQueueToVDU    ;taken if queue now filled
 clcThenRTS:
                 clc
 
@@ -177,69 +177,71 @@ rtsC035:
 
 ;-------------------------------------------------------------------------
 
-LC036:
+outputQueueToVDU:
                 bit STATE
                 bpl LC053              ;branch taken if not VDU21 mode
+
+                ; ????
                 ldy vduv.jumpVector+1
                 cpy #>vdu1EntryPoint
                 bne clcThenRTS
                 ldy vduv.jumpVector+0
                 cpy #<vdu1EntryPoint
                 bne clcThenRTS
-LC048:
-                tax
+                
+outputCharToPrinter:
+                tax                          ;save char to print
                 lda STATE
                 lsr a                       ;C set if isPrinterEnabled
-                bcc rtsC035              ;taken if printer not enabled
-                txa                          ; C04E= 8A          .
-LC04F:
-                clc                          ; C04F= 18          .
-                jmp LE8B9                    ; C050= 4C B9 E8    L9h
+                bcc rtsC035 ;taken if printer disabled - VDU 1 then a no-op
+                txa                          ;restore char to print
+                clc
+                jmp LE8B9
 
 LC053:
-                jsr LC0FA                    ; C053= 20 FA C0     z@
+                jsr stopCursorEditing                    ; C053= 20 FA C0     z@
                 clc                          ; C056= 18          .
                 bra LC0C0                    ; C057= 80 67       .g
 
-LC059:
-                jsr LC0FA                    ; C059= 20 FA C0     z@
-                bvc LC06D                    ; C05C= 50 0F       P.
-                bmi LC06D                    ; C05E= 30 0D       0.
-                cmp #$0D                     ; C060= C9 0D       I.
-                bne LC06D                    ; C062= D0 09       P.
-                pha                          ; C064= 48          H
-                lda #$42                     ; C065= A9 42       )B
-                trb STATE                      ; C067= 14 D0       .P
-                jsr showCursor                 ; C069= 20 50 CF     PO
-                pla                          ; C06C= 68          h
+outputCharToVDU:
+                jsr stopCursorEditing                    ; C059= 20 FA C0     z@
+                bvc LC06D             ;taken if not previously editing
+                bmi LC06D             ;taken if VDU 21
+                cmp #$0D
+                bne LC06D                  ;taken if not printing a CR
+                pha                        ;save char to print
+                lda #STATE.isCursorEditing|STATE.isScrollingDisabled
+                trb STATE
+                jsr showCursor
+                pla                          ;restore char to print
 LC06D:
-                cmp #$20                     ; C06D= C9 20       I
-                bcc LC077                    ; C06F= 90 06       ..
-                cmp #$7F                     ; C071= C9 7F       I.
-                bne LC096                    ; C073= D0 21       P!
-                lda #$20                     ; C075= A9 20       )
-LC077:
-                tay                          ; C077= A8
-                lda LE027,y                  ; Get routine LSB
-                sta $035D                    ; Store jump address LSB (see MasRef E.4-3)
-                lda LE048,y                  ; Get routine MSB
-                bmi LC0B3                    ; Branch taken if bit 7 set
+                cmp #$20
+                bcc handleControlChar
+                cmp #$7F                     
+                bne LC096                    ;taken if not backspace
+                lda #$20 ;backspace is entry 32 in the VDU routines table
+handleControlChar:
+                tay                          ;Y=index in table
+                lda vduRoutinesLSBTable,y
+                sta vduv.jumpVector+0 ; Store jump address LSB (see MasRef E.4-3)
+                lda vduRoutinesMSBTable,y
+                bmi LC0B3           ;branch taken if MSB directly
                 tax                          ; Save original MSB value
-                ora #$F0                     ; 
-                sta $026A                    ; 
+                ora #$F0                     
+                sta vduQueueNegativeLength ;initialise initial VDU queue length
                 txa                          ; Restore original MSB value
                 lsr a                        ; 
                 lsr a                        ; 
                 lsr a                        ; 
                 lsr a                        ; Extract value in top 4 bits
                 clc                          ; 
-                adc #$C0                     ; Add $C0 to value from top 4 bits
-                sta $035E                    ; Store jump address MSB
+                adc #vduRoutinesPage         ; form MSB
+                sta vduv.jumpVector+1
                 bra LC0CA                    ; Continue
 
 LC096:
-                bit STATE                      ; C096= 24 D0       $P
-                bmi LC0C7                    ; C098= 30 2D       0-
+                bit STATE
+                bmi LC0C7                    ;taken if VDU21
                 jsr LCE0C                    ; C09A= 20 0C CE     .N
                 lda #$20                     ; C09D= A9 20       )
                 bit $0366                    ; C09F= 2C 66 03    ,f.
@@ -250,18 +252,18 @@ LC096:
 LC0A9:
                 eor #$06                     ; C0A9= 49 06       I.
                 bne LC0C5                    ; C0AB= D0 18       P.
-                lda #$80                     ; C0AD= A9 80       ).
+                lda #STATE.isVDU21
                 trb STATE                      ; C0AF= 14 D0       .P
                 bra LC0CA                    ; C0B1= 80 17       ..
 
 LC0B3:
-                sta $035E                    ; Store jump address MSB
+                sta vduv.jumpVector+1
                 tya                          ; C0B6= 98          .
                 eor #$F7                     ; C0B7= 49 F7       Iw
                 cmp #$FA                     ; C0B9= C9 FA       Iz
                 tya                          ; C0BB= 98          .
-                bit STATE                      ; C0BC= 24 D0       $P
-                bmi LC0A9                    ; C0BE= 30 E9       0i
+                bit STATE
+                bmi LC0A9             ;branch taken if VDU21 in effect
 LC0C0:
                 php                          ; C0C0= 08          .
                 jsr LC024                    ; C0C1= 20 24 C0     $@
@@ -269,25 +271,24 @@ LC0C0:
 LC0C5:
                 bcc LC0CA                    ; C0C5= 90 03       ..
 LC0C7:
-                lda STATE                      ; C0C7= A5 D0       %P
-                lsr a                        ; C0C9= 4A          J
+                lda STATE
+                lsr a                          ;C=1 if printer enabled
 LC0CA:
-                bit STATE                      ; C0CA= 24 D0       $P
-                bvc LC0E1                    ; C0CC= 50 13       P.
-                jsr LC105                    ; C0CE= 20 05 C1     .A
-LC0D1:
-                php                          ; C0D1= 08          .
-                pha                          ; C0D2= 48          H
-                lda STATE                      ; C0D3= A5 D0       %P
+                bit STATE
+                bvc rtsC0E1               ;taken if not cursor editing
+                jsr activateEditCursor
+toggleIsCursorEditing:
+                php
+                pha
+                lda STATE
                 eor #STATE.isScrollingDisabled
-                sta STATE                      ; C0D7= 85 D0       .P
-                jsr exchangeEditCursorPositionAndTextCursorPosition                    ; C0D9= 20 AE E2     .b
-                jsr LC6D8                    ; C0DC= 20 D8 C6     XF
-                pla                          ; C0DF= 68          h
-LC0E0:
-                plp                          ; C0E0= 28          (
-LC0E1:
-                rts                          ; C0E1= 60          `
+                sta STATE
+                jsr exchangeEditCursorPositionAndTextCursorPosition
+                jsr updateCRTCTextCursor
+                pla
+                plp
+rtsC0E1:
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -295,8 +296,8 @@ LC0E1:
 ; 
 vdu1EntryPoint:
                 jsr LC0CA                    ; C0E2= 20 CA C0     J@
-                jsr LC048                    ; C0E5= 20 48 C0     H@
-                bra LC0FA                    ; C0E8= 80 10       ..
+                jsr outputCharToPrinter
+                bra stopCursorEditing                    ; C0E8= 80 10       ..
 
 ;-------------------------------------------------------------------------
 ;
@@ -305,66 +306,94 @@ vdu1EntryPoint:
 ; 
 vdu2EntryPoint:
 vdu3EntryPoint:
-                pha                          ; C0EA= 48          H
-                jsr LC0CA                    ; C0EB= 20 CA C0     J@
-                jsr LE93A                    ; C0EE= 20 3A E9     :i
-                lda #$01                     ; C0F1= A9 01       ).
+                pha                          ;
+                jsr LC0CA
+                jsr LE93A
+                lda #STATE.isPrinterEnabled  ;
                 tsb STATE                      ; C0F3= 04 D0       .P
                 pla                          ; C0F5= 68          h
-                and #$01                     ; C0F6= 29 01       ).
+                and #STATE.isPrinterEnabled
                 trb STATE                      ; C0F8= 14 D0       .P
-LC0FA:
-                bit STATE
-                bvc LC0E1                    ;taken if not cursor editing
-                jsr LC0D1                    ; C0FE= 20 D1 C0     Q@
-                php                          ; C101= 08          .
-                sec                          ; C102= 38          8
-                bra LC107                    ; C103= 80 02       ..
 
-LC105:
+;-------------------------------------------------------------------------
+;
+; Stop cursor editing, if it's on.
+;
+; exit:
+;
+; V=1 if cursor editing previous on
+; N=1 if VDU 21 on
+;
+stopCursorEditing:
+                bit STATE
+                bvc rtsC0E1                    ;taken if not cursor editing
+                jsr toggleIsCursorEditing
+                php
+deactivateEditCursor:
+                sec                          
+                bra updateEditCursorState
+
+;-------------------------------------------------------------------------
+
+activateEditCursor:
                 php                          ; C105= 08          .
                 clc                          ; C106= 18          .
-LC107:
-                pha                          ; C107= 48          H
-                lda ZMEMT+0                      ; C108= A5 D8       %X
-                sta $E0                      ; C10A= 85 E0       .`
-                lda ZMEMT+1                      ; C10C= A5 D9       %Y
-                sta $E1                      ; C10E= 85 E1       .a
-                ldy $034F                    ; C110= AC 4F 03    ,O.
-                dey                          ; C113= 88          .
-                bne LC124                    ; C114= D0 0E       P.
-                lda $0338                    ; C116= AD 38 03    -8.
-                bcs LC132                    ; C119= B0 17       0.
-                lda (ZMEMT)                    ; C11B= B2 D8       2X
-                sta $0338                    ; C11D= 8D 38 03    .8.
-                lda #$7F                     ; C120= A9 7F       ).
-                bra LC132                    ; C122= 80 0E       ..
 
-LC124:
-                lda #$FF                     ; C124= A9 FF       ).
-                cpy #$1F                     ; C126= C0 1F       @.
-                bne LC12C                    ; C128= D0 02       P.
-                lda #$3F                     ; C12A= A9 3F       )?
-LC12C:
-                sta $DA                      ; C12C= 85 DA       .Z
-LC12E:
-                lda ($E0)                    ; C12E= B2 E0       2`
-                eor $DA                      ; C130= 45 DA       EZ
-LC132:
-                sta ($E0)                    ; C132= 92 E0       .`
-                inc $E0                      ; C134= E6 E0       f`
-                bne LC141                    ; C136= D0 09       P.
-                inc $E1                      ; C138= E6 E1       fa
-                bpl LC141                    ; C13A= 10 05       ..
-LC13C:
-                lda $034E                    ; C13C= AD 4E 03    -N.
-                sta $E1                      ; C13F= 85 E1       .a
-LC141:
-                dey                          ; C141= 88          .
-                bpl LC12E                    ; C142= 10 EA       .j
-                pla                          ; C144= 68          h
-                plp                          ; C145= 28          (
-                rts                          ; C146= 60          `
+;-------------------------------------------------------------------------
+;
+; Handle cursor editing on/off.
+;
+; entry:
+;
+; C=0 - cursor editing on; add fake cursor
+;
+; C=1 = cursor editing off; remove fake cursor and restore screen
+; 
+updateEditCursorState: .proc
+                pha
+                lda ZMEMT+0 
+                sta ZTEMPD+0
+                lda ZMEMT+1 
+                sta ZTEMPD+1
+                ldy vduv.bytesPerCharacter
+                dey
+                bne bitmap
+                
+teletext:
+                lda vduv.workspace._38 ;get old byte under fake cursor (may be bogus)
+                bcs storeToScreen      ;taken if switching off
+                lda (ZMEMT)            ;get screen byte
+                sta vduv.workspace._38 ;store old byte
+                lda #$7F               ;store solid block to screen
+                bra storeToScreen
+
+bitmap:
+                lda #%11111111          ;invert all bits
+                cpy #$1F      ;check for 32 chars/byte - i.e., MODE 2
+                bne +         ;taken if not MODE 2
+                lda #%00111111       ;avoid flashing colours in MODE 2
++
+                sta ZTEMP
+loop:
+                lda (ZTEMPD)
+                eor ZTEMP
+storeToScreen:
+                sta (ZTEMPD)
+                inc ZTEMPD+0
+                bne +                    ;taken if no carry out of LSB
+                inc ZTEMPD+1
+                bpl +                 ;taken if no screen address wrap
+                lda vduv.startScreenAddressHighByte
+                sta ZTEMPD+1
++
+                dey               ;Y=$ff after 1 iteration in teletext
+                bpl loop
+                pla
+                plp
+                rts
+                .endproc
+
+;-------------------------------------------------------------------------
 
 LC147:
                 .word LC1BE                  ; C147= BE C1       ..
@@ -1293,8 +1322,9 @@ vdu26EntryPoint:
 
 ;-------------------------------------------------------------------------
 ;
+; Update CRTC cursor address to reflect text cursor position.
 ; 
-LC6D8:
+updateCRTCTextCursor:
                 jsr getAddressForTextCursorPosition
                 bra setCRTCCursorAddress
 
@@ -2491,253 +2521,309 @@ LCD63:
 
 ;-------------------------------------------------------------------------
 
-LCD67:
-                inc $0324                    ; CD67= EE 24 03    n$.
-                bne LCD6F                    ; CD6A= D0 03       P.
-                inc $0325                    ; CD6C= EE 25 03    n%.
-LCD6F:
-                asl a                        ; CD6F= 0A          .
-LCD70:
-                bpl LCD67                    ; CD70= 10 F5       .u
-                phy                          ; CD72= 5A          Z
-                sta $DD                      ; CD73= 85 DD       .]
-                ldx #$24                     ; CD75= A2 24       "$
+nextMaskedCharColumn
+                inc vduv.graphicsCursorPixelsX+0
+                bne +
+                inc vduv.graphicsCursorPixelsX+1
++
+                asl a
+plotMaskedCharRow:
+                ; find next pixel to plot, updating graphics cursor X
+                ; as it goes. A is non-zero, so this loop will finish
+                ; eventually.
+                bpl nextMaskedCharColumn
+                phy
+                sta ZTEMPB+1                 ;
+                ldx #VDUVariables.graphicsCursorPixels
                 jsr gaddrEntryPoint                    ; CD77= 20 C8 DE     H^
-                bra LCD7E                    ; CD7A= 80 02       ..
+                bra plotMaskedCharPixel
 
-LCD7C:
-                bpl LCD81                    ; CD7C= 10 03       ..
-LCD7E:
+plotMaskedCharPixelsLoop:
+                bpl nextMaskedCharPixel
+plotMaskedCharPixel:
                 jsr plbyteEntryPoint
-LCD81:
-                lsr ZMASK                      ; CD81= 46 D1       FQ
-                bcc LCD88                    ; CD83= 90 03       ..
-                jsr nextColumnAndResetMask                    ; CD85= 20 67 DA     gZ
-LCD88:
-                asl $DD                      ; CD88= 06 DD       .]
-                bne LCD7C                    ; CD8A= D0 F0       Pp
+nextMaskedCharPixel
+                lsr ZMASK
+                bcc +
+                jsr nextColumnAndResetMask
++
+                asl ZTEMPB+1
+                bne plotMaskedCharPixelsLoop
                 ldx #VDUVariables.workspace._28
                 ldy #VDUVariables.graphicsCursorPixelsX
-                jsr copyTwoBytesWithinVDUVariables                    ; CD90= 20 0C C9     .I
-                ply                          ; CD93= 7A          z
-                bra LCDE6                    ; CD94= 80 50       .P
+                jsr copyTwoBytesWithinVDUVariables
+                ply
+                bra nextMaskedCharY
 
-LCD96:
+plotCharAtGraphicsCursor:
                 jsr getSoftCharacterDefinitionAddress
-                stz vduv.graphicsPlotState
+                stz vduv.graphicsPlotState   ;plot in foreground colour
                 lda vduv.foregroundGCOLMode
-                and #$0F                     ; CD9F= 29 0F       ).
-LCDA1:
-                sta $035A                    ; CDA1= 8D 5A 03    .Z.
+                and #$0F
+plotFontDataAtGraphicsCursorWithPlotMode:
+                sta vduv.graphicsPlotMode
                 ldy #VDUVariables.workspace._28
                 jsr copyGraphicsCursorPixels
-                ldy #$24                     ; CDA9= A0 24        $
-                ldx #$00                     ; CDAB= A2 00       ".
-                jsr LCEB4                    ; CDAD= 20 B4 CE     4N
-                sta $DC                      ; CDB0= 85 DC       .\
-                ldx #$04                     ; CDB2= A2 04       ".
-                jsr LCEB4                    ; CDB4= 20 B4 CE     4N
-                ror a                        ; CDB7= 6A          j
-                trb $DC                      ; CDB8= 14 DC       .\
-                ldx #$26                     ; CDBA= A2 26       "&
-                ldy #$06                     ; CDBC= A0 06        .
-                jsr LCEB4                    ; CDBE= 20 B4 CE     4N
-                sta $DD                      ; CDC1= 85 DD       .]
-                ldx #$26                     ; CDC3= A2 26       "&
-                ldy #$02                     ; CDC5= A0 02        .
-                jsr LCEB4                    ; CDC7= 20 B4 CE     4N
+                ldy #VDUVariables.graphicsCursorPixelsX
+                ldx #VDUVariables.graphicsWindowPixelsLeft
+                jsr getDistanceMask
+                sta ZTEMPB+0                 
+                ldx #VDUVariables.graphicsWindowPixelsRight
+                jsr getDistanceMask
+                ror a                        
+                trb ZTEMPB+0
+                ldx #VDUVariables.graphicsCursorPixelsY
+                ldy #VDUVariables.graphicsWindowPixelsTop
+                jsr getDistanceMask
+                sta ZTEMPB+1
+                ldx #VDUVariables.graphicsCursorPixelsY
+                ldy #VDUVariables.graphicsWindowPixelsBottom
+                jsr getDistanceMask
                 ror a                        ; CDCA= 6A          j
-                trb $DD                      ; CDCB= 14 DD       .]
+                trb ZTEMPB+1
                 ldy #$07                     ; CDCD= A0 07        .
-LCDCF:
-                lda ($DE),y                  ; CDCF= B1 DE       1^
-                and $DC                      ; CDD1= 25 DC       %\
-                lsr $DD                      ; CDD3= 46 DD       F]
-                bcs LCDD9                    ; CDD5= B0 02       0.
-                lda #$00                     ; CDD7= A9 00       ).
-LCDD9:
-                sta $032C,y                  ; CDD9= 99 2C 03    .,.
-                dey                          ; CDDC= 88          .
-                bpl LCDCF                    ; CDDD= 10 F0       .p
-                ldy #$F8                     ; CDDF= A0 F8        x
-LCDE1:
-                lda $0234,y                  ; CDE1= B9 34 02    94.
-                bne LCD70                    ; CDE4= D0 8A       P.
-LCDE6:
-                ldx $0326                    ; CDE6= AE 26 03    .&.
-                bne LCDEE                    ; CDE9= D0 03       P.
-                dec $0327                    ; CDEB= CE 27 03    N'.
-LCDEE:
-                dec $0326                    ; CDEE= CE 26 03    N&.
-                iny                          ; CDF1= C8          H
-                bne LCDE1                    ; CDF2= D0 ED       Pm
+copyMaskedCharLoop:
+                lda (ZTEMPC),y               ;get font byte
+                and ZTEMPB+0                 ;mask out columns
+                lsr ZTEMPB+1                 ;test row
+                bcs +
+                lda #$00                     ;mask out this row
++
+                sta vduv.workspace._2C,y
+                dey
+                bpl copyMaskedCharLoop
+                ldy #$F8                     
+plotMaskedCharLoop:
+                lda vduv.workspace._2C-$f8,y ;get masked byte
+                bne plotMaskedCharRow        ;taken if data to write
+nextMaskedCharY:
+                ldx vduv.graphicsCursorPixelsY+0
+                bne +
+                dec vduv.graphicsCursorPixelsY+1
++
+                dec vduv.graphicsCursorPixelsY+0
+                iny
+                bne plotMaskedCharLoop
                 ldx #VDUVariables.workspace._2A
                 ldy #VDUVariables.graphicsCursorPixelsY
-                jmp copyTwoBytesWithinVDUVariables                    ; CDF8= 4C 0C C9    L.I
+                jmp copyTwoBytesWithinVDUVariables
 
-LCDFB:
-                lda #$F8                     ; CDFB= A9 F8       )x
-                sta $DE                      ; CDFD= 85 DE       .^
-                lda #$BB                     ; CDFF= A9 BB       );
-                sta $DF                      ; CE01= 85 DF       ._
-                ldx #$08                     ; CE03= A2 08       ".
-                stx $0359                    ; CE05= 8E 59 03    .Y.
-                lda #$00                     ; CE08= A9 00       ).
-                bra LCDA1                    ; CE0A= 80 95       ..
+vdu127AtGraphicsCursor:
+                ; CHR$127 is a solid block, not a backspace.
+                lda #<terminal.chr127
+                sta ZTEMPC+0
+                lda #>terminal.chr127
+                sta ZTEMPC+1
+                ldx #$08
+                stx vduv.graphicsPlotState   ;plot in background colour
+                lda #$00
+                bra plotFontDataAtGraphicsCursorWithPlotMode
 
 LCE0C:
-                jsr handleColumn81                    ; CE0C= 20 2D D1     -Q
-                bcs LCD96                    ; CE0F= B0 85       0.
-                ldx $0360                    ; CE11= AE 60 03    .`.
-                beq LCE4D                    ; CE14= F0 37       p7
-                jsr getSoftCharacterDefinitionAddress                    ; CE16= 20 2C E2     ,b
-LCE19:
+                jsr handleColumn81                    
+                bcs plotCharAtGraphicsCursor          ;taken if VDU5
+                ldx vduv.numberOfLogicalColoursMinusOne
+                beq writeTeletextChar
+                jsr getSoftCharacterDefinitionAddress
+writeBitmapChar:
                 ldy #$07                     ; CE19= A0 07        .
-                cpx #$03                     ; CE1B= E0 03       `.
-                beq LCE53                    ; CE1D= F0 34       p4
-                bcs LCE7C                    ; CE1F= B0 5B       0[
-LCE21:
-                lda ($DE),y                  ; CE21= B1 DE       1^
+                cpx #$03
+                beq write2bppChar            ;taken if MODE 1/5
+                bcs write4bppChar                    ;taken if MODE 2
+write1bppChar:
+                lda (ZTEMPC),y                  ; CE21= B1 DE       1^
                 ora ZORA                      ; CE23= 05 D2       .R
                 eor ZEOR                      ; CE25= 45 D3       ES
                 sta (ZMEMT),y                  ; CE27= 91 D8       .X
                 dey                          ; CE29= 88          .
-                bpl LCE21                    ; CE2A= 10 F5       .u
+                bpl write1bppChar
                 rts                          ; CE2C= 60          `
 
-LCE2D:
+vdu127EntryPoint:
                 lda #$20                     ; CE2D= A9 20       )
                 bit $0366                    ; CE2F= 2C 66 03    ,f.
                 bne LCE37                    ; CE32= D0 03       P.
                 jsr vdu8EntryPoint           ; CE34= 20 9A C2     .B
 LCE37:
-                jsr testVDU5State                    ; CE37= 20 D2 E2     Rb
-                bne LCDFB                    ; CE3A= D0 BF       P?
-                ldx $0360                    ; CE3C= AE 60 03    .`.
-                beq LCE4B                    ; CE3F= F0 0A       p.
-                lda #$00                     ; CE41= A9 00       ).
-                sta $DE                      ; CE43= 85 DE       .^
-                lda #$B9                     ; CE45= A9 B9       )9
-                sta $DF                      ; CE47= 85 DF       ._
-                bra LCE19                    ; CE49= 80 CE       .N
+                jsr testVDU5State            ; CE37= 20 D2 E2     Rb
+                bne vdu127AtGraphicsCursor
+                ldx vduv.numberOfLogicalColoursMinusOne
+                beq writeTeletextSpaceChar   ;taken if teletext mode
 
-LCE4B:
+                ; Address of space char is known.
+                lda #<terminal.LB900
+                sta ZTEMPC+0
+                lda #>terminal.LB900
+                sta ZTEMPC+1
+                bra writeBitmapChar
+
+writeTeletextSpaceChar:
                 lda #$20                     ; CE4B= A9 20       )
-LCE4D:
+writeTeletextChar:
                 jsr getSAA5050FromASCII
                 sta (ZMEMT)                    ; CE50= 92 D8       .X
                 rts                          ; CE52= 60          `
 
-LCE53:
-                lda ZMEMT+1                      ; CE53= A5 D9       %Y
-                ldx ZMEMT+0                      ; CE55= A6 D8       &X
-                jsr LCEE7                    ; CE57= 20 E7 CE     gN
-LCE5A:
-                lda ($DE),y                  ; CE5A= B1 DE       1^
-                and #$0F                     ; CE5C= 29 0F       ).
-                tax                          ; CE5E= AA          *
-                lda LE013,x                  ; CE5F= BD 13 E0    =.`
-                ora ZORA                      ; CE62= 05 D2       .R
-                eor ZEOR                      ; CE64= 45 D3       ES
-                sta ($E0),y                  ; CE66= 91 E0       .`
-                lda ($DE),y                  ; CE68= B1 DE       1^
-                lsr a                        ; CE6A= 4A          J
-                lsr a                        ; CE6B= 4A          J
-                lsr a                        ; CE6C= 4A          J
-                lsr a                        ; CE6D= 4A          J
-                tax                          ; CE6E= AA          *
-                lda LE013,x                  ; CE6F= BD 13 E0    =.`
-                ora ZORA                      ; CE72= 05 D2       .R
-                eor ZEOR                      ; CE74= 45 D3       ES
-                sta (ZMEMT),y                  ; CE76= 91 D8       .X
+write2bppChar:
+                lda ZMEMT+1
+                ldx ZMEMT+0
+                jsr getNextColumnAddress
+-
+                lda (ZTEMPC),y               ;get font byte
+                and #$0F                     ;get data for right 4 pixels
+                tax
+                lda LE013,x                  ;form byte
+                ora ZORA
+                eor ZEOR
+                sta (ZTEMPD),y               ;write to right column
+                lda (ZTEMPC),y               ;get font byte
+                lsr a                        ;
+                lsr a                        ;
+                lsr a                        ;
+                lsr a                        ;get data for left 4 pixels
+                tax                          ;
+                lda LE013,x                  ;form byte
+                ora ZORA                      
+                eor ZEOR                      
+                sta (ZMEMT),y                ;write to left column
                 dey                          ; CE78= 88          .
-                bpl LCE5A                    ; CE79= 10 DF       ._
+                bpl -
                 rts                          ; CE7B= 60          `
 
-LCE7C:
+write4bppChar:
                 lda ZMEMT+1                      ; CE7C= A5 D9       %Y
                 ldx ZMEMT+0                      ; CE7E= A6 D8       &X
-                jsr LCED9                    ; CE80= 20 D9 CE     YN
-LCE83:
-                lda ($DE),y                  ; CE83= B1 DE       1^
-                jsr LCEA9                    ; CE85= 20 A9 CE     )N
-                sta ($E0),y                  ; CE88= 91 E0       .`
-                lda ($DE),y                  ; CE8A= B1 DE       1^
-                lsr a                        ; CE8C= 4A          J
-                lsr a                        ; CE8D= 4A          J
-                pha                          ; CE8E= 48          H
-                jsr LCEA9                    ; CE8F= 20 A9 CE     )N
-                sta ($DC),y                  ; CE92= 91 DC       .\
-                pla                          ; CE94= 68          h
-                lsr a                        ; CE95= 4A          J
-                lsr a                        ; CE96= 4A          J
-                pha                          ; CE97= 48          H
-                jsr LCEA9                    ; CE98= 20 A9 CE     )N
-                sta ($DA),y                  ; CE9B= 91 DA       .Z
-                pla                          ; CE9D= 68          h
-                lsr a                        ; CE9E= 4A          J
-                lsr a                        ; CE9F= 4A          J
-                jsr LCEA9                    ; CEA0= 20 A9 CE     )N
-                sta (ZMEMT),y                  ; CEA3= 91 D8       .X
-                dey                          ; CEA5= 88          .
-                bpl LCE83                    ; CEA6= 10 DB       .[
-                rts                          ; CEA8= 60          `
+                jsr getNext3ColumnAddresses
+-
+                lda (ZTEMPC),y               ;get font byte - %abcdefgh
+                jsr get4bppScreenByteFor2Pixels ;pixels g and h
+                sta ($E0),y                  
+                lda (ZTEMPC),y               ;get font byte - %abcdefgh
+                lsr a                        ;%0abcdefg
+                lsr a                        ;%00abcdef
+                pha                          ;save %00abcdef
+                jsr get4bppScreenByteFor2Pixels ;pixels e and f
+                sta (ZTEMPB),y                  
+                pla                          ;restore %00abcdef
+                lsr a                        ;%000abcde
+                lsr a                        ;%0000abcd
+                pha                          ;save %0000abcd
+                jsr get4bppScreenByteFor2Pixels ;pixels c and d
+                sta (ZTEMP),y                  
+                pla                          ;restore %0000abcd
+                lsr a                        ;%00000abc
+                lsr a                        ;%000000ab
+                jsr get4bppScreenByteFor2Pixels ;pixels a and b
+                sta (ZMEMT),y                  
+                dey                          
+                bpl -
+                rts                          
 
-LCEA9:
-                and #$03                     ; CEA9= 29 03       ).
-                tax                          ; CEAB= AA          *
-                lda LE023,x                  ; CEAC= BD 23 E0    =#`
-                ora ZORA                      ; CEAF= 05 D2       .R
-                eor ZEOR                      ; CEB1= 45 D3       ES
-                rts                          ; CEB3= 60          `
+get4bppScreenByteFor2Pixels:
+                and #$03                     ;mask out 2 pixels
+                tax                          
+                lda LE023,x                  ;form byte
+                ora ZORA
+                eor ZEOR
+                rts
 
-LCEB4:
-                sec                          ; CEB4= 38          8
-                lda $0300,x                  ; CEB5= BD 00 03    =..
-                sbc $0300,y                  ; CEB8= F9 00 03    y..
-                sta $DA                      ; CEBB= 85 DA       .Z
-                lda $0301,x                  ; CEBD= BD 01 03    =..
-                sbc $0301,y                  ; CEC0= F9 01 03    y..
-                bmi LCED1                    ; CEC3= 30 0C       0.
-                bne LCED5                    ; CEC5= D0 0E       P.
-                ldx $DA                      ; CEC7= A6 DA       &Z
-                cpx #$08                     ; CEC9= E0 08       `.
-                bcs LCED5                    ; CECB= B0 08       0.
-                lda LE127,x                  ; CECD= BD 27 E1    ='a
-                rts                          ; CED0= 60          `
+;-------------------------------------------------------------------------
+;
+; Get mask indicating the distance between two 16-bit VDU variable
+; values - >=8, or some amount less than that.
+;
+; (These can be used for masking pixels, or counting loops, or
+; whatever.)
+;
+; entry:
+;
+; X = offset of value A in VDU variables
+;
+; Y = offset of value B in VDU variables
+;
+; exit:
+;
+; if distance<=0, A=255, C=1
+;
+; if distance>=8, A=0, C=0
+;
+; otherwise, A=255>>distance, C=0
+; 
+getDistanceMask:
+                sec
+                lda vduv+0,x
+                sbc vduv+0,y
+                sta ZTEMP                    ;get result LSB
+                lda vduv+1,x
+                sbc vduv+1,y
+                bmi distanceMask255                  ;taken if result -ve
+                bne distanceMask0                  ;taken if result >=256
+                ldx ZTEMP
+                cpx #$08
+                bcs distanceMask0                    ;taken if result>=8
+                lda distanceMasksTable,x             ;get mask for <8 items
+                rts
 
-LCED1:
-                lda #$FF                     ; CED1= A9 FF       ).
-                sec                          ; CED3= 38          8
-                rts                          ; CED4= 60          `
+distanceMask255:
+                lda #%11111111
+                sec
+                rts
 
-LCED5:
-                lda #$00                     ; CED5= A9 00       ).
-                clc                          ; CED7= 18          .
-                rts                          ; CED8= 60          `
+distanceMask0:
+                lda #$00
+                clc
+                rts
 
-LCED9:
-                jsr LCEE7                    ; CED9= 20 E7 CE     gN
-                stx $DA                      ; CEDC= 86 DA       .Z
-                sta $DB                      ; CEDE= 85 DB       .[
-                jsr LCEE7                    ; CEE0= 20 E7 CE     gN
-                stx $DC                      ; CEE3= 86 DC       .\
-                sta $DD                      ; CEE5= 85 DD       .]
-LCEE7:
-                pha                          ; CEE7= 48          H
-                txa                          ; CEE8= 8A          .
-                clc                          ; CEE9= 18          .
-                adc #$08                     ; CEEA= 69 08       i.
-                tax                          ; CEEC= AA          *
-                pla                          ; CEED= 68          h
-                bcc LCEF6                    ; CEEE= 90 06       ..
-                inc a                        ; CEF0= 1A          .
-                bpl LCEF6                    ; CEF1= 10 03       ..
-                lda $034E                    ; CEF3= AD 4E 03    -N.
-LCEF6:
-                stx $E0                      ; CEF6= 86 E0       .`
-                sta $E1                      ; CEF8= 85 E1       .a
-                rts                          ; CEFA= 60          `
+;-------------------------------------------------------------------------
+;
+; Get addresses of next 3 columns on screen.
+;
+; entry:
+;
+; A (MSB)/X (LSB) = address
+;
+; exit:
+;
+; (ZTEMP) = column N+1
+; (ZTEMPB) = column N+2
+; (ZTEMPC) = column N+3
+; 
+getNext3ColumnAddresses:
+                jsr getNextColumnAddress
+                stx ZTEMP+0
+                sta ZTEMP+1
+                jsr getNextColumnAddress
+                stx ZTEMPB+0
+                sta ZTEMPB+1
+
+;-------------------------------------------------------------------------
+;
+; Get address of next column on screen.
+;
+; entry:
+;
+; A (MSB)/X (LSB) = address
+;
+; exit:
+;
+; A (MSB)/X (LSB) = address of next column
+; (ZTEMPD) = address of next column
+; 
+getNextColumnAddress:
+                pha                          
+                txa                          
+                clc                          
+                adc #$08                     ;next column...
+                tax                          
+                pla                          
+                bcc +                        ;taken if no carry
+                inc a                        
+                bpl +           ;taken if no screen address wraparound
+                lda vduv.startScreenAddressHighByte
++
+                stx ZTEMPD+0
+                sta ZTEMPD+1
+                rts                          
 
 ;-------------------------------------------------------------------------
 ;
@@ -3018,7 +3104,7 @@ LD03D:
                 lda vduv.screenTopLeftAddress+1
                 sta ZMEMT+1
                 jsr callScrollRoutine
-                jmp LC6D8                    ; D04B= 4C D8 C6    LXF
+                jmp updateCRTCTextCursor                    ; D04B= 4C D8 C6    LXF
 
 callScrollRoutine:
                 jmp (scrollRoutinesTable,x)
@@ -3163,6 +3249,19 @@ vdu23_16_EntryPoint:
                 bcs rtsD145            ;taken if scrollProtect flag on
                 ; scroll protect flag is off, so handle column 81 if
                 ; necessary.
+
+;-------------------------------------------------------------------------
+;
+; Handle column 81, if necessary.
+;
+; TODO - probably misnamed due to the return value
+;
+; exit:
+;
+; C=0 if not VDU 5
+;
+; C=1 if VDU 5
+; 
 handleColumn81:
                 pha
                 phx
@@ -5280,7 +5379,7 @@ LDDA1:
 ;-------------------------------------------------------------------------
 
 LDDB7:
-                jsr LC0FA                    ; DDB7= 20 FA C0     z@
+                jsr stopCursorEditing                    ; DDB7= 20 FA C0     z@
                 ldx $0361                    ; DDBA= AE 61 03    .a.
                 beq LDDE0                    ; DDBD= F0 21       p!
                 pha                          ; DDBF= 48          H
@@ -5348,26 +5447,26 @@ rtsDDF7:
 ;-------------------------------------------------------------------------
 
 LDDF8:
-                cli                          ; DDF8= 58          X
-                bit STATE                      ; DDF9= 24 D0       $P
-                bvc LDE03                    ; DDFB= 50 06       P.
-                jsr LC0FA                    ; DDFD= 20 FA C0     z@
-                jsr LC0D1                    ; DE00= 20 D1 C0     Q@
+                cli
+                bit STATE
+                bvc LDE03                      ;taken if not cursor editing
+                jsr stopCursorEditing
+                jsr toggleIsCursorEditing
 LDE03:
-                ldy $0360                    ; DE03= AC 60 03    ,`.
-                bne LDE1F                    ; DE06= D0 17       P.
-                lda (ZMEMT)                    ; DE08= B2 D8       2X
-                jsr getSAA5050FromASCII
-                jsr getSAA5050FromASCII
+                ldy vduv.numberOfLogicalColoursMinusOne
+                bne LDE1F                    ;taken if bitmap mode
+                lda (ZMEMT)                  ;read character from screen
+                jsr getSAA5050FromASCII      ;call 2x to convert to ASCII
+                jsr getSAA5050FromASCII      ;call 2x to convert to ASCII
 LDE10:
-                bit STATE                      ; DE10= 24 D0       $P
-                bvc LDE1A                    ; DE12= 50 06       P.
-                jsr LC0D1                    ; DE14= 20 D1 C0     Q@
+                bit STATE
+                bvc LDE1A                 ;taken if not cursor editing
+                jsr toggleIsCursorEditing                    ; DE14= 20 D1 C0     Q@
                 jsr LC0CA                    ; DE17= 20 CA C0     J@
 LDE1A:
-                ldy $0355                    ; DE1A= AC 55 03    ,U.
-                tax                          ; DE1D= AA          *
-                rts                          ; DE1E= 60          `
+                ldy vduv.currentScreenMODE
+                tax
+                rts
 
 LDE1F:
                 jsr LDE56                    ; DE1F= 20 56 DE     V^
@@ -5409,7 +5508,7 @@ LDE4D:
 LDE56:
                 ldx ZMEMT+0                      ; DE56= A6 D8       &X
                 lda ZMEMT+1                      ; DE58= A5 D9       %Y
-                jsr LCED9                    ; DE5A= 20 D9 CE     YN
+                jsr getNext3ColumnAddresses
                 ldy #$07                     ; DE5D= A0 07        .
 LDE5F:
                 ldx $0360                    ; DE5F= AE 60 03    .`.
@@ -5606,7 +5705,7 @@ LDF78:
                 ldx #VDUVariables.textCursorXPosition
                 ldy #VDUVariables.editCursorXPosition
                 jsr copyTwoBytesWithinVDUVariables                    ; DF8C= 20 0C C9     .I
-                jsr LC105                    ; DF8F= 20 05 C1     .A
+                jsr activateEditCursor                    ; DF8F= 20 05 C1     .A
                 lda #$02                     ; DF92= A9 02       ).
                 tsb STATE                      ; DF94= 04 D0       .P
 LDF96:
@@ -5656,7 +5755,7 @@ LDFD4:
                 rts                          ; DFD4= 60          `
 
 LDFD5:
-                ldx $026A                    ; DFD5= AE 6A 02    .j.
+                ldx vduQueueNegativeLength                    ; DFD5= AE 6A 02    .j.
 LDFD8:
                 bne LDFDE                    ; DFD8= D0 04       P.
 LDFDA:
@@ -5667,22 +5766,22 @@ LDFDE:
                 rts                          ; DFDE= 60          `
 
 LDFDF:
-                ldx #$8E                     ; DFDF= A2 8E       ".  ; select VIEW+ANDY
+                ldx #$80|extROM ; DFDF= A2 8E       ".  ; select VIEW+ANDY
                 jsr selectROMX                    ; DFE1= 20 81 E5     .e
-                jsr XBEBE                    ; DFE4= 20 BE BE     >>
+                jsr extBEBE                    ; DFE4= 20 BE BE     >>
                 bra LDFF1                    ; DFE7= 80 08       ..
 
 LDFE9:
-                ldx #$8E                     ; DFE9= A2 8E       ".
+                ldx #$80|extROM                     ; DFE9= A2 8E       ".
                 jsr selectROMX                    ; DFEB= 20 81 E5     .e
-                jsr XBA00                    ; DFEE= 20 00 BA     .:
+                jsr extBA00                    ; DFEE= 20 00 BA     .:
 LDFF1:
                 jmp selectTerminalROMAndANDY                    ; DFF1= 4C 7F E5    L.e
 
 LDFF4:
-                ldx #$8E                     ; DFF4= A2 8E       ".
+                ldx #$80|extROM             ; DFF4= A2 8E       ".
                 jsr selectROMX                    ; DFF6= 20 81 E5     .e
-                jsr XBA67                    ; DFF9= 20 67 BA     g:
+                jsr extBA67                    ; DFF9= 20 67 BA     g:
                 bra LDFF1                    ; DFFC= 80 F3       .s
 
                 .text 0,0,13
@@ -5719,6 +5818,9 @@ LE023:
 ; VDU control code dispatch tables
 ; ================================
 ;
+; entry:
+;
+; 
 
 ; each routine is (address, number of additional VDU bytes)
 _:=[(vdu0EntryPoint,0)] ; VDU0
@@ -5753,11 +5855,11 @@ _..=[(vdu28EntryPoint,4)] ; VDU28
 _..=[(vdu29EntryPoint,4)] ; VDU29
 _..=[(vdu30EntryPoint,0)] ; VDU30
 _..=[(vdu31EntryPoint,2)] ; VDU31
-_..=[(LCE2D,0)] ; ???
+_..=[(vdu127EntryPoint,0)] ; VDU127
 vdu_routines=_
                 
 ; LSB of routine address
-LE027:
+vduRoutinesLSBTable:
                 .for i=0,i<len(vdu_routines),i+=1
                 .byte <vdu_routines[i][0]
                 .next
@@ -5771,12 +5873,12 @@ LE027:
 ;
 ; Bottom 4 bits are ORed with $f0 and stored in $26a - -ve bytes left
 ; in VDU queue.
-LE048:
+vduRoutinesMSBTable:
                 .for i=0,i<len(vdu_routines),i+=1
                 .if vdu_routines[i][1]==0
                 .byte >vdu_routines[i][0]
                 .else
-                .cerror vdu_routines[i][0]<$c000 || vdu_routines[i][0]>$c7ff,format("illegal VDU routine address for VDU %d: $%04x",i,vdu_routines[i][0])
+                .cerror vdu_routines[i][0]<(vduRoutinesPage<<8) || vdu_routines[i][0]>(vduRoutinesPage<<8)+$7ff,format("illegal VDU routine address for VDU %d: $%04x",i,vdu_routines[i][0])
                 .cerror vdu_routines[i][1]<0 || vdu_routines[i][1]>15,format("illegal VDU parameter count for VDU %d: %d",i,vdu_routines[i][1])
                 .byte (16-vdu_routines[i][1])|(((>vdu_routines[i][0])&$0f)<<4)
                 .endif
@@ -5910,16 +6012,18 @@ LE120:
                 .byte $33                    ; E125= 33          3
 ;ORA (&FF),y      :\ E126= 11 FF       ..
                 .byte $11
-LE127:
-                .byte $FF
-LE128:
-                .byte $7F                    ; E128= 7F          .
-                .byte $3F                    ; E129= 3F          ?
-                .byte $1F                    ; E12A= 1F          .
-                .byte $0F                    ; E12B= 0F          .
-                .byte $07                    ; E12C= 07          .
-                .byte $03                    ; E12D= 03          .
-                .byte $01
+
+;-------------------------------------------------------------------------
+
+distanceMasksTable:
+                .byte %11111111
+                .byte %01111111
+                .byte %00111111
+                .byte %00011111
+                .byte %00001111
+                .byte %00000111
+                .byte %00000011
+                .byte %00000001
 
 ;-------------------------------------------------------------------------
 ;
@@ -6217,7 +6321,7 @@ scrollRoutinesTable:
 ;
 ; exit:
 ;
-; ($de) = address
+; (ZTEMPC) = address
 ; 
 getSoftCharacterDefinitionAddress:
                 asl a                        ;a bcdefgh0
@@ -6227,10 +6331,10 @@ getSoftCharacterDefinitionAddress:
                 and #$03                     ;c 000000ab
                 rol a                        ;0 00000abc
                 adc #(>andy.softCharacterDefinitions)-1
-                sta $DF
+                sta ZTEMPC+1
                 tya                          ;0 defgh0ab
                 and #$F8                     ;0 defgh000
-                sta $DE                      ;
+                sta ZTEMPC+0
                 rts                          ;
 
 ;-------------------------------------------------------------------------
@@ -6432,7 +6536,7 @@ exchangeVDUVariables:
 ;
 ; exit:
 ;
-; Z=1 if VDU5 mode
+; Z=0 if VDU5 mode
 testVDU5State:
                 lda STATE
                 and #STATE.isVDU5
@@ -6443,7 +6547,7 @@ testVDU5State:
 ; Default vector table
 ; ====================
 defaultVectorTable: .block
-                .word LFBED ; USERV=$200
+                .word badCommandError ; USERV=$200
                 .word LE565 ; BRKV=$202
                 .word LE5FF ; IRQ1V=$204
                 .word LE60C ; IRQ2V=$206
@@ -6475,77 +6579,94 @@ end:
                 .word rtsFFAA ; IND3V=$234
 end:
                 .bend
-                
-                bcc LE310                    ; E30D= 90 01       ..
+
+                .byte $90
+                .byte $01
                 .byte $9F                    ; E30F= 9F          .
-LE310:
-                ora $02A1                    ; E310= 0D A1 02    .!.
+                .byte $0d
+                .byte $a1
+                .byte $02
                 .byte $82                    ; E313= 82          .
-                sed                          ; E314= F8          x
-                brk                          ; E315= 00          .
-                .byte $03                    ; E316= 03          .
-                brk                          ; E317= 00          .
-                brk                          ; E318= 00          .
-                .byte $FF                    ; E319= FF          .
-                brk                          ; E31A= 00          .
-                brk                          ; E31B= 00          .
-                ora ($00,x)                  ; E31C= 01 00       ..
-                brk                          ; E31E= 00          .
-                brk                          ; E31F= 00          .
-                brk                          ; E320= 00          .
-                brk                          ; E321= 00          .
-                .byte $FF                    ; E322= FF          .
-                tsb $04                      ; E323= 04 04       ..
-                brk                          ; E325= 00          .
-                .byte $FF                    ; E326= FF          .
-                .byte $42                    ; E327= 42          B
-                ora $1919,y                  ; E328= 19 19 19    ...
-                and ($08)                    ; E32B= 32 08       2.
-                brk                          ; E32D= 00          .
-                brk                          ; E32E= 00          .
-                brk                          ; E32F= 00          .
-                brk                          ; E330= 00          .
-                jsr $0009                    ; E331= 20 09 00     ..
-                brk                          ; E334= 00          .
-                brk                          ; E335= 00          .
-                brk                          ; E336= 00          .
-                brk                          ; E337= 00          .
-                brk                          ; E338= 00          .
-                brk                          ; E339= 00          .
-                .byte $03                    ; E33A= 03          .
-                bcc LE3A1                    ; E33B= 90 64       .d
-                asl $81                      ; E33D= 06 81       ..
-                brk                          ; E33F= 00          .
-                brk                          ; E340= 00          .
-                brk                          ; E341= 00          .
-                ora #$1B                     ; E342= 09 1B       ..
-                ora ($D0,x)                  ; E344= 01 D0       .P
-                cpx #$F0                     ; E346= E0 F0       `p
-                ora ($80,x)                  ; E348= 01 80       ..
-                bcc LE34C                    ; E34A= 90 00       ..
-LE34C:
-                brk                          ; E34C= 00          .
-                brk                          ; E34D= 00          .
+                .byte $F8
+                .byte $00
+                .byte $03
+                .byte $00
+                .byte $00
+                .byte $FF
+                .byte $00
+                .byte $00
+                .byte $01
+                .byte $00
+                .byte $00
+                .byte $00
+                .byte $00
+                .byte $00
+                .byte $FF
+                .byte $04
+                .byte $04
+                .byte $00
+                .byte $FF
+                .byte $42
+                .byte $19
+                .byte $19
+                .byte $19
+                .byte $32
+                .byte $08
+                .byte $00
+                .byte $00
+                .byte $00
+                .byte $00
+                .byte $20
+                .byte $09
+                .byte $00
+                .byte $00
+                .byte $00
+                .byte $00
+                .byte $00
+                .byte $00
+                .byte $00
+                .byte $03
+                .byte $90
+                .byte $64
+                .byte $06
+                .byte $81
+                .byte $00
+                .byte $00
+                .byte $00
+                .byte $09
+                .byte $1B
+                .byte $01
+                .byte $D0
+                .byte $E0
+                .byte $F0
+                .byte $01
+                .byte $80
+                .byte $90
+                .byte $00
+                .byte $00                          ; E34C= 00          .
+                .byte $00                          ; E34D= 00          .
 LE34E:
                 .byte $FF                    ; E34E= FF          .
                 .byte $FF                    ; E34F= FF          .
                 .byte $FF                    ; E350= FF          .
-                brk                          ; E351= 00          .
-                brk                          ; E352= 00          .
-                brk                          ; E353= 00          .
-                brk                          ; E354= 00          .
-                bmi LE358                    ; E355= 30 01       0.
-                brk                          ; E357= 00          .
-LE358:
-                brk                          ; E358= 00          .
-                stz $05                      ; E359= 64 05       d.
+                .byte $00                          ; E351= 00          .
+                .byte $00                          ; E352= 00          .
+                .byte $00                          ; E353= 00          .
+                .byte $00                          ; E354= 00          .
+                .byte $30
+                .byte $01
+                .byte $00                          ; E357= 00          .
+                .byte $00                          ; E358= 00          .
+                .byte $64
+                .byte $05                      ; E359= 64 05       d.
                 .byte $FF                    ; E35B= FF          .
-                ora ($0A,x)                  ; E35C= 01 0A       ..
-                brk                          ; E35E= 00          .
-                brk                          ; E35F= 00          .
-                brk                          ; E360= 00          .
-                brk                          ; E361= 00          .
-                brk                          ; E362= 00          .
+                .byte $01
+                .byte $0a
+                .byte $00                          ; E35E= 00          .
+                .byte $00                          ; E35F= 00          .
+                .byte $00                          ; E360= 00          .
+                .byte $00                          ; E361= 00          .
+                .byte $00                          ; E362= 00          .
                 .byte $FF                    ; E363= FF          .
 
 ; STARTUP
@@ -6710,7 +6831,7 @@ LE454:
                 bit $02A1,x                  ; E454= 3C A1 02    <!.
                 bpl LE478                    ; E457= 10 1F       ..
                 jsr selectROMX                    ; E459= 20 81 E5     .e
-                cpx #$0F                     ; E45C= E0 0F       `.
+                cpx #terminalROM                     ; E45C= E0 0F       `.
                 bne LE46C                    ; E45E= D0 0C       P.
                 jsr osbyte7A
                 inx                          ; E463= E8          h
@@ -6858,7 +6979,7 @@ LE579:
 ;
 ; Preserves A/Y
 selectTerminalROMAndANDY:   ;e57f
-                ldx #$8F
+                ldx #$80|terminalROM
                 ; fall through into selectROMX
 
 ;-------------------------------------------------------------------------
@@ -6891,7 +7012,7 @@ LE587:
 ;
 ; Preserves X/Y
 selectTerminalROM:            ;e590
-                lda #$0F
+                lda #terminalROM
                 ; fall through into selectROMA
                 
 ;-------------------------------------------------------------------------
@@ -7346,7 +7467,7 @@ LE833:
                 trb ACCCON                   ;MOS ROM at $c000
                 lda $F4                      
                 pha          ;S=[old ROMSEL; old ACCCON; ch; y; x; ch]
-                lda #$8F
+                lda #$80|terminalROM
                 sta $F4
                 sta ROMSEL                   ;page in ANDY+Terminal
                 txa                          ;A=char to print
@@ -7535,7 +7656,7 @@ LE967:
                 cpx #$02                     ; E96B= E0 02       `.
                 bcs LE975                    ; E96D= B0 06       0.
                 stz $0268                    ; E96F= 9C 68 02    .h.
-                stz $026A                    ; E972= 9C 6A 02    .j.
+                stz vduQueueNegativeLength                    ; E972= 9C 6A 02    .j.
 LE975:
                 jsr LED21                    ; E975= 20 21 ED     !m
                 plp                          ; E978= 28          (
@@ -8362,7 +8483,7 @@ osbyte8C8D:; LED9A:
                 jsr selectHAZEL         ; Page Hazel workspace in
                 ldx hazel.activeFS
                 stx hazel.currentFS
-                lda #$0F                     ; Set FS ROM = 15
+                lda #terminalROM
                 sta hazel.currentFSROM
                 pla                          ; Restore ACCON
 selectMOSOrHAZEL:                                       ;edb0
@@ -8425,7 +8546,7 @@ LEDF3:
                 bne LEDF3
                 jsr LF1EE                    ; Set extended vectors
                 stz $C2                      ; Set Progress=idle
-                ldx #$0F                     ; Send service call &0F - vectors changed
+                ldx #romServiceCallVectorsClaimed ; Send service call &0F - vectors changed
 
 ; Send a sideways ROM service call and check for filing system change
 ; ===================================================================
@@ -8492,9 +8613,9 @@ handleVectorsClaimed:
                 sta hazel.activeFSCV+0
                 lda FSCV+1
                 sta hazel.activeFSCV+1
-                lda #<fscEntryPoint
+                lda #<fileswitchFSCEntryPoint
                 sta FSCV+0
-                lda #>fscEntryPoint          
+                lda #>fileswitchFSCEntryPoint          
                 sta FSCV+1
                 bra LEE29                    ; EE62= 80 C5       .E
                 .pend
@@ -8918,7 +9039,7 @@ LF051:
                 ror a                        ; F05B= 6A          j
                 txa                          ; F05C= 8A          .
                 bcs LF064                    ; F05D= B0 05       0.
-                ldx $026A                    ; F05F= AE 6A 02    .j.
+                ldx vduQueueNegativeLength                    ; F05F= AE 6A 02    .j.
                 bne LF04E                    ; F062= D0 EA       Pj
 LF064:
                 cmp #$7F                     ; F064= C9 7F       I.
@@ -9211,9 +9332,11 @@ LF1CC:
                 tay
                 rts
 
-; Read address bottom of screen for MODE in X
-; ===========================================
-osbyte85: ;F1D0:
+;-------------------------------------------------------------------------
+;
+; OSBYTE 133 (&85) Read top of user RAM for given mode [MasRef D.2-41]
+; 
+osbyte85:
                 txa                          ; If MODE &80+n, return &8000
                 bmi LF1D8
                 ldx $027F                    ; If *SHADOW<>0, jump to return non-shadow address
@@ -9222,23 +9345,45 @@ LF1D8:
                 lda #$80                     ; Return &8000
                 bra LF1CC
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 135 (&87) Read screen mode and character at text cursor
+; position [MasRef D.2-42]
+; 
 osbyte87: ;F1DC:
-                jsr withMOSROM               ; F1DC= 20 AB F3     +s
-                jmp LDDF8                    ; F1DF= 4C F8 DD    Lx]
+                jsr withMOSROM
+                jmp LDDF8     
 
-osbyte8B: ;LF1E2:
-                asl a                        ; F1E2= 0A          .
-osbyte7F:                                    ;f1e3
-                and #$01                     ; F1E3= 29 01       ).
-callFSCV:                                    ;f1e5
-                jmp (FSCV)                  ; F1E5= 6C 1E 02    l..
+;-------------------------------------------------------------------------
+;
+; OSBYTE 139 (&8B) Write Filing System options [MasRef D.2-43]
+; 
+osbyte8B:
+                asl a
 
-; OSWORD &0F - Write to RTC
-; =========================
-osword0F:                       ;f1e8
+;-------------------------------------------------------------------------
+;
+; OSBYTE 127 (&7F) Check for end of file on an opened file [MasRef D.2-37]
+; 
+osbyte7F:
+                and #$01
+
+;-------------------------------------------------------------------------
+;
+; Call OSFSC. There's no entry point for this.
+; 
+callFSCV:
+                jmp (FSCV)
+
+;-------------------------------------------------------------------------
+;
+; OSWORD 15 (&0F) Write CMOS clock [MasRef D.3-24]
+;
+osword0F:
                 jsr withTerminalROM       ; Page in ROM 15
-                jmp terminal.L9656        ; Jump to OSWORD &0F routine
+                jmp terminal.osword0F
 
+;-------------------------------------------------------------------------
 
 ; Set TAPE/ROM extended vectors
 ; =============================
@@ -9256,19 +9401,19 @@ LF1F9:
 ; -------------------------------
 LF1FA:
                 .word terminal.LA08C         ; FILEV
-                .byte 15
+                .byte terminalROM
                 .word terminal.L9F29         ; ARGSV
-                .byte 15
+                .byte terminalROM
                 .word terminal.LA2EA         ; BPUTV
-                .byte 15
+                .byte terminalROM
                 .word terminal.LA34B         ; BGETV
-                .byte 15
+                .byte terminalROM
                 .word terminal.LA36D         ; GBPBV
-                .byte 15
+                .byte terminalROM
                 .word terminal.LA1F9         ; FINDV
-                .byte 15
+                .byte terminalROM
                 .word terminal.L9F8C         ; FSCV
-                .byte 15
+                .byte terminalROM
 
 ;-------------------------------------------------------------------------
 ;
@@ -9729,21 +9874,35 @@ vduChrEntryPoint:
                 plx                          ; F3F8= FA          z
                 jmp selectROMX                    ; F3F9= 4C 81 E5    L.e
 
+;-------------------------------------------------------------------------
+;
+; OSRDSC [MasRef D.6-1]
+; 
 osrdscEntryPoint:
                 jsr withMOSROM               ; F3FC= 20 AB F3     +s
                 jmp LC018                    ; F3FF= 4C 18 C0    L.@
 
+;-------------------------------------------------------------------------
+;
+; OSWRSC [MasRef D.8-1]
+; 
 oswrscEntryPoint:
                 jsr withMOSROM               ; F402= 20 AB F3     +s
                 jmp oswrscCode                    ; F405= 4C 5F DB    L_[
 
+;-------------------------------------------------------------------------
+
 starRunBOOT:
                 .text "/!BOOT",13
+
+;-------------------------------------------------------------------------
 
 ; Table to convert channel number to the bits required by the chip
 soundParameterTable:
                 .byte $e0,$c0,$a0,$80
-                
+
+;-------------------------------------------------------------------------
+
 LF413:
                 jmp LF520                    ; F413= 4C 20 F5    L u
 
@@ -10526,11 +10685,19 @@ osbyte78:                          ;f90b
                 stx $ED                      ; F90D= 86 ED       .m
                 rts                          ; F90F= 60          `
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 122 (&7A) Keyboard scan from 16 decimal
+;
+; MasRef D.2-36
+; 
 osbyte7A:
                 ldx #$10                     ; F910= A2 10       ".
                 clv                          ; F912= B8          8
                 sec                          ; F913= 38          8
                 bra callKEYV                    ; F914= 80 EC       .l
+
+;-------------------------------------------------------------------------
 
 LF916:
                 txa                          ; F916= 8A          .
@@ -10621,77 +10788,109 @@ LF9AD:
                 bpl LF96E                    ; F9AE= 10 BE       .>
                 bra LF9A6                    ; F9B0= 80 F4       .t
 
+;-------------------------------------------------------------------------
+;
+; OSBPUT [AUG p339]
+; 
 osbputEntryPoint:
-                jsr LFA97                    ; F9B2= 20 97 FA     .z
+                jsr selectFSForHandle                    ; F9B2= 20 97 FA     .z
                 jmp (BPUTV)                  ; F9B5= 6C 18 02    l..
 
+;-------------------------------------------------------------------------
+;
+; OSBGET [AUG p338]
+; 
 osbgetEntryPoint:
-                jsr LFA97                    ; F9B8= 20 97 FA     .z
+                jsr selectFSForHandle                    ; F9B8= 20 97 FA     .z
                 jmp (BGETV)                  ; F9BB= 6C 16 02    l..
 
-osgbpbEntryPoint:
-                cmp #$05                     ; F9BE= C9 05       I.
-                bcs LF9D7                    ; F9C0= B0 15       0.
+;-------------------------------------------------------------------------
+;
+; OSGBPB [AUG p339]
+osgbpbEntryPoint: .proc
+                cmp #gbpbGetMediaMetadata
+                bcs nonFileOperation
                 cmp #$00                     ; F9C2= C9 00       I.
-                beq LF9D7                    ; F9C4= F0 11       p.
-                phy                          ; F9C6= 5A          Z
-                pha                          ; F9C7= 48          H
-                stx $B0                      ; F9C8= 86 B0       .0
-                sty $B1                      ; F9CA= 84 B1       .1
-                lda ($B0)                    ; F9CC= B2 B0       20
-                tay                          ; F9CE= A8          (
-                pla                          ; F9CF= 68          h
-                jsr LFA97                    ; F9D0= 20 97 FA     .z
-LF9D3:
-                ply                          ; F9D3= 7A          z
-                jmp (GBPBV)                  ; F9D4= 6C 1A 02    l..
+                beq nonFileOperation
 
-LF9D7:
-                phy                          ; F9D7= 5A          Z
-                phx                          ; F9D8= DA          Z
-                pha                          ; F9D9= 48          H
-                jsr selectHAZEL                    ; F9DA= 20 BA ED     :m
+                ; Handle OSGBPB call that's an operation on a file
+                ; handle. Select the appropriate FS, given the file
+                ; handle, and pass the request along.
+                phy                          ;save OSGBPB Y
+                pha                          ;save OSGBPB A
+                stx fsPtr+0
+                sty fsPtr+1
+                lda (fsPtr)                  ;get file handle
+                tay                          
+                pla                          ;restore OSGBPB A
+                jsr selectFSForHandle
+passToCurrentFS:
+                ply                          ;restore OSGBPB Y
+                jmp (GBPBV)                  
+
+;-------------------------------------------------------------------------
+;
+; Handle OSGBPB call that isn't an operation on a file handle. Select
+; current FS and pass the request along.
+; 
+nonFileOperation:
+                phy
+                phx
+                pha
+                jsr selectHAZEL    
                 lda hazel.currentFS
-                jsr selectFS                    ; F9E0= 20 4D FB     M{
-                pla                          ; F9E3= 68          h
-                plx                          ; F9E4= FA          z
-                bra LF9D3                    ; F9E5= 80 EC       .l
-
-; FILESWITCH OSARGS HANDLER
-; =========================
-osargsEntryPoint:
-                cpy #$00                     ; F9E7= C0 00       @.
-                bne LFA15                    ; F9E9= D0 2A       P*
-                cmp #$04                     ; F9EB= C9 04       I.
-                bcs LFA15                    ; F9ED= B0 26       0&
-                pha                          ; F9EF= 48          H
-                jsr selectHAZEL                    ; Page in Hazel
-                pla                          ; F9F3= 68          h
-                bne LF9FA                    ; Jump with A<>0
-                lda hazel.currentFS      ; OSARGS 0,0 - Read filing system number
+                jsr selectFS       
+                pla                
+                plx                
+                bra passToCurrentFS
+                .endproc
+                
+;-------------------------------------------------------------------------
+;
+; OSARGS [AUG p337[
+;
+;
+osargsEntryPoint: .proc
+                cpy #$00
+                bne fileOperation            ;taken if file operation
+                cmp #$04
+                bcs fileOperation ;taken if Y=0, A>=4 - honorary file operation
+                pha
+                jsr selectHAZEL
+                pla
+                bne notGetFS
+getFS:
+                ; OSARGS Y=0 A=0 - read current FS number
+                lda hazel.currentFS
                 rts
 
-LF9FA:
-                dec a                        ; F9FA= 3A          :
-                bne LFA0D                    ; F9FB= D0 10       P.
-                dec a                        ; OSARGS 1,0 - Read command line address
-                sta $02,x                    ; F9FE= 95 02       ..
-                sta $03,x                    ; FA00= 95 03       ..
+notGetFS:
+                dec a
+                bne notGetCommandLine
+getCommandLine:
+                ; OSARGS Y=0 A=1 - read command line tail address
+                dec a                        ;A=$ff
+                sta 2,x                    ;store full 32-bit address
+                sta 3,x                    ;store full 32-bit address
                 lda hazel.commandLinePointer+0
-                sta $00,x                    ; FA05= 95 00       ..
+                sta 0,x                    ;
                 lda hazel.commandLinePointer+1
-                sta $01,x                    ; FA0A= 95 01       ..
-                rts                          ; FA0C= 60          `
+                sta 1,x                    
+                rts                          
 
-LFA0D:
-                cmp #$01                     ; FA0D= C9 01       I.
-                beq LFA14                    ; OSARGS 2,0 - Read OldNFS flag
-                lda hazel.libFS      ; OSARGS 3,0 - Read libfs filing system number
-LFA14:
+notGetCommandLine:
+                cmp #argsCheckANFS-1    ;-1 due to the dec a above
+                beq rtsFA14            ; OSARGS Y=0 A=2 - Read OldNFS flag
+getLibFS:
+                lda hazel.libFS      ;OSARGS Y=0 A=3 - Read libfs filing system number
+rtsFA14:
                 rts                          ; FA14= 60          `
+                
+fileOperation:
+                ; Operating on a file. Select appropriate FS first.
+                jsr selectFSForHandle                    
+                .endproc
 
-LFA15:
-                jsr LFA97                    ; FA15= 20 97 FA     .z
 
 ;-------------------------------------------------------------------------
 ;
@@ -10702,66 +10901,81 @@ callARGSV:                      ;fa18
 
 ;-------------------------------------------------------------------------
 ;
-; Entry point for OSFIND
-;
+; OSFIND [AUG p342]
 ; 
 osfindEntryPoint: .proc
                 ora #$00        ;A=$00 if a file is to be closed
                 beq close       ;branch taken if closing a file
-                jsr LFA6E       ;handle something other than a file close
+                jsr parseFileNameAndSelectFS       ;handle something other than a file close
                 bra callFINDV
 
 close:
-                jsr LFA97                    ; FA24= 20 97 FA     .z
+                jsr selectFSForHandle                    ; FA24= 20 97 FA     .z
 callFINDV:
                 jmp (FINDV)                  ; FA27= 6C 1C 02    l..
                 .pend
                 
 ;-------------------------------------------------------------------------
-
+;
+; OSFILE [AUG p335]
+; 
 osfileEntryPoint:               ;fa2a
-                phx                          ; FA2A= DA          Z
-                phy                          ; FA2B= 5A          Z
-                pha                          ; FA2C= 48          H
+                phx
+                phy
+                pha
                 stx stringInputBufferAddress+0
                 sty stringInputBufferAddress+1
-                ldy #$11                     ; FA31= A0 11        .
-LFA33:
-                lda ($F2),y                  ; FA33= B1 F2       1r
-                sta $02ED,y                  ; FA35= 99 ED 02    .m.
+                ldy #size(OSFILEParameterBlock)-1
+-
+                lda (stringInputBufferAddress),y
+                sta osfileParameterBlock,y
                 dey                          ; FA38= 88          .
-                bpl LFA33                    ; FA39= 10 F8       .x
-                ldx $02ED                    ; FA3B= AE ED 02    .m.
-                ldy $02EE                    ; FA3E= AC EE 02    ,n.
-                jsr LFA6E                    ; FA41= 20 6E FA     nz
-                stx $02ED                    ; FA44= 8E ED 02    .m.
-                sty $02EE                    ; FA47= 8C EE 02    .n.
-                pla                          ; FA4A= 68          h
-                ldx #$ED                     ; FA4B= A2 ED       "m
-                ldy #$02                     ; FA4D= A0 02        .
-                jsr LFA6B                    ; FA4F= 20 6B FA     kz
-                ply                          ; FA52= 7A          z
-                sty $F3                      ; FA53= 84 F3       .s
-                plx                          ; FA55= FA          z
-                stx $F2                      ; FA56= 86 F2       .r
-                pha                          ; FA58= 48          H
-                ldy #$11                     ; FA59= A0 11        .
-LFA5B:
-                lda $02ED,y                  ; FA5B= B9 ED 02    9m.
-                sta ($F2),y                  ; FA5E= 91 F2       .r
-                dey                          ; FA60= 88          .
-                cpy #$02                     ; FA61= C0 02       @.
-                bcs LFA5B                    ; FA63= B0 F6       0v
-                pla                          ; FA65= 68          h
-                ldx $F2                      ; FA66= A6 F2       &r
-                ldy $F3                      ; FA68= A4 F3       $s
-                rts                          ; FA6A= 60          `
+                bpl -
+                ldx osfileParameterBlock+OSFILEParameterBlock.fileName+0
+                ldy osfileParameterBlock+OSFILEParameterBlock.fileName+1
+                jsr parseFileNameAndSelectFS
+                stx osfileParameterBlock+OSFILEParameterBlock.fileName+0
+                sty osfileParameterBlock+OSFILEParameterBlock.fileName+1
+                pla
+                ldx #<osfileParameterBlock
+                ldy #>osfileParameterBlock
+                jsr callFILEV
+                ply
+                sty stringInputBufferAddress+1
+                plx
+                stx stringInputBufferAddress+0
+                pha
+                ldy #size(OSFILEParameterBlock)-1
+-
+                lda osfileParameterBlock,y
+                sta (stringInputBufferAddress),y
+                dey
+                cpy #$02                     ;don't overwrite file name
+                bcs -
+                pla
+                ldx stringInputBufferAddress+0
+                ldy stringInputBufferAddress+1
+                rts
 
-LFA6B:
-                jmp (FILEV)                  ; FA6B= 6C 12 02    l..
+callFILEV:
+                jmp (FILEV)
 
-; ??? parse file name, taking into account -FS- syntax?
-LFA6E:
+;-------------------------------------------------------------------------
+;
+; Parse file name. Handle (and skip) any -FS- tempfs syntax, selecting
+; the FS specified if required.
+;
+; entry:
+;
+; Y (MSB)/X (LSB) = address of file name string
+;
+; exit:
+;
+; Y (MSB)/X (LSB) = address of file name part
+;
+; - New FS may have been selected
+; 
+parseFileNameAndSelectFS:
                 pha                          
                 lda stringInputBufferAddress+0
                 pha                          
@@ -10770,30 +10984,44 @@ LFA6E:
                 jsr selectHAZEL
                 stx stringInputBufferAddress+0
                 sty stringInputBufferAddress+1
-                ldy #$00                     ; FA7C= A0 00        .
-                jsr parseFileNameFS                    ; FA7E= 20 A6 FA     &z
-                phy                          ; FA81= 5A          Z
-                jsr selectFS                    ; FA82= 20 4D FB     M{
-                pla                          ; FA85= 68          h
-                clc                          ; FA86= 18          .
-                adc $F2                      ; FA87= 65 F2       er
-                tax                          ; FA89= AA          *
-                ldy $F3                      ; FA8A= A4 F3       $s
-                bcc LFA8F                    ; FA8C= 90 01       ..
-                iny                          ; FA8E= C8          H
-LFA8F:
-                pla                          ; FA8F= 68          h
-                sta $F3                      ; FA90= 85 F3       .s
-                pla                          ; FA92= 68          h
-                sta $F2                      ; FA93= 85 F2       .r
-                pla                          ; FA95= 68          h
-                rts                          ; FA96= 60          `
+                ldy #$00
+                jsr parseFileNameFS      ;find -FS- prefix, if any
+                phy                      ;save offset
+                jsr selectFS                 ;select desired FS
+                pla                          
+                clc                          
+                adc stringInputBufferAddress+0
+                tax                          ;save string address LSB
+                ldy stringInputBufferAddress+1
+                bcc +
+                iny
++
+                pla                          
+                sta stringInputBufferAddress+1
+                pla                          
+                sta stringInputBufferAddress+0
+                pla                          
+                rts                          
 
-LFA97:
+;-------------------------------------------------------------------------
+;
+; Select appropriate FS for the given file handle.
+;
+; entry:
+;
+; Y = file handle
+;
+; exit:
+;
+; - appropriate FS selected
+;
+; preserves: Y/X/A
+
+selectFSForHandle:
                 phx                          ; FA97= DA          Z
                 pha                          ; FA98= 48          H
                 jsr selectHAZEL                    ; FA99= 20 BA ED     :m
-                jsr LFB23                    ; FA9C= 20 23 FB     #{
+                jsr findFSForHandle                    ; FA9C= 20 23 FB     #{
                 txa                          ; FA9F= 8A          .
                 jsr selectFS                    ; FAA0= 20 4D FB     M{
                 pla                          ; FAA3= 68          h
@@ -10899,39 +11127,51 @@ badFilingSystemName:
                 .pend
 
 ;-------------------------------------------------------------------------
-
-LFB23:
-                pha                          ; FB23= 48          H
-                phy                          ; FB24= 5A          Z
-                tya                          ; FB25= 98          .
-                ldy #$00                     ; FB26= A0 00        .
-LFB28:
-                ldx hazel.fsInfoBlocks,y
-                beq LFB42                    ; FB2B= F0 15       p.
+;
+; Find FS for the given handle
+;
+; entry:
+;
+; Y = file handle
+;
+; exit:
+;
+; X = FS number - will just use current FS if none suitable found
+;
+findFSForHandle: .proc
+                pha                          ;
+                phy                          ;
+                tya                          ;A = handle to search for
+                ldy #$00                     ;
+loop:
+                ldx hazel.fsInfoBlocks.name+0,y
+                beq notFound                  ;taken if terminating entry
                 cmp hazel.fsInfoBlocks.minHandle,y
-                bcc LFB39                    ; FB30= 90 07       ..
+                bcc next                     ;taken if not this FS
                 cmp hazel.fsInfoBlocks.maxHandle,y
-                bcc LFB47                    ; FB35= 90 10       ..
-                beq LFB47                    ; FB37= F0 0E       p.
-LFB39:
+                bcc found                    ;taken if this FS
+                beq found                    ;taken if this FS
+                
+next:
                 pha                          ; FB39= 48          H
                 tya                          ; FB3A= 98          .
                 clc                          ; FB3B= 18          .
-                adc #$0B                     ; FB3C= 69 0B       i.
+                adc #size(fsInfoBlock)       ; FB3C= 69 0B       i.
                 tay                          ; FB3E= A8          (
                 pla                          ; FB3F= 68          h
-                bra LFB28                    ; FB40= 80 E6       .f
+                bra loop
 
-LFB42:
+notFound:
                 ldx hazel.currentFS
-                bra LFB4A                    ; FB45= 80 03       ..
+                bra done
 
-LFB47:
+found:
                 ldx hazel.fsInfoBlocks.fsNumber,y
-LFB4A:
+done:
                 ply                          ; FB4A= 7A          z
                 pla                          ; FB4B= 68          h
-                rts                          ; FB4C= 60          `
+                rts                          ; FB4C= 60
+                .endproc
 
 ;-------------------------------------------------------------------------
 ;
@@ -10943,7 +11183,7 @@ LFB4A:
 ;
 selectFS:                               ;fb4d
                 cmp hazel.activeFS      ; Check active fs
-                beq LFB68               ; Already active fs, return
+                beq rtsFB68               ; Already active fs, return
                 phy
                 phx
                 tay
@@ -10963,87 +11203,132 @@ LFB5F:
                 pla                          ; FB65= 68          h
                 plx                          ; FB66= FA          z
                 ply                          ; FB67= 7A          z
-LFB68:
+rtsFB68:
                 rts                          ; FB68= 60          `
 
+;-------------------------------------------------------------------------
+; 
 ; FileSwitch FSC
 ; ==============
-fscEntryPoint:
-                pha                          ; FB69= 48          H
-                jsr selectHAZEL                    ; FB6A= 20 BA ED     :m
+; 
+fileswitchFSCEntryPoint:
+                pha                          ;save request type
+                jsr selectHAZEL
                 lsr hazel.tempFSFlag
-                pla                          ; FB70= 68          h
-                pha                          ; FB71= 48          H
-                phx                          ; FB72= DA          Z
-                asl a                        ; FB73= 0A          .
-                tax                          ; FB74= AA          *
-                cmp #$17                     ; FB75= C9 17       I.
-                bcs LFB7C                    ; FB77= B0 03       0.
-                jmp (LFB81,x)                ; FB79= 7C 81 FB    |.{
+                pla                          ;restore request type
+                pha                          ;save request type
+                phx                          ;save request X
+                asl a
+                tax
+                cmp #11*2+1
+                bcs fileswitchPassFSCToCurrentFS ;taken if out of range
+                jmp (fileswitchFSCRoutinesTable,x)
 
+;-------------------------------------------------------------------------
+;
 ; Pass to filing system's FSC
-; ---------------------------
-LFB7C:
-                plx                          ; FB7C= FA          z
-LFB7D:
-                pla                          ; FB7D= 68          h
-                jmp (hazel.activeFSCV)    ; FB7E= 6C DA DF    lZ_
+;
+; There's 2 entry points - fileswitchPassFSCToCurrentFS, for
+; when X and A are both on the stack, and
+; fileswitchPassFSCToCurrentFS_X, for when only A is on the
+; stack.
+;
+fileswitchPassFSCToCurrentFS:
+fileswitchFSCNewFS:
+fileswitchFSCFileHandleRange:
+fileswitchFSCStarCommand:
+                plx                          ;restore request X
+fileswitchPassFSCToCurrentFS_X:
+                pla                          ;restore request type
+                jmp (hazel.activeFSCV) ;call active FS's real FSCV entry point
 
+;-------------------------------------------------------------------------
+; 
 ; FileSwitch FSC table
-; --------------------
-LFB81:
-                .word LFBA6     ; &00 &FBA6 - *OPT
-                .word LFB9F     ; &01 &FB9F - =EOF
-                .word LFBB3     ; &02 &FBB3 - */filename
-                .word LFB99     ; &03 &FB99 - *command
-                .word LFBB3     ; &04 &FBB3 - *RUN
-                .word LFBB8     ; &05 &FBB8 - *CAT
-                .word LFB7C     ; &06 &FB7C - New fs taking over - pass to fs FSC
-                .word LFB7C     ; &07 &FB7C - Handle request     - pass to fs FSC
-                .word LFB7C     ; &08 &FB7C - Enable flag        - pass to fs FSC
-                .word LFBB8     ; &09 &FBB8 - *EX
-                .word LFBB8     ; &0A &FBB8 - *INFO
-                .word LFBE8     ; &0B &FBE8 - *RUN from libfs
+; 
+fileswitchFSCRoutinesTable:
+                .word fileswitchFSCOPT
+                .word fileswitchFSCCheckEOF
+                .word fileswitchFSCStarSlash
+                .word fileswitchFSCUnknownCommand
+                .word fileswitchFSCStarRUN
+                .word fileswitchFSCStarCAT
+                .word fileswitchFSCNewFS
+                .word fileswitchFSCFileHandleRange
+                .word fileswitchFSCStarCommand
+                .word fileswitchFSCStarEX
+                .word fileswitchFSCStarINFO
+                .word fileswitchFSCRUNLibrary
 
-; FSC 3 - *command
-; ================
-LFB99:
-                plx                          ; FB99= FA          z
-                jsr getCommandLinePointer                    ; FB9A= 20 C1 FB     A{
-                bra LFB7D                    ; FB9D= 80 DE       .^
-
-; FSC 1 - =EOF
-; ============
-LFB9F:
-                ply                          ; FB9F= 7A          z
-                phy                          ; FBA0= 5A          Z
-                jsr LFA97                    ; FBA1= 20 97 FA     .z
-                bra LFB7C                    ; FBA4= 80 D6       .V
-
-; FSC 0 - *OPT
-; ============
-LFBA6:
-                bit hazel.tempFSFlag      ; Check temporary fs flag
-                bvs LFB7C                    ; Pass to current filing system
-                lda hazel.currentFS      ; Get current filing system number
-LFBAE:
-                jsr selectFS                    ; Select filing system
-                bra LFB7C                    ; Pass to filing system
-
-; FSC 2, 4 - *filename, *RUN filename
-; ===================================
-LFBB3:
+;-------------------------------------------------------------------------
+; 
+; FSC 3 - *command [AUG p344]
+; 
+fileswitchFSCUnknownCommand:
                 plx
-                jsr getCommandLinePointer                    ; Skip '*'s and spaces, set command line address
-                phx                          ; Continue on to pass to filing system
+                jsr getCommandLinePointer
+                bra fileswitchPassFSCToCurrentFS_X
 
-; FSC 5, 9, 10 - *CAT, *EX, *INFO
-; ===============================
-LFBB8:
+;-------------------------------------------------------------------------
+; 
+; FSC 1 - check EOF [AUG p343]
+;
+fileswitchFSCCheckEOF:
+                ply                         ;Y = file handle
+                phy                         ;restore stack arrangement
+                jsr selectFSForHandle
+                bra fileswitchPassFSCToCurrentFS
+
+;-------------------------------------------------------------------------
+; 
+; FSC 0 - *OPT [AUG p343]
+;
+fileswitchFSCOPT:
+                bit hazel.tempFSFlag   ; Check temporary fs flag
+                bvs fileswitchPassFSCToCurrentFS
+                lda hazel.currentFS ; Get current filing system number
+
+;-------------------------------------------------------------------------
+;
+; Pass FSCV request through to a particular FS.
+;
+; entry:
+;
+; A = FS to select
+;
+; Y = FSCV Y
+;
+; S = [FSCV X; FSCV A]
+;
+fileswitchPassFSCToSpecificFS:
+                jsr selectFS        ; Select filing system
+                bra fileswitchPassFSCToCurrentFS
+
+;-------------------------------------------------------------------------
+; 
+; FSC 2 - */filename [AUG p343]
+; FSC 4 - *RUN filename [AUG p344]
+; 
+fileswitchFSCStarSlash:
+fileswitchFSCStarRUN:
                 plx
-                asl hazel.tempFSFlag      ;
-                jsr LFA6E                    ; ? Check for temporary fs ?
-                bra LFB7D                    ; Pass to filing system's FSC
+                jsr getCommandLinePointer ; Skip '*'s and spaces, set command line address
+                phx             ; Continue on to pass to filing system
+
+
+;-------------------------------------------------------------------------
+;
+; FSC 5 - *CAT [AUG p344]
+; FSC 9 - *EX [NAUG p257]
+; FSC, 10 - *INFO [NAUG p257]
+; 
+fileswitchFSCStarCAT:
+fileswitchFSCStarEX:
+fileswitchFSCStarINFO:
+                plx
+                asl hazel.tempFSFlag
+                jsr parseFileNameAndSelectFS
+                bra fileswitchPassFSCToCurrentFS_X
 
 ;-------------------------------------------------------------------------
 ;
@@ -11093,12 +11378,14 @@ getCommandLinePointer: .proc ;fbc1
                 rts                          
                 .pend
 
-; FSC 11 - RUN from libfs
-; =======================
-LFBE8:
+;-------------------------------------------------------------------------
+; 
+; FSC 11 - RUN from libfs [NAUG p257]
+;
+fileswitchFSCRUNLibrary:
                 lda hazel.libFS      ; Is a libfs set?
-                bpl LFBAE                    ; Yes, jump to run from libfs
-LFBED:
+                bpl fileswitchPassFSCToSpecificFS
+badCommandError:
                 brk
                 .byte 254
                 .text "Bad command"

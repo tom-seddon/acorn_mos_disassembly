@@ -1,8 +1,31 @@
 ;-------------------------------------------------------------------------
 ;
-; Names for stuff common to MOS 3.20 and OS 1.20 are intended to
-; mostly match the ones in
-; https://tobylobster.github.io/mos/mos/index.html
+; Disorganized jumble of constants. They'll get tidied up at some
+; point... promise...
+; 
+;-------------------------------------------------------------------------
+;
+; I started out trying to match up the names with
+; https://tobylobster.github.io/mos/mos/index.html - but I didn't keep
+; up with this after a while. I found it quite time-consuming.
+;
+; Maybe a second pass will fix this...
+;
+;-------------------------------------------------------------------------
+;
+; Reference material, in approx order of preference:
+;
+; MasRef - Master Reference Manual (pretty complete, up to date,
+; official)
+;
+; AUG - Advanced User Guide (very complete for what it covers: model B
+; hardware, OS 1.20)
+;
+; NAUG - New Advanced User Guide (has some Master info, but not
+; as thorough as AUG on some topics)
+;
+; AdvRef - Advanced Reference Manual for the BBC Master (has the odd
+; useful item)
 ;
 ;-------------------------------------------------------------------------
 
@@ -86,15 +109,70 @@ fscOPT=0
 fscCheckEOF=1
 fscStarSlash=2
 fscUnknownCommand=3
-fscStarRun=4
-fscStarCat=5
+fscStarRUN=4
+fscStarCAT=5
 fscNewFS=6
 fscFileHandleRange=7
 fscStarCommand=8
 fscStarEX=9
 fscStarINFO=10
 fscRUNLibrary=11
+
+; NAUG mentions this. But it doesn't appear to
+; actually exist in the code.
+;
+; Maybe it's present in MOS 3.50 or later?
 fscRENAME=12
+
+gbpbPutBytesNewPTR=1            ;[AUG p340]
+gbppPutBytesCurrentPTR=2        ;[AUG p340]
+gbpbGetBytesNewPTR=3            ;[AUG p341]
+gbpbGetBytesCurrentPTR=4        ;[AUG p341]
+gbpbGetMediaMetadata=5          ;[AUG p341]
+gbpbGetCurrentDevice=6          ;[AUG p341]
+gbpbGetLibraryDevice=7          ;[AUG p341]
+gbpbReadFileNames=8             ;[AUG p341]
+
+OSGBPBParameterBlock: .struct
+handle:
+                .fill 1
+address:
+                .fill 4
+count:
+                .fill 4
+ptr:
+                .fill 4
+                .endstruct                
+                
+argsGetFS=0                     ;[AUG p337]
+argsGetCommandLine=1            ;[AUG p338]
+argsCheckANFS=2                 ;https://beebwiki.mdfs.net/OSARGS
+argsGetLibFS=3                  ;
+argsFlushBuffers=$ff            ;[AUG p338]
+
+fileSave=0                      ;[AUG p336]
+fileWriteMetadata=1             ;[AUG p336]
+fileWriteLoadAddress=2          ;[AUG p336]
+fileWriteExecAddress=3          ;[AUG p336]
+fileWritettributes=4            ;[AUG p336]
+fileReadMetadata=5              ;[AUG p336]
+fileDelete=6                    ;[AUG p336]
+fileLoad=$ff                    ;[AUG p336]
+
+OSFILEParameterBlock: .struct
+fileName:
+                .fill 2
+load:
+                .fill 4
+exec:
+                .fill 4
+length:
+saveStart:
+                .fill 4
+attributes:
+saveEnd:
+                .fill 4
+                .endstruct
                 
 ;-------------------------------------------------------------------------
 
@@ -330,10 +408,13 @@ hasACCCONChanged:                ;dfdd
 ; MasRef E.4-1
 ;
 VDUVariables: .struct
+graphicsWindow:
+;graphicsWindowLeftBottom:
 ; &00 2 Graphics window left column. (p)
 graphicsWindowPixelsLeft: .fill 2
 ; &02 2 Graphics window bottom row. (p)
 graphicsWindowPixelsBottom: .fill 2
+;graphicsWindowRightTop:
 ; &04 2 Graphics window right column. (p)
 graphicsWindowPixelsRight: .fill 2
 ; &06 2 Graphics window top row. (p)
@@ -369,6 +450,7 @@ graphicsAddressOffset: .fill 1
 queueSize=9
 queueBegin: .fill queueSize
 queueEnd:
+graphicsCursorPixels:
 ; &24 2 Graphics cursor X coordinate. (p)
 graphicsCursorPixelsX: .fill 2
 ; &26 2 Graphics cursor Y coordinate. (p)
@@ -665,10 +747,11 @@ L8848=$8848
 L8847=$8847
 L8832=$8832
 
-                ; entry points in the View bank
-XBA00=$BA00
-XBA67=$BA67
-XBEBE=$BEBE
+                ; entry points in the View bank - appears to be some
+                ; ellipse/block copy GXR stuff
+extBA00=$BA00
+extBA67=$BA67
+extBEBE=$BEBE
 
                 ; written to during startup
 LFE8E=$fe8e
@@ -732,7 +815,21 @@ gcolModeAND=2
 gcolModeEOR=3
 gcolModeInvert=4
 gcolModeLeave=5
+
+fsPtr=$b0                       ;pointer available for use by FS calls
+
+osfileParameterBlock=$2ed
+
+; ROM number containing Terminal
+terminalROM=15
+
+; ROM number containing the extXXXX entry points
+extROM=14
+
+; Base page for VDU routines
+vduRoutinesPage=$c0
                 
+vduQueueNegativeLength=$26a
 ;-------------------------------------------------------------------------
 
 beword .macro value

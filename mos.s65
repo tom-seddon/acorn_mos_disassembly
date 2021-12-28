@@ -20,7 +20,7 @@ LC003:                                       ; Write to VDU memory
 ;
 ; PLBYTE uses ZTEMP as workspace and preserves X, Y, V and C.
 PLBYTE: 
-                jmp LDB51
+                jmp plbyteEntryPoint
 
 ; MasRef E.4-6
 ;
@@ -47,14 +47,14 @@ HPLOT:
 ; MasRef E.4-6
 ;
 ; JSR EIGABS converts the 4 byte pair of external coordinates at
-; &300+X (in standard lowX,highX,lowY,highY order) into the
+; &300+X where X>=2 (in standard lowX,highX,lowY,highY order) into the
 ; corresponding pair of pixel coordinates by offsetting by the
 ; graphics origin, then dividing by an appropriate power of 2.
 ;
 ; EIGABS uses ZTEMP as workspace, and corrupts all registers and
 ; flags.
 EIGABS:
-                jmp LD1DE
+                jmp eigabsEntryPoint
 
 ; MasRef E.4-7
 ;
@@ -62,16 +62,16 @@ EIGABS:
 ; lowX,highX,lowY,highY order) at &300+X, and returns a result in A
 ; according to its position with respect to the window:
 
-; 9 | 8 | 10
-; --+---+---
-; 1 | 0 | 2
-; --+---+---
-; 5 | 4 | 6
+; 9 | 8 | 10    
+; --+---+---    
+; 1 | 0 | 2     
+; --+---+---    
+; 5 | 4 | 6     
 
 ; WIND uses ZTEMP as workspace, preserves X and sets N and Z according
 ; to A.
 WIND:
-                jmp LD1A8
+                jmp windEntryPoint
 
 ; MasRef E.4-7
 ;
@@ -117,7 +117,7 @@ WIND:
 ; .END
 ;  RTS
 GADDR:
-                jmp LDEC8
+                jmp gaddrEntryPoint
 
 ; MasRef E.4-8
 ;
@@ -135,6 +135,9 @@ GADDR:
 ; flags.
 IEG:
                 jmp LC4DF
+
+;-------------------------------------------------------------------------
+
 LC018:                                       ; Fetch byte from ROM Y
                 ldx $F4                      ; Get current ROM
                 sty $F4                      ; Select ROM in Y
@@ -518,7 +521,7 @@ LC249:
                 jmp LC4DF                    ; C249= 4C DF C4    L_D
 
 vdu9EntryPoint:
-                jsr LD12D                    ; C24C= 20 2D D1     -Q
+                jsr handleColumn81                    ; C24C= 20 2D D1     -Q
                 bcs LC235                    ; C24F= B0 E4       0d
                 lda #$00                     ; C251= A9 00       ).
                 jsr LC2E9                    ; C253= 20 E9 C2     iB
@@ -776,12 +779,17 @@ LC40A:
 
 LC410:
                 jsr vdu30EntryPoint          ; C410= 20 7C C4     |D
+
+;-------------------------------------------------------------------------
+;
+; VDU 16 (&10) Clear graphics window [MasRef E.3-7]
+;
 vdu16EntryPoint:
-                lda $0361                    ; C413= AD 61 03    -a.
-                beq LC3A4                    ; C416= F0 8C       p.
-                ldx #$00                     ; C418= A2 00       ".
-                jsr LC902                    ; C41A= 20 02 C9     .I
-                jsr LC951                    ; C41D= 20 51 C9     QI
+                lda vduv.pixelsPerByteMinusOne
+                beq LC3A4                    ;taken if MODE 7
+                ldx #VDUVariables.graphicsWindowPixelsLeft
+                jsr copyEightBytesToWorkspace28
+                jsr LC951
 LC420:
                 ldx #$2A                     ; C420= A2 2A       "*
                 ldy #$2E                     ; C422= A0 2E        .
@@ -978,7 +986,7 @@ LC541:
                 clc                          ; C54D= 18          .
                 adc $DA                      ; C54E= 65 DA       eZ
                 tax                          ; C550= AA          *
-                lda LE14B,x                  ; C551= BD 4B E1    =Ka
+                lda solidColoursTable-1,x
                 sta $0357,y                  ; C554= 99 57 03    .W.
                 lda $0357                    ; C557= AD 57 03    -W.
                 eor #$FF                     ; C55A= 49 FF       I.
@@ -993,122 +1001,125 @@ LC563:
 ; VDU 18 (&12) Define graphics colour [MasRef E.3-7]
 ; 
 vdu18EntryPoint:
-                ldy #$00                     ; C564= A0 00        .
-                lda $0323                    ; C566= AD 23 03    -#.
-                bpl LC56C                    ; C569= 10 01       ..
-LC56B:
-                iny                          ; C56B= C8          H
-LC56C:
-                and $0360                    ; C56C= 2D 60 03    -`.
-                sta $036D,y                  ; C56F= 99 6D 03    .m.
-                lda $0322                    ; C572= AD 22 03    -".
-                sta $035B,y                  ; C575= 99 5B 03    .[.
-                and #$F0                     ; C578= 29 F0       )p
-                sta $036A,y                  ; C57A= 99 6A 03    .j.
-LC57D:
-                lda $035B                    ; C57D= AD 5B 03    -[.
-                ldx $036D                    ; C580= AE 6D 03    .m.
-                ldy #$00                     ; C583= A0 00        .
-                jsr LC590                    ; C585= 20 90 C5     .E
-                lda $035C                    ; C588= AD 5C 03    -\.
-                ldx $036E                    ; C58B= AE 6E 03    .n.
-                ldy #$08                     ; C58E= A0 08        .
-LC590:
-                and #$F0                     ; C590= 29 F0       )p
-                bne LC5AC                    ; C592= D0 18       P.
-                stx $DA                      ; C594= 86 DA       .Z
-                lda $0360                    ; C596= AD 60 03    -`.
-                and #$07                     ; C599= 29 07       ).
-                clc                          ; C59B= 18          .
-                adc $DA                      ; C59C= 65 DA       eZ
-                tax                          ; C59E= AA          *
-                lda LE14B,x                  ; C59F= BD 4B E1    =Ka
-                ldx #$07                     ; C5A2= A2 07       ".
-LC5A4:
-                sta L8820,y                  ; C5A4= 99 20 88    . .
-                iny                          ; C5A7= C8          H
-                dex                          ; C5A8= CA          J
-                bpl LC5A4                    ; C5A9= 10 F9       .y
-                rts                          ; C5AB= 60          `
+                ldy #$00                    ;assume setting foreground
+                lda vduv.queueEnd-1         ;get colour
+                bpl +                     ;taken if setting foreground
+                iny                       ;setting background
++
+                and vduv.numberOfLogicalColoursMinusOne
+                sta vduv.foregroundGraphicsColour,y
+                lda vduv.queueEnd-2          ;get GCOL mode
+                sta vduv.foregroundGCOLMode,y
+                and #$F0                     ;non-zero if ECF
+                sta vduv.isForegroundECF,y
+initializeCurrentECFPatterns:
+                lda vduv.foregroundGCOLMode
+                ldx vduv.foregroundGraphicsColour
+                ldy #andy.fgECFPattern-andy.currentECFPatterns
+                jsr initializeCurrentECFPattern
+                lda vduv.backgroundGCOLMode
+                ldx vduv.backgroundGraphicsColour
+                ldy #andy.bgECFPattern-andy.currentECFPatterns
+initializeCurrentECFPattern:
+                and #$F0                     ;GCOL mode ECF bits
+                bne initializeECFPatternFromPattern
 
-LC5AC:
-                lsr a                        ; C5AC= 4A          J
-                tax                          ; C5AD= AA          *
-                lda #$07                     ; C5AE= A9 07       ).
-                sta $DA                      ; C5B0= 85 DA       .Z
-LC5B2:
-                lda L87F8,x                  ; C5B2= BD F8 87    =x.
-                sta L8820,y                  ; C5B5= 99 20 88    . .
-                inx                          ; C5B8= E8          h
-                iny                          ; C5B9= C8          H
-                dec $DA                      ; C5BA= C6 DA       FZ
-                bpl LC5B2                    ; C5BC= 10 F4       .t
-                rts                          ; C5BE= 60          `
+initializeECFPatternFromColour:
+                stx ZTEMP+0                  ;colour low bits
+                lda vduv.numberOfLogicalColoursMinusOne
+                and #$07
+                clc
+                adc ZTEMP+0
+                tax
+                ; use solid colour as ECF "pattern".
+                lda solidColoursTable-1,x
+                ldx #$07
+-
+                sta andy.fgECFPattern,y
+                iny
+                dex
+                bpl -
+                rts
 
-LC5BF:
-                lda #$20                     ; C5BF= A9 20       )
-                sta $0358                    ; C5C1= 8D 58 03    .X.
-                rts                          ; C5C4= 60          `
+initializeECFPatternFromPattern:
+                lsr a                        ;(index+1)*8
+                tax
+                lda #$07
+                sta ZTEMP+0
+-
+                lda andy.ecfPatterns-8,x     ;-8 due to index+1 above
+                sta andy.fgECFPattern,y
+                inx
+                iny
+                dec ZTEMP+0
+                bpl -
+                rts
 
 ;-------------------------------------------------------------------------
 ;
 ; VDU 20 (&14) Restore default logical colours [MasRef E.3-10]
 ; 
+setBackgroundTextColourForTeletext:
+                lda #' '
+                sta vduv.backgroundTextColour
+                rts
+
 vdu20EntryPoint:
                 ldx #$05                     ; C5C5= A2 05       ".
-LC5C7:
-                stz $0357,x                  ; C5C7= 9E 57 03    .W.
-                dex                          ; C5CA= CA          J
-                bpl LC5C7                    ; C5CB= 10 FA       .z
-                stz $036E                    ; C5CD= 9C 6E 03    .n.
-                stz $036B                    ; C5D0= 9C 6B 03    .k.
-                lda #$FF                     ; C5D3= A9 FF       ).
-                ldx $0360                    ; C5D5= AE 60 03    .`.
-                beq LC5BF                    ; C5D8= F0 E5       pe
-                cpx #$0F                     ; C5DA= E0 0F       `.
-                bne LC5E0                    ; C5DC= D0 02       P.
-                lda #$3F                     ; C5DE= A9 3F       )?
-LC5E0:
-                sta $0357                    ; C5E0= 8D 57 03    .W.
-                eor #$FF                     ; C5E3= 49 FF       I.
-                sta ZORA                      ; C5E5= 85 D2       .R
-                sta ZEOR                      ; C5E7= 85 D3       .S
-                txa                          ; C5E9= 8A          .
-                and #$07                     ; C5EA= 29 07       ).
-                sta $036D                    ; C5EC= 8D 6D 03    .m.
-                stz $036A                    ; C5EF= 9C 6A 03    .j.
-                phx                          ; C5F2= DA          Z
-                jsr LC57D                    ; C5F3= 20 7D C5     }E
-                plx                          ; C5F6= FA          z
-                stx $031F                    ; C5F7= 8E 1F 03    ...
-                cpx #$03                     ; C5FA= E0 03       `.
-                beq LC60F                    ; C5FC= F0 11       p.
-                bcc LC620                    ; C5FE= 90 20       .
-                stx $0320                    ; C600= 8E 20 03    . .
-LC603:
+-
+                stz vduv.foregroundTextColour,x
+                dex
+                bpl -
+                stz vduv.backgroundGraphicsColour
+                stz vduv.isBackgroundECF
+                lda #%11111111
+                ldx vduv.numberOfLogicalColoursMinusOne
+                beq setBackgroundTextColourForTeletext
+                cpx #$0F
+                bne +                        ;taken unless MODE 2
+                lda #%00111111               ;MODE 2 default foreground colour is 7
++
+                sta vduv.foregroundTextColour
+                eor #$FF
+                sta ZORA
+                sta ZEOR
+                txa     
+                and #$07
+                sta vduv.foregroundGraphicsColour
+                stz vduv.isForegroundECF
+                phx                          ;save numberOfLogicalColoursMinusOne
+                jsr initializeCurrentECFPatterns
+                plx                          ;restore numberOfLogicalColoursMinusOne
+                stx vduv.queueEnd-5          ;Prepare VDU19,<max logical colour>
+                cpx #$03
+                beq reset4Colours            ;taken if MODE 1/5
+                bcc reset2Colours            ;taken if MODE 0/3/4/6
+reset16Colours:
+                stx vduv.queueEnd-4          ;start with VDU19,15,15,_,_,_
+-
                 jsr vdu19EntryPoint          ; C603= 20 2D C6     -F
-                dec $0320                    ; C606= CE 20 03    N .
-                dec $031F                    ; C609= CE 1F 03    N..
-                bpl LC603                    ; C60C= 10 F5       .u
+                dec vduv.queueEnd-4
+                dec vduv.queueEnd-5
+                bpl -
                 rts                          ; C60E= 60          `
 
-LC60F:
-                ldx #$07                     ; C60F= A2 07       ".
-                stx $0320                    ; C611= 8E 20 03    . .
-LC614:
-                jsr vdu19EntryPoint          ; C614= 20 2D C6     -F
-                lsr $0320                    ; C617= 4E 20 03    N .
-                dec $031F                    ; C61A= CE 1F 03    N..
-                bpl LC614                    ; C61D= 10 F5       .u
+reset4Colours:
+                ldx #$07
+                stx vduv.queueEnd-4          ;start with VDU19,3,7,_,_,_
+-
+                jsr vdu19EntryPoint          ;2,3, then 1,1, then 0,0
+                lsr vduv.queueEnd-4
+                dec vduv.queueEnd-5
+                bpl -
                 rts                          ; C61F= 60          `
 
-LC620:
-                ldx #$07                     ; C620= A2 07       ".
-                jsr LC62A                    ; C622= 20 2A C6     *F
-                ldx #$00                     ; C625= A2 00       ".
-                stz $031F                    ; C627= 9C 1F 03    ...
-LC62A:
-                stx $0320                    ; C62A= 8E 20 03    . .
+reset2Colours:
+                ldx #$07
+                jsr +                        ;VDU19,1,7,_,_,_
+                ldx #$00
+                stz vduv.queueEnd-5          ;VDU19,0,0,_,_,_
++
+                stx vduv.queueEnd-4          ;VDU19,N,X,_,_,_
 
                 ; fall through to VDU19
 
@@ -1117,62 +1128,71 @@ LC62A:
 ; VDU 19 (&13) Define logical colour [MasRef E.3-9]
 ; 
 vdu19EntryPoint:
-                php                          ; C62D= 08          .
-                sei                          ; C62E= 78          x
-                lda $031F                    ; C62F= AD 1F 03    -..
-                and $0360                    ; C632= 2D 60 03    -`.
-                tax                          ; C635= AA          *
-                lda $0320                    ; C636= AD 20 03    - .
+                php
+                sei
+                lda vduv.queueEnd-5          ;get logical colour
+                and vduv.numberOfLogicalColoursMinusOne ;apply logical colour limit
+                tax                        ;X = clamped logical colour
+                lda vduv.queueEnd-4        ;get physical colour
 LC639:
-                and #$0F                     ; C639= 29 0F       ).
-                sta $036F,x                  ; C63B= 9D 6F 03    .o.
-                tay                          ; C63E= A8          (
-                lda $0360                    ; C63F= AD 60 03    -`.
-                sta $FA                      ; C642= 85 FA       .z
-                cmp #$03                     ; C644= C9 03       I.
-                php                          ; C646= 08          .
-                txa                          ; C647= 8A          .
-LC648:
-                lsr a                        ; C648= 4A          J
-                ror $FA                      ; C649= 66 FA       fz
-                bcs LC648                    ; C64B= B0 FB       0{
-                asl $FA                      ; C64D= 06 FA       .z
-                tya                          ; C64F= 98          .
-                ora $FA                      ; C650= 05 FA       .z
-                tax                          ; C652= AA          *
-                ldy #$F0                     ; C653= A0 F0        p
-LC655:
-                plp                          ; C655= 28          (
-                php                          ; C656= 08          .
-                bne LC65C                    ; C657= D0 03       P.
-                jsr LC66F                    ; C659= 20 6F C6     oF
-LC65C:
-                jsr LF261                    ; C65C= 20 61 F2     ar
-                clc                          ; C65F= 18          .
-                tya                          ; C660= 98          .
-                adc $0360                    ; C661= 6D 60 03    m`.
-                tay                          ; C664= A8          (
-                txa                          ; C665= 8A          .
-                adc #$10                     ; C666= 69 10       i.
-                tax                          ; C668= AA          *
-                iny                          ; C669= C8          H
-                bne LC655                    ; C66A= D0 E9       Pi
-                plp                          ; C66C= 28          (
-                plp                          ; C66D= 28          (
-                rts                          ; C66E= 60          `
+                and #$0F                     ;apply physical colour limit
+                sta vduv.currentPalette,x    ;update palette
+                tay                          ;Y = physical colour
+                lda vduv.numberOfLogicalColoursMinusOne
+                sta SEIWKA
+                cmp #$03 ;Z=1 C=1 if 4 colour; Z=0 C=1 if 16 colour; Z=0 C=0 if 2 colour
+                php      ;save flags
+                txa                          ;A = logical colour
 
-LC66F:
-                rol a                        ; C66F= 2A          *
-                sta $DA                      ; C670= 85 DA       .Z
-                rol a                        ; C672= 2A          *
-                rol a                        ; C673= 2A          *
-                php                          ; C674= 08          .
-                rol $DA                      ; C675= 26 DA       &Z
-                ror a                        ; C677= 6A          j
-                plp                          ; C678= 28          (
-                ror a                        ; C679= 6A          j
-                ror a                        ; C67A= 6A          j
-                rts                          ; C67B= 60          `
+                ;put the logical colour value in the top 1, 2 or 4
+                ;bits of SEIWKA, depending on the colour depth.
+                ;
+                ; 2 colours: turn %0000000a into %a0000000
+                ; 4 colours: turn %000000ab into %ab000000
+                ;16 colours: turn %0000abcd into %abcd0000
+-
+                lsr a
+                ror SEIWKA
+                bcs -
+                asl SEIWKA
+
+                tya                          ;A = physical colour
+                ora SEIWKA                   ;mix in logical colour
+                tax                          ;X = VPALETTE value
+                ldy #$F0 ;counts up to zero - counter for setting
+                         ;multiple logical colours [AUG p380]
+LC655:
+                plp                          ;restore flags
+                php                          ;save flags
+                bne +                     ;taken if 2 colour/16 colour
+                jsr fixUpVPALETTEFor4Colours
++
+                jsr writeVPALETTE
+                clc
+                tya                          
+                adc vduv.numberOfLogicalColoursMinusOne
+                tay                          
+                txa
+                adc #$10                     ;next logical colour
+                tax
+                iny                          ;Y+=numberOfLogicalColours
+                bne LC655                    ;all logical colours set once zero
+                plp                          
+                plp                          
+                rts                          
+
+fixUpVPALETTEFor4Colours:
+                rol a                        ;A BCDabcd1
+                sta ZTEMP+0                  ;  BCDabcd1
+                rol a                        ;B CDabcd1A
+                rol a                        ;C Dabcd1AB
+                php                          ;C
+                rol ZTEMP+0                  ;B CDabcd1C 
+                ror a                        ;B BDabcd1A
+                plp                          ;C BDabcd1A
+                ror a                        ;A CBDabcd1
+                ror a                        ;1 ACBDabcd
+                rts                          ;
 
 ;-------------------------------------------------------------------------
 ;
@@ -1199,7 +1219,8 @@ LC691:
                 tax
                 lsr a
                 cmp #$11
-                bcs LC6A7                    ;taken if invalid code
+                bcs callVDUV    ;call with C=1 - invalid code [MasRef
+                                ;E.3-19]
                 jmp (vdu23EntryPointTable,x) ; C698= 7C 69 E0    |i`
 
 ;-------------------------------------------------------------------------
@@ -1207,14 +1228,24 @@ LC691:
 ; VDU 25 (&19) PLOT commands [MasRef E.3-21]
 ; 
 vdu25EntryPoint:
-                ldx $0361                    ; C69B= AE 61 03    .a.
-                beq LC6A3                    ; C69E= F0 03       p.
-                jmp LD146                    ; C6A0= 4C 46 D1    LFQ
+                ldx vduv.pixelsPerByteMinusOne
+                beq callVDUVForPLOT          ;non-graphics PLOT
+                jmp handlePLOT
 
-LC6A3:
-                lda $031F                    ; C6A3= AD 1F 03    -..
-                clc                          ; C6A6= 18          .
-LC6A7:
+;-------------------------------------------------------------------------
+;
+; Call VDUV for a PLOT call, either to handle non-graphics PLOT
+; [MasRef E.3-21] or PLOT 240-255 [MasRef E.3-34].
+;
+callVDUVForPLOT:
+                lda vduv.queueEnd-5          ;get PLOT code
+                clc ;call with C=0 - non-graphics PLOT [MasRef E.3-21]
+
+;-------------------------------------------------------------------------
+;
+; Call VDUV.
+; 
+callVDUV:
                 jmp (VDUV)                  ; C6A7= 6C 26 02    l&.
 
 ;-------------------------------------------------------------------------
@@ -1222,7 +1253,7 @@ LC6A7:
 ; VDU 26 (&1A) Restore default windows [MasRef E.3-34]
 ; 
 vdu26EntryPoint:
-                ldx #VDUVariables.workspace2C
+                ldx #VDUVariables.workspace._2C
 -
                 stz vduv,x                    ;reset workspace
                 dex
@@ -1270,14 +1301,14 @@ LC6D8:
 ;-------------------------------------------------------------------------
 
 LC6DD:
-                stx $034A                    ; C6DD= 8E 4A 03    .J.
-                sta $034B                    ; C6E0= 8D 4B 03    .K.
-                bpl LC6E9                    ; C6E3= 10 04       ..
-                sec                          ; C6E5= 38          8
-                sbc $0354                    ; C6E6= ED 54 03    mT.
-LC6E9:
-                stx ZMEMT+0                      ; C6E9= 86 D8       .X
-                sta ZMEMT+1                      ; C6EB= 85 D9       .Y
+                stx vduv.textCursorCRTCAddress+0
+                sta vduv.textCursorCRTCAddress+1
+                bpl +
+                sec
+                sbc vduv.screenSizeHighByte
++
+                stx ZMEMT+0
+                sta ZMEMT+1
 
 ;-------------------------------------------------------------------------
 ;
@@ -1303,14 +1334,14 @@ setCRTCAddress:
                 cmp #$07                     ; C6F9= C9 07       I.
                 pla                        ;restore screen address MSB
                 bcs adjustAddressForMODE7
-                stx $DA
+                stx ZTEMP+0
                 lsr a
-                ror $DA                      ;/2
+                ror ZTEMP+0                  ;/2
                 lsr a                        
-                ror $DA                      ;/4
+                ror ZTEMP+0                  ;/4
                 lsr a                        
-                ror $DA                      ;/8
-                ldx $DA
+                ror ZTEMP+0                  ;/8
+                ldx ZTEMP+0
                 bra setCRTCAddressRegisters
 
 adjustAddressForMODE7:
@@ -1346,9 +1377,9 @@ LC724:
                 ora $032F                    ; C73B= 0D 2F 03    ./.
                 bmi LC779                    ; C73E= 30 39       09
                 ldx #$20                     ; C740= A2 20       "
-                jsr LD1DE                    ; C742= 20 DE D1     ^Q
+                jsr eigabsEntryPoint         ; C742= 20 DE D1     ^Q
                 ldx #$1C                     ; C745= A2 1C       ".
-                jsr LD1DE                    ; C747= 20 DE D1     ^Q
+                jsr eigabsEntryPoint         ; C747= 20 DE D1     ^Q
                 lda $031F                    ; C74A= AD 1F 03    -..
                 ora $031D                    ; C74D= 0D 1D 03    ...
                 bmi LC779                    ; C750= 30 27       0'
@@ -1373,7 +1404,7 @@ LC772:
                 jsr copyEightBytesWithinVDUVariables
 LC779:
                 ldx #VDUVariables.graphicsCursorPositionX
-                ldy #VDUVariables.workspace28
+                ldy #VDUVariables.workspace._28
                 jmp exchangeFourVDUBytes                    ; C77D= 4C BA E2    L:b
 
 ;-------------------------------------------------------------------------
@@ -1402,129 +1433,136 @@ vdu29EntryPoint:
 ; VDU 22 (&16) Select screen mode [MasRef E.3-11]
 ; 
 vdu22EntryPoint:
-                lda $0323                    ; C794= AD 23 03    -#.
-                bra LC7BC                    ; C797= 80 23       .#
+                lda vduv.queueEnd-1          ;get MODE number
+                bra setMODE
 
-LC799:
-                sta $DA                      ; C799= 85 DA       .Z
-                lda $F4                      ; C79B= A5 F4       %t
-                pha                          ; C79D= 48          H
-                ora #$80                     ; C79E= 09 80       ..
-                jsr selectROMA                    ; C7A0= 20 92 E5     .e
-                jsr LC7AA                    ; C7A3= 20 AA C7     *G
-                pla                          ; C7A6= 68          h
-                jmp selectROMA                    ; C7A7= 4C 92 E5    L.e
+;-------------------------------------------------------------------------
+; 
+setStartupMODE:
+                sta ZTEMP+0                  ;save MODE
+                lda $F4
+                pha    
+                ora #$80                     ;page in ANDY
+                jsr selectROMA               
+                jsr +                    
+                pla
+                jmp selectROMA               ;restore old ROM
 
-LC7AA:
-                ldx #$7F                     ; C7AA= A2 7F       ".
-                stz STATE                      ; C7AC= 64 D0       dP
-                lda $0366                    ; C7AE= AD 66 03    -f.
-LC7B1:
-                stz $02FF,x                  ; C7B1= 9E FF 02    ...
++
+                ; TODO but what of the reserved byte here?
+                ldx #size(VDUVariables)-1
+                stz STATE
+                lda vduv.cursorFlags
+-
+                stz vduv-1,x                  ; C7B1= 9E FF 02    ...
                 dex                          ; C7B4= CA          J
-                bne LC7B1                    ; C7B5= D0 FA       Pz
-                sta $0366                    ; C7B7= 8D 66 03    .f.
-                lda $DA                      ; C7BA= A5 DA       %Z
+                bne -
+                sta vduv.cursorFlags
+                lda ZTEMP                    ;restore MODE
 
-                ; VDU 22 - MODE
-                ; -------------
-LC7BC:
+                ; fall through to setMODE
+
+;-------------------------------------------------------------------------
+;
+;
+;
+setMODE:
                 stz $028A                    ; C7BC= 9C 8A 02    ...
                 stz $028B                    ; C7BF= 9C 8B 02    ...
-                tay                          ; C7C2= A8          (
-                bmi LC7D5                    ; C7C3= 30 10       0.
-                ldx $027F                    ; C7C5= AE 7F 02    ...
-                beq LC7D5                    ; C7C8= F0 0B       p.
-                lda #$10                     ; C7CA= A9 10       ).
-                trb STATE                      ; C7CC= 14 D0       .P
-                lda #$03                     ; C7CE= A9 03       ).
-                trb ACCCON                    ; C7D0= 1C 34 FE    .4~
-                bra LC7DE                    ; C7D3= 80 09       ..
+                tay                          ;Y=mode
+                bmi setShadowMODE
+                ldx $027F                    ;
+                beq setShadowMODE
+                lda #STATE.isShadowMode
+                trb STATE
+                lda #ACCCON.D|ACCCON.E
+                trb ACCCON ;display main RAM, VDU code accesses main RAM
+                bra +
 
-LC7D5:
-                lda #$10                     ; C7D5= A9 10       ).
-                tsb STATE                      ; C7D7= 04 D0       .P
-                lda #$03                     ; C7D9= A9 03       ).
-                tsb ACCCON                    ; C7DB= 0C 34 FE    .4~
-LC7DE:
-                tya                          ; C7DE= 98          .
-                and #$07                     ; C7DF= 29 07       ).
-                tax                          ; C7E1= AA          *
-                stx $0355                    ; C7E2= 8E 55 03    .U.
-                lda LE13C,x                  ; C7E5= BD 3C E1    =<a
-                sta $0360                    ; C7E8= 8D 60 03    .`.
-                lda LE119,x                  ; C7EB= BD 19 E1    =.a
-                sta $034F                    ; C7EE= 8D 4F 03    .O.
-                lda LE162,x                  ; C7F1= BD 62 E1    =ba
-                sta $0361                    ; C7F4= 8D 61 03    .a.
-                bne LC7FB                    ; C7F7= D0 02       P.
-                lda #$07                     ; C7F9= A9 07       ).
-LC7FB:
-                asl a                        ; C7FB= 0A          .
-                tay                          ; C7FC= A8          (
-                lda LE12E,y                  ; C7FD= B9 2E E1    9.a
-                sta $0363                    ; C800= 8D 63 03    .c.
-LC803:
-                asl a                        ; C803= 0A          .
-                bpl LC803                    ; C804= 10 FD       .}
-                sta $0362                    ; C806= 8D 62 03    .b.
-                ldy LE168,x                  ; C809= BC 68 E1    <ha
-                sty $0356                    ; C80C= 8C 56 03    .V.
-                lda LE174,y                  ; C80F= B9 74 E1    9ta
+setShadowMODE:
+                lda #STATE.isShadowMode
+                tsb STATE
+                lda #ACCCON.D|ACCCON.E
+                tsb ACCCON ;display shadow RAM, VDU code accesses shadow RAM
++
+                tya                          ;A=mode
+                and #$07                     ;get MODE 0-7
+                tax                          ;X=MODE 0-7
+                stx vduv.currentScreenMODE
+                lda numberOfLogicalColoursMinusOneForMODE,x
+                sta vduv.numberOfLogicalColoursMinusOne
+                lda bytesPerCharacterForMODE,x
+                sta vduv.bytesPerCharacter
+                lda pixelsPerByteMinusOneForMODE,x
+                sta vduv.pixelsPerByteMinusOne
+                bne +                        ;taken if graphics mode
+                lda #$07                     ;assume 8 px/byte for non-graphics modes
++
+                asl a            ;convert to pixelMasks index for rightmost pixel
+                tay
+                lda pixelMasks-1,y
+                sta vduv.colourMaskRight
+-
+                asl a
+                bpl -   ;keep shifting until leftmost pixel mask found
+                sta vduv.colourMaskLeft
+                ldy screenMODEGroupForMODE,x
+                sty vduv.currentScreenMODEGroup
+                lda latchBit4ForScreenMODEGroup,y
                 php                          ; C812= 08          .
                 sei                          ; C813= 78          x
                 sta systemVIA.orb            ; C814= 8D 40 FE    .@~
-                lda LE170,y                  ; C817= B9 70 E1    9pa
+                lda latchBit5ForScreenMODEGroup,y
                 sta systemVIA.orb            ; C81A= 8D 40 FE    .@~
                 plp                          ; C81D= 28          (
-                lda LE179,y                  ; C81E= B9 79 E1    9ya
-                sta $0354                    ; C821= 8D 54 03    .T.
-                lda LE17E,y                  ; C824= B9 7E E1    9~a
-                sta $034E                    ; C827= 8D 4E 03    .N.
-                lda #$EE                     ; C82A= A9 EE       )n
-                trb STATE                      ; C82C= 14 D0       .P
-                ldx $0355                    ; C82E= AE 55 03    .U.
-                lda LE111,x                  ; C831= BD 11 E1    =.a
-                jsr LF250                    ; C834= 20 50 F2     Pr
-                php                          ; C837= 08          .
-                sei                          ; C838= 78          x
-                ldx LE183,y                  ; C839= BE 83 E1    >.a
-                ldy #$0B                     ; C83C= A0 0B        .
-LC83E:
-                lda LE188,x                  ; C83E= BD 88 E1    =.a
-                jsr setCRTCRegister          ; C841= 20 01 CF     .O
-                dex                          ; C844= CA          J
-                dey                          ; C845= 88          .
-                bpl LC83E                    ; C846= 10 F6       .v
-                plp                          ; C848= 28          (
-                jsr vdu20EntryPoint          ; C849= 20 C5 C5     EE
-                jsr LCF6D                    ; C84C= 20 6D CF     mO
-                lda #$AA                     ; C84F= A9 AA       )*
-                sta $0367                    ; C851= 8D 67 03    .g.
-                sta $0368                    ; C854= 8D 68 03    .h.
-                jsr vdu26EntryPoint          ; C857= 20 AA C6     *F
-                lda $034C                    ; C85A= AD 4C 03    -L.
-                ldx $034D                    ; C85D= AE 4D 03    .M.
-                sta $0352                    ; C860= 8D 52 03    .R.
-                stx $0353                    ; C863= 8E 53 03    .S.
+                lda screenSizeHighByteForScreenMODEGroup,y
+                sta vduv.screenSizeHighByte
+                lda startScreenAddressHighByteForScreenMODEGroup,y
+                sta vduv.startScreenAddressHighByte
+                lda #STATE.isVDU21|STATE.isCursorEditing|STATE.isVDU5|STATE.isTextWindow|STATE.isPagedScrolling|STATE.isScrollingDisabled
+                trb STATE
+                ldx vduv.currentScreenMODE
+                lda vcontrolForScreenMODE,x
+                jsr setVCONTROL
+                php            
+                sei            
+                ldx crtcRegisterLastIndexForScreenMODEGroup,y    
+                ldy #$0B       
+-
+                lda crtcRegisterValues,x
+                jsr setCRTCRegister
+                dex                
+                dey                
+                bpl -
+                plp           
+                jsr vdu20EntryPoint
+                jsr vdu23_11_EntryPoint
+                lda #%10101010
+                sta vduv.dotPattern
+                sta vduv.dotPatternState
+                jsr vdu26EntryPoint
+                lda vduv.textWindowWidthInBytes+0        
+                ldx vduv.textWindowWidthInBytes+1
+                sta vduv.bytesPerCharacterRow+0          
+                stx vduv.bytesPerCharacterRow+1
 
                 ; Do a fast hardware CLS of the whole screen
                 ; ------------------------------------------
 LC866:
-                ldx #$00                     ; C866= A2 00       ".
-                lda $034E                    ; C868= AD 4E 03    -N.
-                stz $0350                    ; C86B= 9C 50 03    .P.
-                sta $0351                    ; C86E= 8D 51 03    .Q.
+                ldx #$00
+                lda vduv.startScreenAddressHighByte
+                stz vduv.screenTopLeftAddress+0
+                sta vduv.screenTopLeftAddress+1
                 jsr LC6DD                    ; C871= 20 DD C6     ]F
-                ldy #$0C                     ; C874= A0 0C        .
+                ldy #$0C
                 jsr setCRTCAddressRegisters
                 stz $0269                    ; C879= 9C 69 02    .i.
                 sec                          ; C87C= 38          8
                 lda #$80                     ; C87D= A9 80       ).
-                sbc $034E                    ; C87F= ED 4E 03    mN.
-                tax                          ; C882= AA          *
-                ldy #$00                     ; C883= A0 00        .
-                jsr LCB84                    ; C885= 20 84 CB     .K
+                sbc vduv.startScreenAddressHighByte
+                tax
+                ldy #$00
+                jsr clearTextMemory
                 jmp vdu30EntryPoint          ; C888= 4C 7C C4    L|D
 
 LC88B:
@@ -1535,32 +1573,32 @@ LC88E:
                 bmi LC88B                    ; Shift pressed, loop back
 LC895:
                 lda STATE                      ; C895= A5 D0       %P
-                eor #$04                     ; C897= 49 04       I.
-                and #$46                     ; C899= 29 46       )F
-                bne LC8D6                    ; C89B= D0 39       P9
-                jsr LC8D7                    ; C89D= 20 D7 C8     WH
-                lda $0318,y                  ; C8A0= B9 18 03    9..
-                cmp $0308,x                  ; C8A3= DD 08 03    ]..
+                eor #STATE.isPagedScrolling
+                and #STATE.isCursorEditing|STATE.isPagedScrolling|STATE.isScrollingDisabled;
+                bne LC8D6
+                jsr LC8D7
+                lda vduv.textCursorXPosition,y
+                cmp vduv.textWindowLeft,x
                 bne LC8D3                    ; C8A6= D0 2B       P+
                 sec                          ; C8A8= 38          8
                 iny                          ; C8A9= C8          H
                 dey                          ; C8AA= 88          .
                 bne LC8B5                    ; C8AB= D0 08       P.
-                lda $030A                    ; C8AD= AD 0A 03    -..
-                sbc $0308                    ; C8B0= ED 08 03    m..
+                lda vduv.textWindowRight
+                sbc vduv.textWindowLeft
                 bra LC8BB                    ; C8B3= 80 06       ..
 
 LC8B5:
-                lda $0309                    ; C8B5= AD 09 03    -..
-                sbc $030B                    ; C8B8= ED 0B 03    m..
+                lda vduv.textWindowBottom
+                sbc vduv.textWindowTop
 LC8BB:
                 pha                          ; C8BB= 48          H
                 lsr a                        ; C8BC= 4A          J
                 lsr a                        ; C8BD= 4A          J
-                sta $DA                      ; C8BE= 85 DA       .Z
+                sta ZTEMP+0
                 sec                          ; C8C0= 38          8
                 pla                          ; C8C1= 68          h
-                sbc $DA                      ; C8C2= E5 DA       eZ
+                sbc ZTEMP+0
                 cmp $0269                    ; C8C4= CD 69 02    Mi.
                 bcs LC8D3                    ; C8C7= B0 0A       0.
 LC8C9:
@@ -1607,8 +1645,16 @@ LC8F9:
                 inx                          ; C8FF= E8          h
                 bra copyTwoBytesWithinVDUVariables                    ; C900= 80 0A       ..
 
-LC902:
-                ldy #$28                     ; C902= A0 28        (
+;-------------------------------------------------------------------------
+;
+; Copy 8 bytes to workspace 28 in the VDU variables.
+;
+; entry:
+;
+; X = source offset
+;
+copyEightBytesToWorkspace28:
+                ldy #VDUVariables.workspace._28
                 
 ;-------------------------------------------------------------------------
 ;
@@ -1629,7 +1675,7 @@ copyEightBytesWithinVDUVariables:
 ; copyTextWindowWidthInBytesToWorkspace28
 copyTextWindowWidthInBytesToWorkspace28:
                 ldx #VDUVariables.textWindowWidthInBytes
-                ldy #VDUVariables.workspace28
+                ldy #VDUVariables.workspace._28
 
 ;-------------------------------------------------------------------------
 ;
@@ -1644,7 +1690,7 @@ copyTwoBytesWithinVDUVariables:
 ; 
 copyTextWindowToWorkspace2C:
                 ldx #VDUVariables.textWindowLeft
-                ldy #VDUVariables.workspace2C
+                ldy #VDUVariables.workspace._2C
                 bra copyFourBytesWithinVDUVariables
 
 ;-------------------------------------------------------------------------
@@ -1695,7 +1741,13 @@ copyFourBytesWithinVDUVariables:
 ; X = source offset
 ;
 ; Y = dest offset
-; 
+;
+; exit:
+;
+; X = updated source offset
+;
+; Y = updated dest offset
+;
 copyABytesWithinVDUVariables:
                 pha                          ; C920= 48          H
                 lda vduv,x
@@ -1708,19 +1760,29 @@ copyABytesWithinVDUVariables:
                 rts                          ; C92D= 60          `
 
 ;-------------------------------------------------------------------------
-
-LC92E:
-                pha                          ; C92E= 48          H
-                tya                          ; C92F= 98          .
-                eor #$FF                     ; C930= 49 FF       I.
-                tay                          ; C932= A8          (
-                pla                          ; C933= 68          h
-                eor #$FF                     ; C934= 49 FF       I.
-                iny                          ; C936= C8          H
-                bne LC93A                    ; C937= D0 01       P.
-                inc a                        ; C939= 1A          .
-LC93A:
-                rts                          ; C93A= 60          `
+;
+; Negate a 16-bit value stored in Y/A
+;
+; entry:
+;
+; Y (LSB), A (MSB) = value
+;
+; exit:
+;
+; Y (LSB), A (MSB) = -value
+;
+negateAY:
+                pha
+                tya
+                eor #$FF
+                tay
+                pla
+                eor #$FF
+                iny      
+                bne +
+                inc a    
++
+                rts      
 
 ;-------------------------------------------------------------------------
 ;
@@ -1755,13 +1817,14 @@ getBytesPerExclusiveTextRow:
                 rts                          ; C950= 60          `
 
 ;-------------------------------------------------------------------------
-
+;
+;
 LC951:
-                ldx #$08                     ; C951= A2 08       ".
-                stx $0359                    ; C953= 8E 59 03    .Y.
-                lda $035C                    ; C956= AD 5C 03    -\.
+                ldx #$08                     ;plot background
+                stx vduv.graphicsPlotState
+                lda vduv.backgroundGCOLMode
                 and #$0F                     ; C959= 29 0F       ).
-                sta $035A                    ; C95B= 8D 5A 03    .Z.
+                sta vduv.graphicsPlotMode
                 rts                          ; C95E= 60          `
 
 LC95F:
@@ -2039,43 +2102,61 @@ LCB5A:
 LCB6A:
                 ldx $0329                    ; CB6A= AE 29 03    .).
                 ldy $0328                    ; CB6D= AC 28 03    ,(.
-                bvc LCB84                    ; CB70= 50 12       P.
+                bvc clearTextMemory
                 ldx $DF                      ; CB72= A6 DF       &_
                 ldy $DE                      ; CB74= A4 DE       $^
-                jsr LCB84                    ; CB76= 20 84 CB     .K
+                jsr clearTextMemory
                 lda $034E                    ; CB79= AD 4E 03    -N.
                 sta ZMEMT+1                      ; CB7C= 85 D9       .Y
                 stz ZMEMT+0                      ; CB7E= 64 D8       dX
                 ldx $E1                      ; CB80= A6 E1       &a
                 ldy $E0                      ; CB82= A4 E0       $`
-LCB84:
-                tya                          ; CB84= 98          .
-                clc                          ; CB85= 18          .
-                adc ZMEMT+0                      ; CB86= 65 D8       eX
-                sta ZMEMT+0                      ; CB88= 85 D8       .X
-                bcs LCB8E                    ; CB8A= B0 02       0.
-                dec ZMEMT+1                      ; CB8C= C6 D9       FY
-LCB8E:
-                tya                          ; CB8E= 98          .
-                eor #$FF                     ; CB8F= 49 FF       I.
-                tay                          ; CB91= A8          (
-                lsr a                        ; CB92= 4A          J
-                lda $0358                    ; CB93= AD 58 03    -X.
-                bcs LCB9F                    ; CB96= B0 07       0.
-                bra LCB9C                    ; CB98= 80 02       ..
 
-LCB9A:
+;-------------------------------------------------------------------------
+;
+; Clear a block of text screen memory.
+;
+; entry:
+;
+; (ZMEMT),y - first byte to clear
+;
+; X = number of pages (including first, possibly partial page) to clear
+;
+clearTextMemory:
+                ; align memory so that Y=0 on each page boundary
+                ; crossing.
+                ;
+                ; e.g., on entry ZMEMT=$30f8, Y=$08 - then after,
+                ; ZMEMT=$3000, Y=$F7; or, ZMEMT=$30f0, Y=$08 -> ZMEMT=$2ff8, Y=$F7.
+                tya                          ;A=initial offset
+                clc
+                adc ZMEMT+0                  ;add to dest address
+                sta ZMEMT+0                  
+                bcs +
+                dec ZMEMT+1                      ; CB8C= C6 D9       FY
++
+                tya
+                eor #$FF
+                tay
+                lsr a                        ;C set if odd
+                lda vduv.backgroundTextColour
+                bcs nextByte                    ;taken if odd - slightly different loop
+                bra clearTextMemoryByte
+
+clearTextMemoryLoop:
                 sta (ZMEMT),y                  ; CB9A= 91 D8       .X
-LCB9C:
+clearTextMemoryByte:
                 iny                          ; CB9C= C8          H
                 sta (ZMEMT),y                  ; CB9D= 91 D8       .X
-LCB9F:
+nextByte:
                 iny                          ; CB9F= C8          H
-                bne LCB9A                    ; CBA0= D0 F8       Px
+                bne clearTextMemoryLoop
                 inc ZMEMT+1                      ; CBA2= E6 D9       fY
                 dex                          ; CBA4= CA          J
-                bpl LCB9A                    ; CBA5= 10 F3       .s
+                bpl clearTextMemoryLoop
                 rts                          ; CBA7= 60          `
+
+;-------------------------------------------------------------------------
 
 LCBA8:
                 sec                          ; CBA8= 38          8
@@ -2090,10 +2171,10 @@ LCBB4:
                 php                          ; CBB4= 08          .
                 tya                          ; CBB5= 98          .
                 clc                          ; CBB6= 18          .
-                adc $DA                      ; CBB7= 65 DA       eZ
-                sta $DA                      ; CBB9= 85 DA       .Z
+                adc ZTEMP+0                      ; CBB7= 65 DA       eZ
+                sta ZTEMP+0                      ; CBB9= 85 DA       .Z
                 bcs LCBBF                    ; CBBB= B0 02       0.
-                dec $DB                      ; CBBD= C6 DB       F[
+                dec ZTEMP+1                      ; CBBD= C6 DB       F[
 LCBBF:
                 tya                          ; CBBF= 98          .
                 clc                          ; CBC0= 18          .
@@ -2421,21 +2502,21 @@ LCD70:
                 phy                          ; CD72= 5A          Z
                 sta $DD                      ; CD73= 85 DD       .]
                 ldx #$24                     ; CD75= A2 24       "$
-                jsr LDEC8                    ; CD77= 20 C8 DE     H^
+                jsr gaddrEntryPoint                    ; CD77= 20 C8 DE     H^
                 bra LCD7E                    ; CD7A= 80 02       ..
 
 LCD7C:
                 bpl LCD81                    ; CD7C= 10 03       ..
 LCD7E:
-                jsr LDB51                    ; CD7E= 20 51 DB     Q[
+                jsr plbyteEntryPoint
 LCD81:
                 lsr ZMASK                      ; CD81= 46 D1       FQ
                 bcc LCD88                    ; CD83= 90 03       ..
-                jsr LDA67                    ; CD85= 20 67 DA     gZ
+                jsr nextColumnAndResetMask                    ; CD85= 20 67 DA     gZ
 LCD88:
                 asl $DD                      ; CD88= 06 DD       .]
                 bne LCD7C                    ; CD8A= D0 F0       Pp
-                ldx #VDUVariables.workspace28
+                ldx #VDUVariables.workspace._28
                 ldy #VDUVariables.graphicsCursorPixelsX
                 jsr copyTwoBytesWithinVDUVariables                    ; CD90= 20 0C C9     .I
                 ply                          ; CD93= 7A          z
@@ -2448,7 +2529,7 @@ LCD96:
                 and #$0F                     ; CD9F= 29 0F       ).
 LCDA1:
                 sta $035A                    ; CDA1= 8D 5A 03    .Z.
-                ldy #VDUVariables.workspace28
+                ldy #VDUVariables.workspace._28
                 jsr copyGraphicsCursorPixels
                 ldy #$24                     ; CDA9= A0 24        $
                 ldx #$00                     ; CDAB= A2 00       ".
@@ -2490,7 +2571,7 @@ LCDEE:
                 dec $0326                    ; CDEE= CE 26 03    N&.
                 iny                          ; CDF1= C8          H
                 bne LCDE1                    ; CDF2= D0 ED       Pm
-                ldx #VDUVariables.workspace2A
+                ldx #VDUVariables.workspace._2A
                 ldy #VDUVariables.graphicsCursorPixelsY
                 jmp copyTwoBytesWithinVDUVariables                    ; CDF8= 4C 0C C9    L.I
 
@@ -2505,7 +2586,7 @@ LCDFB:
                 bra LCDA1                    ; CE0A= 80 95       ..
 
 LCE0C:
-                jsr LD12D                    ; CE0C= 20 2D D1     -Q
+                jsr handleColumn81                    ; CE0C= 20 2D D1     -Q
                 bcs LCD96                    ; CE0F= B0 85       0.
                 ldx $0360                    ; CE11= AE 60 03    .`.
                 beq LCE4D                    ; CE14= F0 37       p7
@@ -2543,7 +2624,7 @@ LCE37:
 LCE4B:
                 lda #$20                     ; CE4B= A9 20       )
 LCE4D:
-                jsr LDDE5                    ; CE4D= 20 E5 DD     e]
+                jsr getSAA5050FromASCII
                 sta (ZMEMT)                    ; CE50= 92 D8       .X
                 rts                          ; CE52= 60          `
 
@@ -2781,72 +2862,82 @@ vdu23_5_EntryPoint:
 
 ;-------------------------------------------------------------------------
 
-LCF6D:
+vdu23_11_EntryPoint:
                 lda vduv.currentScreenMODE
                 bne +
-                dec a                        ;treat MODE 0 as MODE 255??
+                ; Use a different table for MODE 0 - see MasRef E.3-16.
+                dec a                        ;
 +
-                and #$03 ;0=mode 4, 1=mode 1/5, 2=mode 2/6, 3=mode 0/3/7
-                inc a  ;1=mode 4, 2=mode 1/5, 3=mode 2/6, 4=mode 0/3/7
-                asl a
-                asl a
-                asl a
-                asl a
-                tax                          ; CF7A= AA          *
-                ldy #28                     ; CF7B= A0 1C        .
-LCF7D:
-                lda LE1C3,x                  ; CF7D= BD C3 E1    =Ca
-                sta andy.ecfPatterns-1,y
-                sta andy.ecfPatterns+4-1,y
-                dex                          ; CF86= CA          J
-                dey                          ; CF87= 88          .
-                tya                          ; CF88= 98          .
-                bit #$07                     ; CF89= 89 07       ..
-                bne LCF7D                    ; CF8B= D0 F0       Pp
-                dey                          ; CF8D= 88          .
-                dey                          ; CF8E= 88          .
-                dey                          ; CF8F= 88          .
-                dey                          ; CF90= 88          .
-                bpl LCF7D                    ; CF91= 10 EA       .j
+                and #$03 ;index=0 (mode 4); 1 (mode 1/5); 2 (mode 2);
+                         ;3 (mode 0)
+                inc a  
+                asl a  
+                asl a  
+                asl a  
+                asl a                        ;(index+1)*16
+                tax
+                ldy #32-4
+setDefaultECFPatterns:
+                lda defaultECFPatterns-1,x
+                sta andy.ecfPatterns-1,y     ;copy first repeat
+                sta andy.ecfPatterns+4-1,y   ;copy second repeat
+                dex                          ;next byte in defaults table
+                dey
+                tya
+                bit #$07
+                bne setDefaultECFPatterns ;taken if pattern not filled
+                ; skip to start of previous pattern
+                dey
+                dey
+                dey
+                dey
+                bpl setDefaultECFPatterns
 LCF93:
-                jmp LC57D                    ; CF93= 4C 7D C5    L}E
+                jmp initializeCurrentECFPatterns
 
-LCF96:
-                sbc #$0B                     ; CF96= E9 0B       i.
-                asl a                        ; CF98= 0A          .
-                asl a                        ; CF99= 0A          .
-                asl a                        ; CF9A= 0A          .
-                adc #$03                     ; CF9B= 69 03       i.
-                pha                          ; CF9D= 48          H
-                ldx #$07                     ; CF9E= A2 07       ".
+;-------------------------------------------------------------------------
+;
+; VDU 23 12–15 Set simple ECF pattern [MasRef E.3-17]
+; 
+vdu23_12_EntryPoint:
+vdu23_13_EntryPoint:
+vdu23_14_EntryPoint:
+vdu23_15_EntryPoint:
+                sbc #$0B                     ;-12 to get pattern index
+                asl a                        ;index*2
+                asl a                        ;index*4
+                asl a                        ;index*8, C=0
+                adc #$03                     ;index*8+3, C=0
+                pha                          ;save offset
+                ldx #$07                     ;
 LCFA0:
-                lda $031C,x                  ; CFA0= BD 1C 03    =..
-                and $0360                    ; CFA3= 2D 60 03    -`.
-                sta $DA                      ; CFA6= 85 DA       .Z
-                lda $0360                    ; CFA8= AD 60 03    -`.
-                and #$07                     ; CFAB= 29 07       ).
-                adc $DA                      ; CFAD= 65 DA       eZ
-                tay                          ; CFAF= A8          (
-                lda LE14B,y                  ; CFB0= B9 4B E1    9Ka
-                sta $031C,x                  ; CFB3= 9D 1C 03    ...
+                lda vduv.queueEnd-8,x        ;get simple pattern byte
+                and vduv.numberOfLogicalColoursMinusOne ;apply logical colour limit
+                sta ZTEMP+0
+                lda vduv.numberOfLogicalColoursMinusOne
+                and #$07                     ;1/3/7
+                adc ZTEMP+0                  ;select 2/4/16 colour table
+                tay
+                lda solidColoursTable-1,y
+                sta vduv.queueEnd-8,x
                 dex                          ; CFB6= CA          J
                 bpl LCFA0                    ; CFB7= 10 E7       .g
-                lda #$55                     ; CFB9= A9 55       )U
-                ldx $0355                    ; CFBB= AE 55 03    .U.
-                bne LCFC2                    ; CFBE= D0 02       P.
-                lda #$33                     ; CFC0= A9 33       )3
-LCFC2:
-                sta $DA                      ; CFC2= 85 DA       .Z
+                lda #%01010101
+                ldx vduv.currentScreenMODE
+                bne +                 ;taken if not MODE 0
+                lda #%00110011        ;double-width pattern for MODE 0
++
+                sta ZTEMP+0                  ; CFC2= 85 DA       .Z
                 ply                          ; CFC4= 7A          z
                 ldx #$07                     ; CFC5= A2 07       ".
 LCFC7:
-                lda $031C,x                  ; CFC7= BD 1C 03    =..
-                dex                          ; CFCA= CA          J
-                eor $031C,x                  ; CFCB= 5D 1C 03    ]..
-                and $DA                      ; CFCE= 25 DA       %Z
-                eor $031C,x                  ; CFD0= 5D 1C 03    ]..
-                sta L8800,y                  ; CFD3= 99 00 88    ...
-                sta L8804,y                  ; CFD6= 99 04 88    ...
+                lda vduv.queueEnd-8,x
+                dex
+                eor vduv.queueEnd-8,x
+                and ZTEMP+0
+                eor vduv.queueEnd-8,x
+                sta andy.ecfPatterns+0,y
+                sta andy.ecfPatterns+4,y
                 dey                          ; CFD9= 88          .
                 dex                          ; CFDA= CA          J
                 bpl LCFC7                    ; CFDB= 10 EA       .j
@@ -2876,19 +2967,19 @@ vdu23_7_EntryPoint:
 
 scrollEntireScreen:
                 lda #$00
-                sta vduv.workspace2C          ;left
-                sta vduv.workspace2F          ;top
+                sta vduv.workspace._2C          ;left
+                sta vduv.workspace._2F          ;top
                 jsr getDefaultBoundsForCurrentScreenMODE
-                stx vduv.workspace2E          ;right
-                sty vduv.workspace2D          ;bottom
+                stx vduv.workspace._2E          ;right
+                sty vduv.workspace._2D          ;bottom
 +
-                sta $DC
+                sta ZTEMPB+0
                 sec
-                lda vduv.workspace2E          ;right
-                sbc vduv.workspace2C          ;right-left
+                lda vduv.workspace._2E          ;right
+                sbc vduv.workspace._2C          ;right-left
                 jsr getBytesPerInclusiveTextRow
-                sta vduv.workspace28+0        ;bytes per row LSB
-                stx vduv.workspace28+1        ;bytes per row MSB
+                sta vduv.workspace._28+0        ;bytes per row LSB
+                stx vduv.workspace._28+1        ;bytes per row MSB
                 ldx vduv.bytesPerCharacter
                 cpx #$01
                 beq +  ;when 1 byte/char, no cell/byte distinction
@@ -2896,7 +2987,7 @@ scrollEntireScreen:
                 beq +                ;taken if scrolling by 1 cell
                 ldx #$08                 ;scroll by 1 horizontal byte
 +
-                stx vduv.workspace2A
+                stx vduv.workspace._2A
 
 ; <d> is a bitmask - %00000AVN.
 ;
@@ -2919,7 +3010,7 @@ scrollEntireScreen:
                 eor vduv.cursorFlags       ;adjust axes
 LD039:
                 and #vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal
-                ora $DC                      ; D03B= 05 DC       .\
+                ora ZTEMPB+0
 LD03D:
                 tax
                 lda vduv.screenTopLeftAddress+0
@@ -2946,7 +3037,11 @@ LD051:
                 asl a                        ; D066= 0A          .
                 bra LD03D                    ; D067= 80 D4       .T
 
-LD069:
+;-------------------------------------------------------------------------
+;
+; VDU 23 8 Clear block [MasRef E.3-15]
+; 
+vdu23_8_EntryPoint:
                 stz $0334                    ; D069= 9C 34 03    .4.
                 stz $0335                    ; D06C= 9C 35 03    .5.
                 jsr LE252                    ; D06F= 20 52 E2     Rb
@@ -3035,97 +3130,163 @@ LD10B:
 LD10E:
                 rts                          ; D10E= 60          `
 
-LD10F:
-                sec                          ; D10F= 38          8
-LD110:
-                ldx $031C                    ; D110= AE 1C 03    ...
-                ldy #$00                     ; D113= A0 00        .
-                bcc LD11A                    ; D115= 90 03       ..
-                jmp osbyte09                    ; D117= 4C 92 EC    L.l
+;-------------------------------------------------------------------------
+;
+; VDU 23 9 Set 1st flash time [MasRef E.3-16]
+;
+vdu23_9_EntryPoint:
+                sec
 
-LD11A:
+;-------------------------------------------------------------------------
+;
+; VDU 23 10 Set 2nd flash time [MasRef E.3-16]
+;
+vdu23_10_EntryPoint:
+                ldx vduv.queueEnd-8          ;get flash value
+                ldy #$00                     ;Y=0 for OSBYTE call
+                bcc doOSBYTE0A               ;taken if VDU23,10
+                jmp osbyte09
+doOSBYTE0A:
                 sec                          ; D11A= 38          8
                 jmp osbyte0A                    ; D11B= 4C 94 EC    L.l
 
-LD11E:
-                lda $0366                    ; D11E= AD 66 03    -f.
-                and $031D                    ; D121= 2D 1D 03    -..
-                eor $031C                    ; D124= 4D 1C 03    M..
-                sta $0366                    ; D127= 8D 66 03    .f.
-                lsr a                        ; D12A= 4A          J
-                bcs LD145                    ; D12B= B0 18       0.
-LD12D:
-                pha                          ; D12D= 48          H
-                phx                          ; D12E= DA          Z
-                jsr testVDU5State                    ; D12F= 20 D2 E2     Rb
-                sec                          ; D132= 38          8
-                bne LD143                    ; D133= D0 0E       P.
-                clc                          ; D135= 18          .
-                bit $036C                    ; D136= 2C 6C 03    ,l.
-                bpl LD143                    ; D139= 10 08       ..
-                php                          ; D13B= 08          .
-                jsr vdu13EntryPoint          ; D13C= 20 F6 C3     vC
-                jsr vdu10EntryPoint          ; D13F= 20 5B C2     [B
-                plp                          ; D142= 28          (
-LD143:
+;-------------------------------------------------------------------------
+;
+; VDU 23 16 Cursor movement control [MasRef E.3-17]
+; 
+vdu23_16_EntryPoint:
+                lda vduv.cursorFlags
+                and vduv.queueEnd-7          ;value AND <y>
+                eor vduv.queueEnd-8          ;(value AND <y>) EOR <x>
+                sta vduv.cursorFlags
+                lsr a
+                bcs rtsD145            ;taken if scrollProtect flag on
+                ; scroll protect flag is off, so handle column 81 if
+                ; necessary.
+handleColumn81:
+                pha
+                phx
+                jsr testVDU5State
+                sec
+                bne plxThenPLAThenRTS        ;taken if VDU5
+                clc
+                bit vduv.column81
+                bpl plxThenPLAThenRTS        ;taken if not column 81
+                php
+                jsr vdu13EntryPoint          ;CR
+                jsr vdu10EntryPoint          ;LF
+                plp
+plxThenPLAThenRTS:
                 plx                          ; D143= FA          z
                 pla                          ; D144= 68          h
-LD145:
+rtsD145:
                 rts                          ; D145= 60          `
 
-LD146:
-                ldx #$20                     ; D146= A2 20       "
-                jsr LD1E2                    ; D148= 20 E2 D1     bQ
-                lda $031F                    ; D14B= AD 1F 03    -..
-                ldy #$05                     ; D14E= A0 05        .
-                and #$03                     ; D150= 29 03       ).
-                beq LD160                    ; D152= F0 0C       p.
-                lsr a                        ; D154= 4A          J
-                dey                          ; D155= 88          .
-                bcc LD160                    ; D156= 90 08       ..
-                tax                          ; D158= AA          *
-                ldy $035B,x                  ; D159= BC 5B 03    <[.
-                asl a                        ; D15C= 0A          .
-                asl a                        ; D15D= 0A          .
-                asl a                        ; D15E= 0A          .
-                tax                          ; D15F= AA          *
+;-------------------------------------------------------------------------
+; 
+; Handle PLOT. [MasRef E.3-21]
+;
+; PLOT numbers are of the form %pppppamm, where %ppppp is the PLOT
+; type, %a the absolute flag and %mm the PLOT mode.
+;
+; Absolute flag and mode are clear enough from [MasRef E.3-22]. The
+; %ppppp part isn't documented as such, so here's a list:
+;
+; %00000 =  0 = 0-7 = Plot solid line (both endpoints included) [MasRef E.3-23]
+; %00001 =  1 = 8-15 = Plot solid line (final point omitted) [MasRef E.3-23]
+; %00010 =  2 = 16-23 = Plot solid line (final point omitted) [MasRef E.3-23]
+; %00011 =  3 = 24-31 = Plot dotted line (final point omitted) [MasRef E.3-23]
+; %00100 =  4 = 32-39 = Plot solid line (initial point omitted) [MasRef E.3-24]
+; %00101 =  5 = 40-47 = Plot solid line (both endpoints omitted) [MasRef E.3-24]
+; %00110 =  6 = 48-55 = Plot dotted line (initial point omitted) [MasRef E.3-24]
+; %00111 =  7 = 56–63 = Plot dotted line (both endpoints omitted) [MasRef E.3-24]
+; %01000 =  8 = 64–71 = Plot point [MasRef E.3-24]
+; %01001 =  9 = 72–79 = Horizontal line fill (left and right to non-background) [MasRef E.3-24]
+; %01010 = 10 = 80–87 = Plot triangle [MasRef E.3-25]
+; %01011 = 11 = 88–95 = Horizontal line fill (right to background) [MasRef E.3-25]
+; %01100 = 12 = 96–103 = Plot rectangle [MasRef E.3-26]
+; %01101 = 13 = 104–111 = Horizontal line fill (left and right to foreground) [MasRef E.3-26]
+; %01110 = 14 = 112–119 = Plot parallelogram [MasRef E.3-27]
+; %01111 = 15 = 120–127 = Horizontal line fill (right to non-foreground) [MasRef E.3-27]
+; %10000 = 16 = 128–135 = Flood fill to non-background [MasRef E.3-28]
+; %10001 = 17 = 136–143 = Flood fill to foreground [MasRef E.3-28]
+; %10010 = 18 = 144–151 = Plot circle outline [MasRef E.3-28]
+; %10011 = 19 = 152–159 = Plot filled circle [MasRef E.3-29]
+; %10100 = 20 = 160–167 = Plot circular arc [MasRef E.3-29]
+; %10101 = 21 = 168–175 = Plot filled chord segment [MasRef E.3-30]
+; %10110 = 22 = 176–183 = Plot filled sector [MasRef E.3-30]
+; %10111 = 23 = 184–191 = Move/copy rectangle [MasRef E.3-31]
+; %11000 = 24 = 192–199 = Plot ellipse outline [MasRef E.3-32]
+; %11001 = 25 = 200–207 = Plot solid ellipse [MasRef E.3-32]
+; %11010 = 26 = 208-215 = Reserved [MasRef E.3-34]
+; %11011 = 27 = 215-223 = Reserved [MasRef E.3-34]
+; %11100 = 28 = 224-231 = Reserved [MasRef E.3-34]
+; %11101 = 29 = 232-239 = Reserved for Acornsoft sprites [MasRef E.3-34]
+; %11110 = 30 = 240-247 = User program calls [MasRef E.3-34]
+; %11111 = 31 = 248-255 = User program calls [MasRef E.3-34]
+;
+; entry:
+;
+; vduQueueEnd-5 = PLOT number
+;
+; vduQueueEnd-3 = X coordinate
+;
+; vduQueueEnd-1 = Y coordinate
+;; 
+                
+handlePLOT:
+                ldx #VDUVariables.queueEnd-4
+                jsr eigabsForPLOT
+                lda vduv.queueEnd-5          ;get PLOT number
+                ldy #gcolModeLeave                     ;
+                and #$03                     ;mask out colour/plot mode [MasRef E.3-22]
+                beq LD160 ;taken if <p> MOD 4=0 - early out
+                lsr a                        ;C=1 if using VDU18 settings
+                dey                          ;Y=gcolModeInvert
+                bcc LD160                    ;taken if invert mode
+                tax              ;X=0 if fg settings, 1 if bg settings
+                ldy vduv.foregroundGCOLMode,x
+                asl a
+                asl a
+                asl a
+                tax              ;X=0 if fg settings, 8 if bg settings
 LD160:
-                stx $0359                    ; D160= 8E 59 03    .Y.
-                tya                          ; D163= 98          .
+                stx vduv.graphicsPlotState
+                tya
                 and #$0F                     ; D164= 29 0F       ).
-                sta $035A                    ; D166= 8D 5A 03    .Z.
-                lda $031F                    ; D169= AD 1F 03    -..
-                lsr a                        ; D16C= 4A          J
-                lsr a                        ; D16D= 4A          J
-                and #$FE                     ; D16E= 29 FE       )~
-                tax                          ; D170= AA          *
-                cmp #$34                     ; D171= C9 34       I4
-                bcs LD190                    ; D173= B0 1B       0.
-                and #$F3                     ; D175= 29 F3       )s
-                cmp #$12                     ; D177= C9 12       I.
-                php                          ; D179= 08          .
-                beq LD184                    ; D17A= F0 08       p.
-                cpx #$2E                     ; D17C= E0 2E       `.
-                beq LD184                    ; D17E= F0 04       p.
-                cpy #$05                     ; D180= C0 05       @.
-                beq LD19D                    ; D182= F0 19       p.
+                sta vduv.graphicsPlotMode
+                lda vduv.queueEnd-5          ;get PLOT number pppppmmm
+                lsr a                        ;0pppppmm
+                lsr a                        ;00pppppm
+                and #$fe                     ;00ppppp0
+                tax
+                cmp #208/4
+                bcs LD190                    ;taken if reserved PLOT
+                and #$F3                     ;00pp00p0
+                cmp #$12                     ;
+                php                          ;
+                beq LD184                ;taken if horizonal line fill
+                cpx #184/4
+                beq LD184                ;taken if move/copy rectangle
+                cpy #gcolModeLeave
+                beq LD19D
 LD184:
-                lda $031F                    ; D184= AD 1F 03    -..
-                jsr LD193                    ; D187= 20 93 D1     .Q
+                lda vduv.queueEnd-5          ;get PLOT number
+                jsr LD193
                 plp                          ; D18A= 28          (
                 bne LD19E                    ; D18B= D0 11       P.
                 jmp LC4DF                    ; D18D= 4C DF C4    L_D
 
 LD190:
-                jmp LC6A3                    ; D190= 4C A3 C6    L#F
+                jmp callVDUVForPLOT
 
 LD193:
-                cpx #$10                     ; D193= E0 10       `.
-                bcs LD19A                    ; D195= B0 03       0.
-                jmp LD8A9                    ; D197= 4C A9 D8    L)X
+                cpx #64/4                     ; D193= E0 10       `.
+                bcs LD19A                     ;taken if PLOT >=64
+                jmp LD8A9                    ;handle line PLOTs
 
 LD19A:
-                jmp (LE07B,x)                ; D19A= 7C 7B E0    |{`
+                jmp (plotEntryPointTable-8*2,x)
 
 LD19D:
                 pla                          ; D19D= 68          h
@@ -3135,102 +3296,194 @@ LD19E:
                 jmp copyLastFourVDUQueueBytes                    ; D1A3= 4C 16 C9    L.I
 
 LD1A6:
-                ldx #$24                     ; D1A6= A2 24       "$
-LD1A8:
-                inx                          ; D1A8= E8          h
-                inx                          ; D1A9= E8          h
-                jsr LD1B5                    ; D1AA= 20 B5 D1     5Q
-                dex                          ; D1AD= CA          J
-                dex                          ; D1AE= CA          J
-                asl a                        ; D1AF= 0A          .
-                asl a                        ; D1B0= 0A          .
-                ldy #$00                     ; D1B1= A0 00        .
-                bra LD1B9                    ; D1B3= 80 04       ..
+                ldx #VDUVariables.graphicsCursorPixelsX
 
-LD1B5:
-                ldy #$02                     ; D1B5= A0 02        .
-LD1B7:
-                lda #$00                     ; D1B7= A9 00       ).
-LD1B9:
-                sta $DA                      ; D1B9= 85 DA       .Z
-                lda $0300,x                  ; D1BB= BD 00 03    =..
-                cmp $0300,y                  ; D1BE= D9 00 03    Y..
-                lda $0301,x                  ; D1C1= BD 01 03    =..
-                sbc $0301,y                  ; D1C4= F9 01 03    y..
-                bmi LD1D9                    ; D1C7= 30 10       0.
-                lda $0304,y                  ; D1C9= B9 04 03    9..
-                cmp $0300,x                  ; D1CC= DD 00 03    ]..
-                lda $0305,y                  ; D1CF= B9 05 03    9..
-                sbc $0301,x                  ; D1D2= FD 01 03    }..
-                bpl LD1DB                    ; D1D5= 10 04       ..
-                inc $DA                      ; D1D7= E6 DA       fZ
-LD1D9:
-                inc $DA                      ; D1D9= E6 DA       fZ
-LD1DB:
-                lda $DA                      ; D1DB= A5 DA       %Z
-                rts                          ; D1DD= 60          `
+;-------------------------------------------------------------------------
+;
+; WIND [MasRef E.4-7]. The result is a bit field, %vvhh, where %vv is
+; the outcode for the vertical axis and %hh the outcode for the
+; horizontal axis. Each outcode is %xn, where x is set if point above
+; maximum and n set if point below minimum. (Of course, %11 is then
+; not possible.)
+;
+; See https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
+;
+; So the possible results, in binary, are:
+;
+; %1001 | %1000 | %1010
+; ------+-------+------
+; %0001 | %0000 | %0010
+; ------+-------+------
+; %0101 | %0100 | %0110
+;
+windEntryPoint:
+                inx
+                inx                          ;point to Y coordinate
+                jsr getOutcodeForYAxis                    ;process Y coordinate
+                dex
+                dex                          ;point to X coordinate
+                asl a
+                asl a                        ;shift Y outcode into bits 2/3
+                ldy #$00                     ;doing Y axis
+                bra updateOutcodeForAxis
 
-LD1DE:
-                lda #$FF                     ; D1DE= A9 FF       ).
-                bra LD1E5                    ; D1E0= 80 03       ..
+;-------------------------------------------------------------------------
+;
+getOutcodeForYAxis:
+                ldy #$02                     ;Y=2 for Y coordinate
+;-------------------------------------------------------------------------
+;
+; Get outcode for X or Y axis.
+;
+; entry:
+;
+; X = offset in VDU variables of coordinate
+;
+; Y = 0 if X axis, 2 if Y axis
+;
+; exit:
+;
+; ZTEMP?0 = outcode - 0, 1 or 2
+;
+getOutcodeForAxis:
+                lda #$00                     ;initialize result
 
-LD1E2:
-                lda $031F                    ; D1E2= AD 1F 03    -..
-LD1E5:
-                sta $DA                      ; D1E5= 85 DA       .Z
-                ldy #$02                     ; D1E7= A0 02        .
-                jsr LD20B                    ; D1E9= 20 0B D2     .R
-                jsr LD242                    ; D1EC= 20 42 D2     BR
-                ldy #$00                     ; D1EF= A0 00        .
-                dex                          ; D1F1= CA          J
-                dex                          ; D1F2= CA          J
-                jsr LD20B                    ; D1F3= 20 0B D2     .R
-                ldy $0361                    ; D1F6= AC 61 03    ,a.
-                cpy #$03                     ; D1F9= C0 03       @.
-                beq LD202                    ; D1FB= F0 05       p.
-                bcs LD205                    ; D1FD= B0 06       0.
-                jsr LD242                    ; D1FF= 20 42 D2     BR
-LD202:
-                jsr LD242                    ; D202= 20 42 D2     BR
-LD205:
-                lda $0356                    ; D205= AD 56 03    -V.
-                bne LD242                    ; D208= D0 38       P8
-                rts                          ; D20A= 60          `
+;-------------------------------------------------------------------------
+;
+; Update outcode for X or Y axis
+;
+; entry: as per getOutcodeForAxis
+;
+; exit:
+;
+; ZTEMP?0 = updated; outcode is added to its existing value
+;
+updateOutcodeForAxis:
+                sta ZTEMP+0                  ;save current result
+                ; set flags for coordinate-minimum
+                lda vduv+0,x                 
+                cmp vduv.graphicsWindowPixelsLeft+0,y
+                lda vduv+1,x                  
+                sbc vduv.graphicsWindowPixelsLeft+1,y
+                bmi add1ToOutcode ;taken if point below minimum - outcode is 1
 
-LD20B:
-                clc                          ; D20B= 18          .
-                lda $DA                      ; D20C= A5 DA       %Z
-                and #$04                     ; D20E= 29 04       ).
-                beq LD21B                    ; D210= F0 09       p.
-                lda $0302,x                  ; D212= BD 02 03    =..
-                pha                          ; D215= 48          H
-                lda $0303,x                  ; D216= BD 03 03    =..
-                bra LD229                    ; D219= 80 0E       ..
+                ; set flags for maximum-coordinate
+                lda vduv.graphicsWindowPixelsRight+0,y
+                cmp vduv+0,x                  ; D1CC= DD 00 03    ]..
+                lda vduv.graphicsWindowPixelsRight+1,y
+                sbc vduv+1,x
+                bpl gotOutcode ;taken if point below maximum - axis outcode is 0
+                ; point is above maximum - axis outcode is 2
+add2ToOutcode:
+                inc ZTEMP+0
+add1ToOutcode:
+                inc ZTEMP+0
+gotOutcode:
+                lda ZTEMP+0
+                rts
 
-LD21B:
-                lda $0302,x                  ; D21B= BD 02 03    =..
-                adc $0310,y                  ; D21E= 79 10 03    y..
-                pha                          ; D221= 48          H
-                lda $0303,x                  ; D222= BD 03 03    =..
-                adc $0311,y                  ; D225= 79 11 03    y..
-                clc                          ; D228= 18          .
+;-------------------------------------------------------------------------
+;
+; EIGABS entry point.
+; 
+eigabsEntryPoint:
+                lda #$FF ;pretend it's PLOT 255 (as that would be absolute coordinates)
+                bra eigabsCommon
+
+;-------------------------------------------------------------------------
+;
+; EIGABS, but for a VDU 25. Handles relative/absolute addressing,
+; based on the PLOT number in the VDU queue.
+; 
+eigabsForPLOT:
+                lda vduv.queueEnd-5          ;get PLOT number
+
+;-------------------------------------------------------------------------
+;
+; EIGABS shared code.
+;
+eigabsCommon:
+                sta ZTEMP+0                  ;save PLOT number
+                ldy #$02                     ;process Y
+                jsr handleExternalCoordinate
+                jsr divideCoordinatesBy2     ;divide Y by 4 - convert 0-1023 to 0-255
+                ldy #$00                     ;process X
+                dex                          ;...
+                dex                          ;...
+                jsr handleExternalCoordinate
+                ldy vduv.pixelsPerByteMinusOne
+                cpy #$03  ;
+                beq +     ;branch taken if mode 1/5 - divide by 4 or 8
+                bcs ++    ;branch taken if mode 0/4 - divide by 2 or 4
+                jsr divideCoordinatesBy2     ;mode 2 - divide by 8
++
+                jsr divideCoordinatesBy2
++
+                lda vduv.currentScreenMODEGroup
+                bne divideCoordinatesBy2     ;branch taken if MODE 4/5
+                rts
+
+;-------------------------------------------------------------------------
+;
+; Handle external coordinate.
+;
+; 1. Deal with absolute or relative PLOTting
+;
+; 2. Update graphics cursor position
+;
+; 3. Handle window origin
+;
+; 4. Update input coordinate
+;
+; 5. Divide result by 2 (as this always needs doing at least once)
+;
+; entry:
+;
+; ZTEMP?0 = PLOT number
+;
+; X = offset-2 of external coordinates
+;
+; Y = 0 to process X coordinate, 2 to process Y coordinate
+;
+handleExternalCoordinate:
+                clc
+                lda ZTEMP+0                  ;get PLOT number
+                and #$04                     ;get absolute/relative flag
+                beq relativePLOT             ;branch taken if relative
+absolutePLOT:
+                lda vduv+2,x                 ;get coordinate LSB
+                pha                          ;save coordinate LSB
+                lda vduv+3,x                 ;get coordinate MSB
+                bra LD229                    ;
+
+relativePLOT:
+                lda vduv+2,x                 ;get coordinate LSB
+                adc vduv.graphicsCursorPositionX+0,y ;add current position LSB
+                pha                                  ;save coordinate LSB
+                lda vduv+3,x                 ;get coordinate MSB
+                adc vduv.graphicsCursorPositionX+1,y ;add current position MSB
+                clc
 LD229:
-                sta $0311,y                  ; D229= 99 11 03    ...
-                adc $030D,y                  ; D22C= 79 0D 03    y..
-                sta $0303,x                  ; D22F= 9D 03 03    ...
-                pla                          ; D232= 68          h
-                sta $0310,y                  ; D233= 99 10 03    ...
-                clc                          ; D236= 18          .
-                adc $030C,y                  ; D237= 79 0C 03    y..
-                sta $0302,x                  ; D23A= 9D 02 03    ...
-                bcc LD242                    ; D23D= 90 03       ..
-                inc $0303,x                  ; D23F= FE 03 03    ~..
-LD242:
-                lda $0303,x                  ; D242= BD 03 03    =..
-                asl a                        ; D245= 0A          .
-                ror $0303,x                  ; D246= 7E 03 03    ~..
-                ror $0302,x                  ; D249= 7E 02 03    ~..
-                rts                          ; D24C= 60          `
+                sta vduv.graphicsCursorPositionX+1,y ;update current position MSB
+                adc vduv.graphicsWindowOriginX+1,y   ;add window origin MSB
+                sta vduv+3,x                  ;update coordinate MSB
+                pla                          ;restore coordinate LSB
+                sta vduv.graphicsCursorPositionX+0,y ;update current position LSB
+                clc
+                adc vduv.graphicsWindowOriginX+0,y ;add window origin LSB
+                sta vduv+2,x                       ;update coordinate LSB
+                bcc +
+                inc vduv+3,x       ;handle carry, ignored earlier
++
+                
+divideCoordinatesBy2:
+                lda vduv+3,x
+                asl a                        ;C=bit 7
+                ror vduv+3,x                  ;signed divide by 2
+                ror vduv+2,x                  ;signed divide by 2
+                rts
+
+;-------------------------------------------------------------------------
 
 LD24D:
                 phx                          ; D24D= DA          Z
@@ -3297,8 +3550,8 @@ LD298:
 LD2AD:
                 sty $E0                      ; D2AD= 84 E0       .`
                 tsb $E0                      ; D2AF= 04 E0       .`
-                ldx #VDUVariables.workspace2C
-                ldy #VDUVariables.workspace28
+                ldx #VDUVariables.workspace._2C
+                ldy #VDUVariables.workspace._28
                 jsr copyFourBytesWithinVDUVariables
                 bit $0335                    ; D2B8= 2C 35 03    ,5.
                 php                          ; D2BB= 08          .
@@ -3311,7 +3564,7 @@ LD2C7:
                 ldy $032C                    ; D2C7= AC 2C 03    ,,.
                 lda $032D                    ; D2CA= AD 2D 03    --.
                 bmi LD2D2                    ; D2CD= 30 03       0.
-                jsr LC92E                    ; D2CF= 20 2E C9     .I
+                jsr negateAY                    ; D2CF= 20 2E C9     .I
 LD2D2:
                 pha                          ; D2D2= 48          H
                 clc                          ; D2D3= 18          .
@@ -3398,7 +3651,7 @@ LD34F:
                 lda $0301,x                  ; D366= BD 01 03    =..
                 bpl LD370                    ; D369= 10 05       ..
                 lsr $DA                      ; D36B= 46 DA       FZ
-                jsr LC92E                    ; D36D= 20 2E C9     .I
+                jsr negateAY                    ; D36D= 20 2E C9     .I
 LD370:
                 cpy L8830                    ; D370= CC 30 88    L0.
                 bne LD333                    ; D373= D0 BE       P>
@@ -3525,7 +3778,7 @@ LD448:
 LD45B:
                 ldy L8844                    ; D45B= AC 44 88    ,D.
                 lda L8845                    ; D45E= AD 45 88    -E.
-                jsr LC92E                    ; D461= 20 2E C9     .I
+                jsr negateAY                    ; D461= 20 2E C9     .I
                 sty L8832                    ; D464= 8C 32 88    .2.
                 sta L8833                    ; D467= 8D 33 88    .3.
                 ora L8832                    ; D46A= 0D 32 88    .2.
@@ -3596,7 +3849,7 @@ LD4CE:
                 ldy L883C                    ; D4D1= AC 3C 88    ,<.
                 tax                          ; D4D4= AA          *
                 bpl LD4DA                    ; D4D5= 10 03       ..
-                jsr LC92E                    ; D4D7= 20 2E C9     .I
+                jsr negateAY                    ; D4D7= 20 2E C9     .I
 LD4DA:
                 sty L883C                    ; D4DA= 8C 3C 88    .<.
                 sta L883D                    ; D4DD= 8D 3D 88    .=.
@@ -3841,7 +4094,7 @@ LD676:
                 ply                          ; D687= 7A          z
                 cmp #$80                     ; D688= C9 80       I.
                 bcc LD68F                    ; D68A= 90 03       ..
-                jsr LC92E                    ; D68C= 20 2E C9     .I
+                jsr negateAY                    ; D68C= 20 2E C9     .I
 LD68F:
                 plx                          ; D68F= FA          z
                 sta $0301,x                  ; D690= 9D 01 03    ...
@@ -4165,7 +4418,7 @@ LD8B9:
                 trb $DB                      ; D8C2= 14 DB       .[
 LD8C4:
                 ldx #$20                     ; D8C4= A2 20       "
-                jsr LD1A8                    ; D8C6= 20 A8 D1     (Q
+                jsr windEntryPoint           ; D8C6= 20 A8 D1     (Q
                 sta $E0                      ; D8C9= 85 E0       .`
                 beq LD8D7                    ; D8CB= F0 0A       p.
                 tax                          ; D8CD= AA          *
@@ -4192,7 +4445,7 @@ LD8EC:
                 ldx #$28                     ; D8F2= A2 28       "(
                 jsr LD77B                    ; D8F4= 20 7B D7     {W
                 ldx #$28                     ; D8F7= A2 28       "(
-                jsr LD1A8                    ; D8F9= 20 A8 D1     (Q
+                jsr windEntryPoint           ; D8F9= 20 A8 D1     (Q
                 bit $E0                      ; D8FC= 24 E0       $`
                 bne LD8D5                    ; D8FE= D0 D5       PU
 LD900:
@@ -4201,7 +4454,7 @@ LD900:
                 ldx #$28                     ; D904= A2 28       "(
                 jsr LD6C8                    ; D906= 20 C8 D6     HV
                 ldx #$28                     ; D909= A2 28       "(
-                jsr LD1A8                    ; D90B= 20 A8 D1     (Q
+                jsr windEntryPoint           ; D90B= 20 A8 D1     (Q
 LD90E:
                 tay                          ; D90E= A8          (
                 bne LD8D5                    ; D90F= D0 C4       PD
@@ -4312,7 +4565,7 @@ LD9BB:
 LD9BF:
                 lda $0369                    ; D9BF= AD 69 03    -i.
                 beq LD9C7                    ; D9C2= F0 03       p.
-                jsr LDA7C                    ; D9C4= 20 7C DA     |Z
+                jsr setupColourMasks        ; D9C4= 20 7C DA     |Z
 LD9C7:
                 clc                          ; D9C7= 18          .
                 lda $0330                    ; D9C8= AD 30 03    -0.
@@ -4332,13 +4585,13 @@ LD9E4:
                 bvs LD9F2                    ; D9E7= 70 09       p.
                 lsr ZMASK                      ; D9E9= 46 D1       FQ
                 bcc LD9F9                    ; D9EB= 90 0C       ..
-                jsr LDA67                    ; D9ED= 20 67 DA     gZ
+                jsr nextColumnAndResetMask                    ; D9ED= 20 67 DA     gZ
                 bra LD9F9                    ; D9F0= 80 07       ..
 
 LD9F2:
                 asl ZMASK                      ; D9F2= 06 D1       .Q
                 bcc LD9F9                    ; D9F4= 90 03       ..
-                jsr LDA34                    ; D9F6= 20 34 DA     4Z
+                jsr previousColumnAndResetMask                    ; D9F6= 20 34 DA     4Z
 LD9F9:
                 sec                          ; D9F9= 38          8
                 lda $0330                    ; D9FA= AD 30 03    -0.
@@ -4376,22 +4629,26 @@ LDA28:
 LDA33:
                 rts                          ; DA33= 60          `
 
-LDA34:
-                lda $0363                    ; DA34= AD 63 03    -c.
-                sta ZMASK                      ; DA37= 85 D1       .Q
-                tya                          ; DA39= 98          .
-                sbc #$08                     ; DA3A= E9 08       i.
-                tay                          ; DA3C= A8          (
-                bcs LDA4B                    ; DA3D= B0 0C       0.
-                lda ZMEMG+1                      ; DA3F= A5 D7       %W
-                dec a                        ; DA41= 3A          :
-                cmp $034E                    ; DA42= CD 4E 03    MN.
-                bcs LDA49                    ; DA45= B0 02       0.
+;-------------------------------------------------------------------------
+
+previousColumnAndResetMask:
+                lda vduv.colourMaskRight
+                sta ZMASK                      
+                tya                          
+                sbc #$08                     
+                tay                          
+                bcs rtsDA4B                  
+                lda ZMEMG+1                  
+                dec a                        
+                cmp vduv.startScreenAddressHighByte
+                bcs +
                 lda #$7F                     ; DA47= A9 7F       ).
-LDA49:
++
                 sta ZMEMG+1                      ; DA49= 85 D7       .W
-LDA4B:
+rtsDA4B:
                 rts                          ; DA4B= 60          `
+                
+;-------------------------------------------------------------------------
 
 LDA4C:
                 clc                          ; DA4C= 18          .
@@ -4410,38 +4667,65 @@ LDA62:
                 ldx #$07                     ; DA64= A2 07       ".
                 rts                          ; DA66= 60          `
 
-LDA67:
-                lda $0362                    ; DA67= AD 62 03    -b.
-                sta ZMASK                      ; DA6A= 85 D1       .Q
-LDA6C:
+;-------------------------------------------------------------------------
+;
+nextColumnAndResetMask:
+                lda vduv.colourMaskLeft
+                sta ZMASK
+
+;-------------------------------------------------------------------------
+;
+; Add 8 to (ZMEMG),Y, taking into account screen wrap.
+;
+; entry:
+;
+; C=1
+;
+; (ZMEMG),Y = screen address
+;
+; exit:
+;
+; (ZMEMG),Y = new screen address
+;
+nextColumn:
                 tya                          ; DA6C= 98          .
                 adc #$07                     ; DA6D= 69 07       i.
                 tay                          ; DA6F= A8          (
-                bcc LDA7B                    ; DA70= 90 09       ..
+                bcc +
                 inc ZMEMG+1                      ; DA72= E6 D7       fW
-                bpl LDA7B                    ; DA74= 10 05       ..
-                lda $034E                    ; DA76= AD 4E 03    -N.
+                bpl +
+                lda vduv.startScreenAddressHighByte
                 sta ZMEMG+1                      ; DA79= 85 D7       .W
-LDA7B:
++
                 rts                          ; DA7B= 60          `
 
-LDA7C:
-                phx                          ; DA7C= DA          Z
-                txa                          ; DA7D= 8A          .
-                ora $0359                    ; DA7E= 0D 59 03    .Y.
-                tax                          ; DA81= AA          *
-                lda L8820,x                  ; DA82= BD 20 88    = .
-                ldx $035A                    ; DA85= AE 5A 03    .Z.
-                pha                          ; DA88= 48          H
-                ora LE144,x                  ; DA89= 1D 44 E1    .Da
-                eor LE145,x                  ; DA8C= 5D 45 E1    ]Ea
-                sta ZGORA                      ; DA8F= 85 D4       .T
-                pla                          ; DA91= 68          h
-                ora LE143,x                  ; DA92= 1D 43 E1    .Ca
-                eor LE148,x                  ; DA95= 5D 48 E1    ]Ha
-                sta ZGEOR                      ; DA98= 85 D5       .U
-                plx                          ; DA9A= FA          z
-                rts                          ; DA9B= 60          `
+;-------------------------------------------------------------------------
+;
+; Set up colour masks, taking into account ECF pattern.
+;
+; entry:
+;
+; X = scanline in row, 0-7
+;
+setupColourMasks:
+                phx                          ;save scanline
+                txa                          ;A=scanline
+                ora vduv.graphicsPlotState   ;0-7 if fg, 8-15 if bg
+                tax
+                lda andy.fgECFPattern,x      ;get appropriate ECF byte
+                ldx vduv.graphicsPlotMode
+                pha
+                ora zgoraORTable,x
+                eor zgoraEORTable,x
+                sta ZGORA
+                pla
+                ora zgeorORTable,x
+                eor zgeorEORTable,x
+                sta ZGEOR
+                plx
+                rts
+
+;-------------------------------------------------------------------------
 
 LDA9C:
                 lda $0301,y                  ; DA9C= B9 01 03    9..
@@ -4452,7 +4736,7 @@ LDA9C:
                 clc                          ; DAA7= 18          .
                 adc $0361                    ; DAA8= 6D 61 03    ma.
                 tay                          ; DAAB= A8          (
-                lda LE12E,y                  ; DAAC= B9 2E E1    9.a
+                lda pixelMasks-1,y                ; DAAC= B9 2E E1    9.a
                 eor LE120,y                  ; DAAF= 59 20 E1    Y a
                 sta $DC                      ; DAB2= 85 DC       .\
                 lda $0300,x                  ; DAB4= BD 00 03    =..
@@ -4493,7 +4777,7 @@ LDAE8:
                 sty $DF                      ; DAED= 84 DF       ._
                 ldx $DF                      ; DAEF= A6 DF       &_
                 ldy #$00                     ; DAF1= A0 00        .
-                jsr LD1B7                    ; DAF3= 20 B7 D1     7Q
+                jsr getOutcodeForAxis        ; DAF3= 20 B7 D1     7Q
                 beq LDAFF                    ; DAF6= F0 07       p.
                 lsr a                        ; DAF8= 4A          J
                 beq LDAE3                    ; DAF9= F0 E8       ph
@@ -4501,7 +4785,7 @@ LDAE8:
                 stx $DF                      ; DAFD= 86 DF       ._
 LDAFF:
                 ldx $DE                      ; DAFF= A6 DE       &^
-                jsr LD1A8                    ; DB01= 20 A8 D1     (Q
+                jsr windEntryPoint           ; DB01= 20 A8 D1     (Q
                 lsr a                        ; DB04= 4A          J
                 bne LDAE3                    ; DB05= D0 DC       P\
                 lda $0302,x                  ; DB07= BD 02 03    =..
@@ -4517,7 +4801,7 @@ LDB10:
                 ldy $031A                    ; DB1B= AC 1A 03    ,..
                 txa                          ; DB1E= 8A          .
                 beq LDB44                    ; DB1F= F0 23       p#
-                jsr LDB51                    ; DB21= 20 51 DB     Q[
+                jsr plbyteEntryPoint         ; DB21= 20 51 DB     Q[
                 bra LDB2E                    ; DB24= 80 08       ..
 
 LDB26:
@@ -4543,37 +4827,62 @@ LDB3E:
 LDB44:
                 lda $DC                      ; DB44= A5 DC       %\
                 trb ZMASK                      ; DB46= 14 D1       .Q
-                bra LDB51                    ; DB48= 80 07       ..
+                bra plbyteEntryPoint           ; DB48= 80 07       ..
 
-LDB4A:
-                ldx #$20                     ; DB4A= A2 20       "
+;-------------------------------------------------------------------------
+;
+; mem mask ora eor | result
+; --- ---- --- --- | ------
+;  0    0   0   0  |   0
+;  0    0   0   1  |   0
+;  0    0   1   0  |   0
+;  0    0   1   1  |   0
+;  0    1   0   0  |   0
+;  0    1   0   1  |   1
+;  0    1   1   0  |   1
+;  0    1   1   1  |   0
+;  1    0   0   0  |   1
+;  1    0   0   1  |   1
+;  1    0   1   0  |   1
+;  1    0   1   1  |   1
+;  1    1   0   0  |   1
+;  1    1   0   1  |   0
+;  1    1   1   0  |   1
+;  1    1   1   1  |   0
+;
+plotPoint:
+                ldx #VDUVariables.queueEnd-4
 LDB4C:
-                jsr LDEC3                    ; DB4C= 20 C3 DE     C^
-                bne LDB61                    ; DB4F= D0 10       P.
-LDB51:
-                lda ZMASK                      ; DB51= A5 D1       %Q
-                and ZGORA                      ; DB53= 25 D4       %T
-                ora (ZMEMG),y                  ; DB55= 11 D6       .V
-                sta $DA                      ; DB57= 85 DA       .Z
-                lda ZGEOR                      ; DB59= A5 D5       %U
-                and ZMASK                      ; DB5B= 25 D1       %Q
-                eor $DA                      ; DB5D= 45 DA       EZ
-LDB5F:
-                sta (ZMEMG),y                  ; DB5F= 91 D6       .V
-LDB61:
+                jsr windGADDR
+                bne rtsDB61                  ;taken if point outside window
+plbyteEntryPoint:
+                lda ZMASK                      
+                and ZGORA                      
+                ora (ZMEMG),y                  
+                sta ZTEMP+0                  
+                lda ZGEOR                      
+                and ZMASK                      
+                eor ZTEMP+0
+oswrscCode:
+                sta (ZMEMG),y                  
+rtsDB61:
                 rts                          ; DB61= 60          `
 
-                ldx #VDUVariables.workspace2A
-                ldy #VDUVariables.workspace32
+;-------------------------------------------------------------------------
+
+                ; unused code???!
+                
+                ldx #VDUVariables.workspace._2A
+                ldy #VDUVariables.workspace._32
                 jsr copyTwoBytesWithinVDUVariables                    ; DB66= 20 0C C9     .I
-                ldx #VDUVariables.workspace36
-                ldy #VDUVariables.workspace3E
+                ldx #VDUVariables.workspace._36
+                ldy #VDUVariables.workspace._3E
                 jsr copyTwoBytesWithinVDUVariables                    ; DB6D= 20 0C C9     .I
                 ldx #$2A                     ; DB70= A2 2A       "*
-                jsr LD1B5                    ; DB72= 20 B5 D1     5Q
+                jsr getOutcodeForYAxis       ; DB72= 20 B5 D1     5Q
                 pha                          ; DB75= 48          H
                 ldx #$36                     ; DB76= A2 36       "6
-                jsr LD1B5                    ; DB78= 20 B5 D1     5Q
+                jsr getOutcodeForYAxis       ; DB78= 20 B5 D1     5Q
                 beq LDB8C                    ; DB7B= F0 0F       p.
                 pla                          ; DB7D= 68          h
                 bne LDB85                    ; DB7E= D0 05       P.
@@ -4597,7 +4906,7 @@ LDB93:
 
 LDB96:
                 ldx #$30                     ; DB96= A2 30       "0
-                jsr LDEC8                    ; DB98= 20 C8 DE     H^
+                jsr gaddrEntryPoint                    ; DB98= 20 C8 DE     H^
                 bit $0347                    ; DB9B= 2C 47 03    ,G.
                 bmi LDBA9                    ; DB9E= 30 09       0.
                 tya                          ; DBA0= 98          .
@@ -4620,7 +4929,7 @@ LDBB5:
 LDBB9:
                 sta $DA                      ; DBB9= 85 DA       .Z
                 sec                          ; DBBB= 38          8
-                jsr LDA6C                    ; DBBC= 20 6C DA     lZ
+                jsr nextColumn                    ; DBBC= 20 6C DA     lZ
                 lda (ZMEMG),y                  ; DBBF= B1 D6       1V
                 ldx $0343                    ; DBC1= AE 43 03    .C.
                 beq LDBCA                    ; DBC4= F0 04       p.
@@ -4644,7 +4953,7 @@ LDBCA:
                 jsr LDB86                    ; DBE5= 20 86 DB     .[
 LDBE8:
                 ldx #$3C                     ; DBE8= A2 3C       "<
-                jsr LDEC8                    ; DBEA= 20 C8 DE     H^
+                jsr gaddrEntryPoint                    ; DBEA= 20 C8 DE     H^
                 lda $0346                    ; DBED= AD 46 03    -F.
                 sta $DA                      ; DBF0= 85 DA       .Z
                 ldx $0344                    ; DBF2= AE 44 03    .D.
@@ -4659,7 +4968,7 @@ LDC00_code:
                 sta (ZMEMG),y                  ; DC03= 91 D6       .V
 LDC05:
                 sec                          ; DC05= 38          8
-                jsr LDA6C                    ; DC06= 20 6C DA     lZ
+                jsr nextColumn                    ; DC06= 20 6C DA     lZ
                 dex                          ; DC09= CA          J
                 bne LDC00_code               ; DC0A= D0 F4       Pt
 LDC0C:
@@ -4714,32 +5023,39 @@ LDC5C:
                 jsr LDCB8                    ; DC67= 20 B8 DC     8\
                 bra LDC52                    ; DC6A= 80 E6       .f
 
-LDC6C:
-                jsr LDD9F                    ; DC6C= 20 9F DD     .]
+;-------------------------------------------------------------------------
+;
+; 72–79 = Horizontal line fill (left and right to non-background) [MasRef E.3-24]
+; 88–95 = Horizontal line fill (right to background) [MasRef E.3-25]
+; 104–111 = Horizontal line fill (left and right to foreground) [MasRef E.3-26]
+; 120–127 = Horizontal line fill (right to non-foreground) [MasRef E.3-27]
+;
+plotHorizontalLineFill:
+                jsr copyECFPatternForLineFill                    ; DC6C= 20 9F DD     .]
                 jsr LDCB0                    ; DC6F= 20 B0 DC     0\
                 clc                          ; DC72= 18          .
                 bra LDC83                    ; DC73= 80 0E       ..
 
-LDC75:
-                jsr LDD9F                    ; DC75= 20 9F DD     .]
+plotHorizontalLineFillRight:
+                jsr copyECFPatternForLineFill                    ; DC75= 20 9F DD     .]
                 jsr LDCC9                    ; DC78= 20 C9 DC     I\
                 jsr LDCD2                    ; DC7B= 20 D2 DC     R\
                 bne LDC83                    ; DC7E= D0 03       P.
                 jsr LDCB8                    ; DC80= 20 B8 DC     8\
 LDC83:
                 php                          ; DC83= 08          .
-                ldx #VDUVariables.workspace2E
+                ldx #VDUVariables.hlfw.pixelsX
                 ldy #VDUVariables.oldGraphicsCursorPixelsX
                 jsr copyFourBytesWithinVDUVariables
-                plp                          ; DC8B= 28          (
-                php                          ; DC8C= 08          .
-                beq LDC91                    ; DC8D= F0 02       p.
-                ldx #$2E                     ; DC8F= A2 2E       ".
+                plp
+                php
+                beq LDC91
+                ldx #VDUVariables.hlfw.pixelsX
 LDC91:
                 ldy #VDUVariables.graphicsCursorPixelsX
-                jsr copyTwoBytesWithinVDUVariables                    ; DC93= 20 0C C9     .I
-                ldx #VDUVariables.workspace30
-                jsr copyTwoBytesWithinVDUVariables                    ; DC98= 20 0C C9     .I
+                jsr copyTwoBytesWithinVDUVariables
+                ldx #VDUVariables.hlfw.pixelsY
+                jsr copyTwoBytesWithinVDUVariables
                 plp                          ; DC9B= 28          (
                 beq LDCA3                    ; DC9C= F0 05       p.
                 bcs LDCA4                    ; DC9E= B0 04       0.
@@ -4755,9 +5071,11 @@ LDCAC:
                 dec $0324                    ; DCAC= CE 24 03    N$.
                 rts                          ; DCAF= 60          `
 
+;-------------------------------------------------------------------------
+
 LDCB0:
                 jsr LDCD2                    ; DCB0= 20 D2 DC     R\
-                bne LDD0A                    ; DCB3= D0 55       PU
+                bne rtsDD0A                    ; DCB3= D0 55       PU
                 jsr LDD0B                    ; DCB5= 20 0B DD     .]
 LDCB8:
                 ldx #$2E                     ; DCB8= A2 2E       ".
@@ -4777,149 +5095,189 @@ LDCC9:
                 plp                          ; DCD0= 28          (
                 rts                          ; DCD1= 60          `
 
+;-------------------------------------------------------------------------
+
 LDCD2:
-                ldy #VDUVariables.workspace2E
+                ldy #VDUVariables.hlfw.pixelsX
                 jsr copyFourBytesWithinVDUVariables
 LDCD7:
                 ldx #VDUVariables.graphicsWindowPixelsRight
 LDCD9:
-                ldy #VDUVariables.workspace34
-                jsr copyTwoBytesWithinVDUVariables                    ; DCDB= 20 0C C9     .I
-                ldx #$34                     ; DCDE= A2 34       "4
-                jsr LDD35                    ; DCE0= 20 35 DD     5]
-                bne LDD0A                    ; DCE3= D0 25       P%
+                ldy #VDUVariables.hlfw.pixelsLimitX
+                jsr copyTwoBytesWithinVDUVariables
+                ldx #VDUVariables.hlfw.pixelsLimitX
+                jsr shouldFillPixel
+                bne rtsDD0A  ;taken if pixel not to be filled, so done
 LDCE5:
-                lsr ZMASK                      ; DCE5= 46 D1       FQ
-                bcc LDCF1                    ; DCE7= 90 08       ..
+                lsr ZMASK                    ;next pixel
+                bcc LDCF1                    ;taken if still in same byte
 LDCE9:
-                jsr LDA67                    ; DCE9= 20 67 DA     gZ
-                jsr LDD65                    ; DCEC= 20 65 DD     e]
+                jsr nextColumnAndResetMask                    ; DCE9= 20 67 DA     gZ
+                jsr shouldFillByte                    ; DCEC= 20 65 DD     e]
                 bcs LDCE9                    ; DCEF= B0 F8       0x
 LDCF1:
                 jsr LDD85                    ; DCF1= 20 85 DD     .]
                 bcs LDCE5                    ; DCF4= B0 EF       0o
                 sec                          ; DCF6= 38          8
-                lda $0334                    ; DCF7= AD 34 03    -4.
-                sbc $DE                      ; DCFA= E5 DE       e^
-                sta $0332                    ; DCFC= 8D 32 03    .2.
-                lda $0335                    ; DCFF= AD 35 03    -5.
-                sbc $DF                      ; DD02= E5 DF       e_
-                sta $0333                    ; DD04= 8D 33 03    .3.
+                lda vduv.hlfw.pixelsLimitX+0
+                sbc zhlfw.pixelsX+0
+                sta vduv.hlfw.pixelsRightEndX+0
+                lda vduv.hlfw.pixelsLimitX+1
+                sbc zhlfw.pixelsX+1
+                sta vduv.hlfw.pixelsRightEndX+1
 LDD07:
                 lda #$00                     ; DD07= A9 00       ).
                 sec                          ; DD09= 38          8
-LDD0A:
+rtsDD0A:
                 rts                          ; DD0A= 60          `
 
 LDD0B:
-                ldx #$00                     ; DD0B= A2 00       ".
-                jsr LDD35                    ; DD0D= 20 35 DD     5]
-                bne LDD0A                    ; DD10= D0 F8       Px
+                ldx #VDUVariables.graphicsWindowPixelsLeft
+                jsr shouldFillPixel                   
+                bne rtsDD0A                    ;taken if pixel not to be filled, so done
 LDD12:
-                asl ZMASK                      ; DD12= 06 D1       .Q
-                bcc LDD1E                    ; DD14= 90 08       ..
+                asl ZMASK                      ;next pixel
+                bcc LDD1E                    ;taken if still in same byte
 LDD16:
-                jsr LDA34                    ; DD16= 20 34 DA     4Z
-                jsr LDD65                    ; DD19= 20 65 DD     e]
+                jsr previousColumnAndResetMask
+                jsr shouldFillByte                    ; DD19= 20 65 DD     e]
                 bcs LDD16                    ; DD1C= B0 F8       0x
 LDD1E:
                 jsr LDD85                    ; DD1E= 20 85 DD     .]
                 bcs LDD12                    ; DD21= B0 EF       0o
-                lda $0300                    ; DD23= AD 00 03    -..
-                adc $DE                      ; DD26= 65 DE       e^
-                sta $032E                    ; DD28= 8D 2E 03    ...
-                lda $0301                    ; DD2B= AD 01 03    -..
-                adc $DF                      ; DD2E= 65 DF       e_
-                sta $032F                    ; DD30= 8D 2F 03    ./.
-                bra LDD07                    ; DD33= 80 D2       .R
+                lda vduv.graphicsWindowPixelsLeft+0
+                adc zhlfw.pixelsX+0
+                sta vduv.hlfw.pixelsX+0
+                lda vduv.graphicsWindowPixelsLeft+1
+                adc zhlfw.pixelsX+1
+                sta vduv.hlfw.pixelsX+1
+                bra LDD07
 
-LDD35:
-                sec                          ; DD35= 38          8
-                lda $032E                    ; DD36= AD 2E 03    -..
-                sbc $0300,x                  ; DD39= FD 00 03    }..
-                tay                          ; DD3C= A8          (
-                lda $032F                    ; DD3D= AD 2F 03    -/.
-                sbc $0301,x                  ; DD40= FD 01 03    }..
-                bpl LDD48                    ; DD43= 10 03       ..
-                jsr LC92E                    ; DD45= 20 2E C9     .I
-LDD48:
-                sty $DE                      ; DD48= 84 DE       .^
-                sta $DF                      ; DD4A= 85 DF       ._
-                ldx #$2E                     ; DD4C= A2 2E       ".
-                jsr LDEC3                    ; DD4E= 20 C3 DE     C^
-                clc                          ; DD51= 18          .
-                bne LDD64                    ; DD52= D0 10       P.
-                lda (ZMEMG),y                  ; DD54= B1 D6       1V
-                eor L8830,x                  ; DD56= 5D 30 88    ]0.
-                sta $DA                      ; DD59= 85 DA       .Z
-                and ZMASK                      ; DD5B= 25 D1       %Q
-                beq LDD61                    ; DD5D= F0 02       p.
-                lda #$08                     ; DD5F= A9 08       ).
-LDD61:
-                eor $E1                      ; DD61= 45 E1       Ea
+;-------------------------------------------------------------------------
+;
+; Check whether line fill should fill a pixel.
+;
+; entry:
+;
+; X = VDU variable offset of edge of window
+;
+; vduv.workspace._2E - pixel X, Y coordinates
+;
+; exit:
+;
+; Z=1 if pixel should be filled
+;
+; ZTEMPC = ???
+;
+shouldFillPixel:
+                sec
+                lda vduv.workspace._2E+0
+                sbc vduv+0,x
+                tay
+                lda vduv.workspace._2E+1
+                sbc vduv+1,x
+                bpl +
+                jsr negateAY
++
+                sty zhlfw.pixelsX+0
+                sta zhlfw.pixelsX+1
+                ldx #VDUVariables.workspace._2E
+                jsr windGADDR
+                clc
+                bne rtsDD64                    ;taken if point outside window
+                lda (ZMEMG),y                  ;get screen byte
+                eor andy.hlfw.ecfPattern,x     ;EOR with appropriate pattern
+                sta zhlfw.notByteMatch ;0 if whole byte matches
+                and ZMASK                      ;0 if masked byte matches
+                beq +              ;taken if masked byte matches - A=0
+                lda #$08              ;masked byte doesn't match - A=8
++
+                eor zhlfw.resultEOR ;maybe invert result
                 sec                          ; DD63= 38          8
-LDD64:
+rtsDD64:
                 rts                          ; DD64= 60          `
 
-LDD65:
-                lda (ZMEMG),y                  ; DD65= B1 D6       1V
-                eor L8830,x                  ; DD67= 5D 30 88    ]0.
-                sta $DA                      ; DD6A= 85 DA       .Z
-                ora $E1                      ; DD6C= 05 E1       .a
-                clc                          ; DD6E= 18          .
-                bne LDD84                    ; DD6F= D0 13       P.
-                lda $DE                      ; DD71= A5 DE       %^
-                sbc $0361                    ; DD73= ED 61 03    ma.
-                pha                          ; DD76= 48          H
-                lda $DF                      ; DD77= A5 DF       %_
-                sbc #$00                     ; DD79= E9 00       i.
-                bcc LDD83                    ; DD7B= 90 06       ..
-                sta $DF                      ; DD7D= 85 DF       ._
-                pla                          ; DD7F= 68          h
-                sta $DE                      ; DD80= 85 DE       .^
-                rts                          ; DD82= 60          `
+;-------------------------------------------------------------------------
 
-LDD83:
-                pla                          ; DD83= 68          h
-LDD84:
-                rts                          ; DD84= 60          `
+shouldFillByte:
+                lda (ZMEMG),y                  
+                eor andy.hlfw.ecfPattern,x     
+                sta zhlfw.notByteMatch         
+                ora zhlfw.resultEOR            
+                clc                          
+                bne rtsDD84                    
+                lda zhlfw.pixelsX+0           
+                sbc vduv.pixelsPerByteMinusOne
+                pha                
+                lda zhlfw.pixelsX+1
+                sbc #$00           
+                bcc plaThenRTS               ;taken if past X=0
+                sta zhlfw.pixelsX+1
+                pla
+                sta zhlfw.pixelsX+0
+                rts                
+
+plaThenRTS:
+                pla                
+rtsDD84:
+                rts                
+
+;-------------------------------------------------------------------------
 
 LDD85:
-                lda $DA                      ; DD85= A5 DA       %Z
-                and ZMASK                      ; DD87= 25 D1       %Q
-                beq LDD8D                    ; DD89= F0 02       p.
-                lda #$08                     ; DD8B= A9 08       ).
-LDD8D:
-                eor $E1                      ; DD8D= 45 E1       Ea
-                bne LDD9E                    ; DD8F= D0 0D       P.
-                lda $DE                      ; DD91= A5 DE       %^
-                bne LDD9B                    ; DD93= D0 06       P.
-                lda $DF                      ; DD95= A5 DF       %_
-                beq LDD9E                    ; DD97= F0 05       p.
-                dec $DF                      ; DD99= C6 DF       F_
-LDD9B:
-                dec $DE                      ; DD9B= C6 DE       F^
-                sec                          ; DD9D= 38          8
-LDD9E:
-                rts                          ; DD9E= 60          `
+                lda zhlfw.notByteMatch
+                and ZMASK
+                beq +
+                lda #$08
++
+                eor zhlfw.resultEOR
+                bne rtsDD9E
 
-LDD9F:
-                lsr a                        ; DD9F= 4A          J
-                lsr a                        ; DDA0= 4A          J
+                ; pixelsX -= 1
+                lda zhlfw.pixelsX+0
+                bne +
+                lda zhlfw.pixelsX+1
+                beq rtsDD9E
+                dec zhlfw.pixelsX+1
++
+                dec zhlfw.pixelsX+0
+                sec
+rtsDD9E:
+                rts
+
+;-------------------------------------------------------------------------
+;
+; Copy appropriate ECF pattern for line fill.
+;
+; entry:
+;
+; A = horizontal line fill PLOT code
+;
+; exit:
+;
+; andy.hlfw.ecfPattern = holds bg/fg ECF pattern as required
+;
+; ZTEMPD?1 = 0 for fill to matching, 8 to fill to non-matching
+;
+copyECFPatternForLineFill:
+                lsr a                        ;36-39; 44-47; 52-55; 60-63
+                lsr a                        ;18-19; 42-43; 26-27; 30-31
 LDDA1:
-                and #$08                     ; DDA1= 29 08       ).
-                sta $E1                      ; DDA3= 85 E1       .a
-                eor #$0F                     ; DDA5= 49 0F       I.
+                and #$08                     ;8 if PLOT >= 104
+                sta zhlfw.resultEOR
+                eor #$0F                     ;
                 tax                          ; DDA7= AA          *
                 ldy #$07                     ; DDA8= A0 07        .
-LDDAA:
-                lda L8820,x                  ; DDAA= BD 20 88    = .
-                sta L8830,y                  ; DDAD= 99 30 88    .0.
+-
+                lda andy.currentECFPatterns,x
+                sta andy.hlfw.ecfPattern,y
                 dex                          ; DDB0= CA          J
                 dey                          ; DDB1= 88          .
-                bpl LDDAA                    ; DDB2= 10 F6       .v
-                ldx #$20                     ; DDB4= A2 20       "
+                bpl -
+                ldx #VDUVariables.queueEnd-4
                 rts                          ; DDB6= 60          `
+
+;-------------------------------------------------------------------------
 
 LDDB7:
                 jsr LC0FA                    ; DDB7= 20 FA C0     z@
@@ -4927,9 +5285,9 @@ LDDB7:
                 beq LDDE0                    ; DDBD= F0 21       p!
                 pha                          ; DDBF= 48          H
                 tax                          ; DDC0= AA          *
-                jsr LD1DE                    ; DDC1= 20 DE D1     ^Q
+                jsr eigabsEntryPoint         ; DDC1= 20 DE D1     ^Q
                 plx                          ; DDC4= FA          z
-                jsr LDEC3                    ; DDC5= 20 C3 DE     C^
+                jsr windGADDR                    ; DDC5= 20 C3 DE     C^
                 bne LDDE0                    ; DDC8= D0 16       P.
                 lda (ZMEMG),y                  ; DDCA= B1 D6       1V
                 stz $DA                      ; DDCC= 64 DA       dZ
@@ -4952,20 +5310,42 @@ LDDE0:
 LDDE2:
                 jmp LC0CA                    ; DDE2= 4C CA C0    LJ@
 
-LDDE5:
-                cmp #$23                     ; DDE5= C9 23       I#
-                beq LDDF3                    ; DDE7= F0 0A       p.
-                cmp #$5F                     ; DDE9= C9 5F       I_
-                beq LDDF5                    ; DDEB= F0 08       p.
-                cmp #$60                     ; DDED= C9 60       I`
-                bne LDDF7                    ; DDEF= D0 06       P.
-                eor #$3F                     ; DDF1= 49 3F       I?
-LDDF3:
-                eor #$43                     ; DDF3= 49 43       IC
-LDDF5:
-                eor #$3F                     ; DDF5= 49 3F       I?
-LDDF7:
-                rts                          ; DDF7= 60          `
+;-------------------------------------------------------------------------
+;
+; Translate char ASCII to the SAA5050 character set.
+;
+; # ($23) becomes $5f
+; _ ($5f) becomes $60
+; GBP ($60) becomes $23
+;
+; Because the mapping is a kind of cycle, you can call this routine twice to
+; translate from SAA5050 to ASCII.
+;
+; entry:
+;
+; A = ASCII char
+;
+; exit:
+;
+; A = SAA550 char
+;
+getSAA5050FromASCII:
+                cmp #$23                     
+                beq translateHash
+                cmp #$5F                     
+                beq translateUnderscore
+                cmp #$60                     
+                bne rtsDDF7
+translateGBP:
+                eor #$3F                     ;0x60->0x5f
+translateHash:
+                eor #$43                     ;0x23->0x5f or 0x5f->0x1c
+translateUnderscore:
+                eor #$3F                     ;0x5f->0x60 or 0x1c->0x23
+rtsDDF7:
+                rts                          
+
+;-------------------------------------------------------------------------
 
 LDDF8:
                 cli                          ; DDF8= 58          X
@@ -4977,8 +5357,8 @@ LDE03:
                 ldy $0360                    ; DE03= AC 60 03    ,`.
                 bne LDE1F                    ; DE06= D0 17       P.
                 lda (ZMEMT)                    ; DE08= B2 D8       2X
-                jsr LDDE5                    ; DE0A= 20 E5 DD     e]
-                jsr LDDE5                    ; DE0D= 20 E5 DD     e]
+                jsr getSAA5050FromASCII
+                jsr getSAA5050FromASCII
 LDE10:
                 bit STATE                      ; DE10= 24 D0       $P
                 bvc LDE1A                    ; DE12= 50 06       P.
@@ -5093,85 +5473,97 @@ LDEBE:
                 lsr a                        ; DEBE= 4A          J
                 lsr a                        ; DEBF= 4A          J
                 ora $DE                      ; DEC0= 05 DE       .^
-LDEC2:
+rtsDEC2:
                 rts                          ; DEC2= 60          `
 
-LDEC3:
-                jsr LD1A8                    ; DEC3= 20 A8 D1     (Q
-                bne LDEC2                    ; DEC6= D0 FA       Pz
-LDEC8:
-                lda $0302,x                  ; DEC8= BD 02 03    =..
+;-------------------------------------------------------------------------
+;
+; Do WIND. If point not in window, return with Z=0. Otherwise, call
+; GADDR and return with Z=1.
+;
+windGADDR:
+                jsr windEntryPoint
+                bne rtsDEC2                  ;taken if point outside window
+gaddrEntryPoint:
+                lda vduv+2,x                 ;get Y coordinate
 LDECB:
-                eor #$FF                     ; DECB= 49 FF       I.
-                tay                          ; DECD= A8          (
-                and #$07                     ; DECE= 29 07       ).
-                sta $DA                      ; DED0= 85 DA       .Z
-                tya                          ; DED2= 98          .
-                and #$F8                     ; DED3= 29 F8       )x
-                lsr a                        ; DED5= 4A          J
-                sta ZMEMG+1                      ; DED6= 85 D7       .W
-                lsr a                        ; DED8= 4A          J
-                lsr a                        ; DED9= 4A          J
-                adc ZMEMG+1                      ; DEDA= 65 D7       eW
-                lsr a                        ; DEDC= 4A          J
-                sta ZMEMG+1                      ; DEDD= 85 D7       .W
-                lda #$00                     ; DEDF= A9 00       ).
-                ror a                        ; DEE1= 6A          j
-                ldy $0356                    ; DEE2= AC 56 03    ,V.
-                beq LDEEA                    ; DEE5= F0 03       p.
-                lsr ZMEMG+1                      ; DEE7= 46 D7       FW
-                ror a                        ; DEE9= 6A          j
-LDEEA:
-                ora $DA                      ; DEEA= 05 DA       .Z
-                adc $0350                    ; DEEC= 6D 50 03    mP.
-                sta $031A                    ; DEEF= 8D 1A 03    ...
-                lda ZMEMG+1                      ; DEF2= A5 D7       %W
-                adc $0351                    ; DEF4= 6D 51 03    mQ.
-                sta ZMEMG+1                      ; DEF7= 85 D7       .W
-                lda $0301,x                  ; DEF9= BD 01 03    =..
-                sta ZMEMG+0                      ; DEFC= 85 D6       .V
-                lda $0300,x                  ; DEFE= BD 00 03    =..
-LDF01:
-                and $0361                    ; DF01= 2D 61 03    -a.
-LDF04:
-                adc $0361                    ; DF04= 6D 61 03    ma.
-                tay                          ; DF07= A8          (
-LDF08:
-                lda LE12E,y                  ; DF08= B9 2E E1    9.a
-                sta ZMASK                      ; DF0B= 85 D1       .Q
-                lda $0300,x                  ; DF0D= BD 00 03    =..
-LDF10:
-                ldy $0361                    ; DF10= AC 61 03    ,a.
-                cpy #$03                     ; DF13= C0 03       @.
-                beq LDF1C                    ; DF15= F0 05       p.
-                bcs LDF1F                    ; DF17= B0 06       0.
-                asl a                        ; DF19= 0A          .
-                rol ZMEMG+0                      ; DF1A= 26 D6       &V
+                eor #$FF                     ;invert Y coordinate
+                tay                          ;Y=Y coordinate
+                and #$07                ;get scanline in character row
+                sta ZTEMP+0             ;save scanline
+                tya                          ;A=Y coordinate
+                and #$F8                     ;row*8
+                lsr a                        ;row*4
+                sta ZMEMG+1                  ;>(row*1024)
+                lsr a                        ;>(row*512)
+                lsr a                        ;>(row*256)
+                adc ZMEMG+1                  ;>(row*1280)
+                lsr a                        ;>(row*640)
+                sta ZMEMG+1                  ;
+                lda #$00                     ;
+                ror a                        ;<(row*640) - $00/$80
+                ldy vduv.currentScreenMODEGroup
+                beq +                      ;taken if 640 bytes per row
+                lsr ZMEMG+1                ;>(row*320)
+                ror a                    ;<(row*320) - $00/$40/$80/$c0
++
+                ora ZTEMP+0               ;include the scanline offset
+                adc vduv.screenTopLeftAddress+0 ;include LSB of screen base
+                sta vduv.graphicsAddressOffset
+
+                ; add MSB of screen base to ZMEMG+1 
+                lda ZMEMG+1
+                adc vduv.screenTopLeftAddress+1
+                sta ZMEMG+1
+
+                lda vduv+1,x                 ;get >X
+                sta ZMEMG+0                  ;save >X
+                lda vduv+0,x                 ;get <X
+                and vduv.pixelsPerByteMinusOne ;index for pixel
+                adc vduv.pixelsPerByteMinusOne ;offset into pixel mask table
+                tay
+                lda pixelMasks-1,y
+                sta ZMASK
+
+                ; Form 16-bit column address offset (LSB in A, MSB in
+                ; ZMEMG+0), assuming 8 bits/pixel. No adjustment
+                ; needed if MODE 0/4, but scale up by 2 if MODE 1/5 or
+                ; 4 if MODE 2.
+                
+                lda vduv+0,x                 ;A = <X
+                ldy vduv.pixelsPerByteMinusOne
+                cpy #$03
+                beq LDF1C         ;taken if 4 px/byte - i.e., MODE 1/5
+                bcs LDF1F        ;taken if >4 px/byte - i.e., MODE 0/4
+                asl a
+                rol ZMEMG+0
 LDF1C:
-                asl a                        ; DF1C= 0A          .
-                rol ZMEMG+0                      ; DF1D= 26 D6       &V
+                asl a
+                rol ZMEMG+0
 LDF1F:
-                and #$F8                     ; DF1F= 29 F8       )x
-                clc                          ; DF21= 18          .
-                adc $031A                    ; DF22= 6D 1A 03    m..
-                sta $031A                    ; DF25= 8D 1A 03    ...
-                lda ZMEMG+0                      ; DF28= A5 D6       %V
-                adc ZMEMG+1                      ; DF2A= 65 D7       eW
-                bpl LDF32                    ; DF2C= 10 04       ..
-                sec                          ; DF2E= 38          8
-                sbc $0354                    ; DF2F= ED 54 03    mT.
-LDF32:
-                sta ZMEMG+1                      ; DF32= 85 D7       .W
-                stz ZMEMG+0                      ; DF34= 64 D6       dV
-                ldx $DA                      ; DF36= A6 DA       &Z
-                jsr LDA7C                    ; DF38= 20 7C DA     |Z
-                ldy $031A                    ; DF3B= AC 1A 03    ,..
+                and #$F8                     ;<column offset
+                clc
+                adc vduv.graphicsAddressOffset
+                sta vduv.graphicsAddressOffset
+                lda ZMEMG+0                  ;>column offset
+                adc ZMEMG+1                  ;add to address MSB
+                bpl +                        ;taken if no wrap
+                sec                          
+                sbc vduv.screenSizeHighByte ;handle wrap at end of screen
++
+                sta ZMEMG+1                  ;got MSB
+                stz ZMEMG+0 ;LSB always 0 - the offset takes care of this
+                ldx ZTEMP+0 ;get scanline in row
+                jsr setupColourMasks
+                ldy vduv.graphicsAddressOffset
 LDF3E:
-                lda #$00                     ; DF3E= A9 00       ).
+                lda #$00                     ;return with Z=1, as per WIND
                 rts                          ; DF40= 60          `
 
+;-------------------------------------------------------------------------
+
 LDF41:
-                jsr LDEC8                    ; DF41= 20 C8 DE     H^
+                jsr gaddrEntryPoint                    ; DF41= 20 C8 DE     H^
                 phx                          ; DF44= DA          Z
                 ldx #$00                     ; DF45= A2 00       ".
                 lda $035A                    ; DF47= AD 5A 03    -Z.
@@ -5421,34 +5813,41 @@ vdu23EntryPointTable:
                 .word vdu23_5_EntryPoint
                 .word vdu23_6_EntryPoint
                 .word vdu23_7_EntryPoint
-                .word LD069                  ; E079= 69 D0        i.
-LE07B:
-                .word LD10F                  ; E07B= 0F D1        ..
-                .word LD110                  ; E07D= 10 D1        ..
-                .word LCF6D                  ; E07F= 6D CF        m.
-                .word LCF96                  ; E081= 96 CF        ..
-                .word LCF96                  ; E083= 96 CF        ..
-                .word LCF96                  ; E085= 96 CF        ..
-                .word LCF96                  ; E087= 96 CF        ..
-                .word LD11E                  ; E089= 1E D1        ..
-                .word LDB4A                  ; E08B= 4A DB        J.
-                .word LDC6C                  ; E08D= 6C DC
-                .word terminal.L9BF7         ; E08F= F7 9B
-                .word LDC75                  ; E091= 75 DC       u\
-                .word LC448                  ; E093= 48 C4
-                .word LDC6C                  ; E095= 6C DC
-                .word terminal.L9BA3         ; E097= A3 9B
-                .word LDC75                  ; E099= 75 DC       u\
-                .word terminal.L9CF9         ; E09B= F9 9C
-                .word terminal.L9CF9         ; E09D= F9 9C
-                .word terminal.L99A4         ; E09F= A4 99
-                .word terminal.L9944         ; E0A1= 44 99
-                .word terminal.L9999         ; E0A3= 99 99
-                .word terminal.L9935         ; E0A5= 35 99       5.
-                .word terminal.L9923         ; E0A7= 23 99
-                .word LDFDF                  ; E0A9= DF DF
-                .word LDFE9                  ; E0AB= E9 DF       i_
-                .word LDFF4                  ; E0AD= F4 DF
+                .word vdu23_8_EntryPoint
+                .word vdu23_9_EntryPoint
+                .word vdu23_10_EntryPoint
+                .word vdu23_11_EntryPoint
+                .word vdu23_12_EntryPoint
+                .word vdu23_13_EntryPoint
+                .word vdu23_14_EntryPoint
+                .word vdu23_15_EntryPoint
+                .word vdu23_16_EntryPoint
+
+;-------------------------------------------------------------------------
+;
+; entry:
+;
+; A = plot number
+;
+plotEntryPointTable:                
+                .word plotPoint    ;64–71 = Plot point [MasRef E.3-24]
+                .word plotHorizontalLineFill ;72–79 = Horizontal line fill (left and right to non-background) [MasRef E.3-24]
+                .word terminal.L9BF7 ;80–87 = Plot triangle [MasRef E.3-25]
+                .word plotHorizontalLineFillRight ;88–95 = Horizontal line fill (right to background) [MasRef E.3-25]
+                .word LC448 ;96–103 = Plot rectangle [MasRef E.3-26]
+                .word plotHorizontalLineFill ;104–111 = Horizontal line fill (left and right to foreground) [MasRef E.3-26]
+                .word terminal.L9BA3 ;112–119 = Plot parallelogram [MasRef E.3-27]
+                .word plotHorizontalLineFillRight ;120–127 = Horizontal line fill (right to non-foreground) [MasRef E.3-27]
+                .word terminal.L9CF9 ;128–135 = Flood fill to non-background [MasRef E.3-28]
+                .word terminal.L9CF9 ;136–143 = Flood fill to foreground [MasRef E.3-28]
+                .word terminal.L99A4 ;144–151 = Plot circle outline [MasRef E.3-28]
+                .word terminal.L9944 ;152–159 = Plot filled circle [MasRef E.3-29]
+                .word terminal.L9999 ;160–167 = Plot circular arc [MasRef E.3-29]
+                .word terminal.L9935 ;168–175 = Plot filled chord segment [MasRef E.3-30]
+                .word terminal.L9923 ;176–183 = Plot filled sector [MasRef E.3-30]
+                .word LDFDF ;184–191 = Move/copy rectangle [MasRef E.3-31]
+                .word LDFE9 ;192–199 = Plot ellipse outline [MasRef E.3-32]
+                .word LDFF4 ;200–207 = Plot solid ellipse [MasRef E.3-32]
 
 ; Times 40 lookup table, high bytes
 multiplyBy40TableHigh:
@@ -5494,25 +5893,30 @@ modeMaxColumn:
                 
 ;-------------------------------------------------------------------------
 
-LE111:
-;STZ LF4D8        :\ E111= 9C D8 F4    .Xt
-                .byte $9C
-                .byte $d8
-                .byte $F4
-;STZ LC488        :\ E114= 9C 88 C4    ..D
-                .byte $9C
-                .byte $88
-                .byte $C4
-                dey                          ; E117= 88          .
-                .byte $4B                    ; E118= 4B          K
-LE119:
-                php                          ; E119= 08          .
-                bpl LE13C                    ; E11A= 10 20       .
-                php                          ; E11C= 08          .
-                php                          ; E11D= 08          .
-                bpl LE128                    ; E11E= 10 08       ..
+vcontrolForScreenMODE:
+                .byte VCONTROL.cursorX___|VCONTROL.crtc2MHz|VCONTROL.shift16MHz ; $9C - MODE 0
+                .byte VCONTROL.cursorXX__|VCONTROL.crtc2MHz|VCONTROL.shift8MHz ; $d8 - MODE 1
+                .byte VCONTROL.cursorXXXX|VCONTROL.crtc2MHz|VCONTROL.shift4MHz ; $F4 - MODE 2
+                .byte VCONTROL.cursorX___|VCONTROL.crtc2MHz|VCONTROL.shift16MHz ; $9C - MODE 3
+                .byte VCONTROL.cursorX___|VCONTROL.crtc1MHz|VCONTROL.shift8MHz ; $88 - MODE 4
+                .byte VCONTROL.cursorXX__|VCONTROL.crtc1MHz|VCONTROL.shift4MHz ; $C4 - MODE 5
+                .byte VCONTROL.cursorX___|VCONTROL.crtc1MHz|VCONTROL.shift8MHz ; $88 - MODE 6
+                .byte VCONTROL.cursor_X__|VCONTROL.crtc1MHz|VCONTROL.shift8MHz|VCONTROL.isTeletext|VCONTROL.flash ; $4B - MODE 7
+
+;-------------------------------------------------------------------------
+
+bytesPerCharacterForMODE:
+                .byte 8                      ;MODE 0
+                .byte 16                     ;MODE 1
+                .byte 32                     ;MODE 2
+                .byte 8                      ;MODE 3
+                .byte 8                      ;MODE 4
+                .byte 16                     ;MODE 5
+                .byte 8                      ;MODE 6
 LE120:
-                ora ($FF,x)                  ; E120= 01 FF       ..
+                .byte 1                      ;MODE 7
+                .byte $ff
+                ;ora ($FF,x)                  ; E120= 01 FF       ..
                 eor $FF,x                    ; E122= 55 FF       U.
                 .byte $77                    ; E124= 77          w
                 .byte $33                    ; E125= 33          3
@@ -5527,203 +5931,265 @@ LE128:
                 .byte $0F                    ; E12B= 0F          .
                 .byte $07                    ; E12C= 07          .
                 .byte $03                    ; E12D= 03          .
-LE12E:
-                ora ($AA,x)                  ; E12E= 01 AA       .*
-LE130:
-                eor $88,x                    ; E130= 55 88       U.
-                .byte $44                    ; E132= 44          D
-                .byte $22                    ; E133= 22          "
-                ora ($80),y                  ; E134= 11 80       ..
-                rti                          ; E136= 40          @
-
-                jsr $0810                    ; E137= 20 10 08     ..
-                tsb $02                      ; E13A= 04 02       ..
-LE13C:
-                ora ($03,x)                  ; E13C= 01 03       ..
-                .byte $0F                    ; E13E= 0F          .
-                ora ($01,x)                  ; E13F= 01 01       ..
-                .byte $03                    ; E141= 03          .
-;ORA (&00,x)      :\ E142= 01 00       ..
                 .byte $01
-LE143:
+
+;-------------------------------------------------------------------------
+;
+; These graphics tables often overlap. I haven't always bothered
+; commenting the MODEs for the MODE-indexed tables, as even those
+; sometimes overlap.
+;
+;------------------------------------------------------------------------
+
+;-------------------------------------------------------------------------
+;
+; This is 3 tables in one. Use the numberOfLogicalColoursMinusOne VDU
+; variable to access it:
+; pixelMasks[(numberOfLogicalColoursMinusOne&7)-1+colour&numberOfLogicalColoursMinusOne=
+;
+pixelMasks:
+                .byte %10101010
+                .byte %01010101
+
+                .byte %10001000
+                .byte %01000100
+                .byte %00100010
+                .byte %00010001
+
+                .byte %10000000
+                .byte %01000000
+                .byte %00100000
+                .byte %00010000
+                .byte %00001000
+                .byte %00000100
+                .byte %00000010
+numberOfLogicalColoursMinusOneForMODE:
+                .byte %00000001              ;MODE 0 (also part of pixelMasks)
+                .byte 3                      ;MODE 1
+                .byte 15                     ;MODE 2
+                .byte 1                      ;MODE 3
+                .byte 1                      ;MODE 4
+                .byte 3                      ;MODE 5
+                .byte 1                      ;MODE 6
+                ; MODE 7 value (0) is in next table
+
+;-------------------------------------------------------------------------
+;
+; Overwrite: ZGORA=$ff, ZGEOR=$ff
+; OR: ZGORA=value, ZGEOR=$00
+; AND: ZGORA=~value, ZGEOR=$00
+; EOR: ZGORA=$00, ZGEOR=value
+; Invert: ZGORA=$00, ZGEOR=$ff
+; Leave: ZGORA=$00, ZGEOR=$ff
+;
+zgeorORTable:
                 .byte $00
-LE144:
+zgoraORTable:
                 .byte $FF                    ; E144= FF          .
-LE145:
-                brk                          ; E145= 00          .
-                brk                          ; E146= 00          .
+zgoraEORTable:
+                .byte $00
+                .byte $00
                 .byte $FF                    ; E147= FF          .
-LE148:
+zgeorEORTable:
                 .byte $FF                    ; E148= FF          .
                 .byte $FF                    ; E149= FF          .
                 .byte $FF                    ; E14A= FF          .
-LE14B:
-                brk                          ; E14B= 00          .
-                brk                          ; E14C= 00          .
-                .byte $FF                    ; E14D= FF          .
-                brk                          ; E14E= 00          .
-                .byte $0F                    ; E14F= 0F          .
-;BEQ LE151        :\ E150= F0 FF       p.
-                .byte $F0
-                .byte $FF
-                brk                          ; E152= 00          .
-                .byte $03                    ; E153= 03          .
-                tsb $300F                    ; E154= 0C 0F 30    ..0
-                .byte $33                    ; E157= 33          3
-                .byte $3c,$3f,$c0
-                .byte $C3                    ; E15B= C3          C
-;CPY LF0CF        :\ E15C= CC CF F0    LOp
-                .byte $CC
-                .byte $CF
-                .byte $F0
-                .byte $F3                    ; E15F= F3          s
-                .byte $FC                    ; E160= FC          |
-                .byte $FF                    ; E161= FF          .
-LE162:
-                .byte $07                    ; E162= 07          .
-                .byte $03                    ; E163= 03          .
-;ORA (&00,x)      :\ E164= 01 00       ..
-                .byte $01
-LE165:
                 .byte $00
-                .byte $07                    ; E166= 07          .
-                .byte $03                    ; E167= 03          .
-LE168:
-                brk                          ; E168= 00          .
-                brk                          ; E169= 00          .
+
+;-------------------------------------------------------------------------
+; 
+; Index using logical colour value to get a byte with that colour
+; value in every pixel.
+;
+; This is 3 tables in one. Use the numberOfLogicalColoursMinusOne VDU
+; variable to access it:
+; solidColoursTable[(numberOfLogicalColoursMinusOne&7)-1+colour&numberOfLogicalColoursMinusOne=
+;
+solidColoursTable:
+
+                ; 1 bpp
+                .byte %00000000
+                .byte %11111111
+
+                ; 2 bpp
+                .byte %00000000
+                .byte %00001111
+                .byte %11110000
+                .byte %11111111
+
+                ; 4 bpp
+                .byte %00000000
+                .byte %00000011
+                .byte %00001100
+                .byte %00001111
+                .byte %00110000
+                .byte %00110011
+                .byte %00111100
+                .byte %00111111
+                .byte %11000000
+                .byte %11000011
+                .byte %11001100
+                .byte %11001111
+                .byte %11110000
+                .byte %11110011
+                .byte %11111100
+                .byte %11111111
+                
+pixelsPerByteMinusOneForMODE:
+                .byte 7                      
+                .byte 3                      
+                .byte 1                      
+LE165:
+                .byte 0                      
+                .byte 7                      
+                .byte 3                      
+screenMODEGroupForMODE:
+                .byte 0
+                .byte 0
                 brk                          ; E16A= 00          .
                 ora ($02,x)                  ; E16B= 01 02       ..
                 .byte $02                    ; E16D= 02          .
                 .byte $03                    ; E16E= 03          .
 ;TSB &0D          :\ E16F= 04 0D       ..
                 .byte $04
-LE170:
-                .byte $0D
-                ora $0D                      ; E171= 05 0D       ..
-;ORA &04          :\ E173= 05 04       ..
-                .byte $05
-LE174:
-                .byte $04
-                tsb $0C                      ; E175= 04 0C       ..
-;TSB &5004        :\ E177= 0C 04 50    ..P
-                .byte $0C
-                .byte $04
-LE179:
-                .byte $50
-                rti                          ; E17A= 40          @
 
-                plp                          ; E17B= 28          (
-;JSR &3004        :\ E17C= 20 04 30     .0
+;-------------------------------------------------------------------------
+;
+; Hardware scrolling wraparound size settings for screen mode group.
+;
+; The values for group 4 (1 KB) are bogus - the Mode 7 addressing
+; wraparound is handled differently.
+;
+latchBit5ForScreenMODEGroup:
+                .byte 5|8                    ;20 KB
+                .byte 5|0                    ;16 KB
+                .byte 5|8                    ;10 KB
+                .byte 5|0                    ; 8 KB
+latchBit4ForScreenMODEGroup:
+                .byte 4|0                    ;20 KB (also benign value for 1 KB)
+                .byte 4|0                    ;16 KB
+                .byte 4|8                    ;10 KB
+                .byte 4|8                    ; 8 KB
+                .byte 4|0                    ;(benign value for 1 KB)
+
+;-------------------------------------------------------------------------
+
+screenSizeHighByteForScreenMODEGroup:
+                .byte $50
+                .byte $40
+                .byte $28
                 .byte $20
                 .byte $04
-LE17E:
+startScreenAddressHighByteForScreenMODEGroup:
                 .byte $30
-                rti                          ; E17F= 40          @
-
-                cli                          ; E180= 58          X
-                rts                          ; E181= 60          `
-
-;JMP (&170B,x)    :\ E182= 7C 0B 17    |..
-                .byte $7C
-LE183:
-                .byte $0B
-                .byte $17
-
-                .byte $23                    ; E185= 23          #
-                .byte $2F                    ; E186= 2F          /
-                .byte $3B                    ; E187= 3B          ;
-LE188:
-                .byte $7F                    ; E188= 7F          .
-;BVC LE1ED        :\ E189= 50 62       Pb
+                .byte $40
+                .byte $58
+                .byte $60
+                .byte $7c
+crtcRegisterLastIndexForScreenMODEGroup:
+                .byte (crtcRegisterValues20KB-crtcRegisterValues)+$0B
+                .byte (crtcRegisterValues16KB-crtcRegisterValues)+$0B
+                .byte (crtcRegisterValues10KB-crtcRegisterValues)+$0B
+                .byte (crtcRegisterValues8KB-crtcRegisterValues)+$0B
+                .byte (crtcRegisterValues1KB-crtcRegisterValues)+$0B
+crtcRegisterValues:
+crtcRegisterValues20KB:
+                .byte $7F
                 .byte $50
                 .byte $62
-                plp                          ; E18B= 28          (
-                rol $00                      ; E18C= 26 00       &.
-                jsr $0122                    ; E18E= 20 22 01     ".
-                .byte $07                    ; E191= 07          .
-                .byte $67                    ; E192= 67          g
-                php                          ; E193= 08          .
-                .byte $7F                    ; E194= 7F          .
-;BVC LE1F9        :\ E195= 50 62       Pb
-                .byte $50
-                .byte $62
-                plp                          ; E197= 28          (
-                asl $1902,x                  ; E198= 1E 02 19    ...
-                .byte $1B                    ; E19B= 1B          .
-                ora ($09,x)                  ; E19C= 01 09       ..
-                .byte $67                    ; E19E= 67          g
-                ora #$3F                     ; E19F= 09 3F       .?
-                plp                          ; E1A1= 28          (
-                and ($24),y                  ; E1A2= 31 24       1$
-                rol $00                      ; E1A4= 26 00       &.
-                jsr $0122                    ; E1A6= 20 22 01     ".
-                .byte $07                    ; E1A9= 07          .
-                .byte $67                    ; E1AA= 67          g
-                php                          ; E1AB= 08          .
-                .byte $3F                    ; E1AC= 3F          ?
-                plp                          ; E1AD= 28          (
-                and ($24),y                  ; E1AE= 31 24       1$
-                asl $1902,x                  ; E1B0= 1E 02 19    ...
-                .byte $1B                    ; E1B3= 1B          .
-                ora ($09,x)                  ; E1B4= 01 09       ..
-                .byte $67                    ; E1B6= 67          g
-                ora #$3F                     ; E1B7= 09 3F       .?
-                plp                          ; E1B9= 28          (
-                .byte $33                    ; E1BA= 33          3
-                bit $1E                      ; E1BB= 24 1E       $.
-                .byte $02                    ; E1BD= 02          .
-                .byte $19,$1b,$93            ; E1BE= 19 1B 93    ...
-                ora ($72)                    ; E1C1= 12 72       .r
-LE1C3:
-                .byte $13                    ; E1C3= 13          .
-                tax                          ; E1C4= AA          *
-                brk                          ; E1C5= 00          .
-                tax                          ; E1C6= AA          *
-                brk                          ; E1C7= 00          .
-                tax                          ; E1C8= AA          *
-                eor $AA,x                    ; E1C9= 55 AA       U*
-                eor $FF,x                    ; E1CB= 55 FF       U.
-                eor $FF,x                    ; E1CD= 55 FF       U.
-                eor $11,x                    ; E1CF= 55 11       U.
-                .byte $22                    ; E1D1= 22          "
-                .byte $44                    ; E1D2= 44          D
-                dey                          ; E1D3= 88          .
-                lda $0F                      ; E1D4= A5 0F       %.
-                lda $0F                      ; E1D6= A5 0F       %.
-                lda $5A                      ; E1D8= A5 5A       %Z
-                lda $5A                      ; E1DA= A5 5A       %Z
-                .byte $f0,$5a                ; E1DC= F0 5A       pZ
-                .byte $f0,$5a                ; E1DE= F0 5A       pZ
-                sbc $FA,x                    ; E1E0= F5 FA       uz
-                sbc $FA,x                    ; E1E2= F5 FA       uz
-                .byte $0B                    ; E1E4= 0B          .
-                .byte $07                    ; E1E5= 07          .
-                .byte $0B                    ; E1E6= 0B          .
-                .byte $07                    ; E1E7= 07          .
-                .byte $23                    ; E1E8= 23          #
-                .byte $13                    ; E1E9= 13          .
-                .byte $23                    ; E1EA= 23          #
-                .byte $13                    ; E1EB= 13          .
-                asl $0E0D                    ; E1EC= 0E 0D 0E    ...
-                ora $2F1F                    ; E1EF= 0D 1F 2F    ../
-                .byte $1F                    ; E1F2= 1F          .
-                .byte $2F                    ; E1F3= 2F          /
-;CPY LCC00        :\ E1F4= CC 00 CC    L.L
-                .byte $CC
+                .byte $28
+                .byte $26
                 .byte $00
-                .byte $CC
-                brk                          ; E1F7= 00          .
-                .byte $cc,$33,$cc            ; E1F8= CC 33 CC    L3L
-                .byte $33                    ; E1FB= 33          3
-                .byte $FF                    ; E1FC= FF          .
-                .byte $33                    ; E1FD= 33          3
-                .byte $FF                    ; E1FE= FF          .
-                .byte $33                    ; E1FF= 33          3
-                .byte $03                    ; E200= 03          .
-;TSB LC030        :\ E201= 0C 30 C0    .0@
-                .byte $0C
-                .byte $30
-                .byte $C0
+                .byte $20
+                .byte $22
+                .byte $01
+                .byte $07
+                .byte $67
+                .byte $08
+crtcRegisterValues16KB:
+                .byte $7F
+                .byte $50
+                .byte $62
+                .byte $28
+                .byte $1e
+                .byte $02
+                .byte $19
+                .byte $1B
+                .byte $01
+                .byte $09
+                .byte $67
+                .byte $09
+crtcRegisterValues10KB:
+                .byte $3f
+                .byte $28
+                .byte $31
+                .byte $24
+                .byte $26
+                .byte $00
+                .byte $20
+                .byte $22
+                .byte $01
+                .byte $07
+                .byte $67
+                .byte $08
+crtcRegisterValues8KB:
+                .byte $3F
+                .byte $28
+                .byte $31
+                .byte $24
+                .byte $1e
+                .byte $02
+                .byte $19
+                .byte $1B
+                .byte $01
+                .byte $09
+                .byte $67
+                .byte $09
+crtcRegisterValues1KB:
+                .byte $3f
+                .byte $28
+                .byte $33
+                .byte $24
+                .byte $1e
+                .byte $02
+                .byte $19
+                .byte $1b
+                .byte $93
+                .byte $12
+                .byte $72
+                .byte $13
+                
+;-------------------------------------------------------------------------
+;
+; Default ECF patterns [MasRef E.3-16]
+;
+; Only half the pattern is stored. Each pattern repeats every 4
+; scanlines.
+; 
+defaultECFPatterns:
+                ; MODE 4
+                .byte $aa,$00,$aa,$00        ;1 - Dark grey
+                .byte $aa,$55,$aa,$55        ;2 - Grey
+                .byte $ff,$55,$ff,$55        ;3 - Light grey
+                .byte $11,$22,$44,$88        ;4 - Hatching
+
+                ; MODE 1/5
+                .byte $a5,$0f,$a5,$0f        ;1 - Red-orange
+                .byte $a5,$5a,$a5,$5a        ;2 - Orange
+                .byte $f0,$5a,$f0,$5a        ;3 - Yellow-orange
+                .byte $f5,$fa,$f5,$fa        ;4 - Cream
+
+                ; MODE 2
+                .byte $0b,$07,$0b,$07        ;1 - Orange
+                .byte $23,$13,$23,$13        ;2 - Pink
+                .byte $0e,$0d,$0e,$0d        ;3 - Yellow-green
+                .byte $1f,$2f,$1f,$2f        ;4 - Cream
+
+                ; MODE 0
+                .byte $cc,$00,$cc,$00        ;0 - Dark grey
+                .byte $cc,$33,$cc,$33        ;1 - Grey
+                .byte $ff,$33,$ff,$33        ;2 - Light grey
+                .byte $03,$0c,$30,$c0        ;4 - Hatching
 LE204:
                 ora ($01,x)                  ; E204= 01 01       ..
                 .byte $03                    ; E206= 03          .
@@ -6550,7 +7016,7 @@ LE68A:
 LE6A0:
                 rol a                        ; E6A0= 2A          *
                 eor #$01                     ; E6A1= 49 01       I.
-                jsr LF250                    ; E6A3= 20 50 F2     Pr
+                jsr setVCONTROL                    ; E6A3= 20 50 F2     Pr
                 stx $0251                    ; E6A6= 8E 51 02    .Q.
 LE6A9:
                 ldy #$04                     ; E6A9= A0 04        .
@@ -8673,8 +9139,8 @@ LF1C0:
 LF1C3:
                 and #$07
                 tay
-                ldx LE168,y                  ; Get screen map for supplied MODE
-                lda LE17E,x                  ; Get address top byte for this screen map
+                ldx screenMODEGroupForMODE,y ; Get screen map for supplied MODE
+                lda startScreenAddressHighByteForScreenMODEGroup,x ; Get address top byte for this screen map
 LF1CC:
                 ldx #$00                     ; Address=&xx00
                 tay
@@ -8816,7 +9282,7 @@ LF24C:
 
 osbyte9A:
                 txa                          ; F24F= 8A          .
-LF250:
+setVCONTROL:
                 php                          ; F250= 08          .
                 sei                          ; F251= 78          x
                 sta $0248                    ; F252= 8D 48 02    .H.
@@ -8826,9 +9292,13 @@ LF250:
                 plp                          ; F25E= 28          (
                 rts                          ; F25F= 60          `
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 155 (&9B) Write to video ULA palette register and copy
+;
 osbyte9B:
                 txa                          ; F260= 8A          .
-LF261:
+writeVPALETTE:
                 eor #$07                     ; F261= 49 07       I.
                 php                          ; F263= 08          .
                 sei                          ; F264= 78          x
@@ -9200,7 +9670,7 @@ osrdscEntryPoint:
 
 oswrscEntryPoint:
                 jsr withMOSROM               ; F402= 20 AB F3     +s
-                jmp LDB5F                    ; F405= 4C 5F DB    L_[
+                jmp oswrscCode                    ; F405= 4C 5F DB    L_[
 
 starRunBOOT:
                 .text "/!BOOT",13

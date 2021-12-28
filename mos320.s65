@@ -170,7 +170,7 @@ IND2V=vectors+ind2vIndex*2
 IND3V=vectors+ind3vIndex*2
 
 extendedVectorSpace=$d9f
-                
+
 serialRegisterULACopy=$0282
                 
 key_space=$62
@@ -362,7 +362,7 @@ textCursorXPosition: .fill 1
 ; &19 1 Text cursor Y coordinate (from top of screen) when not cursor editing. When cursor editing, normally t.lsthe input cursor Y coordinate, but the output cursor Y coordinate within an “unknown PLOT codes” routine.
 textCursorYPosition: .fill 1
 ; &1A 1 Y produced by GADDR (see next section) so that (ZMEMG),Y addresses the correct byte.
-graphicsCursorVerticalOffsetInCell: .fill 1
+graphicsAddressOffset: .fill 1
 ; &1B–&23 VDU queue: &23 contains last byte of queue, other bytes immediately precede it.
 queueSize=9
 queueBegin: .fill queueSize
@@ -372,74 +372,10 @@ graphicsCursorPixelsX: .fill 2
 ; &26 2 Graphics cursor Y coordinate. (p)
 graphicsCursorPixelsY: .fill 2
 ; &28–&49 Workspace. But variable &38 must not be used in a Teletext mode (mode 7 or 135).
-workspace28:
-                .fill 1
-workspace29:
-                .fill 1
-workspace2A:
-                .fill 1
-workspace2B:
-                .fill 1
-workspace2C:
-                .fill 1
-workspace2D:
-                .fill 1
-workspace2E:
-                .fill 1
-workspace2F:
-                .fill 1
-workspace30:
-                .fill 1
-workspace31:
-                .fill 1
-workspace32:
-                .fill 1
-workspace33:
-                .fill 1
-workspace34:
-                .fill 1
-workspace35:
-                .fill 1
-workspace36:
-                .fill 1
-workspace37:
-                .fill 1
-workspace38:
-                .fill 1
-workspace39:
-                .fill 1
-workspace3A:
-                .fill 1
-workspace3B:
-                .fill 1
-workspace3C:
-                .fill 1
-workspace3D:
-                .fill 1
-workspace3E:
-                .fill 1
-workspace3F:
-                .fill 1
-workspace40:
-                .fill 1
-workspace41:
-                .fill 1
-workspace42:
-                .fill 1
-workspace43:
-                .fill 1
-workspace44:
-                .fill 1
-workspace45:
-                .fill 1
-workspace46:
-                .fill 1
-workspace47:
-                .fill 1
-workspace48:
-                .fill 1
-workspace49:
-                .fill 1
+                .union
+hlfw: .dstruct HorizontalLineFillWorkspaceVDUVariables
+workspace: .dstruct GenericWorkspaceVDUVariables
+                .endunion
 ; &4A 2 Address at which the 6845 is to display the text cursor.
 textCursorCRTCAddress: .fill 2
 ; &4C 2 Number of bytes in a character row of the text window.
@@ -551,6 +487,103 @@ vduv: .dstruct VDUVariables
 ; &8E00–FF    RAM  Current definitions of characters &C0–DF.
 ; &8F00–FF    RAM  Current definitions of characters &E0–FF.
 
+GenericWorkspaceVDUVariables: .struct
+_28:
+                .fill 1
+_29:
+                .fill 1
+_2A:
+                .fill 1
+_2B:
+                .fill 1
+_2C:
+                .fill 1
+_2D:
+                .fill 1
+_2E:
+                .fill 1
+_2F:
+                .fill 1
+_30:
+                .fill 1
+_31:
+                .fill 1
+_32:
+                .fill 1
+_33:
+                .fill 1
+_34:
+                .fill 1
+_35:
+                .fill 1
+_36:
+                .fill 1
+_37:
+                .fill 1
+_38:
+                .fill 1
+_39:
+                .fill 1
+_3A:
+                .fill 1
+_3B:
+                .fill 1
+_3C:
+                .fill 1
+_3D:
+                .fill 1
+_3E:
+                .fill 1
+_3F:
+                .fill 1
+_40:
+                .fill 1
+_41:
+                .fill 1
+_42:
+                .fill 1
+_43:
+                .fill 1
+_44:
+                .fill 1
+_45:
+                .fill 1
+_46:
+                .fill 1
+_47:
+                .fill 1
+_48:
+                .fill 1
+_49:
+                .fill 1
+                .endstruct
+                
+HorizontalLineFillWorkspaceZP: .struct
+notByteMatch: .fill 1
+a: .fill 1
+b: .fill 2
+;c: .fill 2
+pixelsX: .fill 2
+d: .fill 1
+resultEOR: .fill 1
+                .endstruct
+
+HorizontalLineFillWorkspaceVDUVariables: .struct
+                .fill 6
+pixelsX:                        ;2e
+                .fill 2
+pixelsY:                        ;30
+                .fill 2
+pixelsRightEndX:
+                .fill 2         ;32
+pixelsLimitX:                   ;34
+                .fill 2
+                .endstruct
+                
+HorizontalLineFillWorkspaceANDY: .struct
+ecfPattern: .fill 8
+                .endstruct
+                
                 .virtual $8000
 andy: .block
                 .fill $800
@@ -559,9 +592,14 @@ ecfPattern1: .fill 8
 ecfPattern2: .fill 8
 ecfPattern3: .fill 8
 ecfPattern4: .fill 8
+currentECFPatterns:
 fgECFPattern: .fill 8
 bgECFPattern: .fill 8
+workspace:
+                .union
+hlfw: .dstruct HorizontalLineFillWorkspaceANDY
                 .fill 208
+                .endunion
 softCharacterDefinitions:
                 .fill (256-32)*8
                 .cerror (<andy.softCharacterDefinitions)!=0,"Soft character definitions must be page aligned"
@@ -661,6 +699,7 @@ isVDU5=$20
 isCursorEditing=$40
 isVDU21=$80
                 .bend
+
 ZMASK: .fill 1                       ;Pixel mask
 ZORA: .fill 1                        ;Text OR mask
 ZEOR: .fill 1                        ;Text EOR mask
@@ -672,12 +711,25 @@ ZTEMP: .fill 2                       ;Temporary space
 ZTEMPB: .fill 2                      ;Temporary space
 ZTEMPC: .fill 2                      ;Temporary space
 ZTEMPD: .fill 2                      ;Temporary space
-
                 .endv
+
+                .virtual ZTEMP
+zhlfw: .dstruct HorizontalLineFillWorkspaceZP
+                .endv
+
+SEIWKA=$fa
+SEIWKB=$fb
 
 vduWriteCursor=$d8     
 
 nmiEntryPoint=$d00
+
+gcolModeOverwrite=0
+gcolModeOR=1
+gcolModeAND=2
+gcolModeEOR=3
+gcolModeInvert=4
+gcolModeLeave=5
                 
 ;-------------------------------------------------------------------------
 

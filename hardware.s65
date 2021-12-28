@@ -5,7 +5,26 @@ HADC=$fe18
 TUBE=$fee0
 ROMSEL=$fe30
 ;ACCCON=$fe34
-VCONTROL=$fe20
+                .virtual $fe20
+VCONTROL: .block
+flash=$01
+isTeletext=$02
+shift2MHz=$00
+shift4MHz=$04
+shift8MHz=$08
+shift16MHz=$0c
+crtc1MHz=$00
+crtc2MHz=$10
+cursor____=$00
+cursor__XX=$20
+cursor_X__=$40
+cursor_XXX=$60
+cursorX___=$80
+cursorX_XX=$a0
+cursorXX__=$c0
+cursorXXXX=$e0
+                .endblock
+                .endvirtual
 VPALETTE=$fe21
 
                 .virtual $fe34

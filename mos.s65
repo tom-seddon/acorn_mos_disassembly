@@ -6884,8 +6884,8 @@ LE431:
                 jsr selectTerminalROM                    ; E449= 20 90 E5     .e
 LE44C:
                 phy                          ; E44C= 5A          Z
-                jsr terminal.L8EA4           ; E44D= 20 A4 8E     $.
-                and #$0F                     ; E450= 29 0F       ).
+                jsr terminal.readDefaultROMs
+                and #$0F                     ;get default FS ROM
                 ply                          ; E452= 7A          z
                 tax                          ; E453= AA          *
 LE454:
@@ -6945,7 +6945,7 @@ LE4A3:
                 beq LE509
 LE4BB:
                 jsr selectTerminalROM     ; Page in ROM 15 - UTILS ROM
-                jsr terminal.L8E9C        ; Read configured LANG
+                jsr terminal.readDefaultLanguageROM        ; Read configured LANG
                 tax
 LE4C2:
                 clc
@@ -8583,7 +8583,7 @@ osbyteA1:
 
 osbyteA2:
                 jsr withTerminalROM          ; ED94= 20 84 F3     .s
-                jmp terminal.L98DC           ; ED97= 4C DC 98    L\.
+                jmp terminal.writeCMOSByte           ; ED97= 4C DC 98    L\.
 
 ; OSBYTE &8C (140) - Select TAPE
 ; ==============================
@@ -9862,15 +9862,17 @@ LF2F9:
                 clc
                 rts
 
+;-------------------------------------------------------------------------
+
 incAndSkipSpaces:
-                iny                          ; F2FE= C8          H
+                iny
 skipSpacesAndCheckForCRInStringInput:
-                lda (stringInputBufferAddress),y                  ; F2FF= B1 F2       1r
-                cmp #' '                     ; F301= C9 20       I
-                beq incAndSkipSpaces                    ; F303= F0 F9       py
+                lda (stringInputBufferAddress),y 
+                cmp #' '             
+                beq incAndSkipSpaces   
 LF305:
-                cmp #13                     ; F305= C9 0D       I.
-                rts                          ; F307= 60          `
+                cmp #13         
+                rts          
 
 LF308:
                 bcc skipSpacesAndCheckForCRInStringInput                    ; F308= 90 F5       .u
@@ -9989,8 +9991,10 @@ osbyte93:
                 rts
 
 ;-------------------------------------------------------------------------
-
-LF373:
+;
+; *SHUT [MasRef G.5-10]
+; 
+starSHUT:
                 ldx #romServiceCallCloseAllOpenFiles 
                 jmp makeROMServiceCall
 
@@ -11034,6 +11038,7 @@ osbgetEntryPoint:
 ;-------------------------------------------------------------------------
 ;
 ; OSGBPB [AUG p339]
+;
 osgbpbEntryPoint: .proc
                 cmp #gbpbGetMediaMetadata
                 bcs nonFileOperation
@@ -11618,12 +11623,18 @@ badCommandError:
                 .text "Bad command"
                 brk
 
+;-------------------------------------------------------------------------
+
                 .byte $FF                    ; FBFB= FF          .
                 .byte $FF                    ; FBFC= FF          .
                 .byte $FF                    ; FBFD= FF          .
                 .byte $FF                    ; FBFE= FF          .
                 .byte $FF                    ; FBFF= FF          .
 
+;-------------------------------------------------------------------------
+;
+; Credits - normally hidden by the I/O region.
+; 
                 .text "(C) 1984 Acorn Computers Ltd."
                 .text "Thanks are due to the following contributors to the BBC Computer (among others too numerous to mention):- "
                 .text "David Allen,"
@@ -11677,7 +11688,9 @@ badCommandError:
                 .text "   "
 
                 .endblock
-                
+
+;-------------------------------------------------------------------------
+
 E_USERV: ; ff00
                 jsr extendedVectorEntryPoint
 E_BRKV: ; ff03
@@ -11732,40 +11745,64 @@ E_IND2V: ; ff4b
                 jsr extendedVectorEntryPoint
 E_IND3V: ; ff4e
                 jsr extendedVectorEntryPoint
-                
-extendedVectorEntryPoint:
-                pha                          ; FF51= 48          H
-                pha                          ; FF52= 48          H
-                pha                          ; FF53= 48          H
-                pha                          ; FF54= 48          H
-                pha                          ; FF55= 48          H
-                pha                          ; FF56= 48          H
-                php                          ; FF57= 08          .
-                pha                          ; FF58= 48          H
-                phx                          ; FF59= DA          Z
-                phy                          ; FF5A= 5A          Z
-                tsx                          ; FF5B= BA          :
-                lda #$FF                     ; FF5C= A9 FF       ).
-                sta $0108,x                  ; FF5E= 9D 08 01    ...
-                lda #$8C                     ; FF61= A9 8C       ).
-                sta $0107,x                  ; FF63= 9D 07 01    ...
-                ldy $010B,x                  ; FF66= BC 0B 01    <..
-                lda extendedVectorSpace-2,y                  ; FF69= B9 9D 0D    9..
-                sta $0105,x                  ; FF6C= 9D 05 01    ...
-                lda extendedVectorSpace-1,y                  ; FF6F= B9 9E 0D    9..
-                sta $0106,x                  ; FF72= 9D 06 01    ...
-                lda $F4                      ; FF75= A5 F4       %t
-                sta $010A,x                  ; FF77= 9D 0A 01    ...
-                lda ACCCON                    ; FF7A= AD 34 FE    -4~
-                sta $0109,x                  ; FF7D= 9D 09 01    ...
-                jsr mos.selectHAZEL          ; FF80= 20 BA ED     :m
-                lda extendedVectorSpace,y                  ; FF83= B9 9F 0D    9..
-                jsr mos.selectROMA           ; FF86= 20 92 E5     .e
-                ply                          ; FF89= 7A          z
-                plx                          ; FF8A= FA          z
-                pla                          ; FF8B= 68          h
-                rti                          ; FF8C= 40          @
 
+;-------------------------------------------------------------------------
+
+extendedVectorEntryPoint:
+                ; $10b,x = rL
+                pha                 ; $10a,x  (old ROMSEL)
+                pha                 ; $109,x  (old ACCCON)
+                pha                 ; $108,x  (thunk rH)
+                pha                 ; $107,x  (thunk rL)
+                pha                 ; $106,x  (jump dest MSB)
+                pha                 ; $105,x  (jump dest LSB)
+                php                 ; $104,x  (P for RTI)
+                pha                 ; $103,x  (old A)
+                phx                 ; $102,x  (old X)
+                phy                 ; $101,x  (old Y)
+                tsx
+                lda #>extendedVectorReturnThunk-1
+                sta $0108,x
+                lda #<extendedVectorReturnThunk-1
+                sta $0107,x
+
+                ; this routine is only ever called from $ff00, $ff03,
+                ; $ff06, etc. - so rL holds vectorIndex*3+2, suitable
+                ; for indexing into the extended vector space.
+                ldy $010B,x                  ;Y=vectorIndex*3+2
+                lda extendedVectorSpace-2,y  ;get vector LSB
+                sta $0105,x                  ;
+                lda extendedVectorSpace-1,y  ;get vector MSB
+                sta $0106,x
+                lda $F4
+                sta $010A,x
+                lda ACCCON
+                sta $0109,x
+
+                ; New stack layout:
+                ; 
+                ; $10a,x - old ROMSEL
+                ; $109,x - old ACCCON
+                ; $108,x - thunk rH
+                ; $107,x - thunk rL
+                ; $106,x - jump dest MSB
+                ; $105,x - jump dest LSB
+                ; $104,x - P (for RTI)
+                ; $103,x - old A
+                ; $102,x - old X
+                ; $101,x - old Y
+                
+                jsr mos.selectHAZEL
+                lda extendedVectorSpace,y    ;get vector ROM number
+                jsr mos.selectROMA
+                ply
+                plx
+                pla
+                rti
+
+;-------------------------------------------------------------------------
+
+extendedVectorReturnThunk:
                 php                          ; FF8D= 08          .
                 pha                          ; FF8E= 48          H
                 phx                          ; FF8F= DA          Z
@@ -11786,10 +11823,18 @@ extendedVectorEntryPoint:
 rtsFFAA:
                 rts                          ; FFAA= 60          `
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 150 (&96) Read from SHEILA (&FE00 – &FEFF) [MasRef D.2-45]
+; 
 osbyte96:
                 ldy $fe00,x
                 rts
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 157 (&9D) Write byte across Tube [MasRef D.2-48]
+; 
 osbyte9D:
                 txa
                 bra OSBPUT
@@ -11851,5 +11896,5 @@ LFFFC:                                       ; FFFB RESETV
 LFFFE:                                       ; FFFE IRQV
                 .word mos.irqEntryPoint
 
-                .send mos
+                .endsection mos
                 

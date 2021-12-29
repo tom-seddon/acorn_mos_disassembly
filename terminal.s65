@@ -28,7 +28,7 @@ reset:                          ;8020
                 sta systemVIA.ddrb ;
                 ldy #$20                     ; 8037= A0 20
                 ldx #$0A                     ; 8039= A2 0A       ".
-                jsr L98E4                    ; 803B= 20 E4 98     d.
+                jsr writeRTCByte                    ; 803B= 20 E4 98     d.
                 jsr L9729                    ; 803E= 20 29 97     ).
                 lda #ACCCON.Y|ACCCON.X       ; page in HAZEL+shadow
                 tsb ACCCON
@@ -100,20 +100,20 @@ L8073:
 L80AD:
                 inc $028D                    ; 80AD= EE 8D 02    n..
                 phy                          ; 80B0= 5A          Z
-                jsr L8E76                    ; Read configured MODE
+                jsr readDefaultMODE                    ; Read configured MODE
 L80B4:
                 ora #$08                     ; Store in OSBYTE 255 with boot off (b3=1)
                 sta $028F
 L80B9:
-                jsr readCMOSDefaults3Byte                    ; Read configured BOOT
+                jsr readDefaults3                    ; Read configured BOOT
                 and #$10
                 lsr a                        ; Reset OSBYTE 255 boot bit (b3) if BOOT
                 trb $028F
-                jsr L8E5A                    ; 80C2= 20 5A 8E     Z.
+                jsr readDefaultTVSettings                    ; 80C2= 20 5A 8E     Z.
                 sty $0290                    ; 80C5= 8C 90 02    ...
                 stx $0291                    ; 80C8= 8E 91 02    ...
 L80CB:
-                jsr readCMOSDefaults3Byte                    ; 80CB= 20 AE 98     ..
+                jsr readDefaults3                    ; 80CB= 20 AE 98     ..
                 and #$08                     ; 80CE= 29 08       ).
                 beq L80D4                    ; 80D0= F0 02       p.
                 lda #$01                     ; 80D2= A9 01       ).
@@ -194,7 +194,7 @@ L8155:
                 pla                          ; 8161= 8D 46 02    .F.
                 sta $0246
 L8164:
-                jsr L8EAD                    ; 8164= 20 AD 8E     -.
+                jsr readDefaults1                    ; 8164= 20 AD 8E     -.
                 ldx #$20                     ; 8167= A2 20       "
                 asl a                        ; 8169= 0A          .
                 asl a                        ; 816A= 0A          .
@@ -209,16 +209,16 @@ L8174:
                 jsr mos.resetKeyRepeat
                 lda $028D                    ; 817D= AD 8D 02    -..
                 beq L8196                    ; 8180= F0 14       p.
-                jsr L8EA8                    ; 8182= 20 A8 8E     (.
+                jsr readDefaultPrinterIgnoreChar                    ; 8182= 20 A8 8E     (.
                 sta $0286                    ; 8185= 8D 86 02    ...
-                jsr readCMOSDefaults2Byte
+                jsr readDefaults2
                 lsr a                        ; 818B= 4A          J
                 lsr a                        ; 818C= 4A          J
                 ror $0246                    ; 818D= 6E 46 02    nF.
-                jsr L8E8D                    ; 8190= 20 8D 8E     ..
+                jsr readDefaultFX5Settings                    ; 8190= 20 8D 8E     ..
                 sta $0285                    ; 8193= 8D 85 02    ...
 L8196:
-                jsr L8E97                    ; 8196= 20 97 8E     ..
+                jsr readDefaultSerialDataFormat                    ; 8196= 20 97 8E     ..
                 asl a                        ; 8199= 0A          .
                 asl a                        ; 819A= 0A          .
                 ora #$42                     ; 819B= 09 42       .B
@@ -263,14 +263,14 @@ L81DD:
                 lda serialULARegister
                 and #$7F                     ; 81F2= 29 7F       ).
                 jsr mos.LEC89                ; 81F4= 20 89 EC     .l
-                jsr L8E84                    ; 81F7= 20 84 8E     ..
+                jsr readDefaultSerialBaudRateIndex
                 pha                          ; 81FA= 48          H
                 tax                          ; 81FB= AA          *
                 jsr mos.osbyte08             ; 81FC= 20 6B EC     kl
                 plx                          ; 81FF= FA          z
                 lda #$07                     ; 8200= A9 07       ).
                 jsr mos.osbyte07             ; 8202= 20 6D EC     ml
-                jsr readCMOSDefaults3Byte                    ; 8205= 20 AE 98     ..
+                jsr readDefaults3                    ; 8205= 20 AE 98     ..
                 bit #$02                     ; 8208= 89 02       ..
                 bne L8211                    ; 820A= D0 05       P.
                 lda #$F0                     ; 820C= A9 F0       )p
@@ -297,16 +297,16 @@ romsScanned:
 L8238:
                 phx                          ; 8238= DA          Z
                 ldy #$00                     ; 8239= A0 00        .
-                jsr L98DC                    ; 823B= 20 DC 98     \.
+                jsr writeCMOSByte                    ; 823B= 20 DC 98     \.
                 plx                          ; 823E= FA          z
                 dex                          ; 823F= CA          J
                 bpl L8238                    ; 8240= 10 F6       .v
                 ldy #$FF                     ; 8242= A0 FF        .
                 ldx #$06                     ; 8244= A2 06       ".
-                jsr L98DC                    ; 8246= 20 DC 98     \.
+                jsr writeCMOSByte                    ; 8246= 20 DC 98     \.
                 ldx #$07                     ; 8249= A2 07       ".
-                jsr L98DC                    ; 824B= 20 DC 98     \.
-                jsr LA958                    ; 824E= 20 58 A9     X)
+                jsr writeCMOSByte                    ; 824B= 20 DC 98     \.
+                jsr alwaysPrintFollowingMessage                    ; 824E= 20 58 A9     X)
                 .byte $0D
                 .byte $0A
                 .text "CMOS RAM reset"
@@ -332,10 +332,10 @@ L8284:
                 beq L829D                    ; 8298= F0 03       p.
                 jsr mos.LEDD0                ; 829A= 20 D0 ED     Pm
 L829D:
-                jsr readCMOSDefaults2Byte                    ; 829D= 20 AA 98     *.
+                jsr readDefaults2                    ; 829D= 20 AA 98     *.
                 lsr a                        ; 82A0= 4A          J
                 bcc L82D0                    ; 82A1= 90 2D       .-
-                jsr readCMOSDefaults3Byte                    ; 82A3= 20 AE 98     ..
+                jsr readDefaults3                    ; 82A3= 20 AE 98     ..
                 bit #$04                     ; 82A6= 89 04       ..
                 php                          ; 82A8= 08          .
                 lda #$10                     ; 82A9= A9 10       ).
@@ -447,8 +447,8 @@ mosCommandTable:
                 .mos_command "APPEND",starAPPEND,$80,$00 ; XY=>parameters
                 .mos_command "BASIC",starBASIC,$00,$00  ;
                 .mos_command "BUILD",starBUILD,$80,$00  ; XY=>parameters
-                .mos_command "CLOSE",L937C,$00,$FF  ;
-                .mos_command "CONFIGURE",L887A,$00,$FF ;
+                .mos_command "CLOSE",starCLOSE,$00,$FF  ;
+                .mos_command "CONFIGURE",starCONFIGURE,$00,$FF ;
                 .mos_command "CODE",L93EB,$00,$88 ; X,y=parameters, OSBYTE &88
                 .mos_command "CREATE",L9318,$80,$07 ; XY=>parameters, OSFILE &07
                 .mos_command "DUMP",L8F42,$80,$00   ; XY=>parameters
@@ -478,7 +478,7 @@ mosCommandTable:
                 .mos_command "SAVE",L9318,$80,$00 ; XY=>parameters, OSFILE &00
                 .mos_command "SHADOW",L9466,$00,$FF  ;
                 .mos_command "SHOW",L9488,$00,$FF    ;
-                .mos_command "SHUT",mos.LF373,$00,$00 ;
+                .mos_command "SHUT",mos.starSHUT,$00,$00 ;
                 .mos_command "SPOOL",L9433,$80,$00   ; XY=>parameters
                 .mos_command "SPOOLON",L9420,$80,$00 ; XY=>parameters
                 .mos_command "STATUS",L8895,$00,$FF  ;
@@ -804,7 +804,7 @@ L868D:
                 jsr OSNEWL                   ; 8695= 20 E7 FF     g.
                 bra L8661                    ; 8698= 80 C7       .G
 
-L869A:
+badCommandError869A:
                 jmp mos.badCommandError
 
 readCommandLine:
@@ -814,8 +814,8 @@ readCommandLine:
                 jmp OSWORD                   ; 86A3= 4C F1 FF    Lq.
 
 L86A6:
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; 86A6= 20 FF F2     .r
-                bne L869A                    ; 86A9= D0 EF       Po
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                bne badCommandError869A
                 ldy #$0F                     ; 86AB= A0 0F        .
 L86AD:
                 iny                          ; 86AD= C8          H
@@ -826,7 +826,7 @@ L86AD:
                 dec a                        ; 86B7= 3A          :
                 pha                          ; 86B8= 48          H
                 jsr printHexDigit                    ; 86B9= 20 73 A8     s(
-                jsr L9F0C                    ; 86BC= 20 0C 9F     ..
+                jsr printSpace                    ; 86BC= 20 0C 9F     ..
                 lda #$09                     ; 86BF= A9 09       ).
                 sta $F6                      ; 86C1= 85 F6       .v
                 lda #$80                     ; 86C3= A9 80       ).
@@ -863,7 +863,7 @@ L86F5:
                 jsr readRTCByte                    ; 86FB= 20 B7 98     7.
                 and $B0                      ; 86FE= 25 B0       %0
                 bne L8710                    ; 8700= D0 0E       P.
-                jsr LA958                    ; 8702= 20 58 A9     X)
+                jsr alwaysPrintFollowingMessage                    ; 8702= 20 58 A9     X)
                 .text " unplugged"
                 .byte 0
 ;JSR &6E75        :\ 8705= 20 75 6E     un
@@ -893,7 +893,7 @@ L8722:
 L8723:
                 php                          ; 8723= 08          .
                 jsr mos.skipSpacesAndCheckForCRInStringInput ; 8724= 20 FF F2     .r
-                jsr L897D                    ; 8727= 20 7D 89     }.
+                jsr parseSingle4BitNumberFromCommandLine                    ; 8727= 20 7D 89     }.
                 tay                          ; 872A= A8          (
                 jsr mos.getROMInsertedFlagRTCAddressAndMask
                 pha                          ; 872E= 48          H
@@ -909,7 +909,7 @@ L8723:
                 and $B0                      ; 873E= 25 B0       %0
 L8740:
                 tay                          ; 8740= A8          (
-                jmp L98E4                    ; 8741= 4C E4 98    Ld.
+                jmp writeRTCByte                    ; 8741= 4C E4 98    Ld.
 
 starTime:
                 stz hazel.commandLine        ; 8744= 9C 00 DC    ..\
@@ -925,121 +925,105 @@ L8752:
                 bne L8752                    ; 8759= D0 F7       Pw
                 rts                          ; 875B= 60          `
 
-L875C:
-                .text "."
-                .text $80,"BAUD"
-                .text $84,"BOOT"
-                .text $88,"CAPS"
-                .text $8c,"DATA"
-                .text $90,"DELAY"
-                .text $94,"DIR"
-                .text $98,"EXTUBE"
-                .text $9c,"FDRIVE"
-                .text $a0,"FILE"
-                .text $a4,"FLOPPY"
-                .text $a8,"HARD"
-                .text $ac,"IGNORE"
-                .text $b0,"INTUBE"
-                .text $b4,"LANG"
-                .text $b8,"LOUD"
-                .text $bc,"MODE"
-                .text $c0,"NOBOOT"
-                .text $c4,"NOCAPS"
-                .text $c8,"NODIR"
-                .text $cc,"NOSCROLL"
-                .text $d0,"NOTUBE"
-                .text $d4,"PRINT"
-                .text $d8,"QUIET"
-                .text $dc,"REPEAT"
-                .text $e0,"SCROLL"
-                .text $e4,"SHCAPS"
-                .text $e8,"TUBE"
-                .text $ec,"TV"
-                .text $f0,0
+;-------------------------------------------------------------------------
 
+L875C:
+                .text ".",$80
+                .text "BAUD",$84
+                .text "BOOT",$88
+                .text "CAPS",$8c
+                .text "DATA",$90
+                .text "DELAY",$94
+                .text "DIR",$98
+                .text "EXTUBE",$9c
+                .text "FDRIVE",$a0
+                .text "FILE",$a4
+                .text "FLOPPY",$a8
+                .text "HARD",$ac
+                .text "IGNORE",$b0
+                .text "INTUBE",$b4
+                .text "LANG",$b8
+                .text "LOUD",$bc
+                .text "MODE",$c0
+                .text "NOBOOT",$c4
+                .text "NOCAPS",$c8
+                .text "NODIR",$cc
+                .text "NOSCROLL",$d0
+                .text "NOTUBE",$d4
+                .text "PRINT",$d8
+                .text "QUIET",$dc
+                .text "REPEAT",$e0
+                .text "SCROLL",$e4
+                .text "SHCAPS",$e8
+                .text "TUBE",$ec
+                .text "TV",$f0
+                .text 0
+
+;-------------------------------------------------------------------------
+; 
+; set routine entry:
+;
+; Z=1 if command line empty
+                
 _:=[]
-_..=[L8BF0]
-_..=[L8D7F]
-_..=[L89F1]
-_..=[L8B7D]
-_..=[L8A28]
-_..=[L8AE1]
-_..=[L88E8]
-_..=[L8A66]
-_..=[L8A17]
-_..=[L8B82]
-_..=[L899F]
-_..=[L8B2E]
-_..=[L88BD]
-_..=[L8BAA]
-_..=[L8A44]
-_..=[L8ABB]
-_..=[L88CB]
-_..=[L8B87]
-_..=[L8A5F]
-_..=[L8B10]
-_..=[L88B5]
-_..=[L8B8E]
-_..=[L88AF]
-_..=[L8B8E]
-_..=[L89B4]
-_..=[L8B44]
-_..=[L8A4A]
-_..=[L8ABB]
-_..=[L8A52]
-_..=[L8B08]
-_..=[L8A0F]
-_..=[L8A9F]
-_..=[L88F0]
-_..=[L8B25]
-_..=[L8A2E]
-_..=[L8AE1]
-_..=[L88DC]
-_..=[L8A66]
-_..=[L88C3]
-_..=[L8BAA]
-_..=[L8A3C]
-_..=[L8A89]
-_..=[L89E4]
-_..=[L8AF5]
-_..=[L89C7]
-_..=[L8B78]
-_..=[L8A09]
-_..=[L8A9F]
-_..=[L89A1]
-_..=[L8B34]
-_..=[L8A36]
-_..=[L8A89]
-_..=[L88E2]
-_..=[L8A66]
-_..=[L89EE]
-_..=[L8AF5]
-_..=[L8906]
-_..=[L8B17]
+_..=[printCONFIGUREHelp,printSTATUSHelp]
+_..=[setDefaultSerialBaudRateIndex,printDefaultSerialBaudRateIndex]
+_..=[setDefaultAutoBoot,printDefaultAutoBoot]
+_..=[setDefaultsCapsLock,printDefaultCaps]
+_..=[L8A17,printDefaultSerialDataFormat]
+_..=[setDefaultKeyboardAutoRepeatDelay,printDefaultKeyboardAutoRepeatDelay]
+_..=[L88BD,printDefaultADFSLoadDir]
+_..=[L8A44,printDefaultExtTube]
+_..=[L88CB,printDefaultFDRIVE]
+_..=[L8A5F,printDefaultFSROM]
+_..=[L88B5,printDefaultFloppyDrive]
+_..=[L88AF,printDefaultFloppyDrive]
+_..=[L89B4,printDefaultPrinterIgnoreChar]
+_..=[L8A4A,printDefaultExtTube]
+_..=[L8A52,printDefaultLanguageROM]
+_..=[L8A0F,printDefaultLoud]
+_..=[L88F0,printDefaultMODE]
+_..=[setDefaultNoAutoBoot,printDefaultAutoBoot]
+_..=[setDefaultNoLock,printDefaultCaps]
+_..=[L88C3,printDefaultADFSLoadDir]
+_..=[L8A3C,printDefaultProtectedScrolling]
+_..=[L89E4,printDefaultTubeOn]
+_..=[L89C7,printDefaultFX5Settings]
+_..=[L8A09,printDefaultLoud]
+_..=[setDefaultKeyboardAutoRepeatRate,printDefaultKeyboardRepeatRate]
+_..=[L8A36,printDefaultProtectedScrolling]
+_..=[setDefaultShiftLock,printDefaultCaps]
+_..=[L89EE,printDefaultTubeOn]
+_..=[L8906,printDefaultTVSettings]
 maybe_configure_routines=_
 
+L8806:
                 .for i=0,i<len(maybe_configure_routines),i+=1
                 .beword maybe_configure_routines[i]-1
                 .next
-                
-L887A:
-                jsr L8934                    ; 887A 20 34 89
-                bcs L8889                    ; 887D= B0 0A       0.
+
+;-------------------------------------------------------------------------
+;
+; *CONFIGURE [MasRef C.5-2]
+; 
+starCONFIGURE:
+                jsr L8934                    ;get configure param
+                bcs callSetRoutine           ;taken if known
                 ldx #romServiceCallUnknownCONFIG
 L8881:
                 ldy $E6                      ; 8881= A4 E6       $f
                 jsr mos.makeROMServiceCall   ; 8883= 20 72 EE     rn
-                bne L88AC                    ; 8886= D0 24       P$
+                bne badCommandError88AC                    ; 8886= D0 24       P$
                 rts                          ; 8888= 60          `
 
-L8889:
-                tax                          ; 8889= AA          *
-                lda L8786,x                  ; 888A= BD 86 87    =..
-                pha                          ; 888D= 48          H
-                lda L8787,x                  ; 888E= BD 87 87    =..
-                pha                          ; 8891= 48          H
+callSetRoutine
+                tax
+                lda L8806+0-$80,x
+                pha
+                lda L8806+1-$80,x
+                pha
 L8892:
-                jmp mos.skipSpacesAndCheckForCRInStringInput ; 8892= 4C FF F2    L.r
+                jmp mos.skipSpacesAndCheckForCRInStringInput
 
 L8895:
                 jsr L8934                    ; 8895= 20 34 89     4.
@@ -1049,70 +1033,78 @@ L8895:
 
 L889E:
                 tax                          ; 889E= AA          *
-                lda L8788,x                  ; 889F= BD 88 87    =..
+                lda L8806+2-$80,x
                 pha                          ; 88A2= 48          H
-                lda L8789,x                  ; 88A3= BD 89 87    =..
+                lda L8806+3-$80,x
                 pha                          ; 88A6= 48          H
                 jsr mos.skipSpacesAndCheckForCRInStringInput ; 88A7= 20 FF F2     .r
                 beq L8892                    ; 88AA= F0 E6       pf
-L88AC:
-                jmp L8976                    ; 88AC= 4C 76 89    Lv.
+badCommandError88AC:
+                jmp badCommandError8976                    ; 88AC= 4C 76 89    Lv.
 
 L88AF:
-                bne L88AC                    ; 88AF= D0 FB       P{
+                bne badCommandError88AC                    ; 88AF= D0 FB       P{
                 lda #$00                     ; 88B1= A9 00       ).
                 bra L88B9                    ; 88B3= 80 04       ..
 
 L88B5:
-                bne L88AC                    ; 88B5= D0 F5       Pu
+                bne badCommandError88AC                    ; 88B5= D0 F5       Pu
                 lda #$80                     ; 88B7= A9 80       ).
 L88B9:
                 ldy #$7F                     ; 88B9= A0 7F        .
-                bra L88D8                    ; 88BB= 80 1B       ..
+                bra writeDefaults1Bits                    ; 88BB= 80 1B       ..
 
 L88BD:
-                bne L88AC                    ; 88BD= D0 ED       Pm
+                bne badCommandError88AC                    ; 88BD= D0 ED       Pm
                 lda #$00                     ; 88BF= A9 00       ).
                 bra L88C7                    ; 88C1= 80 04       ..
 
 L88C3:
-                bne L88AC                    ; 88C3= D0 E7       Pg
+                bne badCommandError88AC                    ; 88C3= D0 E7       Pg
                 lda #$40                     ; 88C5= A9 40       )@
 L88C7:
                 ldy #$BF                     ; 88C7= A0 BF        ?
-                bra L88D8                    ; 88C9= 80 0D       ..
+                bra writeDefaults1Bits                    ; 88C9= 80 0D       ..
 
 L88CB:
-                jsr L8971                    ; 88CB= 20 71 89     q.
-                jsr L8987                    ; 88CE= 20 87 89     ..
+                jsr parseNumberFromCommandLine                    ; 88CB= 20 71 89     q.
+                jsr ensureCommandLineTailEmpty                    ; 88CE= 20 87 89     ..
                 txa                          ; 88D1= 8A          .
                 cmp #$08                     ; 88D2= C9 08       I.
-                bcs L88AC                    ; 88D4= B0 D6       0V
+                bcs badCommandError88AC                    ; 88D4= B0 D6       0V
                 ldy #$F8                     ; 88D6= A0 F8        x
-L88D8:
-                ldx #$19                     ; 88D8= A2 19       ".
-                bra L892D                    ; 88DA= 80 51       .Q
+writeDefaults1Bits:
+                ldx #CMOSBytes.defaults1+cmosRAMRTCAddress
+                bra jmpWriteRTCBits892D                    ; 88DA= 80 51       .Q
 
-L88DC:
-                bne L88AC                    ; 88DC= D0 CE       PN
-                lda #$10                     ; 88DE= A9 10       ).
-                bra L88EC                    ; 88E0= 80 0A       ..
+;-------------------------------------------------------------------------
 
-L88E2:
-                bne L88AC                    ; 88E2= D0 C8       PH
-                lda #$08                     ; 88E4= A9 08       ).
-                bra L88EC                    ; 88E6= 80 04       ..
+setDefaultNoLock:
+                bne badCommandError88AC
+                lda #CMOSBytes.defaults1.defaultNoLockMask
+                bra setDefaultLock     
 
-L88E8:
-                bne L88AC                    ; 88E8= D0 C2       PB
-                lda #$20                     ; 88EA= A9 20       )
-L88EC:
-                ldy #$C7                     ; 88EC= A0 C7        G
-                bra L88D8                    ; 88EE= 80 E8       .h
+;-------------------------------------------------------------------------
+
+setDefaultShiftLock:
+                bne badCommandError88AC
+                lda #CMOSBytes.defaults1.defaultShiftLockMask
+                bra setDefaultLock
+
+;-------------------------------------------------------------------------
+
+setDefaultsCapsLock:
+                bne badCommandError88AC
+                lda #CMOSBytes.defaults1.defaultCapsLockMask
+setDefaultLock:
+                ldy #~(CMOSBytes.defaults1.defaultCapsLockMask|CMOSBytes.defaults1.defaultNoLockMask|CMOSBytes.defaults1.defaultShiftLockMask)&$ff
+                bra writeDefaults1Bits              
+
+;-------------------------------------------------------------------------
 
 L88F0:
-                jsr L8971                    ; 88F0= 20 71 89     q.
-                jsr L8987                    ; 88F3= 20 87 89     ..
+                jsr parseNumberFromCommandLine                    ; 88F0= 20 71 89     q.
+                jsr ensureCommandLineTailEmpty                    ; 88F3= 20 87 89     ..
                 txa                          ; 88F6= 8A          .
                 and #$7F                     ; 88F7= 29 7F       ).
                 cmp #$08                     ; 88F9= C9 08       I.
@@ -1122,16 +1114,16 @@ L88F0:
                 ora #$08                     ; 8900= 09 08       ..
 L8902:
                 ldy #$F0                     ; 8902= A0 F0        p
-                bra L892B                    ; 8904= 80 25       .%
+                bra writeDefaults0Bits                    ; 8904= 80 25       .%
 
 L8906:
                 beq L8930                    ; 8906= F0 28       p(
-                jsr L8971                    ; 8908= 20 71 89     q.
+                jsr parseNumberFromCommandLine                    ; 8908= 20 71 89     q.
                 cpx #$FC                     ; 890B= E0 FC       `|
                 bcs L8913                    ; 890D= B0 04       0.
                 cpx #$04                     ; 890F= E0 04       `.
 L8911:
-                bcs L8976                    ; 8911= B0 63       0c
+                bcs badCommandError8976                    ; 8911= B0 63       0c
 L8913:
                 txa                          ; 8913= 8A          .
                 asl a                        ; 8914= 0A          .
@@ -1139,7 +1131,7 @@ L8913:
                 ldx #$00                     ; 8917= A2 00       ".
                 jsr mos.LF30A                ; 8919= 20 0A F3     .s
                 beq L8922                    ; 891C= F0 04       p.
-                jsr L898F                    ; 891E= 20 8F 89     ..
+                jsr parseSingle1BitNumberFromCommandLine                    ; 891E= 20 8F 89     ..
                 tax                          ; 8921= AA          *
 L8922:
                 txa                          ; 8922= 8A          .
@@ -1150,40 +1142,43 @@ L8922:
                 asl a                        ; 8928= 0A          .
 L8929:
                 ldy #$0F                     ; 8929= A0 0F        .
-L892B:
-                ldx #$18                     ; 892B= A2 18       ".
-L892D:
-                jmp L89D6                    ; 892D= 4C D6 89    LV.
+writeDefaults0Bits:
+                ldx #CMOSBytes.defaults0+cmosRAMRTCAddress
+jmpWriteRTCBits892D:
+                jmp writeRTCBits                    ; 892D= 4C D6 89    LV.
 
 L8930:
                 lda #$00                     ; 8930= A9 00       ).
                 bra L8929                    ; 8932= 80 F5       .u
 
+;-------------------------------------------------------------------------
+;
+; 
 L8934:
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; 8934= 20 FF F2     .r
-                sty $E6                      ; 8937= 84 E6       .f
-                beq L8979                    ; 8939= F0 3E       p>
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                sty $E6                      
+                beq L8979                    ;taken if input ends with CR
                 ldx #$00                     ; 893B= A2 00       ".
                 bra L894A                    ; 893D= 80 0B       ..
 
 L893F:
-                eor L875C,x                  ; 893F= 5D 5C 87    ]\.
-                and #$DF                     ; 8942= 29 DF       )_
-                bne L895C                    ; 8944= D0 16       P.
-                iny                          ; 8946= C8          H
+                eor L875C,x           ;matches configure setting name?
+                and #$DF              ;case-insensitive
+                bne L895C             ;taken if no match
+                iny
 L8947:
                 bcs L896C                    ; 8947= B0 23       0#
                 inx                          ; 8949= E8          h
 L894A:
-                lda ($F2),y                  ; 894A= B1 F2       1r
-                jsr mos.isLetter             ; 894C= 20 71 EA     qj
-                bcc L893F                    ; 894F= 90 EE       .n
+                lda (stringInputBufferAddress),y
+                jsr mos.isLetter
+                bcc L893F                    ;taken if letter
 L8951:
-                lda L875C,x                  ; 8951= BD 5C 87    =\.
-                bmi L896C                    ; 8954= 30 16       0.
-                lda ($F2),y                  ; 8956= B1 F2       1r
-                cmp #$2E                     ; 8958= C9 2E       I.
-                beq L8960                    ; 895A= F0 04       p.
+                lda L875C,x
+                bmi L896C           ;taken if info byte - i.e., name matches
+                lda ($F2),y
+                cmp #'.'
+                beq L8960                    ;accept abbreviations
 L895C:
                 clc                          ; 895C= 18          .
                 ldy $E6                      ; 895D= A4 E6       $f
@@ -1204,191 +1199,227 @@ L896C:
 
 L896E:
                 bcs L896C                    ; 896E= B0 FC       0|
-L8970:
+rts8970:
                 rts                          ; 8970= 60          `
 
-L8971:
+;-------------------------------------------------------------------------
+
+parseNumberFromCommandLine:
                 jsr parseNumberFromString    ; 8971= 20 E6 85     f.
-                bcs L8970                    ; 8974= B0 FA       0z
-L8976:
+                bcs rts8970                    ; 8974= B0 FA       0z
+badCommandError8976:
                 jmp mos.badCommandError
+
+;-------------------------------------------------------------------------
 
 L8979:
                 ldx #$01                     ; 8979= A2 01       ".
                 bra L8951                    ; 897B= 80 D4       .T
 
-L897D:
-                jsr parseNumberFromString    ; 897D= 20 E6 85     f.
-                bcc L8976                    ; 8980= 90 F4       .t
-                txa                          ; 8982= 8A          .
-                cmp #$10                     ; 8983= C9 10       I.
-                bcs L8976                    ; 8985= B0 EF       0o
-L8987:
-                pha                          ; 8987= 48          H
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; 8988= 20 FF F2     .r
-L898B:
-                bne L8976                    ; 898B= D0 E9       Pi
-                pla                          ; 898D= 68          h
-                rts                          ; 898E= 60          `
+;-------------------------------------------------------------------------
 
-L898F:
-                jsr L8997                    ; 898F= 20 97 89     ..
-                cmp #$02                     ; 8992= C9 02       I.
-                bcs L8976                    ; 8994= B0 E0       0`
-                rts                          ; 8996= 60          `
+parseSingle4BitNumberFromCommandLine:
+                jsr parseNumberFromString
+                bcc badCommandError8976
+                txa                    
+                cmp #$10               
+                bcs badCommandError8976
+ensureCommandLineTailEmpty:
+                pha                          ;save value parsed
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+bneBadCommandError898B:
+                bne badCommandError8976      ;taken if followed up by anything other than CR
+                pla                          ;restore value parsed
+                rts                          
 
-L8997:
-                jsr parseNumberFromString    ; 8997= 20 E6 85     f.
-                bcc L8976                    ; 899A= 90 DA       .Z
-                txa                          ; 899C= 8A          .
-                bra L8987                    ; 899D= 80 E8       .h
+;-------------------------------------------------------------------------
 
-L899F:
+parseSingle1BitNumberFromCommandLine:
+                jsr parseSingleNumberFromCommandLine
+                cmp #$02
+                bcs badCommandError8976
+                rts
+
+;-------------------------------------------------------------------------
+;
+; Parse single number from command line. Produce Bad Command error if
+; the number is invalid or if there's more than one number.
+;
+; exit:
+;
+; A = value
+;
+; N/Z set as per A
+; 
+parseSingleNumberFromCommandLine:
+                jsr parseNumberFromString
+                bcc badCommandError8976      ;taken if error
+                txa                          ;A=value
+                bra ensureCommandLineTailEmpty
+
+;-------------------------------------------------------------------------
+
+setDefaultKeyboardAutoRepeatDelay:
                 clc                          ; 899F= 18          .
                 .byte $24                    ; BIT zp (make SEC mostly
                                              ; a NOP, in effect)
-L89A1:
+setDefaultKeyboardAutoRepeatRate:
                 sec
-                php                          ; 89A2= 08          .
-                jsr L8971                    ; 89A3= 20 71 89     q.
-                jsr L8987                    ; 89A6= 20 87 89     ..
-                plp                          ; 89A9= 28          (
-                txa                          ; 89AA= 8A          .
-                tay                          ; 89AB= A8          (
-                lda #$1A                     ; 89AC= A9 1A       ).
-                adc #$00                     ; 89AE= 69 00       i.
-                tax                          ; 89B0= AA          *
-L89B1:
-                jmp L98E4                    ; 89B1= 4C E4 98    Ld.
+                php                          ;save C
+                jsr parseNumberFromCommandLine
+                jsr ensureCommandLineTailEmpty
+                plp                          ;restore C
+                txa                          
+                tay                          
+                .cerror CMOSBytes.keyboardAutoRepeatDelay+1!=CMOSBytes.keyboardAutoRepeatRate,"keyboard auto repeat settings CMOS bytes must be adjacent"
+                lda #CMOSBytes.keyboardAutoRepeatDelay+cmosRAMRTCAddress
+                adc #$00             ;pick appropriate byte based on C
+                tax                  ;X=RTC address
+jmpWriteRTCByte:
+                jmp writeRTCByte                    ; 89B1= 4C E4 98    Ld.
+
+;-------------------------------------------------------------------------
 
 L89B4:
-                beq L8A03                    ; 89B4= F0 4D       pM
-                jsr L8971                    ; 89B6= 20 71 89     q.
+                beq writeDefaultUsePrinterIgnoreCharTrue                    ; 89B4= F0 4D       pM
+                jsr parseNumberFromCommandLine                    ; 89B6= 20 71 89     q.
                 phx                          ; 89B9= DA          Z
-                jsr L8987                    ; 89BA= 20 87 89     ..
+                jsr ensureCommandLineTailEmpty                    ; 89BA= 20 87 89     ..
                 lda #$00                     ; 89BD= A9 00       ).
-                jsr L8A05                    ; 89BF= 20 05 8A     ..
+                jsr writeDefaultUsePrinterIgnoreChar                    ; 89BF= 20 05 8A     ..
                 ply                          ; 89C2= 7A          z
                 ldx #$1C                     ; 89C3= A2 1C       ".
-                bra L89B1                    ; 89C5= 80 EA       .j
+                bra jmpWriteRTCByte                    ; 89C5= 80 EA       .j
 
 L89C7:
-                jsr L8997                    ; 89C7= 20 97 89     ..
+                jsr parseSingleNumberFromCommandLine                    ; 89C7= 20 97 89     ..
                 cmp #$05                     ; 89CA= C9 05       I.
-L89CC:
-                bcs L8976                    ; 89CC= B0 A8       0(
+bcsBadCommandError:
+                bcs badCommandError8976                    ; 89CC= B0 A8       0(
                 ldy #$1F                     ; 89CE= A0 1F        .
                 lsr a                        ; 89D0= 4A          J
                 ror a                        ; 89D1= 6A          j
                 ror a                        ; 89D2= 6A          j
                 ror a                        ; 89D3= 6A          j
-L89D4:
-                ldx #$1D                     ; 89D4= A2 1D       ".
-L89D6:
-                sta $B1                      ; 89D6= 85 B1       .1
-                sty $B2                      ; 89D8= 84 B2       .2
-                jsr readRTCByte                    ; 89DA= 20 B7 98     7.
-                and $B2                      ; 89DD= 25 B2       %2
-                ora $B1                      ; 89DF= 05 B1       .1
-                tay                          ; 89E1= A8          (
-                bra L89B1                    ; 89E2= 80 CD       .M
+writeDefaults2Bits:
+                ldx #CMOSBytes.defaults2+cmosRAMRTCAddress
+writeRTCBits:
+                sta $B1
+                sty $B2
+                jsr readRTCByte
+                and $B2
+                ora $B1
+                tay
+                bra jmpWriteRTCByte
 
 L89E4:
                 clc                          ; 89E4= 18          .
-L89E5:
-                bne L898B                    ; 89E5= D0 A4       P$
+bneBadCommandError89E5:
+                bne bneBadCommandError898B
                 ldy #$FE                     ; 89E7= A0 FE        ~
                 lda #$00                     ; 89E9= A9 00       ).
                 rol a                        ; 89EB= 2A          *
-                bra L89D4                    ; 89EC= 80 E6       .f
+                bra writeDefaults2Bits                    ; 89EC= 80 E6       .f
 
 L89EE:
                 sec                          ; 89EE= 38          8
-                bra L89E5                    ; 89EF= 80 F4       .t
+                bra bneBadCommandError89E5                    ; 89EF= 80 F4       .t
 
-L89F1:
-                jsr L8997                    ; 89F1= 20 97 89     ..
-                bne L89F8                    ; 89F4= D0 02       P.
-                lda #$07                     ; 89F6= A9 07       ).
-L89F8:
-                cmp #$09                     ; 89F8= C9 09       I.
-                bcs L89CC                    ; 89FA= B0 D0       0P
-                dec a                        ; 89FC= 3A          :
-                ldy #$E3                     ; 89FD= A0 E3        c
-                asl a                        ; 89FF= 0A          .
-                asl a                        ; 8A00= 0A          .
-                bra L89D4                    ; 8A01= 80 D1       .Q
+;-------------------------------------------------------------------------
 
-L8A03:
-                lda #$02                     ; 8A03= A9 02       ).
-L8A05:
-                ldy #$FD                     ; 8A05= A0 FD        }
-                bra L89D4                    ; 8A07= 80 CB       .K
+setDefaultSerialBaudRateIndex:
+                jsr parseSingleNumberFromCommandLine
+                bne +
+                lda #$07
++
+                cmp #$09
+                bcs bcsBadCommandError       ;Bad Command if >=9
+                dec a
+                ldy #~(CMOSBytes.defaults2.serialBaudRateIndexMask<<CMOSBytes.defaults2.serialBaudRateIndexShift)&$ff
+                asl a
+                asl a                        ;shift value into place
+                bra writeDefaults2Bits
+
+;-------------------------------------------------------------------------
+
+writeDefaultUsePrinterIgnoreCharTrue:
+                lda #CMOSBytes.defaults2.usePrinterIgnoreCharMask
+writeDefaultUsePrinterIgnoreChar:
+                ldy #(~CMOSBytes.defaults2.usePrinterIgnoreCharMask)&$ff
+                bra writeDefaults2Bits
+
+;-------------------------------------------------------------------------
 
 L8A09:
-                bne L89E5                    ; 8A09= D0 DA       PZ
+                bne bneBadCommandError89E5
                 lda #$00                     ; 8A0B= A9 00       ).
                 bra L8A13                    ; 8A0D= 80 04       ..
 
 L8A0F:
-                bne L89E5                    ; 8A0F= D0 D4       PT
+                bne bneBadCommandError89E5                    ; 8A0F= D0 D4       PT
                 lda #$02                     ; 8A11= A9 02       ).
 L8A13:
                 ldy #$FD                     ; 8A13= A0 FD        }
-                bra L8A24                    ; 8A15= 80 0D       ..
+                bra writeDefaults3Bits                    ; 8A15= 80 0D       ..
 
 L8A17:
-                jsr L8997                    ; 8A17= 20 97 89     ..
+                jsr parseSingleNumberFromCommandLine                    ; 8A17= 20 97 89     ..
                 cmp #$08                     ; 8A1A= C9 08       I.
-                bcs L89CC                    ; 8A1C= B0 AE       0.
+                bcs bcsBadCommandError                    ; 8A1C= B0 AE       0.
                 ldy #$1F                     ; 8A1E= A0 1F        .
                 lsr a                        ; 8A20= 4A          J
                 ror a                        ; 8A21= 6A          j
                 ror a                        ; 8A22= 6A          j
                 ror a                        ; 8A23= 6A          j
-L8A24:
-                ldx #$1E                     ; 8A24= A2 1E       ".
-L8A26:
-                bra L89D6                    ; 8A26= 80 AE       ..
+writeDefaults3Bits:
+                ldx #CMOSBytes.defaults3+cmosRAMRTCAddress
+jmpWriteRTCBits8A26:
+                bra writeRTCBits                    ; 8A26= 80 AE       ..
 
-L8A28:
-                bne L89E5                    ; 8A28= D0 BB       P;
-                lda #$10                     ; 8A2A= A9 10       ).
-                bra L8A32                    ; 8A2C= 80 04       ..
+;-------------------------------------------------------------------------
 
-L8A2E:
-                bne L89E5                    ; 8A2E= D0 B5       P5
-                lda #$00                     ; 8A30= A9 00       ).
-L8A32:
-                ldy #$EF                     ; 8A32= A0 EF        o
-                bra L8A24                    ; 8A34= 80 EE       .n
+setDefaultAutoBoot:
+                bne bneBadCommandError89E5
+                lda #CMOSBytes.defaults3.autoBootMask
+                bra writeDefaultAutoBoot
+
+;-------------------------------------------------------------------------
+
+setDefaultNoAutoBoot:
+                bne bneBadCommandError89E5
+                lda #$00                     ;no boot
+writeDefaultAutoBoot:
+                ldy #(~CMOSBytes.defaults3.autoBootMask)&$ff
+                bra writeDefaults3Bits                    ; 8A34= 80 EE       .n
+
+;-------------------------------------------------------------------------
 
 L8A36:
-                bne L89E5                    ; 8A36= D0 AD       P-
+                bne bneBadCommandError89E5
                 lda #$00                     ; 8A38= A9 00       ).
                 bra L8A40                    ; 8A3A= 80 04       ..
 
 L8A3C:
-                bne L89E5                    ; 8A3C= D0 A7       P'
+                bne bneBadCommandError89E5
                 lda #$08                     ; 8A3E= A9 08       ).
 L8A40:
                 ldy #$F7                     ; 8A40= A0 F7        w
-                bra L8A24                    ; 8A42= 80 E0       .`
+                bra writeDefaults3Bits                    ; 8A42= 80 E0       .`
 
 L8A44:
-                bne L89CC                    ; 8A44= D0 86       P.
+                bne bcsBadCommandError                    ; 8A44= D0 86       P.
                 lda #$04                     ; 8A46= A9 04       ).
                 bra L8A4E                    ; 8A48= 80 04       ..
 
 L8A4A:
-                bne L89CC                    ; 8A4A= D0 80       P.
+                bne bcsBadCommandError                    ; 8A4A= D0 80       P.
                 lda #$00                     ; 8A4C= A9 00       ).
 L8A4E:
                 ldy #$FB                     ; 8A4E= A0 FB        {
-                bra L8A24                    ; 8A50= 80 D2       .R
+                bra writeDefaults3Bits                    ; 8A50= 80 D2       .R
 
 L8A52:
-                jsr L897D                    ; 8A52= 20 7D 89     }.
+                jsr parseSingle4BitNumberFromCommandLine
 L8A55:
                 asl a                        ; 8A55= 0A          .
                 asl a                        ; 8A56= 0A          .
@@ -1397,127 +1428,148 @@ L8A55:
                 ldy #$0F                     ; 8A59= A0 0F        .
 L8A5B:
                 ldx #$13                     ; 8A5B= A2 13       ".
-                bra L8A26                    ; 8A5D= 80 C7       .G
+                bra jmpWriteRTCBits8A26                    ; 8A5D= 80 C7       .G
 
 L8A5F:
-                jsr L897D                    ; 8A5F= 20 7D 89     }.
+                jsr parseSingle4BitNumberFromCommandLine                    ; 8A5F= 20 7D 89     }.
                 ldy #$F0                     ; 8A62= A0 F0        p
                 bra L8A5B                    ; 8A64= 80 F5       .u
 
-L8A66:
-                jsr L8EAD                    ; 8A66= 20 AD 8E     -.
-                asl a                        ; 8A69= 0A          .
-                asl a                        ; 8A6A= 0A          .
-                bmi L8A7A                    ; 8A6B= 30 0D       0.
-                asl a                        ; 8A6D= 0A          .
-                bmi L8A84                    ; 8A6E= 30 14       0.
-                jsr LA958                    ; 8A70= 20 58 A9     X)
-                .text "Shift "
-                .byte $00
-L8A7A:
-                jsr LA958                    ; 8A7A= 20 58 A9     X)
-                .text "Caps"
-                .byte $0D
-                .byte $00
+;-------------------------------------------------------------------------
+
+printDefaultCaps:
+                jsr readDefaults1            ;%fdCNSfff
+                asl a                        ;%dCNSfff0
+                asl a                        ;%CNSfff00
+                bmi printCaps
+                asl a                        ;%NSfff000
+                bmi printNoCaps
+                jsr alwaysPrintFollowingMessage
+                .text "Shift ",0
+printCaps:
+                jsr alwaysPrintFollowingMessage
+                .text "Caps",13,0
                 rts
-L8A84:
-                jsr L8EB1                    ; 8A84= 20 B1 8E     1.
-                bra L8A7A                    ; 8A87= 80 F1       .q
+printNoCaps:
+                jsr printNo_
+                bra printCaps
 
-L8A89:
-                jsr readCMOSDefaults3Byte                    ; 8A89= 20 AE 98     ..
-                bit #$08                     ; 8A8C= 89 08       ..
-                beq L8A93                    ; 8A8E= F0 03       p.
-                jsr L8EB1                    ; 8A90= 20 B1 8E     1.
-L8A93:
-                jsr LA958                    ; 8A93= 20 58 A9     X)
+;-------------------------------------------------------------------------
+
+printDefaultProtectedScrolling:
+                jsr readDefaults3
+                bit #CMOSBytes.defaults3.protectedScrollingMask
+                beq +
+                jsr printNo_
++
+                jsr alwaysPrintFollowingMessage
                 .text "Scroll",13,0
-                rts                          ; 8A9E= 60          `
+                rts       
 
-L8A9F:
-                jsr readCMOSDefaults3Byte                    ; 8A9F= 20 AE 98     ..
-                bit #$02                     ; 8AA2= 89 02       ..
-                bne L8AB1                    ; 8AA4= D0 0B       P.
-                jsr LA958                    ; 8AA6= 20 58 A9     X)
+;-------------------------------------------------------------------------
+
+printDefaultLoud:
+                jsr readDefaults3            
+                bit #CMOSBytes.defaults3.loudMask
+                bne printLoud
+                jsr alwaysPrintFollowingMessage
                 .text "Quiet",13,0
-                rts                          ; 8AB0= 60          `
+                rts                          
 
-L8AB1:
-                jsr LA958                    ; 8AB1= 20 58 A9     X)
+printLoud:
+                jsr alwaysPrintFollowingMessage
                 .text "Loud",13,0
-                rts                          ; 8ABA= 60          `
+                rts                          
 
-L8ABB:
-                jsr readCMOSDefaults3Byte                    ; 8ABB= 20 AE 98     ..
-                bit #$04                     ; 8ABE= 89 04       ..
-                bne L8ACA                    ; 8AC0= D0 08       P.
-                jsr LA958                    ; 8AC2= 20 58 A9     X)
+;-------------------------------------------------------------------------
+
+printDefaultExtTube:
+                jsr readDefaults3
+                bit #CMOSBytes.defaults3.extTubeMask
+                bne printExternalTube
+                jsr alwaysPrintFollowingMessage
                 .text "In",0
-                bra L8AD0                    ; 8AC8= 80 06       ..
+                bra printTernalTube
 
-L8ACA:
-                jsr LA958                    ; 8ACA= 20 58 A9     X)
+printExternalTube:
+                jsr alwaysPrintFollowingMessage
                 .text "Ex",0
-L8AD0:
-                jsr LA958                    ; 8AD0= 20 58 A9     X)
+printTernalTube:
+                jsr alwaysPrintFollowingMessage
                 .text "ternal Tube",13,0
-                rts                          ; 8AE0= 60          `
+                rts
 
-L8AE1:
-                jsr readCMOSDefaults3Byte                    ; 8AE1= 20 AE 98     ..
-                bit #$10                     ; 8AE4= 89 10       ..
-                bne L8AEB                    ; 8AE6= D0 03       P.
-                jsr L8EB1                    ; 8AE8= 20 B1 8E     1.
-L8AEB:
-                jsr LA958                    ; 8AEB= 20 58 A9     X)
+;-------------------------------------------------------------------------
+
+printDefaultAutoBoot:
+                jsr readDefaults3                    
+                bit #CMOSBytes.defaults3.autoBootMask
+                bne +
+                jsr printNo_
++
+                jsr alwaysPrintFollowingMessage
                 .text "Boot",13,0
-                rts                          ; 8AF4= 60          `
+                rts
 
-L8AF5:
-                jsr readCMOSDefaults2Byte                    ; 8AF5= 20 AA 98     *.
-                lsr a                        ; 8AF8= 4A          J
-                bcs L8AFE                    ; 8AF9= B0 03       0.
-                jsr L8EB1                    ; 8AFB= 20 B1 8E     1.
-L8AFE:
-                jsr LA958                    ; 8AFE= 20 58 A9     X)
+;-------------------------------------------------------------------------
+
+printDefaultTubeOn:
+                jsr readDefaults2
+                lsr a                        ;C=tubeOn
+                bcs +
+                jsr printNo_
++
+                jsr alwaysPrintFollowingMessage
                 .text "Tube",13,0
-                rts                          ; 8B07= 60          `
+                rts                          
 
-L8B08:
-                jsr L8E9C                    ; 8B08= 20 9C 8E     ..
-L8B0B:
-                jsr L8BC4                    ; 8B0B= 20 C4 8B     D.
-                bra L8B2B                    ; 8B0E= 80 1B       ..
+;-------------------------------------------------------------------------
 
-L8B10:
-                jsr L8EA4                    ; 8B10= 20 A4 8E     $.
-                and #$0F                     ; 8B13= 29 0F       ).
-                bra L8B0B                    ; 8B15= 80 F4       .t
+printDefaultLanguageROM:
+                jsr readDefaultLanguageROM
+printROMNumber:
+                jsr printDecimalByte
+                bra printNewLine8B2B
 
-L8B17:
-                jsr L8E5A                    ; 8B17= 20 5A 8E     Z.
-                jsr L8BC3                    ; 8B1A= 20 C3 8B     C.
-                lda #$2C                     ; 8B1D= A9 2C       ),
-                jsr OSWRCH                   ; 8B1F= 20 EE FF     n.
-                txa                          ; 8B22= 8A          .
-                bra L8B28                    ; 8B23= 80 03       ..
+;-------------------------------------------------------------------------
 
-L8B25:
-                jsr L8E76                    ; 8B25= 20 76 8E     v. Read configured MODE
-L8B28:
-                jsr L8BC4                    ; 8B28= 20 C4 8B     D.
-L8B2B:
-                jmp OSNEWL                   ; 8B2B= 4C E7 FF    Lg.
+printDefaultFSROM:
+                jsr readDefaultROMs
+                and #$0F
+                bra printROMNumber
 
-L8B2E:
+;-------------------------------------------------------------------------
+
+printDefaultTVSettings:
+                jsr readDefaultTVSettings
+                jsr printDecimalByteY
+                lda #','
+                jsr OSWRCH
+                txa
+                bra printDecimalByteThenNewLine
+
+;-------------------------------------------------------------------------
+
+printDefaultMODE:
+                jsr readDefaultMODE
+printDecimalByteThenNewLine:
+                jsr printDecimalByte
+printNewLine8B2B:
+                jmp OSNEWL
+
+;-------------------------------------------------------------------------
+
+printDefaultKeyboardAutoRepeatDelay:
                 jsr getDefaultKeyboardAutoRepeatDelay
                 tya                          ; 8B31= 98          .
-                bra L8B28                    ; 8B32= 80 F4       .t
+                bra printDecimalByteThenNewLine                    ; 8B32= 80 F4       .t
 
-L8B34:
+;-------------------------------------------------------------------------
+
+printDefaultKeyboardRepeatRate:
                 jsr getDefaultKeyboardAutoRepeatRate
                 tya                          ; 8B37= 98          .
-                bra L8B28                    ; 8B38= 80 EE       .n
+                bra printDecimalByteThenNewLine                    ; 8B38= 80 EE       .n
 
 ;-------------------------------------------------------------------------
 ;
@@ -1545,132 +1597,139 @@ getDefaultKeyboardAutoRepeatRate:
 
 ;-------------------------------------------------------------------------
 
-L8B44:
-                jsr readCMOSDefaults2Byte                    ; 8B44= 20 AA 98     *.
-                bit #$02                     ; 8B47= 89 02       ..
-                beq L8B5A                    ; 8B49= F0 0F       p.
-L8B4B:
-                jsr L8EB1                    ; 8B4B= 20 B1 8E     1.
-                jsr LA958                    ; 8B4E= 20 58 A9     X)
+printDefaultPrinterIgnoreChar:
+                jsr readDefaults2
+                bit #CMOSBytes.defaults2.usePrinterIgnoreCharMask
+                beq showDefaultPrinterIgnoreChar
+printNoIgnore:
+                jsr printNo_
+                jsr alwaysPrintFollowingMessage
                 .text "Ignore",13,0
-                rts                          ; 8B59= 60          `
+                rts
 
-L8B5A:
-                jsr L8EA8                    ; 8B5A= 20 A8 8E     (.
-                jsr L8BC4                    ; 8B5D= 20 C4 8B     D.
-                bra L8B2B                    ; 8B60= 80 C9       .I
+showDefaultPrinterIgnoreChar:
+                jsr readDefaultPrinterIgnoreChar
+                jsr printDecimalByte                    ; 8B5D= 20 C4 8B     D.
+                bra printNewLine8B2B         ; 8B60= 80 C9       .I
 
-L8B62:
-                jsr readCMOSDefaults2Byte                    ; 8B62= 20 AA 98     *.
-                bit #$02                     ; 8B65= 89 02       ..
-                bne L8B4B                    ; 8B67= D0 E2       Pb
-                jsr LA958                    ; 8B69= 20 58 A9     X)
+printDefaultPrinterIgnoreChar2:
+                jsr readDefaults2
+                bit #CMOSBytes.defaults2.usePrinterIgnoreCharMask
+                bne printNoIgnore
+                jsr alwaysPrintFollowingMessage
                 .text "Ignore   ",0
-                bra L8B5A                    ; 8B76= 80 E2       .b
+                bra showDefaultPrinterIgnoreChar
 
-L8B78:
-                jsr L8E8D                    ; 8B78= 20 8D 8E     ..
-                bra L8B28                    ; 8B7B= 80 AB       .+
+;-------------------------------------------------------------------------
 
-L8B7D:
-                jsr L8E84                    ; 8B7D= 20 84 8E     ..
-                bra L8B28                    ; 8B80= 80 A6       .&
+printDefaultFX5Settings:
+                jsr readDefaultFX5Settings                    ; 8B78= 20 8D 8E     ..
+                bra printDecimalByteThenNewLine                    ; 8B7B= 80 AB       .+
 
-L8B82:
-                jsr L8E97                    ; 8B82= 20 97 8E     ..
-                bra L8B28                    ; 8B85= 80 A1       .!
+;-------------------------------------------------------------------------
 
-L8B87:
-                jsr L8EAD                    ; 8B87= 20 AD 8E     -.
-                and #$07                     ; 8B8A= 29 07       ).
-                bra L8B28                    ; 8B8C= 80 9A       ..
+printDefaultSerialBaudRateIndex:
+                jsr readDefaultSerialBaudRateIndex
+                bra printDecimalByteThenNewLine
 
-L8B8E:
-                jsr L8EAD                    ; 8B8E= 20 AD 8E     -.
-                asl a                        ; 8B91= 0A          .
-                bcs L8B9E                    ; 8B92= B0 0A       0.
-                jsr LA958                    ; 8B94= 20 58 A9     X)
+;-------------------------------------------------------------------------
+
+printDefaultSerialDataFormat:
+                jsr readDefaultSerialDataFormat
+                bra printDecimalByteThenNewLine
+
+;-------------------------------------------------------------------------
+
+printDefaultFDRIVE:
+                jsr readDefaults1
+                and #CMOSBytes.defaults1.defaultFDRIVEMask
+                bra printDecimalByteThenNewLine
+
+;-------------------------------------------------------------------------
+
+printDefaultFloppyDrive:
+                jsr readDefaults1
+                asl a                        ;C=1=floppy, C=0=hard
+                bcs +                    ;taken if floppy
+                jsr alwaysPrintFollowingMessage
                 .text "Hard",13,0
-                rts                          ; 8B9D= 60          `
+                rts
 
-L8B9E:
-                jsr LA958                    ; 8B9E= 20 58 A9     X)
-                ; LSR $6C                    ; 8BA1= 46 6C       Fl
-                ; EQUB $6F                   ; 8BA3= 6F          o
-                ; BVS L8C16                  ; 8BA4= 70 70       pp
-                ; ADC $000D,y                ; 8BA6= 79 0D 00    y..
-                .text "Floppy"
-                .byte $0D
-                .byte $00
-                rts                          ; 8BA9= 60          `
++
+                jsr alwaysPrintFollowingMessage
+                .text "Floppy",13,0
+                rts
 
-L8BAA:
-                jsr L8EAD                    ; 8BAA= 20 AD 8E     -.
-                asl a                        ; 8BAD= 0A          .
-                asl a                        ; 8BAE= 0A          .
-                bcc L8BB4                    ; 8BAF= 90 03       ..
-                jsr L8EB1                    ; 8BB1= 20 B1 8E     1.
-L8BB4:
-                jsr LA958                    ; 8BB4= 20 58 A9     X)
+;-------------------------------------------------------------------------
+
+printDefaultADFSLoadDir:
+                jsr readDefaults1            
+                asl a                        ;C=defaultFloppyDrive
+                asl a                        ;C=defaultADFSLoadDir
+                bcc +                    ;taken if NODIR - print "Directory"
+                jsr printNo_             ;print "No Directory"
++
+                jsr alwaysPrintFollowingMessage
                 .text "Directory",13,0
                 rts
-L8BC3:
+
+;-------------------------------------------------------------------------
+;
+;
+; 
+printDecimalByteY:
                 tya                          ; 8BC3= 98          .
-L8BC4:
-                sec                          ; 8BC4= 38          8
-                ldy #$FF                     ; 8BC5= A0 FF        .
-                php                          ; 8BC7= 08          .
-L8BC8:
-                iny                          ; 8BC8= C8          H
-                sbc #$64                     ; 8BC9= E9 64       id
-                bcs L8BC8                    ; 8BCB= B0 FB       0{
-                adc #$64                     ; 8BCD= 69 64       id
-                plp                          ; 8BCF= 28          (
-                jsr L8BE4                    ; 8BD0= 20 E4 8B     d.
+printDecimalByte:
+                sec                          ;in leading 0s state
+                ldy #$FF                     ;digit = -1
+                php                          ;save leading 0s state
+hundredsLoop:
+                iny
+                sbc #100
+                bcs hundredsLoop
+                adc #100                     ;undo the step too far
+                plp                        ;restore leading 0s state
+                jsr printDecimalDigit
                 ldy #$FF                     ; 8BD3= A0 FF        .
                 php                          ; 8BD5= 08          .
                 sec                          ; 8BD6= 38          8
-L8BD7:
-                iny                          ; 8BD7= C8          H
-                sbc #$0A                     ; 8BD8= E9 0A       i.
-                bcs L8BD7                    ; 8BDA= B0 FB       0{
-                adc #$0A                     ; 8BDC= 69 0A       i.
-                plp                          ; 8BDE= 28          (
-                jsr L8BE4                    ; 8BDF= 20 E4 8B     d.
-                clc                          ; 8BE2= 18          .
+tensLoop:
+                iny
+                sbc #10
+                bcs tensLoop
+                adc #10                      ;undo the step too far
+                plp                          ;restore leading 0s state
+                jsr printDecimalDigit
+                clc                      ;definitely not leading 0 now
                 tay                          ; 8BE3= A8          (
-L8BE4:
-                pha                          ; 8BE4= 48          H
-                tya                          ; 8BE5= 98          .
-                bne L8BEA                    ; 8BE6= D0 02       P.
-                bcs L8BEE                    ; 8BE8= B0 04       0.
-L8BEA:
-                jsr printHexDigit                    ; 8BEA= 20 73 A8     s(
-                clc                          ; 8BED= 18          .
-L8BEE:
-                pla                          ; 8BEE= 68          h
-                rts                          ; 8BEF= 60          `
+printDecimalDigit:
+                pha
+                tya                          ;A=digit index
+                bne +             ;taken if definitely not a leading 0
+                bcs ++            ;skip the print if a leading 0
++
+                jsr printHexDigit
+                clc                          ;clear leading 0 flag
++
+                pla                          
+                rts                          
 
-L8BF0:
-                jsr L8987                    ; 8BF0= 20 87 89     ..
-                phy                          ; 8BF3= 5A          Z
-                jsr LA958                    ; 8BF4= 20 58 A9     X)
-                .text "Configuration options:"
-                .byte $0D
-                .text "Baud     <D>"
-                .byte $0D
-                .text "Boot"
-                .byte $0D
-                .text "Caps"
-                .byte $0D
-                .text "Data     <D>"
-                .byte $0D
-                .text "Delay    <D>"
-                .byte $0D
-                .text "Dir"
-                .byte $0D
-                .text "ExTube"
-                .byte $0D
+;-------------------------------------------------------------------------
+;
+; Print *CONFIGURE help
+;
+printCONFIGUREHelp:
+                jsr ensureCommandLineTailEmpty
+                phy
+                jsr alwaysPrintFollowingMessage
+                .text "Configuration options:",13
+                .text "Baud     <D>",13
+                .text "Boot",13
+                .text "Caps",13
+                .text "Data     <D>",13
+                .text "Delay    <D>",13
+                .text "Dir",13
+                .text "ExTube",13
                 .text "FDrive   <D>",13
                 .text "File     <D>",13
                 .text "Floppy",13
@@ -1693,179 +1752,201 @@ L8BF0:
                 .text "Tube",13
                 .text "TV       [<D>[,<D>]]",13
                 .byte 0
-                ply                          ; 8D12= 7A
+                ply
                 ldx #romServiceCallUnknownCONFIG
-                jsr mos.makeROMServiceCall   ; 8D15= 20 72 EE     rn
-                jsr LA958                    ; 8D18= 20 58 A9     X)
-                .text "Where:"
-                .byte $0D
-                .text "D is a "
-                .text "decimal number, or"
-                .byte $0D
-                .text "a hexadecimal number preceded by &"
-                .byte $0D
-                .text "Items within [ ] are optional"
-                .byte $0D
+                jsr mos.makeROMServiceCall
+                jsr alwaysPrintFollowingMessage
+                .text "Where:",13
+                .text "D is a decimal number, or",13
+                .text "a hexadecimal number preceded by &",13
+                .text "Items within [ ] are optional",13
                 .byte $00
                 rts
 
-L8D7F:
-                jsr L8987                    ; 8D7F= 20 87 89     ..
-                phy                          ; 8D82= 5A          Z
-                jsr LA958                    ; 8D83= 20 58 A9     X)
-                .text "Configuration status:"
-                .byte $0D
-                .text "Baud     "
-                .byte $00
-                jsr L8B7D                    ; 8DA6= 20 7D 8B     }.
-L8DA9:
-                jsr L8AE1                    ; 8DA9= 20 E1 8A     a.
-                jsr L8A66                    ; 8DAC= 20 66 8A     f.
-                jsr LA958                    ; 8DAF= 20 58 A9     X)
-                ; EQUB $44                   ; 8DB2= 44          D
-                ; ADC ($74,x)                ; 8DB3= 61 74       at
-                ; ADC ($20,x)                ; 8DB5= 61 20       a
-                ; JSR $2020                  ; 8DB7= 20 20 20
-                ; JSR $2000                  ; 8DBA= 20 00 20     .
-                ; EQUB $82                   ; 8DBD= 82          .
-                ; EQUB $8B                   ; 8DBE= 8B          .
-                .text "Data     "
-                .byte $00
-                jsr L8B82
-                jsr LA958                    ; 8DBF= 20 58 A9     X)
-                .text "Delay    "
-                .byte $00
-                ;jsr $2000                   ; 8DCA= 20 00 20     .
-                jsr L8B2E
-                jsr L8BAA
-                jsr L8ABB                    ; 8DD2= 20 BB 8A     ;.
-                jsr LA958                    ; 8DD5= 20 58 A9     X)
-                .text "FDrive   "
-                .byte 0
-                jsr L8B87                    ; 8DE2= 20 87 8B     ..
-                jsr LA958                    ; 8DE5= 20 58 A9     X)
-                .text "File     "
-                .byte 0
-                jsr L8B10                    ; 8DF2= 20 10 8B
-                jsr L8B8E                    ; 8DF5= 20 8E 8B     ..
-                jsr L8B62                    ; 8DF8= 20 62 8B     b.
-                jsr LA958                    ; 8DFB= 20 58 A9     X)
-                .text "Lang     "
-                .byte 0
-                ; JMP $6E61                  ; 8DFE= 4C 61 6E    Lan
-
-                ; EQUB $67                   ; 8E01= 67          g
-                ; JSR $2020                  ; 8E02= 20 20 20
-                ; JSR $0020                  ; 8E05= 20 20 00      .
-                jsr L8B08                    ; 8E08= 20 08 8B     ..
-                jsr LA958                    ; 8E0B= 20 58 A9     X)
-                .text "Mode     "
-                .byte 0
-                ; EOR $646F                  ; 8E0E= 4D 6F 64    Mod
-                ; ADC $20                    ; 8E11= 65 20       e
-                ; JSR $2020                  ; 8E13= 20 20 20
-                ; JSR $2000                  ; 8E16= 20 00 20     .
-;AND &8B          :\ 8E19= 25 8B       %.
-                jsr L8B25
-                jsr L8AF5                    ; 8E1B= 20 F5 8A     u.
-                jsr L8A9F                    ; 8E1E= 20 9F 8A     ..
-                jsr LA958                    ; 8E21= 20 58 A9     X)
+;-------------------------------------------------------------------------
+;
+; 
+printSTATUSHelp:
+                jsr ensureCommandLineTailEmpty                    
+                phy
+                
+                jsr alwaysPrintFollowingMessage
+                .text "Configuration status:",13
+                .text "Baud     ",0
+                jsr printDefaultSerialBaudRateIndex
+                
+                jsr printDefaultAutoBoot
+                
+                jsr printDefaultCaps
+                
+                jsr alwaysPrintFollowingMessage                    
+                .text "Data     ",0
+                jsr printDefaultSerialDataFormat
+                
+                jsr alwaysPrintFollowingMessage                    
+                .text "Delay    ",0
+                jsr printDefaultKeyboardAutoRepeatDelay
+                
+                jsr printDefaultADFSLoadDir
+                
+                jsr printDefaultExtTube
+                
+                jsr alwaysPrintFollowingMessage                    
+                .text "FDrive   ",0
+                jsr printDefaultFDRIVE
+                
+                jsr alwaysPrintFollowingMessage                    
+                .text "File     ",0
+                jsr printDefaultFSROM
+                
+                jsr printDefaultFloppyDrive
+                
+                jsr printDefaultPrinterIgnoreChar2
+                
+                jsr alwaysPrintFollowingMessage
+                .text "Lang     ",0
+                jsr printDefaultLanguageROM
+                
+                jsr alwaysPrintFollowingMessage                    
+                .text "Mode     ",0
+                jsr printDefaultMODE
+                
+                jsr printDefaultTubeOn
+                
+                jsr printDefaultLoud
+                
+                jsr alwaysPrintFollowingMessage                    
                 .text "Print    "
                 .byte 0
-                jsr L8B78                    ; 8E2E= 20 78 8B     x.
-                jsr LA958                    ; 8E31= 20 58 A9     X)
-                .text "Repeat   "
-                .byte 0
-                jsr L8B34                    ; 8E3E= 20 34 8B     4.
-                jsr L8A89                    ; 8E41= 20 89 8A     ..
-                jsr LA958                    ; 8E44= 20 58 A9     X)
+                jsr printDefaultFX5Settings
+                
+                jsr alwaysPrintFollowingMessage                    
+                .text "Repeat   ",0
+                jsr printDefaultKeyboardRepeatRate
+                
+                jsr printDefaultProtectedScrolling
+                
+                jsr alwaysPrintFollowingMessage                    
                 .text "TV       ",0
-                jsr L8B17                    ; 8E51= 20 17 8B     ..
-                ply                          ; 8E54= 7A          z
+                jsr printDefaultTVSettings
+                
+                ply                          
                 ldx #romServiceCallUnknownSTATUS
-                jmp mos.makeROMServiceCall   ; 8E57= 4C 72 EE    Lrn
+                jmp mos.makeROMServiceCall   
 
-L8E5A:
-                ldx #$18                     ; 8E5A= A2 18       ".
-                jsr readRTCByte                    ; 8E5C= 20 B7 98     7.
-                phy                          ; 8E5F= 5A          Z
-                and #$E0                     ; 8E60= 29 E0       )`
-                asl a                        ; 8E62= 0A          .
-                rol a                        ; 8E63= 2A          *
-                rol a                        ; 8E64= 2A          *
-                rol a                        ; 8E65= 2A          *
-                bit #$04                     ; 8E66= 89 04       ..
-                beq L8E6C                    ; 8E68= F0 02       p.
-                ora #$FC                     ; 8E6A= 09 FC       .|
-L8E6C:
-                tay                          ; 8E6C= A8          (
-                pla                          ; 8E6D= 68          h
-                ldx #$00                     ; 8E6E= A2 00       ".
-                bit #$10                     ; 8E70= 89 10       ..
-                beq L8E75                    ; 8E72= F0 01       p.
-                inx                          ; 8E74= E8          h
-L8E75:
-                rts                          ; 8E75= 60          `
-
-; Read configured MODE
-; --------------------
-L8E76:
-                ldx #$18                     ; Read CMOS location 10 (&18-14)
+;-------------------------------------------------------------------------
+;
+; Read default *TV settings.
+;
+; exit:
+;
+; X = interlace flag (0=off, 1=on)
+;
+; Y = *TV offset
+readDefaultTVSettings:
+                ldx #CMOSBytes.defaults0+cmosRAMRTCAddress
                 jsr readRTCByte
-                and #$0F                     ; Keep MODE bits
-                bit #$08                     ; Check shadow bit in b3
-                beq L8E83
-                eor #$88                     ; If >7, change to 128+n
-L8E83:
+                phy
+                and #%11100000
+                asl a
+                rol a
+                rol a
+                rol a                        ;move into bottom 3 bits
+                bit #$04                     ;sign bit?
+                beq +                        ;taken if positive
+                ora #%11111100               ;sign extent from bit 2
++
+                tay
+                pla
+                ldx #$00                     ;X=0 - interlace off
+                bit #CMOSBytes.defaults0.defaultInterlaceMask
+                beq +
+                inx                          ;X=1 - interlace on
++
                 rts
 
-L8E84:
-                jsr readCMOSDefaults2Byte                    ; 8E84= 20 AA 98     *.
-                and #$1C                     ; 8E87= 29 1C       ).
-                lsr a                        ; 8E89= 4A          J
-                lsr a                        ; 8E8A= 4A          J
-                inc a                        ; 8E8B= 1A          .
-                rts                          ; 8E8C= 60          `
+;-------------------------------------------------------------------------
+; 
+; Read configured MODE
+; --------------------
+readDefaultMODE:
+                ldx #CMOSBytes.defaults0+cmosRAMRTCAddress
+                jsr readRTCByte
+                and #CMOSBytes.defaults0.defaultMODEMask|CMOSBytes.defaults0.defaultSHADOWMask
+                bit #CMOSBytes.defaults0.defaultSHADOWMask
+                beq +
+                eor #$80|CMOSBytes.defaults0.defaultSHADOWMask ;reset defaultSHADOWMask bit, set bit 7
++
+                rts
 
-L8E8D:
-                jsr readCMOSDefaults2Byte                    ; 8E8D= 20 AA 98     *.
-L8E90:
-                and #$E0                     ; 8E90= 29 E0       )`
-                asl a                        ; 8E92= 0A          .
-                rol a                        ; 8E93= 2A          *
-                rol a                        ; 8E94= 2A          *
-                rol a                        ; 8E95= 2A          *
-                rts                          ; 8E96= 60          `
+;-------------------------------------------------------------------------
+;
+;
+readDefaultSerialBaudRateIndex:
+                jsr readDefaults2
+                and #CMOSBytes.defaults2.serialBaudRateIndexMask<<CMOSBytes.defaults2.serialBaudRateIndexShift
+                lsr a
+                lsr a
+                inc a
+                rts
 
-L8E97:
-                jsr readCMOSDefaults3Byte                    ; 8E97= 20 AE 98     ..
-                bra L8E90                    ; 8E9A= 80 F4       .t
+;-------------------------------------------------------------------------
 
-L8E9C:
-                jsr L8EA4                    ; 8E9C= 20 A4 8E     $.
-                lsr a                        ; 8E9F= 4A          J
-                lsr a                        ; 8EA0= 4A          J
-                lsr a                        ; 8EA1= 4A          J
-                lsr a                        ; 8EA2= 4A          J
-                rts                          ; 8EA3= 60          `
+readDefaultFX5Settings:
+                jsr readDefaults2
+getTop3Bits:
+                and #%11100000               ;? %abc00000
+                asl a                        ;a %bc000000
+                rol a                        ;b %c000000a
+                rol a                        ;c %000000ab
+                rol a                        ;0 %00000abc
+                rts                          
 
-L8EA4:
-                ldx #$13                     ; 8EA4= A2 13       ".
-                bra L8EAA                    ; 8EA6= 80 02       ..
+;-------------------------------------------------------------------------
+;
+; 
+readDefaultSerialDataFormat:
+                jsr readDefaults3
+                bra getTop3Bits
 
-L8EA8:
-                ldx #$1C                     ; 8EA8= A2 1C       ".
-L8EAA:
-                jmp readRTCByte                    ; 8EAA= 4C B7 98    L7.
+;-------------------------------------------------------------------------
 
-L8EAD:
-                ldx #$19                     ; 8EAD= A2 19       ".
-                bra L8EAA                    ; 8EAF= 80 F9       .y
+readDefaultLanguageROM:
+                jsr readDefaultROMs
+                lsr a
+                lsr a
+                lsr a
+                lsr a
+                rts
 
-L8EB1:
-                jsr LA958                    ; 8EB1= 20 58 A9     X)
+;-------------------------------------------------------------------------
+;
+; 
+readDefaultROMs:
+                ldx #CMOSBytes.defaultROMs+cmosRAMRTCAddress;
+                bra jmpReadRTCByte
+
+;-------------------------------------------------------------------------
+
+readDefaultPrinterIgnoreChar:
+                ldx #CMOSBytes.printerIgnoreChar+cmosRAMRTCAddress
+jmpReadRTCByte:
+                jmp readRTCByte
+
+;-------------------------------------------------------------------------
+
+readDefaults1:
+                ldx #CMOSBytes.defaults1+cmosRAMRTCAddress
+                bra jmpReadRTCByte
+
+;-------------------------------------------------------------------------
+
+printNo_:
+                jsr alwaysPrintFollowingMessage
                 .text "No ",0
                 rts                          ; 8EB8= 60          `
+
+;-------------------------------------------------------------------------
 
 L8EB9:
                 lda #$C0                     ; 8EB9= A9 C0       )@
@@ -2012,7 +2093,7 @@ L8FA3:
                 tay                          ; 8FB6= A8          (
 L8FB7:
                 phy                          ; 8FB7= 5A          Z
-                jsr LA958                    ; 8FB8= 20 58 A9     X)
+                jsr alwaysPrintFollowingMessage                    ; 8FB8= 20 58 A9     X)
                 .text "   ",0
                 ply                          ; 8FBF= 7A          z
                 lda #$20                     ; 8FC0= A9 20       )
@@ -2371,7 +2452,7 @@ L91F5:
                 pla                          ;restore line number LSB
                 clc                ;always print line number 4th digit
                 jsr printPossiblyLeading0    ;
-                jmp L9F0C                    ;
+                jmp printSpace                    ;
 
 printPossiblyLeading0s:
                 pha                          ;save value
@@ -2412,7 +2493,7 @@ L9239:
                 ldx #$02                     ; 923B= A2 02       ".
 L923D:
                 lda $02F1,x                  ; 923D= BD F1 02    =q.
-                jsr LA86A                    ; 9240= 20 6A A8     j(
+                jsr printHexByte                    ; 9240= 20 6A A8     j(
                 dex                          ; 9243= CA          J
                 bpl L923D                    ; 9244= 10 F7       .w
                 bra L9254                    ; 9246= 80 0C       ..
@@ -2437,14 +2518,14 @@ L9257:
 L9259:
                 cpx #$08                     ; 9259= E0 08       `.
                 beq L9267                    ; 925B= F0 0A       p.
-                jsr LA958                    ; 925D= 20 58 A9     X)
+                jsr alwaysPrintFollowingMessage                    ; 925D= 20 58 A9     X)
                 .text "   ",0
                 inx                          ; 9264= E8          h
                 bra L9259                    ; 9265= 80 F2       .r
 
 L9267:
                 plx                          ; 9267= FA          z
-                jsr L9F0C                    ; 9268= 20 0C 9F     ..
+                jsr printSpace                    ; 9268= 20 0C 9F     ..
                 ldy #$00                     ; 926B= A0 00        .
 L926D:
                 lda $02F5,y                  ; 926D= B9 F5 02    9u.
@@ -2641,7 +2722,7 @@ L935B:
                 rts
 
 L9361:
-                bne L93E2                    ; 9361= D0 7F       P.
+                bne badCommandError93E2                    ; 9361= D0 7F       P.
                 inc $02F3                    ; 9363= EE F3 02    ns.
 L9366:
                 asl hazel.tempFSFlag      ; 9366= 0E C6 DF    .F_
@@ -2658,12 +2739,18 @@ L9371:
                 pha                          ; 9379= 48          H
                 bra L9369                    ; 937A= 80 ED       .m
 
-L937C:
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; 937C= 20 FF F2     .r
-                bne L93E2                    ; 937F= D0 61       Pa
-                lda #$00                     ; 9381= A9 00       ).
-                tay                          ; 9383= A8          (
-                jmp (FINDV)                  ; 9384= 6C 1C 02    l..
+;-------------------------------------------------------------------------
+;
+; *CLOSE [MasRef G.5-3]
+; 
+starCLOSE:
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                bne badCommandError93E2
+                lda #$00                     
+                tay                          
+                jmp (FINDV)                  ;OSFIND A=0 Y=0
+
+;-------------------------------------------------------------------------
 
 L9387:
                 bne L938E                    ; 9387= D0 05       P.
@@ -2679,7 +2766,7 @@ L9392:
                 bne L939B                    ; 9392= D0 07       P.
                 ldx #$0A                     ; 9394= A2 0A       ".
                 jsr L92C9                    ; 9396= 20 C9 92     I.
-                bcc L93E2                    ; 9399= 90 47       .G
+                bcc badCommandError93E2                    ; 9399= 90 47       .G
 L939B:
                 clv                          ; 939B= B8          8
                 lda ($F2),y                  ; 939C= B1 F2       1r
@@ -2690,7 +2777,7 @@ L939B:
 L93A6:
                 ldx #$0E                     ; 93A6= A2 0E       ".
                 jsr L92C9                    ; 93A8= 20 C9 92     I.
-                bcc L93E2                    ; 93AB= 90 35       .5
+                bcc badCommandError93E2                    ; 93AB= 90 35       .5
                 php                          ; 93AD= 08          .
                 bvc L93BF                    ; 93AE= 50 0F       P.
                 ldx #$FC                     ; 93B0= A2 FC       "|
@@ -2713,18 +2800,18 @@ L93C1:
                 beq L9366                    ; 93CE= F0 96       p.
                 ldx #$06                     ; 93D0= A2 06       ".
                 jsr L92C9                    ; 93D2= 20 C9 92     I.
-                bcc L93E2                    ; 93D5= 90 0B       ..
+                bcc badCommandError93E2                    ; 93D5= 90 0B       ..
                 beq L9366                    ; 93D7= F0 8D       p.
                 ldx #$02                     ; 93D9= A2 02       ".
                 jsr L92C9                    ; 93DB= 20 C9 92     I.
-                bcc L93E2                    ; 93DE= 90 02       ..
+                bcc badCommandError93E2                    ; 93DE= 90 02       ..
                 beq L9366                    ; 93E0= F0 84       p.
-L93E2:
+badCommandError93E2:
                 jmp mos.badCommandError
 
 L93E5:
                 jsr parseNumberFromString    ; 93E5= 20 E6 85     f.
-                bcc L93E2                    ; 93E8= 90 F8       .x
+                bcc badCommandError93E2                    ; 93E8= 90 F8       .x
                 txa                          ; 93EA= 8A          .
 L93EB:
                 php                          ; 93EB= 08          .
@@ -2736,22 +2823,22 @@ L93EB:
                 jsr mos.LF308                ; 93F5= 20 08 F3     .s
                 beq L9412                    ; 93F8= F0 18       p.
                 jsr parseNumberFromString    ; 93FA= 20 E6 85     f.
-                bcc L93E2                    ; 93FD= 90 E3       .c
+                bcc badCommandError93E2                    ; 93FD= 90 E3       .c
                 stx $E5                      ; 93FF= 86 E5       .e
                 jsr mos.LF30A                ; 9401= 20 0A F3     .s
                 beq L9412                    ; 9404= F0 0C       p.
                 jsr parseNumberFromString    ; 9406= 20 E6 85     f.
-                bcc L93E2                    ; 9409= 90 D7       .W
+                bcc badCommandError93E2                    ; 9409= 90 D7       .W
                 stx $E4                      ; 940B= 86 E4       .d
                 jsr mos.skipSpacesAndCheckForCRInStringInput ; 940D= 20 FF F2     .r
-                bne L93E2                    ; 9410= D0 D0       PP
+                bne badCommandError93E2                    ; 9410= D0 D0       PP
 L9412:
                 ldy $E4                      ; 9412= A4 E4       $d
                 ldx $E5                      ; 9414= A6 E5       &e
                 pla                          ; 9416= 68          h
                 asl hazel.tempFSFlag      ; 9417= 0E C6 DF    .F_
                 jsr OSBYTE                   ; 941A= 20 F4 FF     t.
-                bvs L93E2                    ; 941D= 70 C3       pC
+                bvs badCommandError93E2                    ; 941D= 70 C3       pC
 L941F:
                 rts                          ; 941F= 60          `
 
@@ -2785,7 +2872,7 @@ L944D:
                 asl hazel.tempFSFlag      ; 944D= 0E C6 DF    .F_
                 jsr OSFIND                   ; 9450= 20 CE FF     N.
                 tay                          ; 9453= A8          (
-                beq L93E2                    ; 9454= F0 8C       p.
+                beq badCommandError93E2                    ; 9454= F0 8C       p.
                 sta $0257                    ; 9456= 8D 57 02    .W.
                 tay                          ; 9459= A8          (
 setPTRToEOF:
@@ -3222,13 +3309,13 @@ L96FF:
                 sei                          ; 9700= 78          x
                 ldy #$83                     ; 9701= A0 83        .
                 ldx #$0B                     ; 9703= A2 0B       ".
-                jsr L98E4                    ; 9705= 20 E4 98     d.
+                jsr writeRTCByte                    ; 9705= 20 E4 98     d.
                 bit $02ED                    ; 9708= 2C ED 02    ,m.
                 bpl L971C                    ; 970B= 10 0F       ..
                 ldx #$06                     ; 970D= A2 06       ".
 L970F:
                 ldy $02EE,x                  ; 970F= BC EE 02    <n.
-                jsr L98E4                    ; 9712= 20 E4 98     d.
+                jsr writeRTCByte                    ; 9712= 20 E4 98     d.
                 inx                          ; 9715= E8          h
                 cpx #$0A                     ; 9716= E0 0A       `.
                 bcc L970F                    ; 9718= 90 F5       .u
@@ -3237,14 +3324,14 @@ L971C:
                 ldx #$00                     ; 971C= A2 00       ".
 L971E:
                 ldy $02EE,x                  ; 971E= BC EE 02    <n.
-                jsr L98E4                    ; 9721= 20 E4 98     d.
+                jsr writeRTCByte                    ; 9721= 20 E4 98     d.
                 inx                          ; 9724= E8          h
                 cpx #$06                     ; 9725= E0 06       `.
                 bcc L971E                    ; 9727= 90 F5       .u
 L9729:
                 ldx #$0B                     ; 9729= A2 0B       ".
                 ldy #$02                     ; 972B= A0 02        .
-                jmp L98E4                    ; 972D= 4C E4 98    Ld.
+                jmp writeRTCByte                    ; 972D= 4C E4 98    Ld.
 
 L9730:
                 jsr L9754                    ; 9730= 20 54 97     T.
@@ -3466,11 +3553,11 @@ L98A6:
                 dey                          ; 98A8= 88          .
                 rts                          ; 98A9= 60          `
 
-readCMOSDefaults2Byte:
+readDefaults2:
                 ldx #CMOSBytes.defaults2+cmosRAMRTCAddress
                 bra readRTCByte
 
-readCMOSDefaults3Byte:
+readDefaults3:
                 ldx #CMOSBytes.defaults3+cmosRAMRTCAddress
                 bra readRTCByte
 
@@ -3500,12 +3587,12 @@ rts98DB:
 
 ;-------------------------------------------------------------------------
 
-L98DC:
+writeCMOSByte:
                 txa                          ; 98DC= 8A          .
                 beq rts98DB                    ; 98DD= F0 FC       p|
                 jsr getRTCAddressForCMOSByte
                 bcs rts98DB                    ; 98E2= B0 F7       0w
-L98E4:
+writeRTCByte:
                 php
                 sei
                 jsr setRTCAddress            ;X=address
@@ -4286,7 +4373,7 @@ L9E38:
                 cmp #$0D                     ; 9E3F= C9 0D       I.
                 bne L9E61                    ; 9E41= D0 1E       P.
                 jsr L9EFC                    ; 9E43= 20 FC 9E     |.
-                jsr LA958                    ; 9E46= 20 58 A9     X)
+                jsr alwaysPrintFollowingMessage                    ; 9E46= 20 58 A9     X)
                 .text "  MOS",13
                 .text 13
                 .text "TERMINAL 1.20",13
@@ -4340,8 +4427,8 @@ L9E95:
 L9EA0:
                 lda ($B0)                    ; 9EA0= B2 B0       20
                 bmi L9EF4                    ; 9EA2= 30 50       0P
-                jsr L9F0C                    ; 9EA4= 20 0C 9F     ..
-                jsr L9F0C                    ; 9EA7= 20 0C 9F     ..
+                jsr printSpace                    ; 9EA4= 20 0C 9F     ..
+                jsr printSpace                    ; 9EA7= 20 0C 9F     ..
                 lda ($B0)                    ; 9EAA= B2 B0       20
 L9EAC:
                 jsr L9F0E                    ; 9EAC= 20 0E 9F     ..
@@ -4375,7 +4462,7 @@ L9ECB:
                 cpx #$27                     ; 9EE0= E0 27       `'
                 beq L9EEF                    ; 9EE2= F0 0B       p.
 L9EE4:
-                jsr L9F0C                    ; 9EE4= 20 0C 9F     ..
+                jsr printSpace                    ; 9EE4= 20 0C 9F     ..
                 bra L9ECB                    ; 9EE7= 80 E2       .b
 
 L9EE9:
@@ -4383,7 +4470,7 @@ L9EE9:
                 bcc L9EE4                    ; 9EEB= 90 F7       .w
                 beq L9EA0                    ; 9EED= F0 B1       p1
 L9EEF:
-                jsr L9F1E                    ; 9EEF= 20 1E 9F     ..
+                jsr printNewLine                    ; 9EEF= 20 1E 9F     ..
                 bra L9EA0                    ; 9EF2= 80 AC       .,
 
 L9EF4:
@@ -4394,12 +4481,12 @@ L9EF4:
 
 L9EFC:
                 phy                          ; 9EFC= 5A          Z
-                jsr LA958                    ; 9EFD= 20 58 A9     X)
+                jsr alwaysPrintFollowingMessage                    ; 9EFD= 20 58 A9     X)
                 .text 13,"OS 3.20",13,0
                 ply
                 rts                          ; 9F0B= 60          `
 
-L9F0C:
+printSpace:
                 lda #$20                     ; 9F0C= A9 20       )
 L9F0E:
                 phx                          ; 9F0E= DA          Z
@@ -4414,7 +4501,7 @@ L9F17:
                 plx                          ; 9F1C= FA          z
                 rts                          ; 9F1D= 60          `
 
-L9F1E:
+printNewLine:
                 phx                          ; 9F1E= DA          Z
                 ldx $B0                      ; 9F1F= A6 B0       &0
                 phx                          ; 9F21= DA          Z
@@ -5854,13 +5941,13 @@ LA7D4:
                 bit $BB                      ; A7D9= 24 BB       $;
                 bvc LA821                    ; A7DB= 50 44       PD
 LA7DD:
-                jsr L9F0C                    ; A7DD= 20 0C 9F     ..
+                jsr printSpace                    ; A7DD= 20 0C 9F     ..
                 iny                          ; A7E0= C8          H
                 cpy #$0B                     ; A7E1= C0 0B       @.
                 bcc LA7D4                    ; A7E3= 90 EF       .o
                 lda $03C6                    ; A7E5= AD C6 03    -F.
                 tax                          ; A7E8= AA          *
-                jsr LA86A                    ; A7E9= 20 6A A8     j(
+                jsr printHexByte                    ; A7E9= 20 6A A8     j(
                 bit $03CA                    ; A7EC= 2C CA 03    ,J.
                 bpl LA821                    ; A7EF= 10 30       .0
                 txa                          ; A7F1= 8A          .
@@ -5869,23 +5956,23 @@ LA7DD:
                 jsr LA865                    ; A7F6= 20 65 A8     e(
 LA7F9:
                 lda $03C8                    ; A7F9= AD C8 03    -H.
-                jsr LA86A                    ; A7FC= 20 6A A8     j(
+                jsr printHexByte                    ; A7FC= 20 6A A8     j(
                 bit $BB                      ; A7FF= 24 BB       $;
                 bvc LA821                    ; A801= 50 1E       P.
                 ldx #$04                     ; A803= A2 04       ".
 LA805:
-                jsr L9F0C                    ; A805= 20 0C 9F     ..
+                jsr printSpace                    ; A805= 20 0C 9F     ..
                 dex                          ; A808= CA          J
                 bne LA805                    ; A809= D0 FA       Pz
                 ldx #$0F                     ; A80B= A2 0F       ".
                 jsr LA815                    ; A80D= 20 15 A8     .(
-                jsr L9F0C                    ; A810= 20 0C 9F     ..
+                jsr printSpace                    ; A810= 20 0C 9F     ..
                 ldx #$13                     ; A813= A2 13       ".
 LA815:
                 ldy #$04                     ; A815= A0 04        .
 LA817:
                 lda $03B2,x                  ; A817= BD B2 03    =2.
-                jsr LA86A                    ; A81A= 20 6A A8     j(
+                jsr printHexByte                    ; A81A= 20 6A A8     j(
                 dex                          ; A81D= CA          J
                 dey                          ; A81E= 88          .
                 bne LA817                    ; A81F= D0 F6       Pv
@@ -5926,9 +6013,9 @@ LA864:
 
 LA865:
                 pha                          ; A865= 48          H
-                jsr L9F0C                    ; A866= 20 0C 9F     ..
+                jsr printSpace                    ; A866= 20 0C 9F     ..
                 pla                          ; A869= 68          h
-LA86A:
+printHexByte:
                 pha                          ; A86A= 48          H
                 lsr a                        ; A86B= 4A          J
                 lsr a                        ; A86C= 4A          J
@@ -6103,7 +6190,7 @@ printingFinished:
 LA955:
                 jmp (printMessageAddress)
 
-LA958:
+alwaysPrintFollowingMessage:
                 ldy #$01                     ; A958= A0 01        .
                 bra printFollowingMessage    ; A95A= 80 CB       .K
 

@@ -213,3 +213,6 @@ data4:
                 .fill 1
                 .bend
                 .endv
+
+cmosRAMSize=50                  ;number of bytes of RAM
+cmosRAMRTCAddress=14            ;RTC register index for byte 0 of CMOS RAM

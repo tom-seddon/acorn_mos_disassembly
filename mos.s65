@@ -237,7 +237,7 @@ handleControlChar:
                 clc                          ; 
                 adc #vduRoutinesPage         ; form MSB
                 sta vduv.jumpVector+1
-                bra LC0CA                    ; Continue
+                bra reinstateCursorEditing                    ; Continue
 
 LC096:
                 bit STATE
@@ -254,7 +254,7 @@ LC0A9:
                 bne LC0C5                    ; C0AB= D0 18       P.
                 lda #STATE.isVDU21
                 trb STATE                      ; C0AF= 14 D0       .P
-                bra LC0CA                    ; C0B1= 80 17       ..
+                bra reinstateCursorEditing                    ; C0B1= 80 17       ..
 
 LC0B3:
                 sta vduv.jumpVector+1
@@ -269,15 +269,15 @@ LC0C0:
                 jsr LC024                    ; C0C1= 20 24 C0     $@
                 plp                          ; C0C4= 28          (
 LC0C5:
-                bcc LC0CA                    ; C0C5= 90 03       ..
+                bcc reinstateCursorEditing                    ; C0C5= 90 03       ..
 LC0C7:
                 lda STATE
                 lsr a                          ;C=1 if printer enabled
-LC0CA:
+reinstateCursorEditing:
                 bit STATE
                 bvc rtsC0E1               ;taken if not cursor editing
                 jsr activateEditCursor
-toggleIsCursorEditing:
+exchangeCursors:
                 php
                 pha
                 lda STATE
@@ -295,7 +295,7 @@ rtsC0E1:
 ; VDU 1 (&01) Send next character to printer only [MasRef E.3-2]
 ; 
 vdu1EntryPoint:
-                jsr LC0CA                    ; C0E2= 20 CA C0     J@
+                jsr reinstateCursorEditing                    ; C0E2= 20 CA C0     J@
                 jsr outputCharToPrinter
                 bra stopCursorEditing                    ; C0E8= 80 10       ..
 
@@ -307,7 +307,7 @@ vdu1EntryPoint:
 vdu2EntryPoint:
 vdu3EntryPoint:
                 pha                          ;
-                jsr LC0CA
+                jsr reinstateCursorEditing
                 jsr LE93A
                 lda #STATE.isPrinterEnabled  ;
                 tsb STATE                      ; C0F3= 04 D0       .P
@@ -327,7 +327,7 @@ vdu3EntryPoint:
 stopCursorEditing:
                 bit STATE
                 bvc rtsC0E1                    ;taken if not cursor editing
-                jsr toggleIsCursorEditing
+                jsr exchangeCursors
                 php
 deactivateEditCursor:
                 sec                          
@@ -5377,38 +5377,54 @@ LDDA1:
                 rts                          ; DDB6= 60          `
 
 ;-------------------------------------------------------------------------
+;
+;
+; entry:
+;
+; A = offset into VDU variables of coordinates
+;
+; exit:
+;
+; A = colour, or $ff if off screen/teletext (as per OSWORD $09)
+; 
+readPixelColour: .proc
+                jsr stopCursorEditing
+                ldx vduv.pixelsPerByteMinusOne
+                beq invalid             ;taken if teletext
+                pha
+                tax
+                jsr eigabsEntryPoint
+                plx
+                jsr windGADDR                    
+                bne invalid             ;taken if off screen
+                lda (ZMEMG),y
+                stz ZTEMP+0
+                bra shiftMask
 
-LDDB7:
-                jsr stopCursorEditing                    ; DDB7= 20 FA C0     z@
-                ldx $0361                    ; DDBA= AE 61 03    .a.
-                beq LDDE0                    ; DDBD= F0 21       p!
-                pha                          ; DDBF= 48          H
-                tax                          ; DDC0= AA          *
-                jsr eigabsEntryPoint         ; DDC1= 20 DE D1     ^Q
-                plx                          ; DDC4= FA          z
-                jsr windGADDR                    ; DDC5= 20 C3 DE     C^
-                bne LDDE0                    ; DDC8= D0 16       P.
-                lda (ZMEMG),y                  ; DDCA= B1 D6       1V
-                stz $DA                      ; DDCC= 64 DA       dZ
-                bra LDDD1                    ; DDCE= 80 01       ..
+                ; Keep shifting the byte and the mask. When a 1 bit is
+                ; shifted out of the mask, shift the corresponding
+                ; byte bit bit into ZTEMP+0, building up the pixel
+                ; colour a bit at a time.
+                ;
+                ; When the mask becomes 0, done.
+shiftByteAndMask:
+                asl a
+shiftMask:
+                asl ZMASK
+                bcc shiftByteAndMask
+                asl a
+                rol ZTEMP+0
+                ldx ZMASK
+                bne shiftMask
+                lda ZTEMP+0
+                bra done
 
-LDDD0:
-                asl a                        ; DDD0= 0A          .
-LDDD1:
-                asl ZMASK                      ; DDD1= 06 D1       .Q
-                bcc LDDD0                    ; DDD3= 90 FB       .{
-                asl a                        ; DDD5= 0A          .
-                rol $DA                      ; DDD6= 26 DA       &Z
-                ldx ZMASK                      ; DDD8= A6 D1       &Q
-                bne LDDD1                    ; DDDA= D0 F5       Pu
-                lda $DA                      ; DDDC= A5 DA       %Z
-                bra LDDE2                    ; DDDE= 80 02       ..
-
-LDDE0:
-                lda #$FF                     ; DDE0= A9 FF       ).
-LDDE2:
-                jmp LC0CA                    ; DDE2= 4C CA C0    LJ@
-
+invalid:
+                lda #$FF
+done:
+                jmp reinstateCursorEditing
+                .endproc
+                
 ;-------------------------------------------------------------------------
 ;
 ; Translate char ASCII to the SAA5050 character set.
@@ -5446,135 +5462,151 @@ rtsDDF7:
 
 ;-------------------------------------------------------------------------
 
-LDDF8:
+readCharacterAtTextCursor: .proc
                 cli
                 bit STATE
-                bvc LDE03                      ;taken if not cursor editing
+                bvc +                      ;taken if not cursor editing
                 jsr stopCursorEditing
-                jsr toggleIsCursorEditing
-LDE03:
+                jsr exchangeCursors
++
                 ldy vduv.numberOfLogicalColoursMinusOne
-                bne LDE1F                    ;taken if bitmap mode
+                bne bitmapMode
+readTeletextChar:
                 lda (ZMEMT)                  ;read character from screen
                 jsr getSAA5050FromASCII      ;call 2x to convert to ASCII
                 jsr getSAA5050FromASCII      ;call 2x to convert to ASCII
-LDE10:
+done:
                 bit STATE
-                bvc LDE1A                 ;taken if not cursor editing
-                jsr toggleIsCursorEditing                    ; DE14= 20 D1 C0     Q@
-                jsr LC0CA                    ; DE17= 20 CA C0     J@
-LDE1A:
+                bvc +                     ;taken if not cursor editing
+                jsr exchangeCursors                    
+                jsr reinstateCursorEditing                    
++
                 ldy vduv.currentScreenMODE
                 tax
                 rts
 
-LDE1F:
-                jsr LDE56                    ; DE1F= 20 56 DE     V^
-                lda $F4                      ; DE22= A5 F4       %t
-                pha                          ; DE24= 48          H
-                jsr selectTerminalROMAndANDY                    ; DE25= 20 7F E5     .e
-                lda #$20                     ; DE28= A9 20       )
-                tax                          ; DE2A= AA          *
-                jsr getSoftCharacterDefinitionAddress                    ; DE2B= 20 2C E2     ,b
-LDE2E:
-                ldy #$07                     ; DE2E= A0 07        .
-LDE30:
-                lda $0328,y                  ; DE30= B9 28 03    9(.
-                eor ($DE),y                  ; DE33= 51 DE       Q^
-                bne LDE41                    ; DE35= D0 0A       P.
-                dey                          ; DE37= 88          .
-                bpl LDE30                    ; DE38= 10 F6       .v
-                txa                          ; DE3A= 8A          .
-LDE3B:
-                plx                          ; DE3B= FA          z
-                jsr selectROMX                    ; DE3C= 20 81 E5     .e
-                bra LDE10                    ; DE3F= 80 CF       .O
+bitmapMode:
+                jsr LDE56                   
+                lda $F4                     
+                pha                         
+                jsr selectTerminalROMAndANDY
+                lda #$20
+                tax                          ;X = ASCII code for char
+                jsr getSoftCharacterDefinitionAddress
+compare:
+                ldy #$07                     
+-
+                lda vduv.workspace._28,y
+                eor (ZTEMPC),y
+                bne nextFontChar ;taken if no match - can't be this char
+                dey
+                bpl -
 
-LDE41:
-                inx                          ; DE41= E8          h
-                clc                          ; DE42= 18          .
-                lda $DE                      ; DE43= A5 DE       %^
-                adc #$08                     ; DE45= 69 08       i.
-                sta $DE                      ; DE47= 85 DE       .^
-                bcc LDE4D                    ; DE49= 90 02       ..
-                inc $DF                      ; DE4B= E6 DF       f_
-LDE4D:
-                cpx #$7F                     ; DE4D= E0 7F       `.
-                beq LDE41                    ; DE4F= F0 F0       pp
-                txa                          ; DE51= 8A          .
-                bne LDE2E                    ; DE52= D0 DA       PZ
-                bra LDE3B                    ; DE54= 80 E5       .e
+                txa                          ;A = char found
+bitmapModeDone:
+                plx
+                jsr selectROMX
+                bra done
 
-LDE56:
+nextFontChar:
+                inx                          ;next ASCII code
+                clc
+                lda ZTEMPC+0
+                adc #$08                     ;8 bytes/font char
+                sta ZTEMPC+0
+                bcc +
+                inc ZTEMPC+1
++
+                cpx #$7F                     
+                beq nextFontChar                 ;skip CHR$127
+                txa
+                bne compare           ;taken if more chars to consider
+                bra bitmapModeDone ;finish with A=0 - i.e., no match found
+                .endproc
+                
+;-------------------------------------------------------------------------
+;
+; Copy character out of screen memory, and store as a 1 bpp bitmap in
+; VDU variables workspace.
+; 
+LDE56: .proc
                 ldx ZMEMT+0                      ; DE56= A6 D8       &X
                 lda ZMEMT+1                      ; DE58= A5 D9       %Y
                 jsr getNext3ColumnAddresses
                 ldy #$07                     ; DE5D= A0 07        .
-LDE5F:
-                ldx $0360                    ; DE5F= AE 60 03    .`.
-                cpx #$03                     ; DE62= E0 03       `.
-                beq LDE6F                    ; DE64= F0 09       p.
-                bcs LDE7B                    ; DE66= B0 13       0.
-                lda (ZMEMT),y                  ; DE68= B1 D8       1X
-                eor $0358                    ; DE6A= 4D 58 03    MX.
-                bra LDE91                    ; DE6D= 80 22       ."
+loop:
+                ldx vduv.numberOfLogicalColoursMinusOne
+                cpx #$03
+                beq read2bppChar
+                bcs read4bppChar
+read1bppChar:
+                lda (ZMEMT),y
+                eor vduv.backgroundTextColour
+                bra next
 
-LDE6F:
-                lda (ZMEMT),y                  ; DE6F= B1 D8       1X
-                jsr LDEA2                    ; DE71= 20 A2 DE     "^
-                lda ($DA),y                  ; DE74= B1 DA       1Z
-                jsr LDEA2                    ; DE76= 20 A2 DE     "^
-                bra LDE8F                    ; DE79= 80 14       ..
+read2bppChar:
+                lda (ZMEMT),y                ;get pixels 0-3
+                jsr get4Pixels
+                lda (ZTEMP),y                  ;get pixels 4-7
+                jsr get4Pixels
+                bra LDE8F                    
 
-LDE7B:
-                lda (ZMEMT),y                  ; DE7B= B1 D8       1X
-                jsr LDE98                    ; DE7D= 20 98 DE     .^
-                lda ($DA),y                  ; DE80= B1 DA       1Z
-                jsr LDE98                    ; DE82= 20 98 DE     .^
-                lda ($DC),y                  ; DE85= B1 DC       1\
-                jsr LDE98                    ; DE87= 20 98 DE     .^
-                lda ($E0),y                  ; DE8A= B1 E0       1`
-                jsr LDE98                    ; DE8C= 20 98 DE     .^
+read4bppChar:
+                lda (ZMEMT),y                ;get pixels 0/1
+                jsr get2Pixels                    
+                lda (ZTEMP),y                ;get pixels 2/3
+                jsr get2Pixels                    
+                lda (ZTEMPB),y               ;get pixels 4/5
+                jsr get2Pixels                    
+                lda (ZTEMPD),y               ;get pixels 6/7
+                jsr get2Pixels                    
 LDE8F:
-                lda $DF                      ; DE8F= A5 DF       %_
-LDE91:
-                sta $0328,y                  ; DE91= 99 28 03    .(.
-                dey                          ; DE94= 88          .
-                bpl LDE5F                    ; DE95= 10 C8       .H
-                rts                          ; DE97= 60          `
+                lda ZTEMPC+1
+next:
+                sta vduv.workspace._28,y
+                dey
+                bpl loop
+                rts
 
-LDE98:
-                eor $0358                    ; DE98= 4D 58 03    MX.
-                jsr LDEB5                    ; DE9B= 20 B5 DE     5^
-                and #$03                     ; DE9E= 29 03       ).
-                bra LDEAE                    ; DEA0= 80 0C       ..
+get2Pixels:
+                eor vduv.backgroundTextColour ;reset background pixel bits
+                jsr or2Pixels
+                and #%00000011               ;2 pixels/byte
+                bra shiftIn2
 
-LDEA2:
-                eor $0358                    ; DEA2= 4D 58 03    MX.
-                jsr LDEBA                    ; DEA5= 20 BA DE     :^
-                and #$0F                     ; DEA8= 29 0F       ).
-                asl $DF                      ; DEAA= 06 DF       ._
-                asl $DF                      ; DEAC= 06 DF       ._
-LDEAE:
-                asl $DF                      ; DEAE= 06 DF       ._
-                asl $DF                      ; DEB0= 06 DF       ._
-                tsb $DF                      ; DEB2= 04 DF       ._
+get4Pixels:
+                eor vduv.backgroundTextColour ;
+                jsr or4Pixels
+                and #%00001111               ;4 pixels/byte
+
+                ; Build up the 1bpp char row in ZTEMPC?1, 2 or 4 bits
+                ; at a time.
+                asl ZTEMPC+1
+                asl ZTEMPC+1
+shiftIn2:
+                asl ZTEMPC+1
+                asl ZTEMPC+1
+                tsb ZTEMPC+1
                 rts                          ; DEB4= 60          `
 
-LDEB5:
-                sta $DE                      ; DEB5= 85 DE       .^
-                jsr LDEBE                    ; DEB7= 20 BE DE     >^
-LDEBA:
-                sta $DE                      ; DEBA= 85 DE       .^
-                lsr a                        ; DEBC= 4A          J
-                lsr a                        ; DEBD= 4A          J
-LDEBE:
-                lsr a                        ; DEBE= 4A          J
-                lsr a                        ; DEBF= 4A          J
-                ora $DE                      ; DEC0= 05 DE       .^
+                ; OR together all the N bits for each pixel, making a
+                ; byte in which the bottom N bits have a bit set for
+                ; each non-0 pixel in the byte.
+or2Pixels:
+                sta ZTEMPC+0
+                jsr shiftOut2
+or4Pixels:
+                sta ZTEMPC+0                 ;%abcdABCD
+                lsr a                        ;%0abcdABC
+                lsr a                        ;%00abcdAB
+shiftOut2:
+                lsr a                        ;%000abcdA
+                lsr a                        ;%0000abcd
+                ora ZTEMPC+0                 ;%0000abcd|%abcdABCD
+                .endproc
 rtsDEC2:
                 rts                          ; DEC2= 60          `
-
+                
 ;-------------------------------------------------------------------------
 ;
 ; Do WIND. If point not in window, return with Z=0. Otherwise, call
@@ -5678,11 +5710,11 @@ LDF59:
                 rts                          ; DF5D= 60          `
 
 LDF5E:
-                lda #$20                     ; DF5E= A9 20       )
-                bit STATE                      ; DF60= 24 D0       $P
-                bvc LDF3E                    ; DF62= 50 DA       PZ
-                bne LDF3E                    ; DF64= D0 D8       PX
-                jsr LDDF8                    ; DF66= 20 F8 DD     x]
+                lda #STATE.isVDU5
+                bit STATE                      
+                bvc LDF3E                      ;taken if not cursor editing
+                bne LDF3E                    ;taken if VDU5
+                jsr readCharacterAtTextCursor
                 beq LDF77                    ; DF69= F0 0C       p.
                 pha                          ; DF6B= 48          H
                 jsr LDFD5                    ; DF6C= 20 D5 DF     U_
@@ -6580,182 +6612,211 @@ end:
 end:
                 .bend
 
-                .byte $90
-                .byte $01
-                .byte $9F                    ; E30F= 9F          .
-                .byte $0d
-                .byte $a1
-                .byte $02
-                .byte $82                    ; E313= 82          .
-                .byte $F8
-                .byte $00
-                .byte $03
-                .byte $00
-                .byte $00
-                .byte $FF
-                .byte $00
-                .byte $00
-                .byte $01
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $FF
-                .byte $04
-                .byte $04
-                .byte $00
-                .byte $FF
-                .byte $42
-                .byte $19
-                .byte $19
-                .byte $19
-                .byte $32
-                .byte $08
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $20
-                .byte $09
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $03
-                .byte $90
-                .byte $64
-                .byte $06
-                .byte $81
-                .byte $00
-                .byte $00
-                .byte $00
-                .byte $09
-                .byte $1B
-                .byte $01
-                .byte $D0
-                .byte $E0
-                .byte $F0
-                .byte $01
-                .byte $80
-                .byte $90
-                .byte $00
-                .byte $00                          ; E34C= 00          .
-                .byte $00                          ; E34D= 00          .
-LE34E:
-                .byte $FF                    ; E34E= FF          .
-                .byte $FF                    ; E34F= FF          .
-                .byte $FF                    ; E350= FF          .
-                .byte $00                          ; E351= 00          .
-                .byte $00                          ; E352= 00          .
-                .byte $00                          ; E353= 00          .
-                .byte $00                          ; E354= 00          .
-                .byte $30
-                .byte $01
-                .byte $00                          ; E357= 00          .
-                .byte $00                          ; E358= 00          .
-                .byte $64
-                .byte $05                      ; E359= 64 05       d.
-                .byte $FF                    ; E35B= FF          .
-                .byte $01
-                .byte $0a
-                .byte $00                          ; E35E= 00          .
-                .byte $00                          ; E35F= 00          .
-                .byte $00                          ; E360= 00          .
-                .byte $00                          ; E361= 00          .
-                .byte $00                          ; E362= 00          .
-                .byte $FF                    ; E363= FF          .
+                ; valueFF is a (presumably arbitrary) byte with the
+                ; value 255, that's BIT'd in a few places to set the V
+                ; flag.
+defaultMOSVariables:
+                .word mosVariables-166       ;mosVariablesAddress
+                .word extendedVectorSpace    ;extendedVectorSpaceAddress
+                .word romInformationTable  ;romInformationTableAddress
+                .word LF892-16               ;keyboardTranslationTableAddress
+                .word vduv                   ;vduVariablesAddress
+                .byte $00                    ;cfsTimeoutCounter
+                .byte $00                    ;inputSource
+                .byte $FF                    ;keyboardSemaphore
+                .byte $00                    ;romPollingSemaphore
+                .byte $00                    ;oshwm
+                .byte $01                    ;rs423InputInterpretationStatus
+                .byte $00                    ;noignoreState
+                .byte $00                    ;cfsRFSFSSwitch
+                .byte $00                    ;vcontrolRegister
+                .byte $00                    ;vpaletteRegister
+                .byte $00                    ;romActiveAtLastBRK
+                .byte $FF                    ;basicROMNumber
+                .byte $04                    ;currentADCChannel
+                .byte $04                    ;maximumADCChannel
+                .byte $00                    ;adcConversionType
+                .byte $FF                    ;rs423Busy
+                .byte $42                    ;aciaControlRegister
+                .byte $19                    ;flashCounter
+                .byte $19                    ;firstFlashColourDuration
+                .byte $19                    ;secondFlashColourDuration
+                .byte $32                    ;keyboardAutoRepeatDelay
+                .byte $08                    ;keyboardAutoRepeatRate
+                .byte $00                    ;execFileHandle
+                .byte $00                    ;spoolFileHandle
+                .byte $00                    ;breakAndESCAPEEffect
+                .byte $00                    ;keyboardStatus
+                .byte $20                    ;keyboardStatusByte
+                .byte $09                    ;rs423InputBufferMinimumSpace
+                .byte $00                    ;rs423Ignore
+                .byte $00                    ;rs423Destination
+                .byte $00                    ;econetInterceptionStatus
+                .byte $00                    ;econetInputInterpretationStatus
+                .byte $00                    ;econetOutputInterpretationStatus
+                .byte $00                    ;speechSystemByte1
+                .byte $00                    ;soundSuppressionStatus
+                .byte $03                    ;bellChannel
+                .byte $90                    ;bellSound
+                .byte $64                    ;bellFrequency
+                .byte $06                    ;bellDuration
+                .byte $81                    ;startupMessageSuppressionStatus
+                .byte $00                    ;softKeyStringLength
+                .byte $00                    ;pagedModeCounter
+                .byte $00                    ;vduQueueNegativeLength
+                .byte $09                    ;tabKeyCode
+                .byte $1B                    ;escapeCharacter
+                .byte $01                    ;input192To207Interpretation
+                .byte $D0                    ;input208To223Interpretation
+                .byte $E0                    ;input224To239Interpretation
+                .byte $F0                    ;input240To255Interpretation
+                .byte $01                    ;softKeyInterpretation
+                .byte $80                    ;shiftSoftKeyInterpretation
+                .byte $90                    ;ctrlSoftKeyInterpretation
+                .byte $00                    ;shiftCtrlSoftKeyInterpretation
+                .byte $00                    ;escapeKeyStatus
+                .byte $00                    ;escapeEffects
+valueFF:        .byte $FF                    ;userVIAInterruptMask
+                .byte $FF                    ;rs423InterruptMask
+                .byte $FF                    ;systemVIAInterruptMask
+                .byte $00                    ;tubePresence
+                .byte $00                    ;speechSystemByte2
+                .byte $00                    ;characterDestinationStatus
+                .byte $00                    ;cursorEditingStatus
+                .byte $30                    ;numericKeypadInterpretation
+                .byte $01                    ;shadowRAMState
+                .byte $00                    ;countryFlag
+                .byte $00                    ;userFlag
+                .byte $64                    ;serialULARegister
+                .byte initialTimerSwitchState ;timerSwitchState
+                .byte $FF                    ;softKeyConsistencyFlag
+                .byte $01                    ;printerDriverType
+                .byte $0a                    ;printerIgnoreChar
+                .byte $00                    ;breakVectorByte0
+                .byte $00                    ;breakVectorByte1
+                .byte $00                    ;breakVectorByte2
+                .byte $00                    ;vduDriverMemory
+                .byte $00                    ;displayMemory
+                .byte $FF                    ;currentLanguageROM
 
+;-------------------------------------------------------------------------
+; 
 ; STARTUP
 ; =======
+; 
 resetEntryPoint:                ;e364
                 lda #$40        ; $40 = RTI
                 sta nmiEntryPoint ; make NMI routine a no-op
                 sei
-                lda #$53              ;
-                sta LFE8E             ; ???
+                lda #$53                 ; ???
+                sta LFE8E                ; ???
                 jsr selectTerminalROM ; Page in ROM 15 and continue
                 jmp terminal.reset
 
+;-------------------------------------------------------------------------
+; 
 ; Check if a coprocessor is attached to the Tube
-; ----------------------------------------------
+;
+; exit:
+;
+; C=0 = no Tube
+;
+; C=1 = Tube
+; 
 LE375:
-                ldx #$01                     ;
+                ldx #$01                     
                 stx tube.status1
-                lda tube.status1                   ;
+                lda tube.status1                   
                 eor #$01
-                ldx #$81                     ;
-                stx tube.status1
-                and tube.status1                   ; Cy=0 if no Tube, Cy=1 if Tube
+                ldx #$81                     
+                stx tube.status1             
+                and tube.status1       ; Cy=0 if no Tube, Cy=1 if Tube
                 ror a
                 rts
 
+;-------------------------------------------------------------------------
+;
+; 
+; 
 LE389:
-                phy                          ; E389= 5A          Z
-                phx                          ; E38A= DA          Z
-                jsr LE9BB                    ; E38B= 20 BB E9     ;i
-                sta $FC                      ; E38E= 85 FC       .|
-                jsr selectTerminalROM                    ; E390= 20 90 E5     .e
-                jsr terminal.L98B7           ; E393= 20 B7 98     7.
-                tya                          ; E396= 98          .
-                and $FC                      ; E397= 25 FC       %|
-                cmp #$01                     ; E399= C9 01       I.
-                plx                          ; E39B= FA          z
-                ply                          ; E39C= 7A          z
-                jmp selectROMX                    ; E39D= 4C 81 E5    L.e
+                phy
+                phx
+                jsr getROMInsertedFlagRTCAddressAndMask
+                sta $FC                      ;save mask
+                jsr selectTerminalROM
+                jsr terminal.readRTCByte     ;read inserted flag
+                tya                          ;A = byte read
+                and $FC                      ;do mask
+                cmp #$01                     ;C set if ROM is inserted
+                plx
+                ply
+                jmp selectROMX
 
-LE3A0:
-                txa                          ; E3A0= 8A          .
-LE3A1:
-                tay                          ; E3A1= A8          (
-                jsr LE389                    ; E3A2= 20 89 E3     .c
-                bcc LE3DB                    ; E3A5= 90 34       .4
-                jsr isROMValid                    ; E3A7= 20 F7 E3     wc
-                bcc LE3DB                    ; E3AA= 90 2F       ./
-                ldx $F4                      ; E3AC= A6 F4       &t
-                ldy $F4                      ; E3AE= A4 F4       $t
-LE3B0:
-                iny                          ; E3B0= C8          H
-                cpy #$10                     ; E3B1= C0 10       @.
-                bcs LE3DF                    ; E3B3= B0 2A       0*
-                jsr LE389                    ; E3B5= 20 89 E3     .c
-                bcc LE3B0                    ; E3B8= 90 F6       .v
-                tya                          ; E3BA= 98          .
-                eor #$FF                     ; E3BB= 49 FF       I.
-                sta $FA                      ; E3BD= 85 FA       .z
-                lda #$7F                     ; E3BF= A9 7F       ).
-                sta $FB                      ; E3C1= 85 FB       .{
-LE3C3:
-                sty ROMSEL                   ; E3C3= 8C 30 FE    .0~
-                lda ($FA),y                  ; E3C6= B1 FA       1z
-                stx ROMSEL                   ; E3C8= 8E 30 FE    .0~
-                cmp ($FA),y                  ; E3CB= D1 FA       Qz
-                bne LE3B0                    ; E3CD= D0 E1       Pa
-                inc $FA                      ; E3CF= E6 FA       fz
-                bne LE3C3                    ; E3D1= D0 F0       Pp
-                inc $FB                      ; E3D3= E6 FB       f{
-                lda $FB                      ; E3D5= A5 FB       %{
-                cmp #$84                     ; E3D7= C9 84       I.
-                bcc LE3C3                    ; E3D9= 90 E8       .h
-LE3DB:
-                ldx $F4                      ; E3DB= A6 F4       &t
-                bra LE3EC                    ; E3DD= 80 0D       ..
+;-------------------------------------------------------------------------
+;
+; Scan ROMs and fill in the rom information table.
+;
+; entry:
+;
+; X = first ROM to scan
+; 
+scanROMs: .proc
+                txa               ;A = ROM of interest
+                tay               ;Y = ROM of interest
+                jsr LE389         ;select ROM and check insertion flag
+                bcc currentROMInvalid ;taken if ROM not actually inserted
+                jsr isROMValid
+                bcc currentROMInvalid        ;taken if ROM invalid
+                ldx $F4                      ;start from current ROM
+                ldy $F4                      ;start from current ROM
+nextOtherROM:
+                iny                          ;next other ROM
+                cpy #$10                     ;out of other ROMs?
+                bcs currentROMValid       ;taken if no more other ROMs
+                jsr LE389   ;select other ROM and check insertion flag
+                bcc nextOtherROM ;taken if other ROM not actually inserted
+                
+                ; Start address is $8000-Y, so that there's no need to
+                ; save Y.
+                tya            
+                eor #$FF
+                sta SEIWKA+0
+                lda #$7F
+                sta SEIWKA+1
+compareLoop:
+                sty ROMSEL                   ;select other ROM
+                lda (SEIWKA),y               ;get byte from other ROM
+                stx ROMSEL                   ;select ROM
+                cmp (SEIWKA),y               ;same as other ROM?
+                bne nextOtherROM             ;taken if other ROM is good
+                inc SEIWKA+0
+                bne compareLoop
+                inc SEIWKA+1
+                lda SEIWKA+1
+                cmp #$84                  ;compare only the first 1 KB
+                bcc compareLoop
+                ; The first 1 KB of the current ROM matches the first
+                ; 1 KB of some higher-priority ROM, so the current ROM
+                ; is invalid.
+currentROMInvalid:
+                ldx $F4
+                bra nextROM
 
-LE3DF:
-                lda $8006                    ; E3DF= AD 06 80    -..
-                sta $02A1,x                  ; E3E2= 9D A1 02    .!.
-                and #$8F                     ; E3E5= 29 8F       ).
-                bne LE3EC                    ; E3E7= D0 03       P.
-                stx $024B                    ; E3E9= 8E 4B 02    .K.
-LE3EC:
-                inx                          ; E3EC= E8          h
-                cpx #$10                     ; E3ED= E0 10       `.
-                bcc LE3A0                    ; E3EF= 90 AF       ./
-                jsr selectTerminalROM        ; E3F1= 20 90 E5     .e
-                jmp terminal.L8224           ; E3F4= 4C 24 82    L$.
+currentROMValid:
+                lda $8006
+                sta romInformationTable,x 
+                and #$8F
+                bne nextROM       ;taken if any mandatory bits are set
+
+                ; A bogus ROM type means this ROM is the BASIC ROM.
+                stx basicROMNumber
+nextROM:
+                inx                          
+                cpx #16                      
+                bcc scanROMs                 ;taken if not out of ROMs yet.
+                jsr selectTerminalROM
+                jmp terminal.romsScanned     ;not sure why not RTS.
+                .endproc
 
 ;-------------------------------------------------------------------------
 ;
@@ -7274,7 +7335,7 @@ LE718:
                 sei                          ; E724= 78          x
                 dec $02CD                    ; E725= CE CD 02    NM.
 LE728:
-                bit LE34E                    ; E728= 2C 4E E3    ,Nc
+                bit valueFF                    ; E728= 2C 4E E3    ,Nc
                 jsr LE60F                    ; E72B= 20 0F E6     .f
                 lda $EC                      ; E72E= A5 EC       %l
                 ora $ED                      ; E730= 05 ED       .m
@@ -7718,19 +7779,35 @@ osbyte77:                       ;e9b5
                 jsr withTerminalROM          ; E9B5= 20 84 F3     .s
                 jmp terminal.L9423           ; E9B8= 4C 23 94    L#.
 
-LE9BB:
-                lda #$00                     ; E9BB= A9 00       ).
-                sec                          ; E9BD= 38          8
-                ldx #$14                     ; E9BE= A2 14       ".
-LE9C0:
-                rol a                        ; E9C0= 2A          *
-                bne LE9C5                    ; E9C1= D0 02       P.
-                inx                          ; E9C3= E8          h
-                rol a                        ; E9C4= 2A          *
-LE9C5:
-                dey                          ; E9C5= 88          .
-                bpl LE9C0                    ; E9C6= 10 F8       .x
-                rts                          ; E9C8= 60          `
+;-------------------------------------------------------------------------
+;
+; Get *IGNORE CMOS byte offset and mask for a given ROM.
+;
+; entry:
+;
+; Y = ROM number
+;
+; exit:
+;
+; A = mask
+;
+; X = RTC address of byte
+;
+getROMInsertedFlagRTCAddressAndMask:
+                lda #$00                     
+                sec                          
+                ldx #CMOSBytes.insertedROMs+0+cmosRAMRTCAddress
+-
+                rol a                        
+                bne +
+                inx                          
+                rol a                        
++
+                dey                          
+                bpl -
+                rts                          
+
+;-------------------------------------------------------------------------
 
 LE9C9:
                 .byte $03                    ; E9C9= 03          .
@@ -7769,7 +7846,7 @@ LE9E4:
                 rts                          ; E9EE= 60          `
 
 osbyte98:
-                bit LE34E                    ; E9EF= 2C 4E E3    ,Nc
+                bit valueFF                    ; E9EF= 2C 4E E3    ,Nc
                 bra LE9F5                    ; E9F2= 80 01       ..
 
 osbyte91:
@@ -8048,7 +8125,22 @@ LEB63:
 
 ; TODO structure probably the same as
 ; https://tobylobster.github.io/mos/mos/S-s15.html#SP1...
-                
+
+; entry:
+;
+; A = OSBYTE A
+;
+; X = OSBYTE X
+;
+; Y = OSBYTE Y
+;
+; ?originalA, ?originalX, ?originalY = OSBYTE arguments
+;
+; C=1
+;
+; N/Z set as per X
+; 
+               
 osbyteAndOSWORDRoutineTable:
                 .word osbyte00 ;Display MOS version D.2-18
                 .word osbyte01 ;Write user flag D.2-18
@@ -8137,6 +8229,25 @@ osbyteAndOSWORDRoutineTable:
                 .word osbyteA5     ;Read output cursor position
                 .word osbyteA6  ;handle osbyte A6-FF
                 .word callUSERV ;*LINE - not part of the above table???
+
+;-------------------------------------------------------------------------
+;
+; OSWORD dispatch table. Must follow on from the OSBYTE table.
+;
+; entry:
+;
+; A = 0th byte of parameter block
+;
+; X = OSWORD X
+;
+; Y = 0
+;
+; ?originalA, ?originalX, ?originalY = OSWORD arguments
+;
+; C=1
+;
+; N/Z set as per X
+; 
 oswordRoutineTable:
                 .word osword00  ;Read line from input stream to memory
                 .word osword01  ;Read system clock
@@ -8183,7 +8294,7 @@ osbyte7D: ;EC57
                 jmp terminal.tubeHost.copyEscapeStatus
 
 osbyte89:
-                lda serialRegisterULACopy                    ; EC61= AD 82 02    -..
+                lda serialULARegister                    ; EC61= AD 82 02    -..
                 tay                          ; EC64= A8          (
                 rol a                        ; EC65= 2A          *
                 cpx #$01                     ; EC66= E0 01       `.
@@ -8243,7 +8354,7 @@ osbyte07:                                    ;ec6d
                                              ;8, A=%000111000, mask
                                              ;for receive rate.
                 sta $FA                      ;save mask
-                ldy serialRegisterULACopy                    ;
+                ldy serialULARegister                    ;
                 cpx #$09                     ;check for invalid baud rate
                 bcs LEC8F                    ;branch taken if invalid
                 and serialBaudRatesTable,x   ;get setting in A
@@ -8255,7 +8366,7 @@ osbyte07:                                    ;ec6d
                 ora #$40                     ; EC84= 09 40       .@
                 eor $025D                    ;mask in tape/serial flag set by OSBYTE 205ac
 LEC89:
-                sta serialRegisterULACopy                    ; EC89= 8D 82 02    ...
+                sta serialULARegister                    ; EC89= 8D 82 02    ...
                 sta SERPROC+0                    ; EC8C= 8D 10 FE    ..~
 LEC8F:
                 tya                          ; EC8F= 98          .
@@ -8375,7 +8486,7 @@ LED1E:
                 bra LED24                    ; ED1F= 80 03       ..
 
 LED21:
-                bit LE34E                    ; ED21= 2C 4E E3    ,Nc
+                bit valueFF                    ; ED21= 2C 4E E3    ,Nc
 LED24:
                 jmp (CNPV)                  ; ED24= 6C 2E 02    l..
 
@@ -8468,7 +8579,7 @@ osbyteUnused:                   ;ed84
 
 osbyteA1:
                 jsr withTerminalROM          ; ED8E= 20 84 F3     .s
-                jmp terminal.L98B2           ; ED91= 4C B2 98    L2.
+                jmp terminal.readCMOSByte
 
 osbyteA2:
                 jsr withTerminalROM          ; ED94= 20 84 F3     .s
@@ -8722,31 +8833,31 @@ osbyteUseTable:
                 asl a           ;table is of words
                 sec
 callOSBYTEOrOSWORDFromTable:
-                sty $F1         ;save Y (possibly again?)
+                sty originalY
                 tay             ;get table offset in Y
-                bit $025E                    ; EED4= 2C 5E 02    ,^.
-                bpl LEEE0                    ; EED7= 10 07       ..
+                bit econetInterceptionStatus
+                bpl LEEE0             ;taken if no Econet interception
                 txa                          ; EED9= 8A          .
                 clv                          ; EEDA= B8          8
                 jsr LEB04                    ; EEDB= 20 04 EB     .k
                 bvs LEEFA                    ; EEDE= 70 1A       p.
 LEEE0:
                 lda osbyteAndOSWORDRoutineTable+1,y
-                sta $FB
+                sta SEIWKB
                 lda osbyteAndOSWORDRoutineTable,y
-                sta $FA                      ; EEE8= 85 FA       .z
-                lda $EF                      ; EEEA= A5 EF       %o
-                ldy $F1                      ; EEEC= A4 F1       $q
-                bcs LEEF4                    ; EEEE= B0 04       0.
-                ldy #$00                     ; EEF0= A0 00        .
-                lda ($F0)                    ; EEF2= B2 F0       2p
-LEEF4:
-                sec                          ; EEF4= 38          8
-                ldx $F0                      ; EEF5= A6 F0       &p
+                sta SEIWKA
+                lda originalA
+                ldy originalY
+                bcs +
+                ldy #$00            ;??? - is this actually desirable?
+                lda ($F0)           ;fetch 0th byte of parameter block
++
+                sec
+                ldx originalX
 
 ; on entry to the OSBYTE handlers, C=1, N/Z set as per X.
                 
-                jsr call00FA                    ; EEF7= 20 DF F8     _x
+                jsr callSEIWKA
 LEEFA:
                 ror a                        ; EEFA= 6A          j
                 plp                          ; EEFB= 28          (
@@ -8774,14 +8885,14 @@ LEF0C:
 LEF15:
                 plp                          ; EF15= 28          (
                 pla                          ; EF16= 68          h
-                bit LE34E                    ; EF17= 2C 4E E3    ,Nc
+                bit valueFF                    ; EF17= 2C 4E E3    ,Nc
                 rts                          ; EF1A= 60          `
 
 LEF1B:
                 lda $EB                      ; EF1B= A5 EB       %k
-                bmi LEF60                    ; EF1D= 30 41       0A
+                bmi lda00ThenRTS
                 lda $0257                    ; EF1F= AD 57 02    -W.
-                bne LEF60                    ; EF22= D0 3C       P<
+                bne lda00ThenRTS
                 lda #$08                     ; EF24= A9 08       ).
                 and $E2                      ; EF26= 25 E2       %b
                 bne LEF2E                    ; EF28= D0 04       P.
@@ -8806,14 +8917,14 @@ oswordEntryPoint:
                 pha             ;save OSWORD request
                 php
                 sei
-                sta $EF                      ; EF3C= 85 EF       .o
-                stx $F0                      ; EF3E= 86 F0       .p
-                sty $F1                      ; EF40= 84 F1       .q
+                sta originalA
+                stx originalX
+                sty originalY
                 ldx #romServiceCallUnrecognisedOSWORD
                 cmp #$E0
                 bcs osbyteOrUSERV ;taken if OSWORD $E0 or higher -
                                   ;these go via USERV
-                cmp #$10
+                cmp #16
                 bcs LEF0C       ;taken if unknown OSWORD
 
 ; adjust request number so it's a suitable index into the
@@ -8823,25 +8934,51 @@ oswordEntryPoint:
                 asl a
                 bra callOSBYTEOrOSWORDFromTable
 
-osword05:                       ;ef51
-                jsr LEF63                    ; EF51= 20 63 EF     co
-                lda ($FA)                    ; EF54= B2 FA       2z
-                sta ($F0),y                  ; EF56= 91 F0       .p
-                rts                          ; EF58= 60          `
+;-------------------------------------------------------------------------
+;
+; OSWORD 5 (&05) Read byte from I/O processor memory [MasRef D.3-9]
+; 
+osword05:
+                jsr getAddressFromOSWORDParameterBlock
+                lda (SEIWKA)                 ;read byte from the address
+                sta (originalX),y                  ;update parameter block
+                rts                            
 
-osword06:                       ;ef59
-                jsr LEF63                    ; EF59= 20 63 EF     co
-                lda ($F0),y                  ; EF5C= B1 F0       1p
-                sta ($FA)                    ; EF5E= 92 FA       .z
-LEF60:
+;-------------------------------------------------------------------------
+;
+; OSWORD 6 (&06) Write byte to I/O processor memory [MasRef D.3-9]
+; 
+osword06:
+                jsr getAddressFromOSWORDParameterBlock
+                lda (originalX),y            ;read value to write
+                sta (SEIWKA)               ;write value to the address
+lda00ThenRTS:
                 lda #$00                     ; EF60= A9 00       ).
                 rts                          ; EF62= 60          `
 
-LEF63:
-                sta $FA                      ; EF63= 85 FA       .z
+;-------------------------------------------------------------------------
+;
+; Get address from OSWORD parameter block.
+;
+; entry:
+;
+; A = 0th byte of parameter block
+;
+; Y = 0
+; 
+; (originalX) = parameter block
+;
+; exit:
+;
+; (SEIWKA) = address, first two bytes from parameter block
+;
+; Y = 4 (this is just convenient for both callers)
+; 
+getAddressFromOSWORDParameterBlock:
+                sta SEIWKA
                 iny                          ; EF65= C8          H
-                lda ($F0),y                  ; EF66= B1 F0       1p
-                sta $FB                      ; EF68= 85 FB       .{
+                lda (originalX),y                  ; EF66= B1 F0       1p
+                sta SEIWKA+1
                 ldy #$04                     ; EF6A= A0 04        .
 ldx03ThenRTS:
                 ldx #$03                     ; EF6C= A2 03       ".
@@ -8873,6 +9010,10 @@ osbyte00:                       ;ef6f
                 brk                          
                 .text $f7,"OS 3.20",0
 
+;-------------------------------------------------------------------------
+;
+; OSWORD 7 (&07) Generate a sound [MasRef D.3-10]
+; 
 osword07:
                 iny                          ; EF7B= C8          H
                 lda ($F0),y                  ; EF7C= B1 F0       1p
@@ -8908,22 +9049,33 @@ LEF90:
                 pla                          ; EFB0= 68          h
                 pla                          ; EFB1= 68          h
                 plp                          ; EFB2= 28          (
-osbyte75:
-                ldx STATE                      ; EFB3= A6 D0       &P
-                rts                          ; EFB5= 60          `
 
+                ; WTF... fall through to OSBYTE $75!
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 117 (&75) Read VDU status [MasRef D.2-32]
+;
+osbyte75:
+                ldx STATE
+                rts
+
+;-------------------------------------------------------------------------
+;
+; VDU 7 (&07) Produce BELL sound [MasRef E.3-4]
+; 
 vdu7EntryPoint:
-                php                          ; EFB6= 08          .
-                sei                          ; EFB7= 78          x
-                lda $0263                    ; EFB8= AD 63 02    -c.
+                php
+                sei
+                lda bellChannel
                 and #$07                     ; EFBB= 29 07       ).
                 ora #$04                     ; EFBD= 09 04       ..
                 tax                          ; EFBF= AA          *
-                lda $0264                    ; EFC0= AD 64 02    -d.
+                lda bellSound
                 jsr LEA40                    ; EFC3= 20 40 EA     @j
-                lda $0266                    ; EFC6= AD 66 02    -f.
+                lda bellDuration
                 pha                          ; EFC9= 48          H
-                lda $0265                    ; EFCA= AD 65 02    -e.
+                lda bellFrequency
                 pha                          ; EFCD= 48          H
 LEFCE:
                 sec                          ; EFCE= 38          8
@@ -8935,26 +9087,32 @@ LEFCE:
                 plp                          ; EFDA= 28          (
                 rts                          ; EFDB= 60          `
 
-osword08:                       ;efdc
-                dec a                        ; EFDC= 3A          :
-                asl a                        ; EFDD= 0A          .
-                asl a                        ; EFDE= 0A          .
-                asl a                        ; EFDF= 0A          .
-                asl a                        ; EFE0= 0A          .
-                ora #$0F                     ; EFE1= 09 0F       ..
-                tax                          ; EFE3= AA          *
-                lda #$00                     ; EFE4= A9 00       ).
-                ldy #$10                     ; EFE6= A0 10        .
-LEFE8:
-                cpy #$0E                     ; EFE8= C0 0E       @.
-                bcs LEFEE                    ; EFEA= B0 02       0.
-                lda ($F0),y                  ; EFEC= B1 F0       1p
-LEFEE:
-                sta $08C0,x                  ; EFEE= 9D C0 08    .@.
-                dex                          ; EFF1= CA          J
-                dey                          ; EFF2= 88          .
-                bne LEFE8                    ; EFF3= D0 F3       Ps
-                rts                          ; EFF5= 60          `
+;-------------------------------------------------------------------------
+;
+; OSWORD 8 (&08) Define a sound envelope [MasRef D.3-14]
+; 
+osword08:
+                dec a                   ;get index of 1-based envelope
+                asl a                        
+                asl a                        
+                asl a                        
+                asl a                        ;index*16
+                ora #$0F                     ;index*16+15
+                tax                          ;
+                lda #$00                     ;
+                ldy #16             ;16 bytes of envelope data get set
+-
+                cpy #$0E                     ;
+                bcs + ;taken if last 2 bytes of data - they get initialized to $00
+                lda (originalX),y        ;fetch byte from OSWORD block
++
+                sta envelope1Data,x          ;set envelope data bytes
+                dex                          
+                dey                          
+                bne -
+                rts                          
+
+;-------------------------------------------------------------------------
 
 LEFF6:
                 lda ($F0),y                  ; EFF6= B1 F0       1p
@@ -8963,52 +9121,70 @@ LEFF6:
                 iny                          ; EFFC= C8          H
                 rts                          ; EFFD= 60          `
 
-osword03:                       ;effe
+;-------------------------------------------------------------------------
+;
+; OSWORD 3 (&03) Read interval timer [MasRef D.3-8]
+; 
+osword03:
                 ldx #$0F                     ; EFFE= A2 0F       ".
                 bra LF005                    ; F000= 80 03       ..
 
-osword01:                       ;f002
-                ldx $0283                    ; F002= AE 83 02    ...
+;-------------------------------------------------------------------------
+;
+; OSWORD 1 (&01) Read system clock [MasRef D.3-7]
+; 
+osword01:
+                ldx timerSwitchState
 LF005:
-                ldy #$04                     ; F005= A0 04        .
-LF007:
-                lda $028D,x                  ; F007= BD 8D 02    =..
-                sta ($F0),y                  ; F00A= 91 F0       .p
-                inx                          ; F00C= E8          h
-                dey                          ; F00D= 88          .
-                bpl LF007                    ; F00E= 10 F7       .w
-LF010:
+                ldy #$04
+-
+                lda timer0-initialTimerSwitchState,x
+                sta (originalX),y
+                inx
+                dey
+                bpl -
+rtsF010:
                 rts                          ; F010= 60          `
 
-osword04:                       ;f011
-                lda #$0F                     ; F011= A9 0F       ).
-                bra LF01B                    ; F013= 80 06       ..
+;-------------------------------------------------------------------------
+;
+; OSWORD 4 (&04) Write interval timer [MasRef D.3-9]
+; 
+osword04:
+                lda #intervalTimer-(timer0-initialTimerSwitchState)
+                bra copyTIMEValue
 
-osword02:                       ;f015
-                lda $0283                    ; F015= AD 83 02    -..
-                eor #$0F                     ; F018= 49 0F       I.
-                clc                          ; F01A= 18          .
-LF01B:
-                pha                          ; F01B= 48          H
-                tax                          ; F01C= AA          *
-                ldy #$04                     ; F01D= A0 04        .
-LF01F:
-                lda ($F0),y                  ; F01F= B1 F0       1p
-                sta $028D,x                  ; F021= 9D 8D 02    ...
-                inx                          ; F024= E8          h
-                dey                          ; F025= 88          .
-                bpl LF01F                    ; F026= 10 F7       .w
-                pla                          ; F028= 68          h
-                bcs LF010                    ; F029= B0 E5       0e
-                sta $0283                    ; F02B= 8D 83 02    ...
-                rts                          ; F02E= 60          `
+;-------------------------------------------------------------------------
+;
+; OSWORD 2 (&02) Write system clock [MasRef D.3-8]
+; 
+osword02:
+                lda timerSwitchState
+                eor #$0F       ;select the timer that isn't being used
+                clc
+copyTIMEValue:
+                pha
+                tax
+                ldy #$04
+-
+                lda (originalX),y
+                sta timer0-initialTimerSwitchState,x
+                inx
+                dey
+                bpl -
+                pla
+                bcs rtsF010
+                sta timerSwitchState
+                rts
 
-; OSWORD &00 - Read Line
-; ======================
-osword00: ;LF02F:
+;-------------------------------------------------------------------------
+;
+; OSWORD 0 (&00) Read line from input stream to memory [MasRef D.3-6]
+; 
+osword00:
                 ldy #$04                     ; F02F= A0 04        .
 LF031:
-                lda ($F0),y                  ; F031= B1 F0       1p
+                lda (originalX),y                  ; F031= B1 F0       1p
                 sta $02B1,y                  ; F033= 99 B1 02    .1.
                 dey                          ; F036= 88          .
                 cpy #$02                     ; F037= C0 02       @.
@@ -9114,45 +9290,67 @@ LF0CC:
 
 ;-------------------------------------------------------------------------
 ;
-; OSBYTE 1 (&01) Write user flag
-;
-; This call provides a means of writing data to the user flag
-; (location &281). The flag is zero by default
-;
-; Entry parameters:
-;
-; X=<new value>
-; Y=0
-;
-; On exit : X=<old value>
-;
-; Note: This call uses OSBYTE 241/&F1 and is left free for user
-; applications.
-;
-; D.2-18
-                
-osbyte01:                       ;f0ce
-                eor #$F0        ;set A=$F1
-                bra LF0D9       ;jump to standard MOS variable
-                                ;handling
+; OSBYTE 1 (&01) Write user flag [MasRef D.2-18]
+;                 
+osbyte01:                       
+                eor #firstMOSVariableOSBYTE+(userFlag-mosVariables)-1 ;-1 because OSBYTE 1
+                bra osbyteA6X  ;jump to standard MOS variable handling
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 12 (&0C) Write keyboard auto-repeat rate [MasRef D.2-23]
+; 
 osbyte0C:
-                beq LF107                    ; F0D2= F0 33       p3
-osbyte0B:                                    ;f0d4
-                adc #$CF                     ; F0D4= 69 CF       iO
-osbyte04:                                    ;f0d6
-                clc                          ; F0D6= 18          .
-                adc #$E9                     ; F0D7= 69 E9       ii
-LF0D9:
-                stx $F0                      ; F0D9= 86 F0       .p
+                beq resetKeyRepeat    ;taken if X=0
+                
+;-------------------------------------------------------------------------
+;
+; OSBYTE 11 (&0B) Write keyboard auto-repeat delay [MasRef D.2-22]
+;
+osbyte0B:
+                ; TODO - turn this constant into an expression
+                adc #$CF
+
+                ;if osbyte0C, A=$db
+                ;if osbyteOD, A=$dc
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 4 (&04) Enable/disable cursor editing [MasRef D.2-19]
+;
+osbyte04:
+                clc
+                adc #firstMOSVariableOSBYTE+(cursorEditingStatus-mosVariables)-4 ;-4 because OSBYTE 4
+
+                ;if originally OSBYTE 4 (&04) Enable/disable cursor
+                ;editing [MasRef D.2-19], it's now OSBYTE 237 (&ED)
+                ;Read/write cursor editing status [MasRef D.2-77].
+                ; 
+                ;if originally OSBYTE 12 (&0C) Write keyboard
+                ;auto-repeat rate [MasRef D.2-23], it's now OSBYTE 197
+                ;(&C5) Read/write keyboard auto-repeat rate [MasRef
+                ;D.2-60].
+                ;
+                ;if originally OSBYTE 11 (&0B) Write keyboard
+                ;auto-repeat delay [MasRef D.2-22], it's now OSBYTE
+                ;196 (&C4) Read/write keyboard auto-repeat delay
+                ;[MasRef D.2-60].
+                
+osbyteA6X:
+                stx originalX
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 166 (&A6) Read start address of MOS variables [MasRef D.2-50]
+; 
 osbyteA6:
                 tay             ;
-                lda $0190,y     ;get MOS variable value
+                lda mosVariables-firstMOSVariableOSBYTE,y;
                 tax             ;save old value
-                and $F1         ;AND old value with Y
-                eor $F0         ;EOR old value with X
-                sta $0190,y     ;set new variable value
-                lda $0191,y
+                and originalY   ;AND old value with Y
+                eor originalX   ;EOR old value with X
+                sta mosVariables-firstMOSVariableOSBYTE,y     ;set new variable value
+                lda mosVariables-firstMOSVariableOSBYTE+1,y
                 tay             ;Y=contents of next location
 LF0EB:
                 rts                          ; F0EB= 60          `
@@ -9175,7 +9373,6 @@ LF0EB:
 ;       100 =  9600 baud
 ;       000 = 19200 baud
 ;
-; ***************************************************************************************
                 
 serialBaudRatesTable:
                 .byte %01100100;$64
@@ -9188,28 +9385,50 @@ serialBaudRatesTable:
                 .byte %01100100;$64
                 .byte %01000000;$40
 
-osbyte13:                       ;f0f5
-                lda $0240                    ; F0F5= AD 40 02    -@.
-LF0F8:
-                cli                          ; F0F8= 58          X
-                sei                          ; F0F9= 78          x
-                cmp $0240                    ; F0FA= CD 40 02    M@.
-                beq LF0F8                    ; F0FD= F0 F9       py
+;-------------------------------------------------------------------------
+;
+; OSBYTE 19 (&13) Wait for vertical sync [MasRef D.2-26]
+; 
+osbyte13:
+                lda cfsTimeoutCounter
+-
+                cli
+                sei
+                cmp cfsTimeoutCounter
+                beq -
+
+                ; fall through to OSBYTE $a0 (!!)
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 160 (&A0) Read VDU variable value [MasRef D.2-49]
+; 
 osbyteA0:
-                ldy $0301,x                  ; F0FF= BC 01 03    <..
-                lda $0300,x                  ; F102= BD 00 03    =..
-                tax                          ; F105= AA          *
-                rts                          ; F106= 60          `
+                ldy vduv+1,x
+                lda vduv+0,x
+                tax
+                rts
 
-LF107:
-                jsr withTerminalROM          ; F107= 20 84 F3     .s
-                jsr terminal.L8B3A           ; F10A= 20 3A 8B     :.
-                sty $0254                    ; F10D= 8C 54 02    .T.
-                jsr terminal.L8B3F           ; F110= 20 3F 8B     ?.
-                ldx $0255                    ; F113= AE 55 02    .U.
-                sty $0255                    ; F116= 8C 55 02    .U.
-                rts                          ; F119= 60          `
+;-------------------------------------------------------------------------
+;
+; Reset key auto repeat settings to the defaults set in CMOS.
+; 
+resetKeyRepeat:
+                jsr withTerminalROM
+                jsr terminal.getDefaultKeyboardAutoRepeatDelay
+                sty keyboardAutoRepeatDelay
+                jsr terminal.getDefaultKeyboardAutoRepeatRate
+                ldx keyboardAutoRepeatRate
+                sty keyboardAutoRepeatRate
+                rts
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 18 (&12) Reset soft keys [MasRef D.2-26]
+;
+; MasRef says X undefined on exit; in fact, X=0, and terminal.scanROMs
+; relies on this.
+; 
 osbyte12:                                    ;f11a
                 sec                          ; F11A= 38          8
                 ror $0284                    ; F11B= 6E 84 02    n..
@@ -9231,8 +9450,12 @@ LF126:
                 inx                          ; F13D= E8          h
                 rts                          ; F13E= 60          `
 
+;-------------------------------------------------------------------------
+;
+; OSWORD 11 (&0B) Read the palette [MasRef D.3-20]
+; 
 osword0B:                       ;f13f
-                and $0360                    ; F13F= 2D 60 03    -`.
+                and vduv.numberOfLogicalColoursMinusOne
                 tax                          ; F142= AA          *
                 lda $036F,x                  ; F143= BD 6F 03    =o.
 LF146:
@@ -9244,18 +9467,22 @@ LF147:
                 bne LF146                    ; F14D= D0 F7       Pw
                 rts                          ; F14F= 60          `
 
+;-------------------------------------------------------------------------
+;
+; OSWORD 9 (&09) Read pixel logical colour [MasRef D.3-19]
+; 
 osword09:                                    ;f150
                 jsr withMOSROM               ; sF150= 20 AB F3     +s
                 ldy #$03                     ; F153= A0 03        .
-LF155:
-                lda ($F0),y                  ; F155= B1 F0       1p
-                sta $0328,y                  ; F157= 99 28 03    .(.
+-
+                lda (originalX),y
+                sta vduv.workspace._28,y
                 lda $0310,y                  ; F15A= B9 10 03    9..
                 pha                          ; F15D= 48          H
                 dey                          ; F15E= 88          .
-                bpl LF155                    ; F15F= 10 F4       .t
-                lda #$28                     ; F161= A9 28       )(
-                jsr LDDB7                    ; F163= 20 B7 DD     7]
+                bpl -
+                lda #VDUVariables.workspace._28
+                jsr readPixelColour
                 tax                          ; F166= AA          *
                 ldy #$00                     ; F167= A0 00        .
 LF169:
@@ -9352,7 +9579,7 @@ LF1D8:
 ; 
 osbyte87: ;F1DC:
                 jsr withMOSROM
-                jmp LDDF8     
+                jmp readCharacterAtTextCursor     
 
 ;-------------------------------------------------------------------------
 ;
@@ -9391,7 +9618,7 @@ LF1EE:
                 ldx #$15
 LF1F0:
                 lda LF1FA-1,x
-                sta extendedVectorSpace+filevIndex*3-1,x
+                sta ExtendedVectorAddress(FILEV)-1,x
                 dex
                 bne LF1F0
 LF1F9:
@@ -9424,7 +9651,7 @@ LF1FA:
 osbyte6D:;f20f
                 ldx hazel.activeFS; Copy active FS to current FS
                 stx hazel.currentFS
-                lda extendedVectorSpace+filevIndex*3+2 ; Copy XFILEV ROM to current FS ROM number
+                lda ExtendedVectorAddress(FILEV)+2 ; Copy XFILEV ROM to current FS ROM number
                 sta hazel.currentFSROM
                 rts
 
@@ -9622,7 +9849,7 @@ LF2E6:
                 cmp #'?'                     
                 beq ascii127                 ;taken if "|?" - CHR$127
                 jsr implementCTRLCodes       ; F2EE= 20 36 F3     6s
-                bit LE34E                    ; F2F1= 2C 4E E3    ,Nc
+                bit valueFF                    ; F2F1= 2C 4E E3    ,Nc
                 bra LF2F9                    ; F2F4= 80 03       ..
 
 ascii127:
@@ -10403,7 +10630,7 @@ LF760:
 LF76E:
                 clv                          ; F76E= B8          8
                 bpl LF776                    ; F76F= 10 05       ..
-                bit LE34E                    ; F771= 2C 4E E3    ,Nc
+                bit valueFF                    ; F771= 2C 4E E3    ,Nc
                 ora #$08                     ; F774= 09 08       ..
 LF776:
                 inx                          ; F776= E8          h
@@ -10632,8 +10859,8 @@ LF8CF:
                 .byte $AA
                 .byte $AC
 ; shlk       scghnl;]       del       k#       k*       k,
-call00FA:
-                jmp ($00FA)
+callSEIWKA:
+                jmp (SEIWKA)
                 .byte 0
                 .text "z vbm,./"
                 .byte $8B
@@ -10659,7 +10886,7 @@ call00FA:
                 .byte $B2
 ;   esc       f1       f2       f3       f5       f6       f8       f9        \    right       k4       k5       k2
 LF8FF:
-                bit LE34E                    ; Set V
+                bit valueFF                    ; Set V
 callKEYV:                                    ;f902
                 jmp (KEYV)                  ; Jump to KEYV
 

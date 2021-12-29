@@ -105,7 +105,7 @@ L80B4:
                 ora #$08                     ; Store in OSBYTE 255 with boot off (b3=1)
                 sta $028F
 L80B9:
-                jsr L98AE                    ; Read configured BOOT
+                jsr readCMOSDefaults3Byte                    ; Read configured BOOT
                 and #$10
                 lsr a                        ; Reset OSBYTE 255 boot bit (b3) if BOOT
                 trb $028F
@@ -113,7 +113,7 @@ L80B9:
                 sty $0290                    ; 80C5= 8C 90 02    ...
                 stx $0291                    ; 80C8= 8E 91 02    ...
 L80CB:
-                jsr L98AE                    ; 80CB= 20 AE 98     ..
+                jsr readCMOSDefaults3Byte                    ; 80CB= 20 AE 98     ..
                 and #$08                     ; 80CE= 29 08       ).
                 beq L80D4                    ; 80D0= F0 02       p.
                 lda #$01                     ; 80D2= A9 01       ).
@@ -206,12 +206,12 @@ L8164:
 L8174:
                 stx $025A                    ; 8174= 8E 5A 02    .Z.
                 jsr mos.selectTerminalROM    ; 8177= 20 90 E5     .e
-                jsr mos.LF107                ; 817A= 20 07 F1     .q
+                jsr mos.resetKeyRepeat
                 lda $028D                    ; 817D= AD 8D 02    -..
                 beq L8196                    ; 8180= F0 14       p.
                 jsr L8EA8                    ; 8182= 20 A8 8E     (.
                 sta $0286                    ; 8185= 8D 86 02    ...
-                jsr L98AA                    ; 8188= 20 AA 98     *.
+                jsr readCMOSDefaults2Byte
                 lsr a                        ; 818B= 4A          J
                 lsr a                        ; 818C= 4A          J
                 ror $0246                    ; 818D= 6E 46 02    nF.
@@ -260,7 +260,7 @@ L81DD:
                 stx $ED                      ; 81E8= 86 ED       .m
                 ldx #$00                     ; 81EA= A2 00       ".
                 jsr mos.LE97D                ; 81EC= 20 7D E9     }i
-                lda serialRegisterULACopy                    ; 81EF= AD 82 02    -..
+                lda serialULARegister
                 and #$7F                     ; 81F2= 29 7F       ).
                 jsr mos.LEC89                ; 81F4= 20 89 EC     .l
                 jsr L8E84                    ; 81F7= 20 84 8E     ..
@@ -270,7 +270,7 @@ L81DD:
                 plx                          ; 81FF= FA          z
                 lda #$07                     ; 8200= A9 07       ).
                 jsr mos.osbyte07             ; 8202= 20 6D EC     ml
-                jsr L98AE                    ; 8205= 20 AE 98     ..
+                jsr readCMOSDefaults3Byte                    ; 8205= 20 AE 98     ..
                 bit #$02                     ; 8208= 89 02       ..
                 bne L8211                    ; 820A= D0 05       P.
                 lda #$F0                     ; 820C= A9 F0       )p
@@ -278,15 +278,14 @@ L81DD:
 L8211:
                 jsr mos.selectTerminalROM    ; 8211= 20 90 E5     .e
                 ldx $0284                    ; 8214= AE 84 02    ...
-                beq L821C                    ; 8217= F0 03       p.
+                beq scanROMs
                 jsr mos.osbyte12             ;
-L821C:
-                lda $028D                    ; 821C= AD 8D 02    -..
-                beq L8224                    ; 821F= F0 03       p.
-                jmp mos.LE3A0                ; 8221= 4C A0 E3    L c
-
-L8224:
-                lda $028F                    ; Select startup screen MODE
+scanROMs:
+                lda lastBREAKType
+                beq romsScanned                    ;taken if soft BREAK
+                jmp mos.scanROMs
+romsScanned:
+                lda startupOptions
                 jsr mos.setStartupMODE
                 lda $028D                    ; 822A= AD 8D 02    -..
                 dec a                        ; 822D= 3A          :
@@ -333,10 +332,10 @@ L8284:
                 beq L829D                    ; 8298= F0 03       p.
                 jsr mos.LEDD0                ; 829A= 20 D0 ED     Pm
 L829D:
-                jsr L98AA                    ; 829D= 20 AA 98     *.
+                jsr readCMOSDefaults2Byte                    ; 829D= 20 AA 98     *.
                 lsr a                        ; 82A0= 4A          J
                 bcc L82D0                    ; 82A1= 90 2D       .-
-                jsr L98AE                    ; 82A3= 20 AE 98     ..
+                jsr readCMOSDefaults3Byte                    ; 82A3= 20 AE 98     ..
                 bit #$04                     ; 82A6= 89 04       ..
                 php                          ; 82A8= 08          .
                 lda #$10                     ; 82A9= A9 10       ).
@@ -859,9 +858,9 @@ L86E4:
                 jsr LA865                    ; 86F2= 20 65 A8     e(
 L86F5:
                 phy                          ; 86F5= 5A          Z
-                jsr mos.LE9BB                ; 86F6= 20 BB E9     ;i
+                jsr mos.getROMInsertedFlagRTCAddressAndMask
                 sta $B0                      ; 86F9= 85 B0       .0
-                jsr L98B7                    ; 86FB= 20 B7 98     7.
+                jsr readRTCByte                    ; 86FB= 20 B7 98     7.
                 and $B0                      ; 86FE= 25 B0       %0
                 bne L8710                    ; 8700= D0 0E       P.
                 jsr LA958                    ; 8702= 20 58 A9     X)
@@ -896,9 +895,9 @@ L8723:
                 jsr mos.skipSpacesAndCheckForCRInStringInput ; 8724= 20 FF F2     .r
                 jsr L897D                    ; 8727= 20 7D 89     }.
                 tay                          ; 872A= A8          (
-                jsr mos.LE9BB                ; 872B= 20 BB E9     ;i
+                jsr mos.getROMInsertedFlagRTCAddressAndMask
                 pha                          ; 872E= 48          H
-                jsr L98B7                    ; 872F= 20 B7 98     7.
+                jsr readRTCByte                    ; 872F= 20 B7 98     7.
                 sty $B0                      ; 8732= 84 B0       .0
                 pla                          ; 8734= 68          h
                 plp                          ; 8735= 28          (
@@ -1288,7 +1287,7 @@ L89D4:
 L89D6:
                 sta $B1                      ; 89D6= 85 B1       .1
                 sty $B2                      ; 89D8= 84 B2       .2
-                jsr L98B7                    ; 89DA= 20 B7 98     7.
+                jsr readRTCByte                    ; 89DA= 20 B7 98     7.
                 and $B2                      ; 89DD= 25 B2       %2
                 ora $B1                      ; 89DF= 05 B1       .1
                 tay                          ; 89E1= A8          (
@@ -1426,7 +1425,7 @@ L8A84:
                 bra L8A7A                    ; 8A87= 80 F1       .q
 
 L8A89:
-                jsr L98AE                    ; 8A89= 20 AE 98     ..
+                jsr readCMOSDefaults3Byte                    ; 8A89= 20 AE 98     ..
                 bit #$08                     ; 8A8C= 89 08       ..
                 beq L8A93                    ; 8A8E= F0 03       p.
                 jsr L8EB1                    ; 8A90= 20 B1 8E     1.
@@ -1436,7 +1435,7 @@ L8A93:
                 rts                          ; 8A9E= 60          `
 
 L8A9F:
-                jsr L98AE                    ; 8A9F= 20 AE 98     ..
+                jsr readCMOSDefaults3Byte                    ; 8A9F= 20 AE 98     ..
                 bit #$02                     ; 8AA2= 89 02       ..
                 bne L8AB1                    ; 8AA4= D0 0B       P.
                 jsr LA958                    ; 8AA6= 20 58 A9     X)
@@ -1449,7 +1448,7 @@ L8AB1:
                 rts                          ; 8ABA= 60          `
 
 L8ABB:
-                jsr L98AE                    ; 8ABB= 20 AE 98     ..
+                jsr readCMOSDefaults3Byte                    ; 8ABB= 20 AE 98     ..
                 bit #$04                     ; 8ABE= 89 04       ..
                 bne L8ACA                    ; 8AC0= D0 08       P.
                 jsr LA958                    ; 8AC2= 20 58 A9     X)
@@ -1465,7 +1464,7 @@ L8AD0:
                 rts                          ; 8AE0= 60          `
 
 L8AE1:
-                jsr L98AE                    ; 8AE1= 20 AE 98     ..
+                jsr readCMOSDefaults3Byte                    ; 8AE1= 20 AE 98     ..
                 bit #$10                     ; 8AE4= 89 10       ..
                 bne L8AEB                    ; 8AE6= D0 03       P.
                 jsr L8EB1                    ; 8AE8= 20 B1 8E     1.
@@ -1475,7 +1474,7 @@ L8AEB:
                 rts                          ; 8AF4= 60          `
 
 L8AF5:
-                jsr L98AA                    ; 8AF5= 20 AA 98     *.
+                jsr readCMOSDefaults2Byte                    ; 8AF5= 20 AA 98     *.
                 lsr a                        ; 8AF8= 4A          J
                 bcs L8AFE                    ; 8AF9= B0 03       0.
                 jsr L8EB1                    ; 8AFB= 20 B1 8E     1.
@@ -1511,25 +1510,43 @@ L8B2B:
                 jmp OSNEWL                   ; 8B2B= 4C E7 FF    Lg.
 
 L8B2E:
-                jsr L8B3A                    ; 8B2E= 20 3A 8B     :.
+                jsr getDefaultKeyboardAutoRepeatDelay
                 tya                          ; 8B31= 98          .
                 bra L8B28                    ; 8B32= 80 F4       .t
 
 L8B34:
-                jsr L8B3F                    ; 8B34= 20 3F 8B     ?.
+                jsr getDefaultKeyboardAutoRepeatRate
                 tya                          ; 8B37= 98          .
                 bra L8B28                    ; 8B38= 80 EE       .n
 
-L8B3A:
-                ldx #$1A                     ; 8B3A= A2 1A       ".
-                jmp L98B7                    ; 8B3C= 4C B7 98    L7.
+;-------------------------------------------------------------------------
+;
+; Read default keyboard auto repeat delay from CMOS RAM.
+;
+; exit:
+;
+; Y = default keyboard auto repeat delay
+; 
+getDefaultKeyboardAutoRepeatDelay:
+                ldx #CMOSBytes.keyboardAutoRepeatDelay+cmosRAMRTCAddress
+                jmp readRTCByte
 
-L8B3F:
-                ldx #$1B                     ; 8B3F= A2 1B       ".
-                jmp L98B7                    ; 8B41= 4C B7 98    L7.
+;-------------------------------------------------------------------------
+;
+; Read default keyboard auto repeat rate from CMOS RAM.
+;
+; exit:
+;
+; Y = default keyboard auto repeat rate
+; 
+getDefaultKeyboardAutoRepeatRate:
+                ldx #CMOSBytes.keyboardAutoRepeatRate+cmosRAMRTCAddress
+                jmp readRTCByte
+
+;-------------------------------------------------------------------------
 
 L8B44:
-                jsr L98AA                    ; 8B44= 20 AA 98     *.
+                jsr readCMOSDefaults2Byte                    ; 8B44= 20 AA 98     *.
                 bit #$02                     ; 8B47= 89 02       ..
                 beq L8B5A                    ; 8B49= F0 0F       p.
 L8B4B:
@@ -1544,7 +1561,7 @@ L8B5A:
                 bra L8B2B                    ; 8B60= 80 C9       .I
 
 L8B62:
-                jsr L98AA                    ; 8B62= 20 AA 98     *.
+                jsr readCMOSDefaults2Byte                    ; 8B62= 20 AA 98     *.
                 bit #$02                     ; 8B65= 89 02       ..
                 bne L8B4B                    ; 8B67= D0 E2       Pb
                 jsr LA958                    ; 8B69= 20 58 A9     X)
@@ -1770,7 +1787,7 @@ L8DA9:
 
 L8E5A:
                 ldx #$18                     ; 8E5A= A2 18       ".
-                jsr L98B7                    ; 8E5C= 20 B7 98     7.
+                jsr readRTCByte                    ; 8E5C= 20 B7 98     7.
                 phy                          ; 8E5F= 5A          Z
                 and #$E0                     ; 8E60= 29 E0       )`
                 asl a                        ; 8E62= 0A          .
@@ -1794,7 +1811,7 @@ L8E75:
 ; --------------------
 L8E76:
                 ldx #$18                     ; Read CMOS location 10 (&18-14)
-                jsr L98B7
+                jsr readRTCByte
                 and #$0F                     ; Keep MODE bits
                 bit #$08                     ; Check shadow bit in b3
                 beq L8E83
@@ -1803,7 +1820,7 @@ L8E83:
                 rts
 
 L8E84:
-                jsr L98AA                    ; 8E84= 20 AA 98     *.
+                jsr readCMOSDefaults2Byte                    ; 8E84= 20 AA 98     *.
                 and #$1C                     ; 8E87= 29 1C       ).
                 lsr a                        ; 8E89= 4A          J
                 lsr a                        ; 8E8A= 4A          J
@@ -1811,7 +1828,7 @@ L8E84:
                 rts                          ; 8E8C= 60          `
 
 L8E8D:
-                jsr L98AA                    ; 8E8D= 20 AA 98     *.
+                jsr readCMOSDefaults2Byte                    ; 8E8D= 20 AA 98     *.
 L8E90:
                 and #$E0                     ; 8E90= 29 E0       )`
                 asl a                        ; 8E92= 0A          .
@@ -1821,7 +1838,7 @@ L8E90:
                 rts                          ; 8E96= 60          `
 
 L8E97:
-                jsr L98AE                    ; 8E97= 20 AE 98     ..
+                jsr readCMOSDefaults3Byte                    ; 8E97= 20 AE 98     ..
                 bra L8E90                    ; 8E9A= 80 F4       .t
 
 L8E9C:
@@ -1839,7 +1856,7 @@ L8EA4:
 L8EA8:
                 ldx #$1C                     ; 8EA8= A2 1C       ".
 L8EAA:
-                jmp L98B7                    ; 8EAA= 4C B7 98    L7.
+                jmp readRTCByte                    ; 8EAA= 4C B7 98    L7.
 
 L8EAD:
                 ldx #$19                     ; 8EAD= A2 19       ".
@@ -2668,7 +2685,7 @@ L939B:
                 lda ($F2),y                  ; 939C= B1 F2       1r
                 cmp #$2B                     ; 939E= C9 2B       I+
                 bne L93A6                    ; 93A0= D0 04       P.
-                bit mos.LE34E                ; 93A2= 2C 4E E3    ,Nc
+                bit mos.valueFF
                 iny                          ; 93A5= C8          H
 L93A6:
                 ldx #$0E                     ; 93A6= A2 0E       ".
@@ -3321,15 +3338,15 @@ L97D4:
                 pha                          ; 97D9= 48          H
 L97DA:
                 ldx #$0C                     ; 97DA= A2 0C       ".
-                jsr L98B7                    ; 97DC= 20 B7 98     7.
+                jsr readRTCByte                    ; 97DC= 20 B7 98     7.
                 ldx #$09                     ; 97DF= A2 09       ".
 L97E1:
-                jsr L98B7                    ; 97E1= 20 B7 98     7.
+                jsr readRTCByte                    ; 97E1= 20 B7 98     7.
                 sta $02EE,x                  ; 97E4= 9D EE 02    .n.
                 dex                          ; 97E7= CA          J
                 bpl L97E1                    ; 97E8= 10 F7       .w
                 ldx #$0A                     ; 97EA= A2 0A       ".
-                jsr L98B7                    ; 97EC= 20 B7 98     7.
+                jsr readRTCByte                    ; 97EC= 20 B7 98     7.
                 bpl L97F5                    ; 97EF= 10 04       ..
 L97F1:
                 cli                          ; 97F1= 58          X
@@ -3338,7 +3355,7 @@ L97F1:
 
 L97F5:
                 ldx #$0C                     ; 97F5= A2 0C       ".
-                jsr L98B7                    ; 97F7= 20 B7 98     7.
+                jsr readRTCByte                    ; 97F7= 20 B7 98     7.
                 and #$10                     ; 97FA= 29 10       ).
                 bne L97F1                    ; 97FC= D0 F3       Ps
                 pla                          ; 97FE= 68          h
@@ -3449,28 +3466,28 @@ L98A6:
                 dey                          ; 98A8= 88          .
                 rts                          ; 98A9= 60          `
 
-L98AA:
-                ldx #$1D                     ; 98AA= A2 1D       ".
-                bra L98B7                    ; 98AC= 80 09       ..
+readCMOSDefaults2Byte:
+                ldx #CMOSBytes.defaults2+cmosRAMRTCAddress
+                bra readRTCByte
 
-L98AE:
-                ldx #$1E                     ; Read CMOS location 16 (&1E-14)
-                bra L98B7
+readCMOSDefaults3Byte:
+                ldx #CMOSBytes.defaults3+cmosRAMRTCAddress
+                bra readRTCByte
 
-L98B2:
-                jsr L98FD                    ; 98B2= 20 FD 98     }.
-                bcs L98DB                    ; 98B5= B0 24       0$
-L98B7:
-                php                          ; 98B7= 08          .
-                sei                          ; 98B8= 78          x
-                jsr setRTCAddress                    ; 98B9= 20 06 99     ..
-                lda #$49                     ; 98BC= A9 49       )I
-                sta systemVIA.orb            ; 98BE= 8D 40 FE    .@~
-                stz systemVIA.ddra            ; 98C1= 9C 43 FE    .C~
-                lda #$4A                     ; 98C4= A9 4A       )J
-                sta systemVIA.orb            ; 98C6= 8D 40 FE    .@~
-                ldy systemVIA.iraNoHandshake            ; 98C9= AC 4F FE    ,O~
-L98CC:
+readCMOSByte:
+                jsr getRTCAddressForCMOSByte
+                bcs rts98DB                  ;taken if invalid address
+readRTCByte:
+                php
+                sei
+                jsr setRTCAddress
+                lda #$49
+                sta systemVIA.orb
+                stz systemVIA.ddra
+                lda #$4A
+                sta systemVIA.orb
+                ldy systemVIA.iraNoHandshake ;read value
+deselectRTC:
                 lda #$42
                 sta systemVIA.orb            ;RTC AS=0 CS=1 DS=0 R=0
                 lda #$02
@@ -3478,14 +3495,16 @@ L98CC:
                 stz systemVIA.ddra           ;all bits inputs
                 plp
                 tya
-L98DB:
+rts98DB:
                 rts
+
+;-------------------------------------------------------------------------
 
 L98DC:
                 txa                          ; 98DC= 8A          .
-                beq L98DB                    ; 98DD= F0 FC       p|
-                jsr L98FD                    ; 98DF= 20 FD 98     }.
-                bcs L98DB                    ; 98E2= B0 F7       0w
+                beq rts98DB                    ; 98DD= F0 FC       p|
+                jsr getRTCAddressForCMOSByte
+                bcs rts98DB                    ; 98E2= B0 F7       0w
 L98E4:
                 php
                 sei
@@ -3497,16 +3516,30 @@ L98E4:
                 lda #$4A
                 sta systemVIA.orb            ;RTC AS=0 CS=1 DS=0 R=1
                 sty systemVIA.oraNoHandshake ;store value
-                bra L98CC
+                bra deselectRTC
 
-L98FD:
-                cpx #$32                     ; 98FD= E0 32       `2
-                bcs L9905                    ; 98FF= B0 04       0.
-                txa                          ; 9901= 8A          .
-                adc #$0E                     ; 9902= 69 0E       i.
-                tax                          ; 9904= AA          *
-L9905:
-                rts                          ; 9905= 60          `
+;-------------------------------------------------------------------------
+;
+; Convert CMOS byte offset to actual RTC address.
+;
+; entry:
+;
+; X = CMOS byte offset - 0-49
+;
+; exit:
+;
+; C=1 = invalid address
+;
+; C=0 = valid address: X = register index
+;
+getRTCAddressForCMOSByte:
+                cpx #cmosRAMSize
+                bcs rts9905
+                txa        
+                adc #cmosRAMRTCAddress          
+                tax        
+rts9905:
+                rts        
 
 ;-------------------------------------------------------------------------
 ;
@@ -5547,7 +5580,7 @@ LA608:
                 inc $03C7                    ; A615= EE C7 03    nG.
 LA618:
                 ldx #$FF                     ; A618= A2 FF       ".
-                bit mos.LE34E                ; A61A= 2C 4E E3    ,Nc
+                bit mos.valueFF
                 bra LA670                    ; A61D= 80 51       .Q
 
 LA61F:
@@ -6145,7 +6178,7 @@ LA9C5:
 LA9CA:
                 php                          ; A9CA= 08          .
                 sei                          ; A9CB= 78          x
-                lda serialRegisterULACopy                    ; A9CC= AD 82 02    -..
+                lda serialULARegister                    ; A9CC= AD 82 02    -..
                 sta SERPROC+0                    ; A9CF= 8D 10 FE    ..~
                 stz $EA                      ; A9D2= 64 EA       dj
                 bra LA9D7                    ; A9D4= 80 01       ..
@@ -7068,7 +7101,7 @@ LAE78:
                 ldx #$06                     ; AE86= A2 06       ".
 LAE88:
                 lda LAE97-1,x                  ; AE88= BD 96 AE    =..
-                sta extendedVectorSpace+insvIndex*3-1,x
+                sta ExtendedVectorAddress(INSV)-1,x;extendedVectorSpace+insvIndex*3-1,x
                 dex                          ; AE8E= CA          J
                 bne LAE88                    ; AE8F= D0 F7       Pw
                 bra LAE6A                    ; AE91= 80 D7       .W
@@ -7087,7 +7120,7 @@ LAE9D:
                 bne LAE6A                    ; AEA1= D0 C7       PG
                 ldx #$06                     ; AEA3= A2 06       ".
 LAEA5:
-                lda extendedVectorSpace+insvIndex*3-1,x
+                lda ExtendedVectorAddress(INSV)-1,x;extendedVectorSpace+insvIndex*3-1,x
                 cmp LAE97-1,x                  ; AEA8= DD 96 AE    ]..
                 bne LAE6A                    ; AEAB= D0 BD       P=
                 dex                          ; AEAD= CA          J

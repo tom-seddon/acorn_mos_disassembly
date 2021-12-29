@@ -189,69 +189,377 @@ bufferNumberHighest=8           ;
 
 ;-------------------------------------------------------------------------
 
-uservIndex=0
-brkvIndex=1
-irq1vIndex=2
-irq2vIndex=3
-clivIndex=4
-bytevIndex=5
-wordvIndex=6
-wrchvIndex=7
-rdchvIndex=8
-filevIndex=9
-argsvIndex=10
-bgetvIndex=11
-bputvIndex=12
-gbpbvIndex=13
-findvIndex=14
-fscvIndex=15
-eventvIndex=16
-uptvIndex=17
-netvIndex=18
-vduvIndex=19
-keyvIndex=20
-insvIndex=21
-remvIndex=22
-cnpvIndex=23
-ind1vIndex=24
-ind2vIndex=25
-ind3vIndex=26
+; uservIndex=0
+; brkvIndex=1
+; irq1vIndex=2
+; irq2vIndex=3
+; clivIndex=4
+; bytevIndex=5
+; wordvIndex=6
+; wrchvIndex=7
+; rdchvIndex=8
+; filevIndex=9
+; argsvIndex=10
+; bgetvIndex=11
+; bputvIndex=12
+; gbpbvIndex=13
+; findvIndex=14
+; fscvIndex=15
+; eventvIndex=16
+; uptvIndex=17
+; netvIndex=18
+; vduvIndex=19
+; keyvIndex=20
+; insvIndex=21
+; remvIndex=22
+; cnpvIndex=23
+; ind1vIndex=24
+; ind2vIndex=25
+; ind3vIndex=26
 
+              
+                .virtual $200
+vectors:
+USERV:
+                .fill 2
+BRKV:
+                .fill 2
+IRQ1V:
+                .fill 2
+IRQ2V:
+                .fill 2
+CLIV:
+                .fill 2
+BYTEV:
+                .fill 2
+WORDV:
+                .fill 2
+WRCHV:
+                .fill 2
+RDCHV:
+                .fill 2
+FILEV:
+                .fill 2
+ARGSV:
+                .fill 2
+BGETV:
+                .fill 2
+BPUTV:
+                .fill 2
+GBPBV:
+                .fill 2
+FINDV:
+                .fill 2
+FSCV:
+                .fill 2
+EVENTV:
+                .fill 2
+UPTV:
+                .fill 2
+NETV:
+                .fill 2
+VDUV:
+                .fill 2
+KEYV:
+                .fill 2
+INSV:
+                .fill 2
+REMV:
+                .fill 2
+CNPV:
+                .fill 2
+IND1V:
+                .fill 2
+IND2V:
+                .fill 2
+IND3V:
+                .fill 2
+mosVariables:
+
+; OSBYTE 166 (&A6) Read start address of MOS variables [MasRef D.2-50]
+; OSBYTE 167 (&A7) Read start address of MOS variablespointer table  [MasRef D.2-50]
+mosVariablesAddress: .fill 2
+
+; OSBYTE 168 (&A8) Read address of ROM pointer table [MasRef D.2-51]
+; OSBYTE 169 (&A9) Read address of ROM pointer table [MasRef D.2-51]
+extendedVectorSpaceAddress: .fill 2
+
+; OSBYTE 170 (&AA) Read address of ROM information table [MasRef D.2-51]
+; OSBYTE 171 (&AB) Read address of ROM information table [MasRef D.2-51]
+romInformationTableAddress: .fill 2
+
+; OSBYTE 172 (&AC) Read address of keyboard translation table [MasRef D.2-52]
+; OSBYTE 173 (&AD) Read address of keyboard translation table [MasRef D.2-52]
+keyboardTranslationTableAddress: .fill 2
+
+; OSBYTE 174 (&AE) Read address of VDU variables origin [MasRef D.2-52]
+; OSBYTE 175 (&AF) Read address of VDU variables origin [MasRef D.2-52]
+vduVariablesAddress: .fill 2
+
+; OSBYTE 176 (&B0) Read/Write CFS timeout counter [MasRef D.2-52]
+cfsTimeoutCounter: .fill 1
+
+; OSBYTE 177 (&B1) Read/write input source [MasRef D.2-53]
+inputSource: .fill 1
+
+; OSBYTE 178 (&B2) Read/write keyboard semaphore [MasRef D.2-53]
+keyboardSemaphore: .fill 1
+
+; OSBYTE 179 (&B3) Read/write ROM polling semaphore [MasRef D.2-54]
+romPollingSemaphore: .fill 1
+
+; OSBYTE 180 (&B4) Read/write Operating System High [MasRef D.2-54]
+oshwm: .fill 1
+
+; OSBYTE 181 (&B5) Read/write RS243 input interpretation [MasRef D.2-54]
+rs423InputInterpretationStatus: .fill 1
+
+; OSBYTE 182 (&B6) Read NOIGNORE state [MasRef D.2-55]
+noignoreState: .fill 1
+
+; OSBYTE 183 (&B7) Read/write cassette/ROM filing system [MasRef D.2-55]
+cfsRFSFSSwitch: .fill 1
+
+; OSBYTE 184 (&B8) Read OS copy of video ULA control [MasRef D.2-56]
+vcontrolRegister: .fill 1
+
+; OSBYTE 185 (&B9) Read OS copy of video ULA palette [MasRef D.2-56]
+vpaletteRegister: .fill 1
+
+; OSBYTE 186 (&BA) Read ROM number active at last BRK [MasRef D.2-56]
+romActiveAtLastBRK: .fill 1
+
+; OSBYTE 187 (&BB) Read ROM number of socket [MasRef D.2-57]
+basicROMNumber: .fill 1
+
+; OSBYTE 188 (&BC) Read current ADC channel number [MasRef D.2-57]
+currentADCChannel: .fill 1
+
+; OSBYTE 189 (&BD) Read maximum ADC channel number [MasRef D.2-57]
+maximumADCChannel: .fill 1
+
+; OSBYTE 190 (&BE) Read/write ADC conversion type [MasRef D.2-58]
+adcConversionType: .fill 1
+
+; OSBYTE 191 (&BF) Read/write RS423 busy flag [MasRef D.2-58]
+rs423Busy: .fill 1
+
+; OSBYTE 192 (&C0) Read serial ACIA control register [MasRef D.2-58]
+aciaControlRegister: .fill 1
+
+; OSBYTE 193 (&C1) Read/write flash counter [MasRef D.2-59]
+flashCounter: .fill 1
+
+; OSBYTE 194 (&C2) Read/write duration of first colour [MasRef D.2-59]
+firstFlashColourDuration: .fill 1
+
+; OSBYTE 195 (&C3) Read/write duration of second colour [MasRef D.2-60]
+secondFlashColourDuration: .fill 1
+
+; OSBYTE 196 (&C4) Read/write keyboard auto-repeat delay [MasRef D.2-60]
+keyboardAutoRepeatDelay: .fill 1
+
+; OSBYTE 197 (&C5) Read/write keyboard auto-repeat rate [MasRef D.2-60]
+keyboardAutoRepeatRate: .fill 1
+
+; OSBYTE 198 (&C6) Read/write *EXEC file handle [MasRef D.2-61]
+execFileHandle: .fill 1
+
+; OSBYTE 199 (&C7) Read/write *SPOOL file handle [MasRef D.2-62]
+spoolFileHandle: .fill 1
+
+; OSBYTE 200 (&C8) Read/write BREAK and ESCAPE effect [MasRef D.2-62]
+breakAndESCAPEEffect: .fill 1
+
+; OSBYTE 201 (&C9) Read/write keyboard status [MasRef D.2-63]
+keyboardStatus: .fill 1
+
+; OSBYTE 202 (&CA) Read/write keyboard status byte [MasRef D.2-63]
+keyboardStatusByte: .fill 1
+
+; OSBYTE 203 (&CB) Read/write RS423 input buffer [MasRef D.2-64]
+rs423InputBufferMinimumSpace: .fill 1
+
+; OSBYTE 204 (&CC) Read/write RS423 ignore flag [MasRef D.2-65]
+rs423Ignore: .fill 1
+
+; OSBYTE 205 (&CD) Read/write RS423 destination [MasRef D.2-65]
+rs423Destination: .fill 1
+
+; OSBYTE 206 (&CE) Read/write Econet OS call interception [MasRef D.2-66]
+econetInterceptionStatus: .fill 1
+
+; OSBYTE 207 (&CF) Read/write Econet input interpretation [MasRef D.2-66]
+econetInputInterpretationStatus: .fill 1
+
+; OSBYTE 208 (&D0) Read write Econet output [MasRef D.2-67]
+econetOutputInterpretationStatus: .fill 1
+
+; OSBYTE 209 (&D1) is reserved for the speech system [MasRef D.2-67]
+speechSystemByte1:  .fill 1
+
+; OSBYTE 210 (&D2) Read/write sound suppression status [MasRef D.2-67]
+soundSuppressionStatus: .fill 1
+
+; OSBYTE 211 (&D3) Read/write BELL channel [MasRef D.2-67]
+bellChannel: .fill 1
+
+; OSBYTE 212 (&D4) Read/write BELL sound information [MasRef D.2-68]
+bellSound: .fill 1
+
+; OSBYTE 213 (&D5) Read/write BELL frequency [MasRef D.2-69]
+bellFrequency: .fill 1
+
+; OSBYTE 214 (&D6) Read/write BELL duration [MasRef D.2-69]
+bellDuration: .fill 1
+
+; OSBYTE 215 (&D7) Read/write startup message [MasRef D.2-69]
+startupMessageSuppressionStatus: .fill 1
+
+; OSBYTE 216 (&D8) Read/write length of soft key string [MasRef D.2-70]
+softKeyStringLength: .fill 1
+
+; OSBYTE 217 (&D9) Read/write paged mode line count [MasRef D.2-71]
+pagedModeCounter: .fill 1
+
+; OSBYTE 218 (&DA) Read/write bytes in VDU queue [MasRef D.2-71]
+vduQueueNegativeLength: .fill 1
+
+; OSBYTE 219 (&DB) Read/write TAB key code [MasRef D.2-72]
+tabKeyCode: .fill 1
+
+; OSBYTE 220 (&DC) Read/write ESCAPE character [MasRef D.2-72]
+escapeCharacter: .fill 1
+
+; OSBYTE 221 (&DD) Read/write interpretation of input values 192-207 [MasRef D.2-73]
+input192To207Interpretation: .fill 1
+
+; OSBYTE 222 (&DE) Read/write interpretation of input values 208-223 [MasRef D.2-73]
+input208To223Interpretation: .fill 1
+
+; OSBYTE 223 (&DF) Read/write interpretation of input values 224-239 [MasRef D.2-73]
+input224To239Interpretation: .fill 1
+
+; OSBYTE 224 (&E0) Read/write interpretation of input values 240-255 [MasRef D.2-73]
+input240To255Interpretation: .fill 1
+
+; OSBYTE 225 (&E1) Read/write soft key interpretation [MasRef D.2-74]
+softKeyInterpretation: .fill 1
+
+; OSBYTE 226 (&E2) Read/write SHIFT+soft key interpretation [MasRef D.2-74]
+shiftSoftKeyInterpretation: .fill 1
+
+; OSBYTE 227 (&E3) Read/write CTRL+soft key interpretation [MasRef D.2-74]
+ctrlSoftKeyInterpretation: .fill 1
+
+; OSBYTE 228 (&E4) Read/write SHIFT+CTRL+soft key interpretation [MasRef D.2-74]
+shiftCtrlSoftKeyInterpretation: .fill 1
+
+; OSBYTE 229 (&E5) Read/write ESCAPE key status [MasRef D.2-75]
+escapeKeyStatus: .fill 1
+
+; OSBYTE 230 (&E6) Read/write ESCAPE effects [MasRef D.2-75]
+escapeEffects: .fill 1
+
+; OSBYTE 231 (&E7) Read/write IRQ bit mask for user 6522 [MasRef D.2-76]
+userVIAInterruptMask: .fill 1
+
+; OSBYTE 232 (&E8) Read/write IRQ bit mask for 6850 [MasRef D.2-76]
+rs423InterruptMask: .fill 1
+
+; OSBYTE 233 (&E9) Read write IRQ bit mask for system [MasRef D.2-76]
+systemVIAInterruptMask: .fill 1
+
+; OSBYTE 234 (&EA) Read flag indicating Tube presence [MasRef D.2-76]
+tubePresence: .fill 1
+
+; OSBYTE 235 (&EB) is reserved for the speech system. [MasRef D.2-77]
+speechSystemByte2: .fill 1
+
+; OSBYTE 236 (&EC) Read/write character destination status [MasRef D.2-77]
+characterDestinationStatus: .fill 1
+
+; OSBYTE 237 (&ED) Read/write cursor editing status [MasRef D.2-77]
+cursorEditingStatus: .fill 1
+
+; OSBYTE 238 (&EE) Read/write numeric keypad [MasRef D.2-78]
+numericKeypadInterpretation: .fill 1
+
+; OSBYTE 239 (&EF) Read/write *SHADOW state [MasRef D.2-78]
+shadowRAMState: .fill 1
+
+; OSBYTE 240 (&F0) Read country flag [MasRef D.2-79]
+countryFlag: .fill 1
+
+; OSBYTE 241 (&F1) Read/write user flag [MasRef D.2-79]
+userFlag: .fill 1
+
+; OSBYTE 242 (&F2) Read copy of serial processor ULA [MasRef D.2-80]
+serialULARegister: .fill 1
+
+; OSBYTE 243 (&F3) Read timer switch state [MasRef D.2-80]
+timerSwitchState: .fill 1
+
+; OSBYTE 244 (&F4) Read/write soft key consistency flag [MasRef D.2-81]
+softKeyConsistencyFlag: .fill 1
+
+; OSBYTE 245 (&F5) Read printer driver type [MasRef D.2-81[
+printerDriverType: .fill 1
+
+; OSBYTE 246 (&F6) Read/write printer ignore character [MasRef D.2-81]
+printerIgnoreChar: .fill 1
+
+; OSBYTE 247 (&F7) Read/write BREAK intercept vector [MasRef D.2-82]
+breakVectorByte0: .fill 1
+
+; OSBYTE 248 (&F7) Read/write BREAK intercept vector [MasRef D.2-82]
+breakVectorByte1: .fill 1
+
+; OSBYTE 249 (&F7) Read/write BREAK intercept vector [MasRef D.2-82]
+breakVectorByte2: .fill 1
+
+; OSBYTE 250 (&FA) Read memory written by VDU driver [MasRef D.2-82]
+vduDriverMemory: .fill 1
+
+; OSBYTE 251 (&FB) Read memory displayed [MasRef D.2-83]
+displayMemory: .fill 1
+
+; OSBYTE 252 (&FC) Read/write current language ROM number [MasRef D.2-83]
+currentLanguageROM: .fill 1
                 
-vectors=$200
-USERV=vectors+uservIndex*2
-BRKV=vectors+brkvIndex*2
-IRQ1V=vectors+irq1vIndex*2
-IRQ2V=vectors+irq2vIndex*2
-CLIV=vectors+clivIndex*2
-BYTEV=vectors+bytevIndex*2
-WORDV=vectors+wordvIndex*2
-WRCHV=vectors+wrchvIndex*2
-RDCHV=vectors+rdchvIndex*2
-FILEV=vectors+filevIndex*2
-ARGSV=vectors+argsvIndex*2
-BGETV=vectors+bgetvIndex*2
-BPUTV=vectors+bputvIndex*2
-GBPBV=vectors+gbpbvIndex*2
-FINDV=vectors+findvIndex*2
-FSCV=vectors+fscvIndex*2
-EVENTV=vectors+eventvIndex*2
-UPTV=vectors+uptvIndex*2
-NETV=vectors+netvIndex*2
-VDUV=vectors+vduvIndex*2
-KEYV=vectors+keyvIndex*2
-INSV=vectors+insvIndex*2
-REMV=vectors+remvIndex*2
-CNPV=vectors+cnpvIndex*2
-IND1V=vectors+ind1vIndex*2
-IND2V=vectors+ind2vIndex*2
-IND3V=vectors+ind3vIndex*2
+; OSBYTE 253 (&FD) Read last BREAK type [MasRef D.2-83]
+lastBREAKType: .block
+                .fill 1
+softBREAK=0
+powerOn=1
+hardBREAK=2
+                .endblock
+; OSBYTE 254 (&FE) Set effect of SHIFT on numeric keypad [MasRef D.2-84]
+numericKeypadShiftEffect: .fill 1
+; OSBYTE 255 (&FF) Read/write startup options [MasRef D.2-84]
+startupOptions: .fill 1
+modeMask=7
+                
+                .endvirtual
+
+firstMOSVariableOSBYTE=166
+                
+initialTimerSwitchState=5
+timer0=$292
+timer1=$297
+intervalTimer=$29c
+romInformationTable=$2a1
+                
+osfileParameterBlock=$2ed
+
+ExtendedVectorAddress: .function vectorAddress
+                .cerror !(vectorAddress>=USERV && vectorAddress<=IND3V && vectorAddress%2==0),"invalid vector"
+                .endfunction extendedVectorSpace+(vectorAddress-vectors)/2*3
+                
+;-------------------------------------------------------------------------
 
 extendedVectorSpace=$d9f
 
-pagedModeCounter=$0269
-serialRegisterULACopy=$0282
-                
 key_space=$62
 key_comma=$66
 key_minus=$17
@@ -802,6 +1110,7 @@ ZTEMPD: .fill 2                      ;Temporary space
 zhlfw: .dstruct HorizontalLineFillWorkspaceZP
                 .endv
 
+                
 SEIWKA=$fa
 SEIWKB=$fb
 
@@ -818,8 +1127,6 @@ gcolModeLeave=5
 
 fsPtr=$b0                       ;pointer available for use by FS calls
 
-osfileParameterBlock=$2ed
-
 ; ROM number containing Terminal
 terminalROM=15
 
@@ -828,8 +1135,75 @@ extROM=14
 
 ; Base page for VDU routines
 vduRoutinesPage=$c0
+
+CMOSBytes: .struct
+econetStationNumber: .fill 1
+fileServerStationNumber: .fill 1
+fileServerNetworkNumber: .fill 1
+printerServerStationNumber: .fill 1
+printerServerNetworkNumber: .fill 1
+defaultROMs: .block
+                .fill 1
+fsShift=0
+languageShift=4
+                .endblock
                 
-vduQueueNegativeLength=$26a
+insertedROMs: .fill 2
+                
+editROMByte: .fill 1
+telecommsByte: .fill 1
+                
+defaults0: .block
+                .fill 1
+defaultMODEMask=7
+defaultSHADOWMask=8
+defaultInterlaceMask=16
+defaultTVMask=7
+defaultTVShift=5
+                .endblock
+
+defaults1: .block
+                .fill 1
+defaultFDRIVEMask=7
+defaultShiftLockMask=8
+defaultNoLockMask=16
+defaultCapsLockMask=32
+defaultADFSLoadDirMask=64
+defaultFloppyDrive=128
+                .endblock
+
+keyboardAutoRepeatDelay: .fill 1
+keyboardAutoRepeatRate: .fill 1
+printerIgnoreChar: .fill 1
+                
+defaults2: .block
+                .fill 1
+tubeOnMask=1
+usePrinterIgnoreCharMask=2
+serialBaudRateIndexMask=7
+serialBaudRateIndexShift=2
+fx5SettingMask=7
+fx5SettingShift=5
+                .endblock
+
+defaults3: .block
+                .fill 1
+loudMask=2
+extTubeMask=4
+protectedScrollingMask=8
+autoBootMask=16
+defaultSerialDataFormatMask=7
+defaultSerialDataFormatShift=5
+                .endblock
+                
+                .endstruct
+
+originalA=$ef
+originalX=$f0
+originalY=$f1
+
+envelope1Data=$8c0
+                
 ;-------------------------------------------------------------------------
 
 beword .macro value

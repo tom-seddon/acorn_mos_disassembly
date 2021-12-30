@@ -1,0 +1,881 @@
+                .section ext
+                
+                jsr     LBB2F
+                bra     LBA08
+
+LBA05:                          
+                jsr     LBBE9
+
+LBA08:                          
+                ldx     #$34 
+                ldy     #$3c 
+                jsr     mos.LD5CC
+                ldx     #$38 
+                lda     $301,x
+                sta     vduv.workspace._43
+                lda     $300,x
+                tax
+
+LBA1B:                          
+                stx     vduv.workspace._42
+                jsr     LBD20
+                inx
+                bne     LBA27
+                inc     vduv.workspace._43
+
+LBA27:                          
+                txa
+                cmp     $300,y
+                lda     vduv.workspace._43
+                sbc     $301,y
+                bmi     LBA1B
+                ldx     #$36 
+                ldy     #$3e 
+                jsr     mos.LD5CC
+                ldy     #$3a 
+                lda     $301,y
+                sta     vduv.workspace._43
+                lda     $300,y
+                tay
+
+LBA46:                          
+                sty     vduv.workspace._42
+                jsr     LBD20
+                tya
+                bne     LBA52
+                dec     vduv.workspace._43
+
+LBA52:                          
+                dey
+                clc
+                tya
+                sbc     $300,x
+                lda     vduv.workspace._43
+                sbc     $301,x
+                bpl     LBA46
+                lda     vduv.workspace._2F
+                bpl     LBA05
+                bra     LBA7B
+
+                jsr     LBB2F
+                bra     LBA6F
+
+
+LBA6C:                          
+                jsr     LBBE9
+
+LBA6F:                          
+                ldx     #$3a 
+                ldy     #$38 
+                jsr     LBA87
+                lda     vduv.workspace._2F
+                bpl     LBA6C
+
+LBA7B:                          
+                inc     L884D
+                bne     LBA83
+                inc     L884E
+
+LBA83:                          
+                ldx     #$3e 
+                ldy     #$3c 
+
+
+
+
+LBA87:                          
+
+
+
+                phx
+                phy
+                clc
+                lda     $0314
+                adc     $300,y
+                sta     vduv.workspace._40
+                lda     $0315
+                adc     $301,y
+                sta     vduv.workspace._41
+                clc
+                lda     $0314
+                adc     $300,x
+                sta     vduv.workspace._44
+                lda     $0315
+                adc     $301,x
+                sta     vduv.workspace._45
+                clc
+                lda     $0316
+                adc     L884D
+                tay
+                lda     $0317
+                adc     L884E
+                jsr     LBAFE
+                ply
+                plx
+                lda     L884D
+                ora     L884E
+                beq     rtsBB11
+                sec
+                lda     $0314
+                sbc     $300,x
+                sta     vduv.workspace._40
+                lda     $0315
+                sbc     $301,x
+                sta     vduv.workspace._41
+                sec
+                lda     $0314
+                sbc     $300,y
+                sta     vduv.workspace._44
+                lda     $0315
+                sbc     $301,y
+                sta     vduv.workspace._45
+                sec
+                lda     $0316
+                sbc     L884D
+                tay
+                lda     $0317
+                sbc     L884E
+
+
+
+
+
+
+LBAFE:                          
+                sty     vduv.workspace._46
+                sty     vduv.workspace._42
+                sta     vduv.workspace._47
+                sta     vduv.workspace._43
+                ldx     #$44 
+                ldy     #$40 
+                jmp     mos.LDAE8
+
+
+
+
+
+rtsBB11:                            
+                rts
+
+
+
+
+LBB12:                          
+                pla
+                pla
+                stz     L884D
+                stz     L884E
+                ldx     #$29 
+                ldy     #$40 
+                jsr     LBDFA
+                ldx     #$29 
+                ldy     #$44 
+                jsr     mos.copyTwoBytesWithinVDUVariables
+                ldx     #$44 
+                ldy     #$40 
+                jmp     LBA87
+
+
+
+
+
+LBB2F:                          
+
+
+
+                ldy     #$24 
+                ldx     #$14
+                lda     #$29 
+                jsr     mos.LD678
+                stz     vduv.workspace._28
+                ldy     #$22 
+                ldx     #$16
+                lda     #$2e 
+                jsr     mos.LD678
+                lda     vduv.workspace._2E
+                ora     vduv.workspace._2F
+                beq     LBB12
+                rol     a
+                sta     L8841
+                ldy     #$20 
+                ldx     #$14
+                lda     #$2c 
+                jsr     mos.LD678
+                stz     vduv.workspace._2B
+                rol     a
+                eor     L8841
+                and     #1
+                sta     L8841
+                ldx     #$28 
+                ldy     #$2e 
+                jsr     LBD83
+                ldx     #$2b 
+                ldy     #$2e 
+                jsr     LBD83
+                lda     L8841
+                beq     LBB86
+                sec
+                ldy     #$fd 
+
+LBB7B:                          
+                lda     #0
+                sbc     $22e,y
+                sta     $22e,y
+                iny
+                bne     LBB7B
+
+LBB86:                          
+                lda     vduv.workspace._2E
+                sta     L883C
+                lda     vduv.workspace._2F
+                jsr     mos.LD4CE
+                ldy     #3
+
+LBB94:                          
+                lda     $8840,y
+                sta     $330,y
+                dey
+                bpl     LBB94
+                ldx     #$a
+
+LBB9F:                          
+                stz     $8842,x
+                dex
+                bpl     LBB9F
+                inc     L8845
+                jsr     LBC18
+                jsr     LBC18
+                stz     L884D
+                stz     L884E
+                ldx     #$3c 
+                ldy     #$36 
+                jsr     LBDFA
+                ldx     #$3e 
+                ldy     #$34 
+                jsr     LBDFA
+                ldx     #$3c 
+                ldy     #$3a 
+                jsr     mos.LD5D6
+                bpl     LBBD2
+                jsr     mos.copyTwoBytesWithinVDUVariables
+                ldx     #$36 
+                bra     LBBE4
+
+
+LBBD2:                          
+                ldx     #$38 
+                ldy     #$3e 
+                jsr     mos.LD5D6
+                bpl     rtsBC17
+                ldx     #$34 
+                ldy     #$3a 
+                jsr     mos.copyTwoBytesWithinVDUVariables
+                ldx     #$3e 
+
+LBBE4:                          
+                ldy     #$38 
+                jmp     mos.copyTwoBytesWithinVDUVariables
+
+
+
+
+
+
+LBBE9:                          
+                                        
+                jsr     LBC18
+                ldy     #$3a 
+                ldx     #$3c 
+                jsr     mos.LD5D6
+                bpl     LBC02
+                lda     $033c
+                sta     $033a
+                lda     $033d
+                sta     $033b
+                rts
+
+
+LBC02:                          
+                ldx     #$38 
+                ldy     #$3e 
+                jsr     mos.LD5D6
+                bpl     rtsBC17
+                lda     $033e
+                sta     $0338
+                lda     $033f
+                sta     $0339
+
+rtsBC17:                            
+                rts
+
+
+
+
+
+
+LBC18:                          
+                ldx     #$38 
+                ldy     #$34 
+                jsr     mos.copyFourBytesWithinVDUVariables
+                ldx     #$3c 
+                ldy     #$38 
+                jsr     mos.copyFourBytesWithinVDUVariables
+                sec
+                lda     $0330
+                sbc     L8849
+                sta     L8836
+                lda     $0331
+                sbc     L884A
+                sta     L8837
+                lda     $0332
+                sbc     L884B
+                sta     L8838
+                lda     $0333
+                sbc     L884C
+                sta     L8839
+                stz     L8835
+                stz     L8834
+                jsr     LBE4B
+                lda     vduv.workspace._28
+                sta     L8834
+                lda     vduv.workspace._29
+                sta     L8835
+                lda     vduv.workspace._2A
+                sta     L8836
+                jsr     LBE0C
+                clc
+                lda     L8842
+                adc     L8835
+                php
+                lda     L8843
+                adc     L8836
+                sta     $033e
+                lda     L8844
+                adc     L8837
+                sta     $033f
+                plp
+                bpl     LBC8E
+                inc     $033e
+                bne     LBC8E
+                inc     $033f
+
+LBC8E:                          
+                sec
+                lda     L8842
+                sbc     L8835
+                php
+                lda     L8843
+                sbc     L8836
+                sta     $033c
+                lda     L8844
+                sbc     L8837
+                sta     $033d
+                plp
+                bpl     LBCB3
+                inc     $033c
+                bne     LBCB3
+                inc     $033d
+
+LBCB3:                          
+                clc
+                lda     L8845
+                adc     L8849
+                sta     L8849
+                lda     L8846
+                adc     L884A
+                sta     L884A
+                lda     L8847
+                adc     L884B
+                sta     L884B
+                lda     L8848
+                adc     L884C
+                sta     L884C
+                clc
+                lda     #2
+                adc     L8845
+                sta     L8845
+                bcc     LBCF0
+                inc     L8846
+                bne     LBCF0
+                inc     L8847
+                bne     LBCF0
+                inc     L8848
+
+LBCF0:                          
+                clc
+                lda     L8842
+                adc     vduv.workspace._2B
+                sta     L8842
+                lda     L8843
+                adc     vduv.workspace._2C
+                sta     L8843
+                lda     L8844
+                adc     vduv.workspace._2D
+                sta     L8844
+                inc     L884D
+                bne     LBD14
+                inc     L884E
+
+LBD14:                          
+                lda     vduv.workspace._2E
+                bne     LBD1C
+                dec     vduv.workspace._2F
+
+LBD1C:                          
+                dec     vduv.workspace._2E
+                rts
+
+
+
+
+
+
+LBD20:                          
+                phx
+                phy
+                clc
+                lda     $0314
+                adc     vduv.workspace._42
+                sta     vduv.workspace._44
+                lda     $0315
+                adc     vduv.workspace._43
+                sta     vduv.workspace._45
+                clc
+                lda     $0316
+                adc     L884D
+                sta     vduv.workspace._46
+                lda     $0317
+                adc     L884E
+                sta     vduv.workspace._47
+                ldx     #$44 
+                jsr     mos.LDB4C
+                lda     L884D
+                ora     L884E
+                beq     LBD80
+                sec
+                lda     $0314
+                sbc     vduv.workspace._42
+                sta     vduv.workspace._44
+                lda     $0315
+                sbc     vduv.workspace._43
+                sta     vduv.workspace._45
+                sec
+                lda     $0316
+                sbc     L884D
+                sta     vduv.workspace._46
+                lda     $0317
+                sbc     L884E
+                sta     vduv.workspace._47
+                ldx     #$44 
+                jsr     mos.LDB4C
+
+LBD80:                          
+                ply
+                plx
+                rts
+
+
+
+
+
+
+LBD83:                          
+                phx
+                lda     $300,y
+                sta     L883F
+                lda     $301,y
+                sta     L8840
+                ldy     #$18
+                lda     $300,x
+                sta     L883A
+                lda     $301,x
+                sta     L883B
+                lda     $302,x
+                bmi     LBDAF
+
+LBDA3:                          
+                dey
+                beq     LBDF8
+                asl     L883A
+                rol     L883B
+                rol     a
+                bpl     LBDA3
+
+LBDAF:                          
+                sta     L883C
+                stz     L883D
+                stz     L883E
+                clc
+
+LBDB9:                          
+                rol     L883A
+                rol     L883B
+                rol     L883C
+                rol     L883D
+                rol     L883E
+                sec
+                lda     L883D
+                sbc     L883F
+                tax
+                lda     L883E
+                sbc     L8840
+                bcc     LBDDE
+                stx     L883D
+                sta     L883E
+
+LBDDE:                          
+                dey
+                bne     LBDB9
+                plx
+                lda     L883A
+                rol     a
+                sta     $300,x
+                lda     L883B
+                rol     a
+                sta     $301,x
+                lda     L883C
+                rol     a
+                sta     $302,x
+                rts
+
+
+LBDF8:                          
+                plx
+                rts
+
+
+
+
+
+
+LBDFA:                          
+                sec
+                lda     #0
+                sbc     $300,x
+                sta     $300,y
+                lda     #0
+                sbc     $301,x
+                sta     $301,y
+                rts
+
+
+
+
+
+
+LBE0C:                          
+                ldy     #$17
+                stz     L8839
+                stz     L8838
+                stz     L8837
+                lsr     L8836
+                ror     L8835
+                ror     L8834
+
+LBE20:                          
+                bcc     LBE3E
+                clc
+                lda     L8830
+                adc     L8837
+                sta     L8837
+                lda     L8831
+                adc     L8838
+                sta     L8838
+                lda     L8832
+                adc     L8839
+                sta     L8839
+
+LBE3E:                          
+                clc
+                ldx     #5
+
+LBE41:                          
+                ror     $8834,x
+                dex
+                bpl     LBE41
+                dey
+                bpl     LBE20
+                rts
+
+
+
+
+
+
+LBE4B:                          
+                ldx     #3
+
+LBE4D:                          
+                stz     $8830,x
+                stz     ZTEMPB,x
+                dex
+                bpl     LBE4D
+                ldy     #5
+
+LBE57:                          
+                lda     $8834,y
+                sta     ZTEMP+0
+                phy
+                ldy     #3
+
+LBE5F:                          
+                phy
+                sec
+                rol     L8830
+                rol     L8831
+                rol     L8832
+                rol     L8833
+                ldx     #1
+                lda     ZTEMPB+0
+
+LBE71:                          
+                asl     ZTEMP+0
+                rol     a
+                rol     ZTEMPB+1
+                rol     ZTEMPC+0
+                rol     ZTEMPC+1
+                dex
+                bpl     LBE71
+                sta     ZTEMPB+0
+                sec
+                sbc     L8830
+                pha
+                lda     ZTEMPB+1
+                sbc     L8831
+                tax
+                lda     ZTEMPC+0
+                sbc     L8832
+                tay
+                lda     ZTEMPC+1
+                sbc     L8833
+                bcc     LBEA5
+                sta     ZTEMPC+1
+                sty     ZTEMPC+0
+                stx     ZTEMPB+1
+                pla
+                sta     ZTEMPB+0
+                inc     L8830
+                bra     LBEA9
+
+
+LBEA5:                          
+                pla
+                dec     L8830
+
+LBEA9:                          
+                ply
+                dey
+                bpl     LBE5F
+                ply
+                dey
+                bpl     LBE57
+                lsr     L8833
+                ror     L8832
+                ror     L8831
+                ror     L8830
+                rts
+
+
+
+                and     #2
+                sta     vduv.workspace._45
+                jsr     mos.LC951
+                ldx     #$14
+                jsr     mos.LC8E6
+                ldy     #$34 
+                jsr     mos.copyLastFourVDUQueueBytes
+                sty     ZTEMP+0
+                ldx     #$34 
+                ldy     #$2c 
+                lda     #$28 
+                jsr     mos.LD580
+                ldx     #$28 
+                ldy     #$34 
+                jsr     mos.LD5CC
+                phy
+                phx
+                ldy     #0
+                jsr     mos.getOutcodeForAxis
+                beq     LBEF3
+                lsr     a
+                beq     LBEF1
+                pla
+
+LBEEF:                          
+                pla
+                rts
+
+
+LBEF1:                          
+                ldx     #0
+
+LBEF3:                          
+                pla
+                ldy     #$30 
+                sty     ZTEMP+0
+                ldy     #$28 
+                jsr     mos.LD58D
+                ldy     #$3c 
+                sty     ZTEMP+0
+                ldy     #$34 
+                jsr     mos.LD58D
+                pla
+                clc
+                adc     #4
+                tax
+                phx
+                ldy     #0
+                jsr     mos.getOutcodeForAxis
+                beq     LBF18
+                lsr     a
+                beq     LBEEF
+                ldx     #4
+
+LBF18:                          
+                pla
+                ldy     #$40 
+                sty     ZTEMP+0
+                ldy     #$38 
+                jsr     mos.LD58D
+                lda     vduv.workspace._40
+                cmp     $033c
+                lda     vduv.workspace._41
+                sbc     $033d
+                bpl     LBF40
+                lda     vduv.workspace._45
+                bne     LBF38
+                jsr     mos.LC420
+
+LBF38:                          
+                ldx     #$34 
+                jsr     mos.copyEightBytesToWorkspace28
+                jmp     mos.LC420
+
+
+LBF40:                          
+                stz     vduv.workspace._47
+                lda     $0330
+                and     $0361
+                sta     ZTEMP+0
+                lda     $033c
+                and     $0361
+                sec
+                sbc     ZTEMP+0
+                bpl     LBF5C
+                dec     vduv.workspace._47
+                and     $0361
+
+LBF5C:                          
+                sta     vduv.workspace._43
+                pha
+                eor     #$ff
+                inc     a
+                and     $0361
+                sta     vduv.workspace._42
+                pla
+                clc
+                adc     $0361
+                tax
+                lda     $e120,x
+                sta     ZTEMPD+1
+                ldx     #$3c 
+                ldy     #$40 
+                jsr     mos.LDA9C
+                sta     vduv.workspace._44
+                lda     ZMASK
+                sta     vduv.workspace._46
+                lda     ZTEMPB+0
+                sta     ZTEMPD+0
+                ldx     #0
+                jsr     LBFE6
+                beq     LBFCE
+                lda     vduv.workspace._2A
+                cmp     $0336
+                lda     vduv.workspace._2B
+                sbc     $0337
+                bvc     LBF9E
+                eor     #$80
+
+LBF9E:                          
+                bmi     LBFB1
+
+LBFA0:                          
+                jsr     mos.LDB62
+                ldx     #0
+                jsr     LBFD1
+                ldx     #$c
+                jsr     LBFD1
+                bne     LBFA0
+                bra     LBFCE
+
+
+LBFB1:                          
+                ldx     #$2a 
+                ldy     #$2e 
+                jsr     mos.exchangeTwoVDUBytes
+                ldx     #$36 
+                ldy     #$3a 
+                jsr     mos.exchangeTwoVDUBytes
+
+LBFBF:                          
+                jsr     mos.LDB62
+                ldx     #0
+                jsr     LBFDB
+                ldx     #$c
+                jsr     LBFDB
+                bne     LBFBF
+
+LBFCE:                          
+                jmp     mos.LDB62
+
+
+
+
+LBFD1:                          
+                inc     $32a,x
+                bne     LBFE6
+                inc     $32b,x
+                bra     LBFE6
+
+
+
+
+
+
+LBFDB:                          
+                lda     $32a,x
+                bne     LBFE3
+                dec     $32b,x
+
+LBFE3:                          
+                dec     $32a,x
+
+
+
+
+
+
+LBFE6:                          
+                lda     $32a,x
+                cmp     $32e,x
+                bne     rtsBFF4
+                lda     $32b,x
+                cmp     $32f,x
+
+rtsBFF4:                            
+                rts
+
+                .byte $ff
+                .byte $ff
+                .byte $ff
+                .byte $ff
+                .byte $ff
+                .byte $ff
+                .byte $ff
+                .byte $ff
+                .byte $ff
+                .byte $ff
+                .byte $ff
+
+                .endsection
+                

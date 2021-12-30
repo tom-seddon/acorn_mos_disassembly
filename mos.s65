@@ -4183,6 +4183,7 @@ LD676:
                 plp                          ; D676= 28          (
                 rts                          ; D677= 60          `
 
+LD678:
                 pha                          ; D678= 48          H
                 sec                          ; D679= 38          8
                 lda $0300,y                  ; D67A= B9 00 03    9..
@@ -4969,9 +4970,7 @@ rtsDB61:
 
 ;-------------------------------------------------------------------------
 
-                ; unused code???! - or is this possibly called from
-                ; the ext ROM?
-                
+LDB62:                
                 ldx #VDUVariables.workspace._2A
                 ldy #VDUVariables.workspace._32
                 jsr copyTwoBytesWithinVDUVariables                    ; DB66= 20 0C C9     .I

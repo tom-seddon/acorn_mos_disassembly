@@ -1065,12 +1065,6 @@ L884C=$884c
 L884D=$884d
 L884E=$884e
 
-                ; entry points in the View bank - appears to be some
-                ; ellipse/block copy GXR stuff
-extBA00=$BA00
-extBA67=$BA67
-extBEBE=$BEBE
-
                 ; written to during startup
 LFE8E=$fe8e
 

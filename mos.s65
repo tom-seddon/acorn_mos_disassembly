@@ -5800,20 +5800,20 @@ LDFDE:
 LDFDF:
                 ldx #$80|extROM ; DFDF= A2 8E       ".  ; select VIEW+ANDY
                 jsr selectROMX                    ; DFE1= 20 81 E5     .e
-                jsr extBEBE                    ; DFE4= 20 BE BE     >>
+                jsr ext.LBEBE                    ; DFE4= 20 BE BE     >>
                 bra LDFF1                    ; DFE7= 80 08       ..
 
 LDFE9:
                 ldx #$80|extROM                     ; DFE9= A2 8E       ".
                 jsr selectROMX                    ; DFEB= 20 81 E5     .e
-                jsr extBA00                    ; DFEE= 20 00 BA     .:
+                jsr ext.LBA00                    ; DFEE= 20 00 BA     .:
 LDFF1:
                 jmp selectTerminalROMAndANDY                    ; DFF1= 4C 7F E5    L.e
 
 LDFF4:
                 ldx #$80|extROM             ; DFF4= A2 8E       ".
                 jsr selectROMX                    ; DFF6= 20 81 E5     .e
-                jsr extBA67                    ; DFF9= 20 67 BA     g:
+                jsr ext.LBA67                    ; DFF9= 20 67 BA     g:
                 bra LDFF1                    ; DFFC= 80 F3       .s
 
                 .text 0,0,13

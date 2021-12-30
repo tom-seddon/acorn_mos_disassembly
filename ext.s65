@@ -1,5 +1,9 @@
+; -*- comment-column:45; -*-
                 .section ext
                 
+ext: .block
+
+LBA00:
                 jsr     LBB2F
                 bra     LBA08
 
@@ -7,13 +11,13 @@ LBA05:
                 jsr     LBBE9
 
 LBA08:                          
-                ldx     #$34 
-                ldy     #$3c 
+                ldx     #VDUVariables.workspace._34 
+                ldy     #VDUVariables.workspace._3C 
                 jsr     mos.LD5CC
-                ldx     #$38 
-                lda     $301,x
+                ldx     #VDUVariables.workspace._38 
+                lda     vduv+1,x
                 sta     vduv.workspace._43
-                lda     $300,x
+                lda     vduv+0,x
                 tax
 
 LBA1B:                          
@@ -25,17 +29,17 @@ LBA1B:
 
 LBA27:                          
                 txa
-                cmp     $300,y
+                cmp     vduv+0,y
                 lda     vduv.workspace._43
-                sbc     $301,y
+                sbc     vduv+1,y
                 bmi     LBA1B
-                ldx     #$36 
-                ldy     #$3e 
+                ldx     #VDUVariables.workspace._36 
+                ldy     #VDUVariables.workspace._3E 
                 jsr     mos.LD5CC
-                ldy     #$3a 
-                lda     $301,y
+                ldy     #VDUVariables.workspace._3A 
+                lda     vduv+1,y
                 sta     vduv.workspace._43
-                lda     $300,y
+                lda     vduv+0,y
                 tay
 
 LBA46:                          
@@ -49,14 +53,15 @@ LBA52:
                 dey
                 clc
                 tya
-                sbc     $300,x
+                sbc     vduv+0,x
                 lda     vduv.workspace._43
-                sbc     $301,x
+                sbc     vduv+1,x
                 bpl     LBA46
                 lda     vduv.workspace._2F
                 bpl     LBA05
                 bra     LBA7B
 
+LBA67:
                 jsr     LBB2F
                 bra     LBA6F
 
@@ -65,8 +70,8 @@ LBA6C:
                 jsr     LBBE9
 
 LBA6F:                          
-                ldx     #$3a 
-                ldy     #$38 
+                ldx     #VDUVariables.workspace._3A 
+                ldy     #VDUVariables.workspace._38 
                 jsr     LBA87
                 lda     vduv.workspace._2F
                 bpl     LBA6C
@@ -77,8 +82,8 @@ LBA7B:
                 inc     L884E
 
 LBA83:                          
-                ldx     #$3e 
-                ldy     #$3c 
+                ldx     #VDUVariables.workspace._3E 
+                ldy     #VDUVariables.workspace._3C 
 
 
 
@@ -90,24 +95,24 @@ LBA87:
                 phx
                 phy
                 clc
-                lda     $0314
-                adc     $300,y
+                lda     vduv.oldGraphicsCursorPixelsX+0
+                adc     vduv+0,y
                 sta     vduv.workspace._40
-                lda     $0315
-                adc     $301,y
+                lda     vduv.oldGraphicsCursorPixelsX+1
+                adc     vduv+1,y
                 sta     vduv.workspace._41
                 clc
-                lda     $0314
-                adc     $300,x
+                lda     vduv.oldGraphicsCursorPixelsX+0
+                adc     vduv+0,x
                 sta     vduv.workspace._44
-                lda     $0315
-                adc     $301,x
+                lda     vduv.oldGraphicsCursorPixelsX+1
+                adc     vduv+1,x
                 sta     vduv.workspace._45
                 clc
-                lda     $0316
+                lda     vduv.oldGraphicsCursorPixelsY+0
                 adc     L884D
                 tay
-                lda     $0317
+                lda     vduv.oldGraphicsCursorPixelsY+1
                 adc     L884E
                 jsr     LBAFE
                 ply
@@ -116,24 +121,24 @@ LBA87:
                 ora     L884E
                 beq     rtsBB11
                 sec
-                lda     $0314
-                sbc     $300,x
+                lda     vduv.oldGraphicsCursorPixelsX+0
+                sbc     vduv+0,x
                 sta     vduv.workspace._40
-                lda     $0315
-                sbc     $301,x
+                lda     vduv.oldGraphicsCursorPixelsX+1
+                sbc     vduv+1,x
                 sta     vduv.workspace._41
                 sec
-                lda     $0314
-                sbc     $300,y
+                lda     vduv.oldGraphicsCursorPixelsX+0
+                sbc     vduv+0,y
                 sta     vduv.workspace._44
-                lda     $0315
-                sbc     $301,y
+                lda     vduv.oldGraphicsCursorPixelsX+1
+                sbc     vduv+1,y
                 sta     vduv.workspace._45
                 sec
-                lda     $0316
+                lda     vduv.oldGraphicsCursorPixelsY+0
                 sbc     L884D
                 tay
-                lda     $0317
+                lda     vduv.oldGraphicsCursorPixelsY+1
                 sbc     L884E
 
 
@@ -146,8 +151,8 @@ LBAFE:
                 sty     vduv.workspace._42
                 sta     vduv.workspace._47
                 sta     vduv.workspace._43
-                ldx     #$44 
-                ldy     #$40 
+                ldx     #VDUVariables.workspace._44 
+                ldy     #VDUVariables.workspace._40 
                 jmp     mos.LDAE8
 
 
@@ -165,14 +170,14 @@ LBB12:
                 pla
                 stz     L884D
                 stz     L884E
-                ldx     #$29 
-                ldy     #$40 
+                ldx     #VDUVariables.workspace._29 
+                ldy     #VDUVariables.workspace._40 
                 jsr     LBDFA
-                ldx     #$29 
-                ldy     #$44 
+                ldx     #VDUVariables.workspace._29 
+                ldy     #VDUVariables.workspace._44 
                 jsr     mos.copyTwoBytesWithinVDUVariables
-                ldx     #$44 
-                ldy     #$40 
+                ldx     #VDUVariables.workspace._44 
+                ldy     #VDUVariables.workspace._40 
                 jmp     LBA87
 
 
@@ -183,34 +188,34 @@ LBB2F:
 
 
 
-                ldy     #$24 
-                ldx     #$14
-                lda     #$29 
+                ldy     #VDUVariables.graphicsCursorPixelsX
+                ldx     #VDUVariables.oldGraphicsCursorPixelsX
+                lda     #VDUVariables.workspace._29 
                 jsr     mos.LD678
                 stz     vduv.workspace._28
-                ldy     #$22 
-                ldx     #$16
-                lda     #$2e 
+                ldy     #VDUVariables.queueEnd-2
+                ldx     #VDUVariables.oldGraphicsCursorPixelsY
+                lda     #VDUVariables.workspace._2E 
                 jsr     mos.LD678
                 lda     vduv.workspace._2E
                 ora     vduv.workspace._2F
                 beq     LBB12
                 rol     a
                 sta     L8841
-                ldy     #$20 
-                ldx     #$14
-                lda     #$2c 
+                ldy     #VDUVariables.queueEnd-4
+                ldx     #VDUVariables.oldGraphicsCursorPixelsX
+                lda     #VDUVariables.workspace._2C 
                 jsr     mos.LD678
                 stz     vduv.workspace._2B
                 rol     a
                 eor     L8841
                 and     #1
                 sta     L8841
-                ldx     #$28 
-                ldy     #$2e 
+                ldx     #VDUVariables.workspace._28 
+                ldy     #VDUVariables.workspace._2E 
                 jsr     LBD83
-                ldx     #$2b 
-                ldy     #$2e 
+                ldx     #VDUVariables.workspace._2B 
+                ldy     #VDUVariables.workspace._2E 
                 jsr     LBD83
                 lda     L8841
                 beq     LBB86
@@ -219,8 +224,8 @@ LBB2F:
 
 LBB7B:                          
                 lda     #0
-                sbc     $22e,y
-                sta     $22e,y
+                sbc     vduv.workspace._2B-$fd,y
+                sta     vduv.workspace._2B-$fd,y
                 iny
                 bne     LBB7B
 
@@ -233,7 +238,7 @@ LBB86:
 
 LBB94:                          
                 lda     $8840,y
-                sta     $330,y
+                sta     vduv.workspace._30,y
                 dey
                 bpl     LBB94
                 ldx     #$a
@@ -247,33 +252,33 @@ LBB9F:
                 jsr     LBC18
                 stz     L884D
                 stz     L884E
-                ldx     #$3c 
-                ldy     #$36 
+                ldx     #VDUVariables.workspace._3C 
+                ldy     #VDUVariables.workspace._36 
                 jsr     LBDFA
-                ldx     #$3e 
-                ldy     #$34 
+                ldx     #VDUVariables.workspace._3E 
+                ldy     #VDUVariables.workspace._34 
                 jsr     LBDFA
-                ldx     #$3c 
-                ldy     #$3a 
+                ldx     #VDUVariables.workspace._3C 
+                ldy     #VDUVariables.workspace._3A 
                 jsr     mos.LD5D6
                 bpl     LBBD2
                 jsr     mos.copyTwoBytesWithinVDUVariables
-                ldx     #$36 
+                ldx     #VDUVariables.workspace._36 
                 bra     LBBE4
 
 
 LBBD2:                          
-                ldx     #$38 
-                ldy     #$3e 
+                ldx     #VDUVariables.workspace._38 
+                ldy     #VDUVariables.workspace._3E 
                 jsr     mos.LD5D6
                 bpl     rtsBC17
-                ldx     #$34 
-                ldy     #$3a 
+                ldx     #VDUVariables.workspace._34 
+                ldy     #VDUVariables.workspace._3A 
                 jsr     mos.copyTwoBytesWithinVDUVariables
-                ldx     #$3e 
+                ldx     #VDUVariables.workspace._3E 
 
 LBBE4:                          
-                ldy     #$38 
+                ldy     #VDUVariables.workspace._38 
                 jmp     mos.copyTwoBytesWithinVDUVariables
 
 
@@ -284,26 +289,26 @@ LBBE4:
 LBBE9:                          
                                         
                 jsr     LBC18
-                ldy     #$3a 
-                ldx     #$3c 
+                ldy     #VDUVariables.workspace._3A 
+                ldx     #VDUVariables.workspace._3C 
                 jsr     mos.LD5D6
                 bpl     LBC02
-                lda     $033c
-                sta     $033a
-                lda     $033d
-                sta     $033b
+                lda     vduv.workspace._3C
+                sta     vduv.workspace._3A
+                lda     vduv.workspace._3D
+                sta     vduv.workspace._3B
                 rts
 
 
 LBC02:                          
-                ldx     #$38 
-                ldy     #$3e 
+                ldx     #VDUVariables.workspace._38 
+                ldy     #VDUVariables.workspace._3E 
                 jsr     mos.LD5D6
                 bpl     rtsBC17
-                lda     $033e
-                sta     $0338
-                lda     $033f
-                sta     $0339
+                lda     vduv.workspace._3E
+                sta     vduv.workspace._38
+                lda     vduv.workspace._3F
+                sta     vduv.workspace._39
 
 rtsBC17:                            
                 rts
@@ -314,23 +319,23 @@ rtsBC17:
 
 
 LBC18:                          
-                ldx     #$38 
-                ldy     #$34 
+                ldx     #VDUVariables.workspace._38 
+                ldy     #VDUVariables.workspace._34 
                 jsr     mos.copyFourBytesWithinVDUVariables
-                ldx     #$3c 
-                ldy     #$38 
+                ldx     #VDUVariables.workspace._3C 
+                ldy     #VDUVariables.workspace._38 
                 jsr     mos.copyFourBytesWithinVDUVariables
                 sec
-                lda     $0330
+                lda     vduv.workspace._30
                 sbc     L8849
                 sta     L8836
-                lda     $0331
+                lda     vduv.workspace._31
                 sbc     L884A
                 sta     L8837
-                lda     $0332
+                lda     vduv.workspace._32
                 sbc     L884B
                 sta     L8838
-                lda     $0333
+                lda     vduv.workspace._33
                 sbc     L884C
                 sta     L8839
                 stz     L8835
@@ -349,15 +354,15 @@ LBC18:
                 php
                 lda     L8843
                 adc     L8836
-                sta     $033e
+                sta     vduv.workspace._3E
                 lda     L8844
                 adc     L8837
-                sta     $033f
+                sta     vduv.workspace._3F
                 plp
                 bpl     LBC8E
-                inc     $033e
+                inc     vduv.workspace._3E
                 bne     LBC8E
-                inc     $033f
+                inc     vduv.workspace._3F
 
 LBC8E:                          
                 sec
@@ -366,15 +371,15 @@ LBC8E:
                 php
                 lda     L8843
                 sbc     L8836
-                sta     $033c
+                sta     vduv.workspace._3C
                 lda     L8844
                 sbc     L8837
-                sta     $033d
+                sta     vduv.workspace._3D
                 plp
                 bpl     LBCB3
-                inc     $033c
+                inc     vduv.workspace._3C
                 bne     LBCB3
-                inc     $033d
+                inc     vduv.workspace._3D
 
 LBCB3:                          
                 clc
@@ -434,39 +439,39 @@ LBD20:
                 phx
                 phy
                 clc
-                lda     $0314
+                lda     vduv.oldGraphicsCursorPixelsX+0
                 adc     vduv.workspace._42
                 sta     vduv.workspace._44
-                lda     $0315
+                lda     vduv.oldGraphicsCursorPixelsX+1
                 adc     vduv.workspace._43
                 sta     vduv.workspace._45
                 clc
-                lda     $0316
+                lda     vduv.oldGraphicsCursorPixelsY+0
                 adc     L884D
                 sta     vduv.workspace._46
-                lda     $0317
+                lda     vduv.oldGraphicsCursorPixelsY+1
                 adc     L884E
                 sta     vduv.workspace._47
-                ldx     #$44 
+                ldx     #VDUVariables.workspace._44 
                 jsr     mos.LDB4C
                 lda     L884D
                 ora     L884E
                 beq     LBD80
                 sec
-                lda     $0314
+                lda     vduv.oldGraphicsCursorPixelsX+0
                 sbc     vduv.workspace._42
                 sta     vduv.workspace._44
-                lda     $0315
+                lda     vduv.oldGraphicsCursorPixelsX+1
                 sbc     vduv.workspace._43
                 sta     vduv.workspace._45
                 sec
-                lda     $0316
+                lda     vduv.oldGraphicsCursorPixelsY+0
                 sbc     L884D
                 sta     vduv.workspace._46
-                lda     $0317
+                lda     vduv.oldGraphicsCursorPixelsY+1
                 sbc     L884E
                 sta     vduv.workspace._47
-                ldx     #$44 
+                ldx     #VDUVariables.workspace._44 
                 jsr     mos.LDB4C
 
 LBD80:                          
@@ -481,16 +486,16 @@ LBD80:
 
 LBD83:                          
                 phx
-                lda     $300,y
+                lda     vduv+0,y
                 sta     L883F
-                lda     $301,y
+                lda     vduv+1,y
                 sta     L8840
-                ldy     #$18
-                lda     $300,x
+                ldy     #$18 ;not VDUVariables.textCursorXPosition?
+                lda     vduv+0,x
                 sta     L883A
-                lda     $301,x
+                lda     vduv+1,x
                 sta     L883B
-                lda     $302,x
+                lda     vduv+2,x
                 bmi     LBDAF
 
 LBDA3:                          
@@ -529,13 +534,13 @@ LBDDE:
                 plx
                 lda     L883A
                 rol     a
-                sta     $300,x
+                sta     vduv+0,x
                 lda     L883B
                 rol     a
-                sta     $301,x
+                sta     vduv+1,x
                 lda     L883C
                 rol     a
-                sta     $302,x
+                sta     vduv+2,x
                 rts
 
 
@@ -551,11 +556,11 @@ LBDF8:
 LBDFA:                          
                 sec
                 lda     #0
-                sbc     $300,x
-                sta     $300,y
+                sbc     vduv+0,x
+                sta     vduv+0,y
                 lda     #0
-                sbc     $301,x
-                sta     $301,y
+                sbc     vduv+1,x
+                sta     vduv+1,y
                 rts
 
 
@@ -676,21 +681,21 @@ LBEA9:
                 rts
 
 
-
+LBEBE:
                 and     #2
                 sta     vduv.workspace._45
                 jsr     mos.LC951
-                ldx     #$14
+                ldx     #VDUVariables.oldGraphicsCursorPixelsX
                 jsr     mos.LC8E6
-                ldy     #$34 
+                ldy     #VDUVariables.workspace._34 
                 jsr     mos.copyLastFourVDUQueueBytes
                 sty     ZTEMP+0
-                ldx     #$34 
-                ldy     #$2c 
-                lda     #$28 
+                ldx     #VDUVariables.workspace._34 
+                ldy     #VDUVariables.workspace._2C 
+                lda     #VDUVariables.workspace._28 
                 jsr     mos.LD580
-                ldx     #$28 
-                ldy     #$34 
+                ldx     #VDUVariables.workspace._28 
+                ldy     #VDUVariables.workspace._34 
                 jsr     mos.LD5CC
                 phy
                 phx
@@ -711,13 +716,13 @@ LBEF1:
 
 LBEF3:                          
                 pla
-                ldy     #$30 
+                ldy     #VDUVariables.workspace._30 
                 sty     ZTEMP+0
-                ldy     #$28 
+                ldy     #VDUVariables.workspace._28 
                 jsr     mos.LD58D
-                ldy     #$3c 
+                ldy     #VDUVariables.workspace._3C 
                 sty     ZTEMP+0
-                ldy     #$34 
+                ldy     #VDUVariables.workspace._34 
                 jsr     mos.LD58D
                 pla
                 clc
@@ -733,53 +738,53 @@ LBEF3:
 
 LBF18:                          
                 pla
-                ldy     #$40 
+                ldy     #VDUVariables.workspace._40 
                 sty     ZTEMP+0
-                ldy     #$38 
+                ldy     #VDUVariables.workspace._38 
                 jsr     mos.LD58D
                 lda     vduv.workspace._40
-                cmp     $033c
+                cmp     vduv.workspace._3C
                 lda     vduv.workspace._41
-                sbc     $033d
+                sbc     vduv.workspace._3D
                 bpl     LBF40
                 lda     vduv.workspace._45
                 bne     LBF38
                 jsr     mos.LC420
 
 LBF38:                          
-                ldx     #$34 
+                ldx     #VDUVariables.workspace._34 
                 jsr     mos.copyEightBytesToWorkspace28
                 jmp     mos.LC420
 
 
 LBF40:                          
                 stz     vduv.workspace._47
-                lda     $0330
-                and     $0361
+                lda     vduv.workspace._30
+                and     vduv.pixelsPerByteMinusOne
                 sta     ZTEMP+0
-                lda     $033c
-                and     $0361
+                lda     vduv.workspace._3C
+                and     vduv.pixelsPerByteMinusOne
                 sec
                 sbc     ZTEMP+0
                 bpl     LBF5C
                 dec     vduv.workspace._47
-                and     $0361
+                and     vduv.pixelsPerByteMinusOne
 
 LBF5C:                          
                 sta     vduv.workspace._43
                 pha
                 eor     #$ff
                 inc     a
-                and     $0361
+                and     vduv.pixelsPerByteMinusOne
                 sta     vduv.workspace._42
                 pla
                 clc
-                adc     $0361
+                adc     vduv.pixelsPerByteMinusOne
                 tax
-                lda     $e120,x
+                lda     mos.LE120,x
                 sta     ZTEMPD+1
-                ldx     #$3c 
-                ldy     #$40 
+                ldx     #VDUVariables.workspace._3C 
+                ldy     #VDUVariables.workspace._40 
                 jsr     mos.LDA9C
                 sta     vduv.workspace._44
                 lda     ZMASK
@@ -790,9 +795,9 @@ LBF5C:
                 jsr     LBFE6
                 beq     LBFCE
                 lda     vduv.workspace._2A
-                cmp     $0336
+                cmp     vduv.workspace._36
                 lda     vduv.workspace._2B
-                sbc     $0337
+                sbc     vduv.workspace._37
                 bvc     LBF9E
                 eor     #$80
 
@@ -810,11 +815,11 @@ LBFA0:
 
 
 LBFB1:                          
-                ldx     #$2a 
-                ldy     #$2e 
+                ldx     #VDUVariables.workspace._2A 
+                ldy     #VDUVariables.workspace._2E 
                 jsr     mos.exchangeTwoVDUBytes
-                ldx     #$36 
-                ldy     #$3a 
+                ldx     #VDUVariables.workspace._36 
+                ldy     #VDUVariables.workspace._3A 
                 jsr     mos.exchangeTwoVDUBytes
 
 LBFBF:                          
@@ -832,9 +837,9 @@ LBFCE:
 
 
 LBFD1:                          
-                inc     $32a,x
+                inc     vduv.workspace._2A,x
                 bne     LBFE6
-                inc     $32b,x
+                inc     vduv.workspace._2B,x
                 bra     LBFE6
 
 
@@ -843,12 +848,12 @@ LBFD1:
 
 
 LBFDB:                          
-                lda     $32a,x
+                lda     vduv.workspace._2A,x
                 bne     LBFE3
-                dec     $32b,x
+                dec     vduv.workspace._2B,x
 
 LBFE3:                          
-                dec     $32a,x
+                dec     vduv.workspace._2A,x
 
 
 
@@ -856,11 +861,11 @@ LBFE3:
 
 
 LBFE6:                          
-                lda     $32a,x
-                cmp     $32e,x
+                lda     vduv.workspace._2A,x
+                cmp     vduv.workspace._2E,x
                 bne     rtsBFF4
-                lda     $32b,x
-                cmp     $32f,x
+                lda     vduv.workspace._2B,x
+                cmp     vduv.workspace._2F,x
 
 rtsBFF4:                            
                 rts
@@ -876,6 +881,7 @@ rtsBFF4:
                 .byte $ff
                 .byte $ff
                 .byte $ff
-
+                
+                .endblock
                 .endsection
                 

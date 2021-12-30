@@ -1148,7 +1148,8 @@ insertedROMs: .fill 2
                 
 editROMByte: .fill 1
 telecommsByte: .fill 1
-                
+
+                ; TODO - don't need to say "default" so much...
 defaults0: .block
                 .fill 1
 defaultMODEMask=7

@@ -4969,7 +4969,8 @@ rtsDB61:
 
 ;-------------------------------------------------------------------------
 
-                ; unused code???!
+                ; unused code???! - or is this possibly called from
+                ; the ext ROM?
                 
                 ldx #VDUVariables.workspace._2A
                 ldy #VDUVariables.workspace._32
@@ -7032,7 +7033,7 @@ LE565:
 
 LE579:
                 jsr selectTerminalROM        ; E579= 20 90 E5     .e
-                jmp terminal.L8661           ; E57C= 4C 61 86    La.
+                jmp terminal.commandLineUI           ; E57C= 4C 61 86    La.
 
 ;-------------------------------------------------------------------------
 ;
@@ -7458,12 +7459,12 @@ LE7F3:
                 plx                          ; E7F4= FA          z
                 rts                          ; E7F5= 60          `
 
-LE7F6:
+starLIBFS:
                 lda hazel.activeFS
                 sta hazel.libFS
                 rts                          ; E7FC= 60          `
 
-LE7FD:
+starX:
                 sta TUBE+8                   ; E7FD= 8D E8 FE    .h~
 LE800:
                 bra LE800                    ; E800= 80 FE       .~
@@ -8281,7 +8282,7 @@ osbyte7E:                       ;ec3c
                 cli                          ; EC47= 58          X
                 stz pagedModeCounter                    ; EC48= 9C 69 02    .i.
                 jsr withTerminalROM          ; EC4B= 20 84 F3     .s
-                jsr terminal.LA591           ; EC4E= 20 91 A5     .%
+                jsr terminal.starEXEC        ; EC4E= 20 91 A5     .%
                 jsr LE947                    ; EC51= 20 47 E9     Gi
 LEC54:
                 ldx #$FF                     ; EC54= A2 FF       ".
@@ -9870,18 +9871,20 @@ skipSpacesAndCheckForCRInStringInput:
                 lda (stringInputBufferAddress),y 
                 cmp #' '             
                 beq incAndSkipSpaces   
-LF305:
+checkForCR:
                 cmp #13         
                 rts          
 
+;-------------------------------------------------------------------------
+
 LF308:
-                bcc skipSpacesAndCheckForCRInStringInput                    ; F308= 90 F5       .u
+                bcc skipSpacesAndCheckForCRInStringInput
 LF30A:
-                jsr skipSpacesAndCheckForCRInStringInput                    ; F30A= 20 FF F2     .r
-                cmp #$2C                     ; F30D= C9 2C       I,
-                bne LF305                    ; F30F= D0 F4       Pt
-                iny                          ; F311= C8          H
-                rts                          ; F312= 60          `
+                jsr skipSpacesAndCheckForCRInStringInput
+                cmp #','
+                bne checkForCR
+                iny
+                rts
 
 ;-------------------------------------------------------------------------
 ;

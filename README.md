@@ -106,3 +106,33 @@ image.
 I don't currently plan on doing a full disassembly of the entire
 MegaROM, but I do plan to at least improve the build process so that
 the output is a bit-identical 128 KB MOS 3.20 MegaROM image.
+
+# the other MOS 3.20 parts
+
+## BASIC
+
+Original code: https://github.com/stardot/AcornCmosBasic
+
+Commented disassembly: http://8bs.com/basic/basic4.htm
+
+## ADFS
+
+https://github.com/hoglet67/ADFS/blob/master/src/adfs150.asm
+
+## DFS
+
+Nobody appears to have disassembled this version of DFS.
+
+## Edit
+
+https://github.com/SteveFosdick/edit4/blob/master/edit110.asm
+
+## View
+
+Nobody appears to have disassembled View.
+
+There's 1.5 KB of MOS code at the end, which is included in this repo.
+
+## ViewSheet
+
+Nobody appears to have disassembled ViewSheet.

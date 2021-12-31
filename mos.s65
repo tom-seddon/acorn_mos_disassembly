@@ -308,7 +308,7 @@ vdu2EntryPoint:
 vdu3EntryPoint:
                 pha                          ;
                 jsr reinstateCursorEditing
-                jsr LE93A
+                jsr callPrinterDriverWithPrinterBuffer
                 lda #STATE.isPrinterEnabled  ;
                 tsb STATE                      ; C0F3= 04 D0       .P
                 pla                          ; C0F5= 68          h
@@ -2851,7 +2851,7 @@ setCRTCRegister:
                 bne +        ;taken if not setting R7
 
                 ; Setting R7 (vsync position), so apply the *TV offset.
-                adc $0290
+                adc tvOffset
 +
                 cpy #$08
                 bne +                    ;taken if not setting R8
@@ -2861,7 +2861,7 @@ setCRTCRegister:
                 ora #$00
                 bmi +       ;branch taken if bit 7 set - this is taken
                             ;to imply the mode being set is Mode 7
-                eor $0291 ;apply *TV interlace setting
+                eor tvInterlace ;apply *TV interlace setting
 +
                 cpy #$0A                     ; CF15= C0 0A       @.
                 bne setCRTCRegisterRaw
@@ -5816,14 +5816,22 @@ LDFF4:
                 jsr ext.LBA67                    ; DFF9= 20 67 BA     g:
                 bra LDFF1                    ; DFFC= 80 F3       .s
 
-                .text 0,0,13
-                .text "Acorn MOS",0,7
+                .text 0,0
+startupMessages: .block
+acornMOS:
+                .text 13
+                .text "Acorn MOS",0
+beep:
+                .byte 7
                 .byte 0,0,0,0   ;space for "xxK"
-                
-                php                          ; E010= 08          .
-;ORA &000D        :\ E011= 0D 0D 00    ...
+
+twoNewlines:
+                .byte 8
                 .byte $0D
                 .byte $0D
+                ; terminating 0 comes from following table!
+                .cerror *!=LE013,"startupMessages needs a terminating 0"
+                .endblock
 LE013:
                 .byte %00000000;$00
                 .byte %00010001;$11
@@ -6580,9 +6588,9 @@ testVDU5State:
 ; ====================
 defaultVectorTable: .block
                 .word badCommandError ; USERV=$200
-                .word LE565 ; BRKV=$202
-                .word LE5FF ; IRQ1V=$204
-                .word LE60C ; IRQ2V=$206
+                .word defaultBRKHandler ; BRKV=$202
+                .word irq1EntryPoint ; IRQ1V=$204
+                .word irq2EntryPoint ; IRQ2V=$206
                 .word oscliEntryPoint ; CLIV=$208
                 .word osbyteEntryPoint ; BYTEV=$20a
                 .word oswordEntryPoint ; WORDV=$20c
@@ -6837,7 +6845,7 @@ isROMValid: .proc ;e3f7
                 clc             ; assume no match
 -
                 lda $8000,y     ; fetch possible ROM copyright char
-                eor LE513,x     ; Z=1 if it matches "\x0(C)"
+                eor sidewaysROMCopyrightPrefix,x     ; Z=1 if it matches "\x0(C)"
                 bne +           ; branch taken if no match
                 iny             ; next copyright byte
                 dex             ; count 4 chars
@@ -6924,14 +6932,16 @@ LE47F:
                 inc $0267                    ; E491= EE 67 02    ng.
                 bra LE4A3                    ; E494= 80 0D       ..
 
+;-------------------------------------------------------------------------
+
 LE496:
-                inc $0267                    ; E496= EE 67 02    ng.
+                inc startupMessageSuppressionStatus ;set bit 0
 LE499:
-                sec                          ; E499= 38          8
+                sec
                 ror hazel.currentFS
-                lda #$00                     ; E49D= A9 00       ).
-                tax                          ; E49F= AA          *
-                jsr LEDC2                    ; E4A0= 20 C2 ED     Bm
+                lda #$00
+                tax
+                jsr selectROMOrTAPE                    ; E4A0= 20 C2 ED     Bm
 LE4A3:
                 lda #$05                     ;
                 ldx $0285                    ; *FX5,<current printer>
@@ -6949,90 +6959,114 @@ LE4BB:
                 tax
 LE4C2:
                 clc
-osbyte8E: ;LE4C3:
-                bit $02A1,x                  ; b6=0, error Not a language
-                bvc LE516
-                php                          ; E4C8= 08          .
-                bcc LE4E1                    ; E4C9= 90 16       ..
-                jsr selectROMX                    ; E4CB= 20 81 E5     .e
-                lda $8006                    ; E4CE= AD 06 80    -..
-                and #$0D                     ; E4D1= 29 0D       ).
-                beq LE4DA                    ; E4D3= F0 05       p.
-                bit $027A                    ; E4D5= 2C 7A 02    ,z.
-                bpl LE52E                    ; E4D8= 10 54       .T
-LE4DA:
-                phx                          ; E4DA= DA          Z
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 142 (&8E) Enter language ROM [MasRef D.2-44]
+; 
+osbyte8E:
+                bit romInformationTable,x ; b6=0, error Not a language
+                bvc thisIsNotALanguageError
+                php
+                bcc LE4E1 ;taken if not OSBYTE 142 - so skip ROM check
+                jsr selectROMX
+                lda sidewaysROMType
+                and #%00001101
+                beq is6502ROM ;taken if low nybble is 0 (6502 BASIC) or 2 (other 6502 ROM)
+                bit tubePresence
+                bpl iCannotRunThisCodeError  ;taken if no Tube - assume impossible to run
+is6502ROM:
+                phx                          ;save ROM slot
                 ldx #romServiceCallLanguageChange
                 jsr makeROMServiceCall
-                plx                          ; E4E0= FA          z
+                plx                          ;restore ROM slot
 LE4E1:
-                stx $028C                    ; E4E1= 8E 8C 02    ...
-                jsr selectROMX                    ; E4E4= 20 81 E5     .e
-                lda #$80                     ; E4E7= A9 80       ).
-                ldy #$08                     ; E4E9= A0 08        .
-                jsr LE7A3                    ; E4EB= 20 A3 E7     #g
-                sty $FD                      ; E4EE= 84 FD       .}
-                jsr OSNEWL                   ; E4F0= 20 E7 FF     g.
-                jsr OSNEWL                   ; E4F3= 20 E7 FF     g.
-                plp                          ; E4F6= 28          (
-                lda #$01                     ; E4F7= A9 01       ).
-                bit $027A                    ; E4F9= 2C 7A 02    ,z.
-                bmi LE510                    ; E4FC= 30 12       0.
-                lda $8006                    ; E4FE= AD 06 80    -..
-                and #$0D                     ; E501= 29 0D       ).
-                bne LE52E                    ; E503= D0 29       P)
-                inc a                        ; E505= 1A          .
-                jmp $8000                    ; E506= 4C 00 80    L..
+                stx currentLanguageROM
+                jsr selectROMX
+                lda #>sidewaysROMName
+                ldy #(<sidewaysROMName)-1
+                jsr print0TerminatedString
+                sty errPtr+0
+                jsr OSNEWL
+                jsr OSNEWL
+                plp
+                lda #$01
+                bit tubePresence
+                bmi copyLanguageOverTube     ;taken if Tube is present
+                lda sidewaysROMType
+                and #%00001101
+                bne iCannotRunThisCodeError ;taken if low nybble isn't 0 (6502 BASIC) or 2 (other 6502 ROM)
+                inc a                       ;
+                jmp sidewaysROMLanguageEntry
 
 LE509:
-                lda #$00                     ; E509= A9 00       ).
-                bit $027A                    ; E50B= 2C 7A 02    ,z.
-                bpl LE579                    ; E50E= 10 69       .i
-LE510:
+                lda #$00
+                bit tubePresence
+                bpl startCommandLineUI
+copyLanguageOverTube:
                 jmp terminal.tubeHost.copyLanguage
 
-LE513:
+;-------------------------------------------------------------------------
+
+sidewaysROMCopyrightPrefix: .block
                 .text ")C("
-LE516:
-                brk                          ; E516= 00          .
+end:
+                .endblock
+
+;-------------------------------------------------------------------------
+
+thisIsNotALanguageError:
+                brk
                 .text 0,"This is not a language"
-LE52E:
+
+;-------------------------------------------------------------------------
+
+iCannotRunThisCodeError:
                 brk
                 .text 0,"I cannot run this code",0
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 164 (&A4) Check processor type [MasRef D.2-50]
+; 
 osbyteA4:
-                ldx #$03                     ; E547= A2 03       ".
-                ldy #$07                     ; E549= A0 07        .
-                lda ($F0),y                  ; E54B= B1 F0       1p
-                tay                          ; E54D= A8          (
-LE54E:
-                lda ($F0),y                  ; E54E= B1 F0       1p
-                cmp LE513,x                  ; E550= DD 13 E5    ].e
-                bne LE564                    ; E553= D0 0F       P.
-                iny                          ; E555= C8          H
-                dex                          ; E556= CA          J
-                bpl LE54E                    ; E557= 10 F5       .u
-                ldy #$06                     ; E559= A0 06        .
-                lda ($F0),y                  ; E55B= B1 F0       1p
-                asl a                        ; E55D= 0A          .
-                bpl LE516                    ; E55E= 10 B6       .6
-                and #$1A                     ; E560= 29 1A       ).
-                bne LE52E                    ; E562= D0 CA       PJ
-LE564:
+                ldx #sidewaysROMCopyrightPrefix.end-sidewaysROMCopyrightPrefix
+                ldy #<sidewaysROMCopyrightOffset
+                lda (originalX),y
+                tay
+-
+                lda (originalX),y
+                cmp sidewaysROMCopyrightPrefix,x
+                bne rtsE564 ;taken if (C) not found - must be OK, if it's not a ROM?
+                iny
+                dex
+                bpl -
+                ldy #<sidewaysROMType
+                lda (originalX),y
+                asl a
+                bpl thisIsNotALanguageError ;taken if no language entry point
+                and #%00001101<<1
+                bne iCannotRunThisCodeError ;taken if low nybble wasn't 0 (6502 BASIC) or 2 (other 6502 ROM)
+rtsE564:
                 rts                          ; E564= 60          `
 
-LE565:
-                ldy #$00                     ; E565= A0 00        .
-                jsr LE7A7                    ; E567= 20 A7 E7     'g
-                jsr OSNEWL                   ; E56A= 20 E7 FF     g.
-                lda $0267                    ; E56D= AD 67 02    -g.
-                ror a                        ; E570= 6A          j
-                bcs LE579                    ; E571= B0 06       0.
-                jsr OSNEWL                   ; E573= 20 E7 FF     g.
-                jmp LE496                    ; E576= 4C 96 E4    L.d
+;-------------------------------------------------------------------------
 
-LE579:
-                jsr selectTerminalROM        ; E579= 20 90 E5     .e
-                jmp terminal.commandLineUI           ; E57C= 4C 61 86    La.
+defaultBRKHandler:
+                ldy #$00
+                jsr printBRKMessage
+                jsr OSNEWL
+                lda startupMessageSuppressionStatus
+                ror a
+                bcs startCommandLineUI                   ;taken if bit 0 was set
+                jsr OSNEWL
+                jmp LE496
+
+;-------------------------------------------------------------------------
+
+startCommandLineUI:
+                jsr selectTerminalROM
+                jmp terminal.commandLineUI
 
 ;-------------------------------------------------------------------------
 ;
@@ -7103,35 +7137,37 @@ selectTerminalROMAndANDY2:
 ;-------------------------------------------------------------------------
 
 irqEntryPoint:
-                sta $FC                      ; E59E= 85 FC       .|
-                pla                          ; E5A0= 68          h
-                pha                          ; E5A1= 48          H
-                and #$10                     ; E5A2= 29 10       ).
-                bne LE5A9                    ; E5A4= D0 03       P.
-                jmp (IRQ1V)                  ; E5A6= 6C 04 02    l..
+                sta irqTempA
+                pla                          ;restore P
+                pha                          ;save P
+                and #$10
+                bne brkEntryPoint
+                jmp (IRQ1V)
 
-LE5A9:
-                phx                          ; E5A9= DA          Z
-                tsx                          ; E5AA= BA          :
-                lda $0103,x                  ; E5AB= BD 03 01    =..
-                cld                          ; E5AE= D8          X
-                sec                          ; E5AF= 38          8
-                sbc #$01                     ; E5B0= E9 01       i.
-                sta $FD                      ; E5B2= 85 FD       .}
-                lda $0104,x                  ; E5B4= BD 04 01    =..
-                sbc #$00                     ; E5B7= E9 00       i.
-                sta $FE                      ; E5B9= 85 FE       .~
-                lda $F4                      ; E5BB= A5 F4       %t
-                sta $024A                    ; E5BD= 8D 4A 02    .J.
-                stx $F0                      ; E5C0= 86 F0       .p
+brkEntryPoint:
+                phx
+                tsx
+                lda $0103,x                  ;get BRK address+1 LSB
+                cld                          ;
+                sec                          ;
+                sbc #$01                     ;get BRK address LSB
+                sta errPtr+0
+                lda $0104,x                  ;get BRK address+1 MSB
+                sbc #$00                     ;get BRK address MSB
+                sta errPtr+1
+                lda $F4                      
+                sta romActiveAtLastBRK
+                stx originalX                    
                 ldx #romServiceCallBreakInstruction
                 jsr makeROMServiceCall
-                ldx $028C                    ; E5C7= AE 8C 02    ...
-                jsr selectROMX                    ; E5CA= 20 81 E5     .e
-                plx                          ; E5CD= FA          z
-                lda $FC                      ; E5CE= A5 FC       %|
-                cli                          ; E5D0= 58          X
-                jmp (BRKV)                  ; E5D1= 6C 02 02    l..
+                ldx currentLanguageROM
+                jsr selectROMX
+                plx
+                lda irqTempA
+                cli
+                jmp (BRKV)
+
+;-------------------------------------------------------------------------
 
 LE5D4:
                 sec                          ; E5D4= 38          8
@@ -7159,31 +7195,37 @@ LE5E9:
 LE5FE:
                 rts                          ; E5FE= 60          `
 
-LE5FF:
-                lda $FC                      ; E5FF= A5 FC       %|
-                pha                          ; E601= 48          H
-                phx                          ; E602= DA          Z
-                phy                          ; E603= 5A          Z
-                clv                          ; E604= B8          8
-                jsr LE60F                    ; E605= 20 0F E6     .f
-                ply                          ; E608= 7A          z
-                plx                          ; E609= FA          z
-                pla                          ; E60A= 68          h
-                rti                          ; E60B= 40          @
+;-------------------------------------------------------------------------
 
-LE60C:
-                lda $FC                      ; E60C= A5 FC       %|
-                rti                          ; E60E= 40          @
+irq1EntryPoint:
+                lda irqTempA
+                pha
+                phx
+                phy
+                clv
+                jsr irq1Handler
+                ply
+                plx
+                pla
+                rti
 
-LE60F:
+;-------------------------------------------------------------------------
+
+irq2EntryPoint:
+                lda irqTempA
+                rti
+
+;-------------------------------------------------------------------------
+
+irq1Handler:
                 lda ACIA+0                    ; E60F= AD 08 FE    -.~
                 bvs LE616                    ; E612= 70 02       p.
-                bpl LE672                    ; E614= 10 5C       .\
+                bpl checkForSystemVIAInterrupt
 LE616:
                 ldx $EA                      ; E616= A6 EA       &j
                 dex                          ; E618= CA          J
                 bmi LE64E                    ; E619= 30 33       03
-                bvs LE64D                    ; E61B= 70 30       p0
+                bvs rtsE64D                    ; E61B= 70 30       p0
                 jsr withTerminalROM          ; E61D= 20 84 F3     .s
                 jmp terminal.LA45D           ; E620= 4C 5D A4    L]$
 
@@ -7201,7 +7243,7 @@ LE62F:
                 ldx #$02                     ; E62F= A2 02       ".
                 jsr osbyte91                    ; E631= 20 F4 E9     ti
                 bcc LE646                    ; E634= 90 10       ..
-                lda $0285                    ; E636= AD 85 02    -..
+                lda printerDriverType
                 cmp #$02                     ; E639= C9 02       I.
                 bne LE5D4                    ; E63B= D0 97       P.
                 inx                          ; E63D= E8          h
@@ -7212,113 +7254,127 @@ LE646:
                 sta ACIA+1                    ; E646= 8D 09 FE    ..~
                 lda #$E7                     ; E649= A9 E7       )g
                 sta $EA                      ; E64B= 85 EA       .j
-LE64D:
+rtsE64D:
                 rts                          ; E64D= 60          `
 
 LE64E:
-                and $0278                    ; E64E= 2D 78 02    -x.
+                and rs423InterruptMask
                 lsr a                        ; E651= 4A          J
                 bcc LE65B                    ; E652= 90 07       ..
                 bvs LE65B                    ; E654= 70 05       p.
-                ldy $0250                    ; E656= AC 50 02    ,P.
+                ldy aciaControlRegister
                 bmi LE5E9                    ; E659= 30 8E       0.
 LE65B:
                 lsr a                        ; E65B= 4A          J
                 ror a                        ; E65C= 6A          j
                 bcs LE623                    ; E65D= B0 C4       0D
                 bmi LE62F                    ; E65F= 30 CE       0N
-                bvs LE64D                    ; E661= 70 EA       pj
-LE663:
+                bvs rtsE64D                    ; E661= 70 EA       pj
+                
+handleUnrecogisedInterrupt:
                 ldx #romServiceCallUnrecognisedInterrupt
                 jsr makeROMServiceCall
-                beq LE64D                    ; E668= F0 E3       pc
-                pla                          ; E66A= 68          h
-                pla                          ; E66B= 68          h
-                ply                          ; E66C= 7A          z
-                plx                          ; E66D= FA          z
-                pla                          ; E66E= 68          h
-                jmp (IRQ2V)                  ; E66F= 6C 06 02    l..
+                beq rtsE64D                  ;taken if handled
 
-LE672:
+                ; Pass unrecognised, unhandled interrupts to IRQ2V.
+                pla                          
+                pla                          
+                ply                          
+                plx                          
+                pla                          
+                jmp (IRQ2V)                  
+
+;-------------------------------------------------------------------------
+
+checkForSystemVIAInterrupt:
                 lda systemVIA.ifr            ; E672= AD 4D FE    -M~
-                bpl LE6B3                    ; E675= 10 3C       .<
-                and $0279                    ; E677= 2D 79 02    -y.
-                and systemVIA.ier            ; E67A= 2D 4E FE    -N~
-                bit #$02                     ; E67D= 89 02       ..
-                beq LE6D5                    ; E67F= F0 54       pT
-                dec $0240                    ; E681= CE 40 02    N@.
+                bpl checkForUserVIAInterrupt
+                and systemVIAInterruptMask
+                and systemVIA.ier
+                bit #VIA.irq.ca1
+                beq checkForSystemVIAT1Interrupt
+
+                ; Handle CA1 interrupt - CRTC vsync.
+                
+                dec cfsTimeoutCounter
                 lda $EA                      ; E684= A5 EA       %j
-                bpl LE68A                    ; E686= 10 02       ..
+                bpl +
                 inc $EA                      ; E688= E6 EA       fj
-LE68A:
-                lda $0251                    ; E68A= AD 51 02    -Q.
-                beq LE6A9                    ; E68D= F0 1A       p.
-                dec $0251                    ; E68F= CE 51 02    NQ.
-                bne LE6A9                    ; E692= D0 15       P.
-                ldx $0252                    ; E694= AE 52 02    .R.
-                lda $0248                    ; E697= AD 48 02    -H.
-                lsr a                        ; E69A= 4A          J
-                bcc LE6A0                    ; E69B= 90 03       ..
-                ldx $0253                    ; E69D= AE 53 02    .S.
-LE6A0:
-                rol a                        ; E6A0= 2A          *
-                eor #$01                     ; E6A1= 49 01       I.
-                jsr setVCONTROL                    ; E6A3= 20 50 F2     Pr
-                stx $0251                    ; E6A6= 8E 51 02    .Q.
-LE6A9:
-                ldy #$04                     ; E6A9= A0 04        .
-                jsr eventEntryPoint                    ; E6AB= 20 28 EA     (j
-                lda #$02                     ; E6AE= A9 02       ).
-                jmp LE78A                    ; E6B0= 4C 8A E7    L.g
++
+                lda flashCounter
+                beq flashDone                    ;taken if no flash
+                dec flashCounter             ;count down
+                bne flashDone
+                ldx firstFlashColourDuration ;assume first flash colour is next
+                lda vcontrolRegister
+                lsr a                        ;C=flash bit
+                bcc +                        ;taken if first flash colour is next
+                ldx secondFlashColourDuration ;actually, second flash colour is next
++
+                rol a                        ;reinstate old register value
+                eor #VCONTROL.flash          ;toggle flash bit
+                jsr setVCONTROL                   
+                stx flashCounter
+flashDone:
+                ldy #eventStartOfVerticalSync
+                jsr eventEntryPoint
+                lda #VIA.irq.ca1
+                jmp staSystemVIAIFR          ;acknowledge CA1
 
-LE6B3:
-                lda userVIA.ifr              ; E6B3= AD 6D FE    -m~
-                bpl LE663                    ; E6B6= 10 AB       .+
-                and $0277                    ; E6B8= 2D 77 02    -w.
-                and userVIA.ier              ; E6BB= 2D 6E FE    -n~
-                ror a                        ; E6BE= 6A          j
-                ror a                        ; E6BF= 6A          j
-                bcc LE663                    ; E6C0= 90 A1       .!
-                ldy $0285                    ; E6C2= AC 85 02    ,..
-                dey                          ; E6C5= 88          .
-                bne LE663                    ; E6C6= D0 9B       P.
-                lda #$02                     ; E6C8= A9 02       ).
-                sta userVIA.ifr              ; E6CA= 8D 6D FE    .m~
-                sta userVIA.ier              ; E6CD= 8D 6E FE    .n~
-                ldx #$03                     ; E6D0= A2 03       ".
-                jmp LE8D5                    ; E6D2= 4C D5 E8    LUh
+checkForUserVIAInterrupt:
+                lda userVIA.ifr
+                bpl handleUnrecogisedInterrupt
+                and userVIAInterruptMask
+                and userVIA.ier              
+                ror a                        ;C=CA2
+                ror a                        ;C=CA1
+                bcc handleUnrecogisedInterrupt
+                ldy printerDriverType
+                dey                          
+                bne handleUnrecogisedInterrupt ;taken if printerDriverType not 1
+                lda #VIA.irq.ca1
+                sta userVIA.ifr              ;acknowledge CA1
+                sta userVIA.ier              ;inhibit CA1
+                ldx #bufferPrinter
+                jmp LE8D5
 
-LE6D5:
-                bit #$40                     ; E6D5= 89 40       .@
-                beq LE74E                    ; E6D7= F0 75       pu
-                lda #$40                     ; E6D9= A9 40       )@
-                sta systemVIA.ifr            ; E6DB= 8D 4D FE    .M~
-                lda $0283                    ; E6DE= AD 83 02    -..
-                tax                          ; E6E1= AA          *
-                eor #$0F                     ; E6E2= 49 0F       I.
-                pha                          ; E6E4= 48          H
-                tay                          ; E6E5= A8          (
-                sec                          ; E6E6= 38          8
-LE6E7:
-                lda $0291,x                  ; E6E7= BD 91 02    =..
-                adc #$00                     ; E6EA= 69 00       i.
-                sta $0291,y                  ; E6EC= 99 91 02    ...
-                dex                          ; E6EF= CA          J
-                beq LE6F5                    ; E6F0= F0 03       p.
-                dey                          ; E6F2= 88          .
-                bne LE6E7                    ; E6F3= D0 F2       Pr
-LE6F5:
-                pla                          ; E6F5= 68          h
-                sta $0283                    ; E6F6= 8D 83 02    ...
-                ldx #$05                     ; E6F9= A2 05       ".
-LE6FB:
-                inc $029B,x                  ; E6FB= FE 9B 02    ~..
-                bne LE708                    ; E6FE= D0 08       P.
-                dex                          ; E700= CA          J
-                bne LE6FB                    ; E701= D0 F8       Px
-                ldy #$05                     ; E703= A0 05        .
-                jsr eventEntryPoint                    ; E705= 20 28 EA     (j
-LE708:
+checkForSystemVIAT1Interrupt:
+                bit #VIA.irq.t1
+                beq checkForSystemVIACB1Interrupt
+
+                ; Handle T1 interrupt - 100 Hz timer.
+                
+                lda #VIA.irq.t1
+                sta systemVIA.ifr            ;acknowledge T1 interrupt
+                lda timerSwitchState         
+                tax                          ;X=old timerSwitchState
+                eor #$0F                     
+                pha                          ;save new timerSwitchState
+                tay                          ;Y=new timerSwitchState
+                sec                          ;C=1 - increment
+updateTIMELoop:
+                lda timer0-1,x
+                adc #$00
+                sta timer0-1,y
+
+                ; one of X or Y will get to 0 to indicate the end of
+                ; the loop.
+                dex
+                beq updateTIMEDone
+                dey
+                bne updateTIMELoop
+updateTIMEDone:
+                pla                          ;restore new timerSwitchState
+                sta timerSwitchState
+                ldx #$05
+incrementIntervalTimer:
+                inc intervalTimer-1,x
+                bne intervalTimerDone
+                dex
+                bne incrementIntervalTimer
+                ldy #eventIntervalTimerCrossingZero
+                jsr eventEntryPoint
+intervalTimerDone:
                 lda $02B1                    ; E708= AD B1 02    -1.
                 bne LE715                    ; E70B= D0 08       P.
                 lda $02B2                    ; E70D= AD B2 02    -2.
@@ -7331,91 +7387,134 @@ LE718:
                 bpl LE728                    ; E71B= 10 0B       ..
                 inc $02CD                    ; E71D= EE CD 02    nM.
                 cli                          ; E720= 58          X
-                jsr LF416                    ; E721= 20 16 F4     .t
+                jsr LF416                    ;update sound???
                 sei                          ; E724= 78          x
                 dec $02CD                    ; E725= CE CD 02    NM.
 LE728:
-                bit valueFF                    ; E728= 2C 4E E3    ,Nc
-                jsr LE60F                    ; E72B= 20 0F E6     .f
+                bit valueFF                  ;V=1
+                jsr irq1Handler
                 lda $EC                      ; E72E= A5 EC       %l
                 ora $ED                      ; E730= 05 ED       .m
-                and $0242                    ; E732= 2D 42 02    -B.
-                beq LE73B                    ; E735= F0 04       p.
+                and keyboardSemaphore
+                beq +
                 sec                          ; E737= 38          8
                 jsr LF8FF                    ; E738= 20 FF F8     .x
-LE73B:
-                jsr LE933                    ; E73B= 20 33 E9     3i
-                ldy $0243                    ; E73E= AC 43 02    ,C.
-                beq LE748                    ; E741= F0 05       p.
++
+                jsr pollPrinterDriver
+                ldy romPollingSemaphore
+                beq +
                 ldx #romServiceCallPollingInterrupt
                 jsr makeROMServiceCall
-LE748:
++
                 bit HADC+0                   ; E748= 2C 18 FE    ,.~
                 bvs LE752                    ; E74B= 70 05       p.
                 rts                          ; E74D= 60          `
 
-LE74E:
-                bit #$10                     ; E74E= 89 10       ..
-                beq LE78E                    ; E750= F0 3C       p<
-LE752:
-                ldx $024C                    ; E752= AE 4C 02    .L.
-                beq LE788                    ; E755= F0 31       p1
-                lda HADC+2                   ; E757= AD 1A FE    -.~
-                sta $02B5,x                  ; E75A= 9D B5 02    .5.
-                lda HADC+1                   ; E75D= AD 19 FE    -.~
-                sta $02B9,x                  ; E760= 9D B9 02    .9.
-                stx $02BE                    ; E763= 8E BE 02    .>.
-                ldy #$03                     ; E766= A0 03        .
-                jsr eventEntryPoint                    ; E768= 20 28 EA     (j
-                dex                          ; E76B= CA          J
-                bne LE771                    ; E76C= D0 03       P.
-                ldx $024D                    ; E76E= AE 4D 02    .M.
-LE771:
-                cpx #$05                     ; E771= E0 05       `.
-                bcc LE777                    ; E773= 90 02       ..
-                ldx #$04                     ; E775= A2 04       ".
-LE777:
-                stx $024C                    ; E777= 8E 4C 02    .L.
-                lda $024E                    ; E77A= AD 4E 02    -N.
-                dec a                        ; E77D= 3A          :
-                and #$08                     ; E77E= 29 08       ).
-                clc                          ; E780= 18          .
-                adc $024C                    ; E781= 6D 4C 02    mL.
-                dec a                        ; E784= 3A          :
-                sta HADC+0                   ; E785= 8D 18 FE    ..~
-LE788:
-                lda #$10                     ; E788= A9 10       ).
-LE78A:
-                sta systemVIA.ifr            ; E78A= 8D 4D FE    .M~
-                rts                          ; E78D= 60          `
+checkForSystemVIACB1Interrupt:
+                bit #VIA.irq.cb1
+                beq checkForSystemVIACA2Interrupt
 
-LE78E:
-                lsr a                        ; E78E= 4A          J
-                bcc LE799                    ; E78F= 90 08       ..
+                ; Handle CB1 interrupt - ADC conversion complete.
+LE752:
+                ldx currentADCChannel
+                beq acknowledgeSystemVIACB1Interrupt
+                lda HADC+2           
+                sta adcResultLSBs-1,x
+                lda HADC+1           
+                sta adcResultMSBs-1,x
+                stx adcLastConvertedChannel
+                ldy #eventADCConversionComplete
+                jsr eventEntryPoint
+                dex                          ;next ADC channel
+                bne initiateADCConversion
+                ldx maximumADCChannel
+initiateADCConversion:
+                cpx #$05
+                bcc +
+                ldx #$04                     ;clamp ADC channel
++
+                stx currentADCChannel
+                lda adcConversionType
+                dec a            ;$FF=default, $07=8 bits, $0b=12 bits
+                and #$08         ;8=12 bits, 0=8 bits
+                clc
+                adc currentADCChannel        ;mix in ADC channel, 1-4
+                dec a ;convert to hardware ADC channel, 0-3 (no risk of borrow)
+                sta HADC+0                   ;initiate conversion
+acknowledgeSystemVIACB1Interrupt:
+                lda #$10
+staSystemVIAIFR:
+                sta systemVIA.ifr
+                rts
+
+checkForSystemVIACA2Interrupt:
+                lsr a                        ;C = CA2
+                bcc handleUnrecognisedInterruptE799
+
+                ; Handle CA2 interrupt - keyboard.
+                
                 clc                          ; E791= 18          .
                 jsr LF8FF                    ; E792= 20 FF F8     .x
-                lda #$01                     ; E795= A9 01       ).
-                bra LE78A                    ; E797= 80 F1       .q
+                lda #VIA.irq.ca2
+                bra staSystemVIAIFR
 
-LE799:
-                jmp LE663                    ; E799= 4C 63 E6    Lcf
+handleUnrecognisedInterruptE799:
+                jmp handleUnrecogisedInterrupt
 
-osbyte11:                       ;e79c
-                sty $02BE                    ; E79C= 8C BE 02    .>.
-                bra LE771                    ; E79F= 80 D0       .P
+;-------------------------------------------------------------------------
+;
+; OSBYTE 17 (&11) Write next ADC channel to be sampled [MasRef D.2-25]
+; 
+osbyte11:
+                sty adcLastConvertedChannel
+                bra initiateADCConversion
 
-LE7A1:
-                lda #$E0                     ; E7A1= A9 E0       )`
-LE7A3:
-                sta $FE                      ; E7A3= 85 FE       .~
-                stz $FD                      ; E7A5= 64 FD       d}
-LE7A7:
-                iny                          ; E7A7= C8          H
-                lda ($FD),y                  ; E7A8= B1 FD       1}
-                jsr OSASCI                   ; E7AA= 20 E3 FF     c.
-                tax                          ; E7AD= AA          *
-                bne LE7A7                    ; E7AE= D0 F7       Pw
-                rts                          ; E7B0= 60          `
+;-------------------------------------------------------------------------
+;
+; Print a 0-terminated string at some offset from startupMessages.
+;
+; entry:
+;
+; Y = offset-1 of message
+;
+printStartupMessage:
+                lda #>startupMessages
+                .cerror (<startupMessages)!=0,"startupMessages must be page-aligned" ;it's more flexible than this, but this'll do for now
+
+;-------------------------------------------------------------------------
+;
+; Print a 0-terminated string.
+;
+; entry:
+;
+; A = address MSB
+;
+; Y = (address LSB)-1
+;
+print0TerminatedString:
+                sta errPtr+1
+                stz errPtr+0
+
+;-------------------------------------------------------------------------
+;
+; Print the BRK message.
+;
+; entry:
+;
+; (errPtr) = pointer to the error number (as will be the case after a
+; BRK)
+;
+; Y=0
+;
+printBRKMessage:
+                iny
+                lda (errPtr),y
+                jsr OSASCI
+                tax       
+                bne printBRKMessage
+                rts       
+
+;-------------------------------------------------------------------------
 
 LE7B1:
                 stx $02B1                    ; E7B1= 8E B1 02    .1.
@@ -7423,6 +7522,8 @@ LE7B1:
                 ror $E6                      ; E7B7= 66 E6       ff
                 cli                          ; E7B9= 58          X
                 bra LE7BE                    ; E7BA= 80 02       ..
+
+;-------------------------------------------------------------------------
 
 osrdchEntryPoint:
                 stz $E6                      ; E7BC= 64 E6       df
@@ -7458,10 +7559,14 @@ LE7F3:
                 plx                          ; E7F4= FA          z
                 rts                          ; E7F5= 60          `
 
+;-------------------------------------------------------------------------
+
 starLIBFS:
                 lda hazel.activeFS
                 sta hazel.libFS
                 rts                          ; E7FC= 60          `
+
+;-------------------------------------------------------------------------
 
 starX:
                 sta TUBE+8                   ; E7FD= 8D E8 FE    .h~
@@ -7513,7 +7618,7 @@ oswrchEntryPoint:
                 bpl LE833                    ; E829= 10 08       ..
                 tay                          ; E82B= A8          (
                 lda #$04                     ; E82C= A9 04       ).
-                jsr LEB04                    ; E82E= 20 04 EB     .k
+                jsr callNETV                    ; E82E= 20 04 EB     .k
                 bcs LE8A5                    ; E831= B0 72       0r
 LE833:
                 lda #$02                     ; E833= A9 02       ).
@@ -7635,7 +7740,7 @@ LE8D5:
 
 LE8FD:
                 dec a                        ; E8FD= 3A          :
-                bne LE929                    ; E8FE= D0 29       P)
+                bne activatePrinterDriver                    ; E8FE= D0 29       P)
                 ldy $EA                      ; E900= A4 EA       $j
                 dey                          ; E902= 88          .
                 bpl LE959                    ; E903= 10 54       .T
@@ -7663,25 +7768,40 @@ LE921:
 LE928:
                 rts                          ; E928= 60          `
 
-LE929:
-                clc                          ; E929= 18          .
-                lda #$01                     ; E92A= A9 01       ).
-                jsr LE93A                    ; E92C= 20 3A E9     :i
-osbyte7B:
-                ror $02D1                    ; E92F= 6E D1 02    nQ.
-LE932:
-                rts                          ; E932= 60          `
+;-------------------------------------------------------------------------
 
-LE933:
-                bit $02D1                    ; E933= 2C D1 02    ,Q.
-                bmi LE932                    ; E936= 30 FA       0z
-                lda #$00                     ; E938= A9 00       ).
-LE93A:
-                ldx #$03                     ; E93A= A2 03       ".
-LE93C:
-                ldy $0285                    ; E93C= AC 85 02    ,..
-                jsr LEB04                    ; E93F= 20 04 EB     .k
+activatePrinterDriver:
+                clc                          ; E929= 18          .
+                lda #printerDriverActivate
+                jsr callPrinterDriverWithPrinterBuffer
+                
+                ; printer driver will set C=0 if active, C=1 if
+                ; inactive.
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 123 (&7B) Inform MOS of printer driver going dormant [MasRef
+; D.2-36]
+;
+osbyte7B:
+                ror printerDriverDormant   ;C=1 on entry, so set bit 7
+rtsE932:
+                rts
+
+;-------------------------------------------------------------------------
+
+pollPrinterDriver:
+                bit printerDriverDormant
+                bmi rtsE932           ;taken if printer driver dormant
+                lda #printerDriverPoll
+callPrinterDriverWithPrinterBuffer:
+                ldx #bufferPrinter
+callPrinterDriver:
+                ldy printerDriverType
+                jsr callNETV                    ; E93F= 20 04 EB     .k
                 jmp (UPTV)                  ; E942= 6C 22 02    l".
+
+;-------------------------------------------------------------------------
 
 osbyte0F:                       ;e945
                 bne LE956                    ; E945= D0 0F       P.
@@ -8055,7 +8175,7 @@ LEAFD:
                 bit $025F                    ; EAFD= 2C 5F 02    ,_.
                 bpl LEB07                    ; EB00= 10 05       ..
                 lda #$06                     ; EB02= A9 06       ).
-LEB04:
+callNETV:
                 jmp (NETV)                  ; EB04= 6C 24 02    l$.
 
 LEB07:
@@ -8585,10 +8705,13 @@ osbyteA2:
                 jsr withTerminalROM          ; ED94= 20 84 F3     .s
                 jmp terminal.writeCMOSByte           ; ED97= 4C DC 98    L\.
 
-; OSBYTE &8C (140) - Select TAPE
-; ==============================
-osbyte8C8D:; LED9A:
-                jsr LEDC0
+;-------------------------------------------------------------------------
+;
+; OSBYTE 140 (&8C) Select Cassette Filing System [MasRef D.2-43]
+; OSBYTE 141 (&8D) Select ROM Filing System [MasRef D.2-43]
+;
+osbyte8C8D:
+                jsr selectROMOrTAPEByOSBYTE
                 lda ACCCON                    ; Save ACCON register
                 pha
                 jsr selectHAZEL         ; Page Hazel workspace in
@@ -8610,14 +8733,24 @@ tsbACCCON:
                 tsb ACCCON      ;page in HAZEL at $c000
                 rts
 
-; Select ROM or TAPE
-; ==================
-LEDC0:
-                eor #$8C
-LEDC2:
-                asl a                        ; Set CFS/RFS swicth to 0=CFS or 2=RFS
-                sta $0247
-                bne LEDCC                    ; Skip past if not RFS
+;-------------------------------------------------------------------------
+; 
+; Select ROM or TAPE.
+;
+; Two entry points: selectROMOrTAPEByOSBYTE picks FS by OSBYTE number
+; ($8c=TAPE, $8d=ROM), and selectROMOrTAPE picks FS by number (0=TAPE,
+; 1=ROM).
+;
+; entry:
+;
+; A = FS to select
+; 
+selectROMOrTAPEByOSBYTE:
+                eor #$8C                     ;A=0 if tape, A=1 if ROM
+selectROMOrTAPE:
+                asl a           ; Set CFS/RFS swicth to 0=CFS or 2=RFS
+                sta cfsRFSFSSwitch
+                bne LEDCC                    ;taken if ROM
                 lda #$04                     ; CFS, clear b2 of status
                 trb $E2
 LEDCC:
@@ -8659,8 +8792,10 @@ LEDF3:
                 stz $C2                      ; Set Progress=idle
                 ldx #romServiceCallVectorsClaimed ; Send service call &0F - vectors changed
 
-; Send a sideways ROM service call and check for filing system change
-; ===================================================================
+;-------------------------------------------------------------------------
+;
+; OSBYTE 143 (&8F) Issue paged ROM service request [MasRef D.2-44]
+;
 osbyte8F: .proc                    ;ee03
                 phy
                 phx                          ; Send service call
@@ -8730,6 +8865,8 @@ handleVectorsClaimed:
                 sta FSCV+1
                 bra LEE29                    ; EE62= 80 C5       .E
                 .pend
+
+;-------------------------------------------------------------------------
 
 LEE64:
                 lda #$A1                     ; EE64= A9 A1       )!
@@ -8808,19 +8945,19 @@ LEEB0:
 ; OSBYTE
 ; ======
 osbyteEntryPoint:
-                pha                          ; EEB1= 48          H
-                php                          ; EEB2= 08          .
-                sei                          ; EEB3= 78          x
-                sta $EF                      ; EEB4= 85 EF       .o
-                stx $F0                      ; EEB6= 86 F0       .p
-                sty $F1                      ; EEB8= 84 F1       .q
+                pha
+                php
+                sei
+                sta originalA
+                stx originalX
+                sty originalY
                 ldx #romServiceCallUnrecognisedOSBYTE
                 cmp #$6B                     
                 bcc osbyte00To6A
                 cmp #$A6
                 bcc osbyte6BToA5
                 cmp #$A6
-                bcc LEF0C       ;??? - wait... didn't we just do this?
+                bcc handleUnrecognisedOSBYTEOrOSWORD       ;??? - wait... didn't we just do this?
 
 osbyteA6ToFF:
                 clc
@@ -8839,7 +8976,7 @@ callOSBYTEOrOSWORDFromTable:
                 bpl LEEE0             ;taken if no Econet interception
                 txa                          ; EED9= 8A          .
                 clv                          ; EEDA= B8          8
-                jsr LEB04                    ; EEDB= 20 04 EB     .k
+                jsr callNETV                    ; EEDB= 20 04 EB     .k
                 bvs LEEFA                    ; EEDE= 70 1A       p.
 LEEE0:
                 lda osbyteAndOSWORDRoutineTable+1,y
@@ -8870,42 +9007,47 @@ osbyte00To6A:
                 ldy #$00        ;Y=0 on entry for this lot
                 cmp #$1A        ;OSBYTE <=$19 is table-driven
                 bcc osbyteUseTable ;taken if OSBYTE $00-$19
-                bra LEF0C       
+                bra handleUnrecognisedOSBYTEOrOSWORD       
 
-LEF08:
+handleUnrecognisedOSWORD:
                 ldx #romServiceCallUnrecognisedOSWORD
-                pla                          ; EF0A= 68          h
-                pla                          ; EF0B= 68          h
-LEF0C:
+                pla
+                pla
+handleUnrecognisedOSBYTEOrOSWORD:
                 jsr makeROMServiceCall
-                bne LEF15                    ; EF0F= D0 04       P.
-                ldx $F0                      ; EF11= A6 F0       &p
-                bra LEEFA                    ; EF13= 80 E5       .e
-
-LEF15:
+                bne +
+                ldx originalX
+                bra LEEFA
++
                 plp                          ; EF15= 28          (
                 pla                          ; EF16= 68          h
                 bit valueFF                    ; EF17= 2C 4E E3    ,Nc
                 rts                          ; EF1A= 60          `
 
+;-------------------------------------------------------------------------
+
 LEF1B:
-                lda $EB                      ; EF1B= A5 EB       %k
+                lda $EB
                 bmi lda00ThenRTS
-                lda $0257                    ; EF1F= AD 57 02    -W.
+                lda spoolFileHandle
                 bne lda00ThenRTS
-                lda #$08                     ; EF24= A9 08       ).
-                and $E2                      ; EF26= 25 E2       %b
-                bne LEF2E                    ; EF28= D0 04       P.
-                lda #$88                     ; EF2A= A9 88       ).
-                and $BB                      ; EF2C= 25 BB       %;
+                lda #$08        
+                and $E2         
+                bne LEF2E       
+                lda #$88        
+                and $BB         
 LEF2E:
                 rts                          ; EF2E= 60          `
-                
-osword0E:                       ;ef2f
-                cmp #$03                     ; EF2F= C9 03       I.
-                bcs LEF08                    ; EF31= B0 D5       0U
-                jsr withTerminalROM          ; EF33= 20 84 F3     .s
-                jmp terminal.L97B4           ; EF36= 4C B4 97    L4.
+
+;-------------------------------------------------------------------------
+;
+; OSWORD 14 (&0E) Read CMOS clock [MasRef D.3-22]
+; 
+osword0E:
+                cmp #$03                   ;only codes 0/1/2 are valid
+                bcs handleUnrecognisedOSWORD
+                jsr withTerminalROM
+                jmp terminal.osword0E
 
 ;-------------------------------------------------------------------------
 ;
@@ -8925,7 +9067,7 @@ oswordEntryPoint:
                 bcs osbyteOrUSERV ;taken if OSWORD $E0 or higher -
                                   ;these go via USERV
                 cmp #16
-                bcs LEF0C       ;taken if unknown OSWORD
+                bcs handleUnrecognisedOSBYTEOrOSWORD ;taken if unknown OSWORD
 
 ; adjust request number so it's a suitable index into the
 ; OSBYTE/OSWORD routine table.
@@ -9018,7 +9160,7 @@ osword07:
                 iny                          ; EF7B= C8          H
                 lda ($F0),y                  ; EF7C= B1 F0       1p
                 cmp #$20                     ; EF7E= C9 20       I
-                bcs LEF08                    ; EF80= B0 86       0.
+                bcs handleUnrecognisedOSWORD
                 dey                          ; EF82= 88          .
                 jsr LEFF6                    ; EF83= 20 F6 EF     vo
                 ora #$04                     ; EF86= 09 04       ..
@@ -9252,7 +9394,7 @@ LF080:
 
 LF099:
                 jsr OSNEWL                   ; F099= 20 E7 FF     g.
-                jsr LEB04                    ; F09C= 20 04 EB     .k
+                jsr callNETV                    ; F09C= 20 04 EB     .k
 LF09F:
                 lda $FF                      ; F09F= A5 FF       %.
                 rol a                        ; F0A1= 2A          *
@@ -9262,7 +9404,7 @@ osbyte03:
                 phx                          ; F0A3= DA          Z
                 ldx $027C                    ; F0A4= AE 7C 02    .|.
                 lda #$0A                     ; F0A7= A9 0A       ).
-                jsr LE93C                    ; F0A9= 20 3C E9     <i
+                jsr callPrinterDriver                    ; F0A9= 20 3C E9     <i
                 plx                          ; F0AC= FA          z
                 lda #$03                     ; F0AD= A9 03       ).
                 ldy #$00                     ; F0AF= A0 00        .
@@ -9283,7 +9425,7 @@ osbyte05:                       ;f0bc
                 bmi LF0EB                    ; F0C0= 30 29       0)
                 bit $02D1                    ; F0C2= 2C D1 02    ,Q.
                 bpl osbyte05
-                jsr LE93C                    ; F0C7= 20 3C E9     <i
+                jsr callPrinterDriver                    ; F0C7= 20 3C E9     <i
                 ldy #$00                     ; F0CA= A0 00        .
 LF0CC:
                 stz $F1                      ; F0CC= 64 F1       dq
@@ -9454,18 +9596,18 @@ LF126:
 ;
 ; OSWORD 11 (&0B) Read the palette [MasRef D.3-20]
 ; 
-osword0B:                       ;f13f
+osword0B:
                 and vduv.numberOfLogicalColoursMinusOne
-                tax                          ; F142= AA          *
-                lda $036F,x                  ; F143= BD 6F 03    =o.
+                tax
+                lda vduv.currentPalette,x
 LF146:
-                iny                          ; F146= C8          H
+                iny
 LF147:
-                sta ($F0),y                  ; F147= 91 F0       .p
-                lda #$00                     ; F149= A9 00       ).
-                cpy #$04                     ; F14B= C0 04       @.
-                bne LF146                    ; F14D= D0 F7       Pw
-                rts                          ; F14F= 60          `
+                sta (originalX),y
+                lda #$00                     ;fill last 3 bytes with 0
+                cpy #$04
+                bne LF146
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -9949,13 +10091,13 @@ osbyte247EntryPoint:
 ; MasRef D.2-44
 ; 
 osbyte90:
-                lda $0290                    ; F353= AD 90 02    -..
-                stx $0290                    ; F356= 8E 90 02    ...
+                lda tvOffset                    ; F353= AD 90 02    -..
+                stx tvOffset                    ; F356= 8E 90 02    ...
                 tax                          ; F359= AA          *
                 tya                          ; F35A= 98          .
                 and #$01                     ; F35B= 29 01       ).
-                ldy $0291                    ; F35D= AC 91 02    ,..
-                sta $0291                    ; F360= 8D 91 02    ...
+                ldy tvInterlace                    ; F35D= AC 91 02    ,..
+                sta tvInterlace                    ; F360= 8D 91 02    ...
 LF363:
                 rts                          ; F363= 60          `
 
@@ -10138,6 +10280,8 @@ soundParameterTable:
 
 LF413:
                 jmp LF520                    ; F413= 4C 20 F5    L u
+
+;-------------------------------------------------------------------------
 
 LF416:
                 ldx #$00                     ; F416= A2 00       ".
@@ -10340,7 +10484,7 @@ LF592:
                 lda #$C0                     ; F597= A9 C0       )@
 LF599:
                 sta $0804,x                  ; F599= 9D 04 08    ...
-                ldy $0262                    ; F59C= AC 62 02    ,b.
+                ldy soundSuppressionStatus
                 beq LF5A3                    ; F59F= F0 02       p.
                 lda #$C0                     ; F5A1= A9 C0       )@
 LF5A3:
@@ -10350,7 +10494,7 @@ LF5A3:
                 lsr a                        ; F5A7= 4A          J
                 lsr a                        ; F5A8= 4A          J
                 eor #$0F                     ; F5A9= 49 0F       I.
-                ora soundParameterTable-bufferNumberSound0,x                  ; F5AB= 1D 0B F4    ..t
+                ora soundParameterTable-bufferNumberSound0,x
                 ora #$10                     ; F5AE= 09 10       ..
                 bra LF5E6                    ; F5B0= 80 34       .4
 

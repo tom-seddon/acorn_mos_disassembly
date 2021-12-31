@@ -130,6 +130,16 @@ ier:
 oraNoHandshake:
 iraNoHandshake:
                 .fill 1         ;15
+
+irq: .block
+ca2=1
+ca1=2
+sr=4
+cb2=8
+cb1=16
+t2=32
+t1=64
+                .endblock
                 .ends
 
                                 .virtual $fe40

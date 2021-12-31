@@ -110,6 +110,56 @@ romServiceCallTubeMainInitialisation=$FF    ;
 
 ;-------------------------------------------------------------------------
 
+; [MasRef D.2-24]
+                
+eventOutputBufferEmpty=0
+eventInputBufferFull=1
+eventCharacterEnteringBuffer=2
+eventADCConversionComplete=3
+eventStartOfVerticalSync=4
+eventIntervalTimerCrossingZero=5
+eventESCAPEPressed=6
+eventRS423Error=7
+eventNetworkError=8
+eventUser=9
+
+;-------------------------------------------------------------------------
+
+; [MasRef D.2-27]
+                
+bufferKeyboard=0
+bufferRS423Input=1
+bufferRS423Output=2
+bufferPrinter=3
+bufferSoundChannel0=4
+bufferSoundChannel1=5
+bufferSoundChannel2=6
+bufferSoundChannel3=7
+
+;-------------------------------------------------------------------------
+
+; [MasRef C.5-5]
+
+printerDriverTypeSink=0
+printerDriverTypeParallel=1
+printerDriverTypeSerial=2
+printerDriverTypeUser=3
+printerDriverTypeNetwork=4
+
+; AUG p259
+
+printerDriverPoll=0
+printerDriverActivate=1
+printerDriverVDU2=2
+printerDriverVDU3=3
+printerDriverFX5=5
+                
+;-------------------------------------------------------------------------
+
+; 
+                
+;-------------------------------------------------------------------------
+
 fscOPT=0
 fscCheckEOF=1
 fscStarSlash=2
@@ -503,6 +553,13 @@ userFlag: .fill 1
 serialULARegister: .fill 1
 
 ; OSBYTE 243 (&F3) Read timer switch state [MasRef D.2-80]
+;
+; The location holds either 5 (initialTimerSwitchState) or 10
+; (initialTimerSwitchState^15) - i.e., the offset of the byte after
+; the last of the timer.
+;
+; Various offsets are applied to the timer addresses to make this
+; work.
 timerSwitchState: .fill 1
 
 ; OSBYTE 244 (&F4) Read/write soft key consistency flag [MasRef D.2-81]
@@ -550,11 +607,17 @@ modeMask=7
 firstMOSVariableOSBYTE=166
                 
 initialTimerSwitchState=5
+tvOffset=$290
+tvInterlace=$291
 timer0=$292
 timer1=$297
 intervalTimer=$29c
 romInformationTable=$2a1
-                
+adcResultLSBs=$2b6
+adcResultMSBs=$2ba
+adcLastConvertedChannel=$2be
+printerDriverDormant=$2d1        ;bit 7 set if printer driver dormant,
+                                 ;clear if active
 osfileParameterBlock=$2ed
 
 ExtendedVectorAddress: .function vectorAddress
@@ -1206,8 +1269,22 @@ defaultSerialDataFormatShift=5
 originalA=$ef
 originalX=$f0
 originalY=$f1
-
+irqTempA=$fc
+errPtr=$fd                      ;REPTR in OS 1.20
+                
 envelope1Data=$8c0
+
+sidewaysROMLanguageEntry=$8000
+sidewaysROMServiceEntry=$8003
+                .virtual $8006
+sidewaysROMType: .block
+hasRelocationAddress=32
+hasLanguageEntry=64
+hasServiceEntry=128
+                .endblock
+                .endvirtual
+sidewaysROMCopyrightOffset=$8007
+sidewaysROMName=$8009
                 
 ;-------------------------------------------------------------------------
 

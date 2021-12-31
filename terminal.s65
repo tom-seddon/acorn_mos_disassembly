@@ -400,15 +400,15 @@ L82FE:
                 jsr mos.makeROMServiceCall   ; Tube PostInit
                 and $0267
                 bpl L8340
-                ldy #$FF                     ; Print <NL>"Acorn MOS"
-                jsr mos.LE7A1                ;
+                ldy #((mos.startupMessages.acornMOS-mos.startupMessages)-1)&$ff
+                jsr mos.printStartupMessage
                 lda $028D                    ; Skip past if Soft Break
                 beq L833B
-                ldy #$0A                     ; Print <BELL> (space in message for "xxK")
-                jsr mos.LE7A1                ;
+                ldy #((mos.startupMessages.beep-mos.startupMessages)-1)&$ff
+                jsr mos.printStartupMessage
 L833B:
-                ldy #$0F                     ; Print <NL><NL>
-                jsr mos.LE7A1                ;
+                ldy #((mos.startupMessages.twoNewlines-mos.startupMessages)-1)&$ff
+                jsr mos.printStartupMessage
 L8340:
                 pla                          ; Restore Spool handle
                 sta $0257
@@ -798,7 +798,7 @@ commandLineUILoop:
 commandLineUIBRKHandler:
                 jsr OSNEWL                   ; 868D= 20 E7 FF     g.
                 ldy #$00                     ; 8690= A0 00        .
-                jsr mos.LE7A7                ; 8692= 20 A7 E7     'g
+                jsr mos.printBRKMessage
                 jsr OSNEWL                   ; 8695= 20 E7 FF     g.
                 bra commandLineUI                    ; 8698= 80 C7       .G
 
@@ -3383,8 +3383,13 @@ L9762:
                 clc                          ; 9762= 18          .
                 rts                          ; 9763= 60          `
 
+;-------------------------------------------------------------------------
+
 L9764:
                 .text "   ",0
+
+;-------------------------------------------------------------------------
+
 L9768:
                 .text "Sun",$01
                 .text "Mon",$02
@@ -3393,6 +3398,9 @@ L9768:
                 .text "Thu",$05
                 .text "Fri",$06
                 .text "Sat",$07
+
+;-------------------------------------------------------------------------
+
 L9784:
                 .text "Jan",$01
                 .text "Feb",$02
@@ -3406,10 +3414,16 @@ L9784:
                 .text "Oct",$10
                 .text "Nov",$11
                 .text "Dec",$12
-L97B4:
-                pha
-                eor #$02                     ; 97B5= 49 02       I.
-                bne L97D4                    ; 97B7= D0 1B       P.
+
+;-------------------------------------------------------------------------
+;
+; OSWORD 14 (&0E) Read CMOS clock [MasRef D.3-22]
+; 
+
+osword0E:
+                pha                          ;save reason code
+                eor #$02                     ;
+                bne convertBCDClockToString
                 ldy #$07                     ; 97B9= A0 07        .
                 ldx #$00                     ; 97BB= A2 00       ".
 L97BD:
@@ -3428,11 +3442,11 @@ L97C9:
                 bne L97C9                    ; 97D0= D0 F7       Pw
                 bra L9804                    ; 97D2= 80 30       .0
 
-L97D4:
-                lda $F0                      ; 97D4= A5 F0       %p
-                pha                          ; 97D6= 48          H
-                lda $F1                      ; 97D7= A5 F1       %q
-                pha                          ; 97D9= 48          H
+convertBCDClockToString:
+                lda originalX
+                pha
+                lda originalY
+                pha
 L97DA:
                 ldx #$0C                     ; 97DA= A2 0C       ".
                 jsr readRTCByte                    ; 97DC= 20 B7 98     7.
@@ -4327,7 +4341,7 @@ L9DCC:
                 adc #$02
 L9DE3:
                 adc #$89                     ; Convert to TAPE/ROM select value
-                jsr mos.LEDC0           ; Call TAPE/ROM select routine
+                jsr mos.selectROMOrTAPEByOSBYTE
                 bra L9DCA                    ; Jump to claim and return
 
 L9DEA:
@@ -4368,7 +4382,7 @@ L9E17:
 L9E2A:
                 lda #$8C                     ; 9E2A= A9 8C       ).
 L9E2C:
-                jsr mos.LEDC0                ; 9E2C= 20 C0 ED     @m
+                jsr mos.selectROMOrTAPEByOSBYTE
                 lda #$00                     ; 9E2F= A9 00       ).
                 tay                          ; 9E31= A8          (
                 jsr LA1F9                    ; 9E32= 20 F9 A1     y!

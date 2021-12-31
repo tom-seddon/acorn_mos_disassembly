@@ -618,7 +618,12 @@ adcResultMSBs=$2ba
 adcLastConvertedChannel=$2be
 printerDriverDormant=$2d1        ;bit 7 set if printer driver dormant,
                                  ;clear if active
+
+; Also used by the clock routines to hold a (possibly partial) mirror
+; of the RTC time/date registers.
 osfileParameterBlock=$2ed
+                
+; rtcTempData=$2ee
 
 ExtendedVectorAddress: .function vectorAddress
                 .cerror !(vectorAddress>=USERV && vectorAddress<=IND3V && vectorAddress%2==0),"invalid vector"
@@ -1285,7 +1290,36 @@ hasServiceEntry=128
                 .endvirtual
 sidewaysROMCopyrightOffset=$8007
 sidewaysROMName=$8009
+
+;-------------------------------------------------------------------------
+
+                ; [MasRef D.3-22]
+ClockStringFormat: .struct
+ddd:
+                .fill 3
+                .fill 1                      ;','
+nn:
+                .fill 2
+                .fill 1                      ;' '
+mmm:
+                .fill 3
+                .fill 1                      ;' '
+yyyy:
+                .fill 4
+                .fill 1                      ;'.'
+hh:
+                .fill 2
+                .fill 1                      ;':'
+mm:
+                .fill 2
+                .fill 1                      ;':'
+ss:
+                .fill 2
+cr:
+                .fill 1                      ;'\n'
+                .endstruct
                 
+
 ;-------------------------------------------------------------------------
 
 beword .macro value

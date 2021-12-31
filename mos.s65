@@ -7916,7 +7916,7 @@ osbyte77:                       ;e9b5
 getROMInsertedFlagRTCAddressAndMask:
                 lda #$00                     
                 sec                          
-                ldx #CMOSBytes.insertedROMs+0+cmosRAMRTCAddress
+                ldx #CMOSBytes.insertedROMs+0+RTC.ram
 -
                 rol a                        
                 bne +

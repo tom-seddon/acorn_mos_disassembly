@@ -26,10 +26,10 @@ reset:                          ;8020
                 stx userVIA.ddra ;port A all outputs
                 lda #%11001111
                 sta systemVIA.ddrb ;
-                ldy #$20                     ; 8037= A0 20
-                ldx #$0A                     ; 8039= A2 0A       ".
-                jsr writeRTCByte                    ; 803B= 20 E4 98     d.
-                jsr L9729                    ; 803E= 20 29 97     ).
+                ldy #RTC.a.dv32768Hz
+                ldx #RTC.a
+                jsr writeRTCByte
+                jsr finishRTCUpdate
                 lda #ACCCON.Y|ACCCON.X       ; page in HAZEL+shadow
                 tsb ACCCON
                 lda systemVIA.ier
@@ -1052,7 +1052,7 @@ setDefaultFDRIVE:
                 bcs badCommandError88AC
                 ldy #(~CMOSBytes.defaults1.defaultFDRIVEMask)&$ff
 writeDefaults1Bits:
-                ldx #CMOSBytes.defaults1+cmosRAMRTCAddress
+                ldx #CMOSBytes.defaults1+RTC.ram
                 bra jmpWriteRTCBits892D                    ; 88DA= 80 51       .Q
 
 ;-------------------------------------------------------------------------
@@ -1124,7 +1124,7 @@ bcsBadCommandError8911:
 writeDefaultTVSettings:
                 ldy #~(CMOSBytes.defaults0.defaultTVMask<<CMOSBytes.defaults0.defaultTVShift|CMOSBytes.defaults0.defaultInterlaceMask)&$ff
 writeDefaults0Bits:
-                ldx #CMOSBytes.defaults0+cmosRAMRTCAddress
+                ldx #CMOSBytes.defaults0+RTC.ram
 jmpWriteRTCBits892D:
                 jmp writeRTCBits
 
@@ -1253,7 +1253,7 @@ setDefaultKeyboardAutoRepeatRate:
                 txa                          
                 tay                          
                 .cerror CMOSBytes.keyboardAutoRepeatDelay+1!=CMOSBytes.keyboardAutoRepeatRate,"keyboard auto repeat settings CMOS bytes must be adjacent"
-                lda #CMOSBytes.keyboardAutoRepeatDelay+cmosRAMRTCAddress
+                lda #CMOSBytes.keyboardAutoRepeatDelay+RTC.ram
                 adc #$00             ;pick appropriate byte based on C
                 tax                  ;X=RTC address
 jmpWriteRTCByte:
@@ -1269,7 +1269,7 @@ setDefaultPrinterIgnoreChar:
                 lda #$00                    
                 jsr writeDefaultUsePrinterIgnoreChar
                 ply                          
-                ldx #CMOSBytes.printerIgnoreChar+cmosRAMRTCAddress
+                ldx #CMOSBytes.printerIgnoreChar+RTC.ram
                 bra jmpWriteRTCByte
 
 ;-------------------------------------------------------------------------
@@ -1285,7 +1285,7 @@ bcsBadCommandError:
                 ror a
                 ror a
 writeDefaults2Bits:
-                ldx #CMOSBytes.defaults2+cmosRAMRTCAddress
+                ldx #CMOSBytes.defaults2+RTC.ram
 writeRTCBits:
                 sta $B1
                 sty $B2
@@ -1363,7 +1363,7 @@ setDefaultSerialDataFormat:
                 ror a                        ;%bc000000 a
                 ror a                        ;%abc00000 0
 writeDefaults3Bits:
-                ldx #CMOSBytes.defaults3+cmosRAMRTCAddress
+                ldx #CMOSBytes.defaults3+RTC.ram
 jmpWriteRTCBits8A26:
                 bra writeRTCBits                    ; 8A26= 80 AE       ..
 
@@ -1425,7 +1425,7 @@ setDefaultLanguageROM:
                 asl a                        ; 8A58= 0A          .
                 ldy #~(15<<CMOSBytes.defaultROMs.languageShift)&$ff
 writeDefaultROM:
-                ldx #CMOSBytes.defaultROMs+cmosRAMRTCAddress
+                ldx #CMOSBytes.defaultROMs+RTC.ram
                 bra jmpWriteRTCBits8A26                    ; 8A5D= 80 C7       .G
 
 ;-------------------------------------------------------------------------
@@ -1580,7 +1580,7 @@ printDefaultKeyboardRepeatRate:
 ; Y = default keyboard auto repeat delay
 ; 
 getDefaultKeyboardAutoRepeatDelay:
-                ldx #CMOSBytes.keyboardAutoRepeatDelay+cmosRAMRTCAddress
+                ldx #CMOSBytes.keyboardAutoRepeatDelay+RTC.ram
                 jmp readRTCByte
 
 ;-------------------------------------------------------------------------
@@ -1592,7 +1592,7 @@ getDefaultKeyboardAutoRepeatDelay:
 ; Y = default keyboard auto repeat rate
 ; 
 getDefaultKeyboardAutoRepeatRate:
-                ldx #CMOSBytes.keyboardAutoRepeatRate+cmosRAMRTCAddress
+                ldx #CMOSBytes.keyboardAutoRepeatRate+RTC.ram
                 jmp readRTCByte
 
 ;-------------------------------------------------------------------------
@@ -1844,7 +1844,7 @@ printSTATUSHelp:
 ;
 ; Y = *TV offset
 readDefaultTVSettings:
-                ldx #CMOSBytes.defaults0+cmosRAMRTCAddress
+                ldx #CMOSBytes.defaults0+RTC.ram
                 jsr readRTCByte
                 phy
                 and #%11100000
@@ -1870,7 +1870,7 @@ readDefaultTVSettings:
 ; Read configured MODE
 ; --------------------
 readDefaultMODE:
-                ldx #CMOSBytes.defaults0+cmosRAMRTCAddress
+                ldx #CMOSBytes.defaults0+RTC.ram
                 jsr readRTCByte
                 and #CMOSBytes.defaults0.defaultMODEMask|CMOSBytes.defaults0.defaultSHADOWMask
                 bit #CMOSBytes.defaults0.defaultSHADOWMask
@@ -1923,20 +1923,20 @@ readDefaultLanguageROM:
 ;
 ; 
 readDefaultROMs:
-                ldx #CMOSBytes.defaultROMs+cmosRAMRTCAddress;
+                ldx #CMOSBytes.defaultROMs+RTC.ram;
                 bra jmpReadRTCByte
 
 ;-------------------------------------------------------------------------
 
 readDefaultPrinterIgnoreChar:
-                ldx #CMOSBytes.printerIgnoreChar+cmosRAMRTCAddress
+                ldx #CMOSBytes.printerIgnoreChar+RTC.ram
 jmpReadRTCByte:
                 jmp readRTCByte
 
 ;-------------------------------------------------------------------------
 
 readDefaults1:
-                ldx #CMOSBytes.defaults1+cmosRAMRTCAddress
+                ldx #CMOSBytes.defaults1+RTC.ram
                 bra jmpReadRTCByte
 
 ;-------------------------------------------------------------------------
@@ -2948,6 +2948,8 @@ L94BB:
                 jsr OSWRCH                   ; 94C1= 20 EE FF     n.
                 jmp OSNEWL                   ; 94C4= 4C E7 FF    Lg.
 
+;-------------------------------------------------------------------------
+
 starKEY:
                 jsr L9473                    ; 94C7= 20 73 94     s.
                 lda $F4                      ; 94CA= A5 F4       %t
@@ -3170,227 +3172,226 @@ L963C:
 
 ; Day string not matched
 ; ----------------------
-L9640:
+nextDayString:
                 pla                          ; Drop number of characters matched
                 pla                          ; Get offset to string table
                 ply                          ; Get start of supplied string
                 clc                          ; Step to next string table entry
                 adc #$04
-                cmp #$1C                     ; If not checked 28/4=7 entries, keep looking
-                bcc L9666
+                cmp #size(dayOfWeekStrings) ; If not checked 28/4=7 entries, keep looking
+                bcc checkDayString
                 rts                          ; Otherwise exit silently
 
 ; Month string not matched
 ; ------------------------
-L964B:
+nextMonthString:
                 pla                          ; Drop number of characters matched
                 pla                          ; Get offset to string table
                 ply                          ; Get start of supplied string
                 clc                          ; Step to next string table entry
                 adc #$04
-                cmp #$30                     ; If not checked 48/4=12 entries, keep looking
-                bcc L9698
-L9655:
+                cmp #size(monthStrings) ; If not checked 48/4=12 entries, keep looking
+                bcc checkMonthString
+rts9655:
                 rts                          ; Otherwise exit silently
 
 ;-------------------------------------------------------------------------
-; 
-; OSWORD &0F routine
-; ==================
-; (&F0)=>control block
-; A=length byte from (&F0),0
-; Y=0
-; Uses OSFILE control block at &2ED-&2FF as workspace
 ;
+; OSWORD 15 (&0F) Write CMOS clock [MasRef D.3-24]
+; 
 osword0F:
-                stz $02ED
-                eor #$0F                     ; len=15, set date
-                beq L9665
-                eor #$07                     ; len=8, set time
-                beq L96D7
-                eor #$10                     ; len=24, set date+time
-                bne L9655
+                stz osfileParameterBlock     ;got no time, got no date
+                eor #15                     ; len=15, set date
+                beq setDate
+                eor #15^8
+                beq setTime
+                eor #(15^8)^23
+                bne rts9655
 
 ; Set date and set date+time
 ; --------------------------
 ; (&F0),1=>"Day,00 Mon 0000"
 ; (&F0),1=>"Day,00 Mon 0000.00:00:00"
 ; A=0, Y=0
-L9665:
+setDate:
                 iny                          ; Point to supplied data
 ; Translate day string into day number
-L9666:
+checkDayString:
                 phy                          ; Push pointer to data string
                 pha                          ; Push offset to match strings
                 tax                          ; X=>match strings
                 lda #$03                     ; A=3 characters to match
-L966B:
+checkDayStringLoop:
                 pha                          ; Save number of characters to match
-                lda ($F0),y                  ; Get character from string
-                eor L9768,x                  ; Compare with day string table
+                lda (originalX),y      ; Get character from string
+                eor dayOfWeekStrings,x ; Compare with day string table
                 and #$DF                     ; Force to upper case
-                bne L9640                    ; No match step to check next entry
+                bne nextDayString  ; No match step to check next entry
                 inx                          ; Step to next character to match
                 iny                          ; Step to next data character
                 pla                          ; Get character count back
                 dec a                        ; Decrement and loop until 3 characters matched
-                bne L966B
-                lda L9768,x                  ; Get translation byte from string table
-                sta $02F4                    ; Store it in workspace
+                bne checkDayStringLoop
+                lda dayOfWeekStrings,x ; Get translation byte from string table
+                sta osfileParameterBlock+1+RTC.dayOfWeek ; Store it in workspace
 ; Translates Sun,Mon,Tue,etc to &01,&02,&03,etc
                 plx                          ; Drop char count and table offset
                 plx
                 lda ($F0),y                  ; Get next character
                 cmp #','                     ; Not followed by a comma, so exit silently
-                bne L9655
+                bne rts9655
                 ldx #$07                     ; Get day of month
-                jsr L9730
-                bcc L9655                    ; Bad number, exit silently
+                jsr readDecimalBCDByte
+                bcc rts9655                    ; Bad number, exit silently
                 iny                          ; Get next character
                 lda ($F0),y
                 eor #' '                     ; Not space, exit silently
-                bne L9655
+                bne rts9655
                 iny                          ; Step to first character of month
 ; Translate month string into month number
 ; This could use the same code as the Day translation
-L9698:
+checkMonthString:
                 phy                          ; Push pointer to data string
                 pha                          ; Push offset to match strings
                 tax                          ; X=>match strings
                 lda #$03                     ; A=3 characters to match
-L969D:
-                pha                          ; 969D= 48          H
-                lda ($F0),y                  ; 969E= B1 F0       1p
-                eor L9784,x                  ; 96A0= 5D 84 97    ]..
-                and #$DF                     ; 96A3= 29 DF       )_
-                bne L964B                    ; 96A5= D0 A4       P$
-                inx                          ; 96A7= E8          h
-                iny                          ; 96A8= C8          H
-                pla                          ; 96A9= 68          h
-                dec a                        ; 96AA= 3A          :
-                bne L969D                    ; 96AB= D0 F0       Pp
-                lda L9784,x                  ; 96AD= BD 84 97    =..
-                sta $02F6                    ; 96B0= 8D F6 02    .v.
+checkMonthStringLoop:
+                pha
+                lda (originalX),y
+                eor monthStrings,x
+                and #$DF
+                bne nextMonthString
+                inx
+                iny
+                pla
+                dec a
+                bne checkMonthStringLoop
+                lda monthStrings,x
+                sta osfileParameterBlock+1+RTC.month
 ; Translates Jan,Feb,Mar,etc to &01,&02,&03,etc..&09,&10,&11,&12
                 plx                          ; Drop char count and table offset
                 plx
                 lda ($F0),y                  ; Get next character
                 cmp #' '                     ; Not followed by space, exit silently
-                bne L9655
-                ldx #$09                     ; Get century number
-                jsr L9730
-                bcc L9655                    ; Bad number, exit silently
-                jsr L9730                    ; Get year number
-                bcc L9655                    ; Bad number, exit silently
-                ror $02ED                    ;
-                lda ($F0)                    ; Get data length
+                bne rts9655
+                ldx #RTC.year
+                jsr readDecimalBCDByte
+                bcc rts9655                    ; Bad number, exit silently
+                jsr readDecimalBCDByte                    ; Get year number
+                bcc rts9655                    ; Bad number, exit silently
+                ror osfileParameterBlock+0     ;got date
+                lda (originalX)        ; Get data length
                 cmp #$0F                     ; len=15, jump to just set date
-                beq L96FF
+                beq setRTCDate
 ; Must be len=24 to set date+time
                 iny                          ; Get next character
-                lda ($F0),y
+                lda (originalX),y
                 cmp #'.'                     ; If not full stop, exit silently
-                bne L9753
+                bne rts9753
 
-; Set time
-; --------
-L96D7:
-                ldx #$04                     ; 96D7= A2 04       ".
-                jsr L9730                    ; 96D9= 20 30 97     0.
-                bcc L9753                    ; 96DC= 90 75       .u
-                iny                          ; 96DE= C8          H
-                lda ($F0),y                  ; 96DF= B1 F0       1p
-                cmp #$3A                     ; 96E1= C9 3A       I:
-                bne L9753                    ; 96E3= D0 6E       Pn
-                ldx #$02                     ; 96E5= A2 02       ".
-                jsr L9730                    ; 96E7= 20 30 97     0.
-                bcc L9753                    ; 96EA= 90 67       .g
-                iny                          ; 96EC= C8          H
-                lda ($F0),y                  ; 96ED= B1 F0       1p
-                cmp #$3A                     ; 96EF= C9 3A       I:
-                bne L9753                    ; 96F1= D0 60       P`
-                ldx #$00                     ; 96F3= A2 00       ".
-                jsr L9730                    ; 96F5= 20 30 97     0.
-                bcc L9753                    ; 96F8= 90 59       .Y
-                lda #$40                     ; 96FA= A9 40       )@
-                tsb $02ED                    ; 96FC= 0C ED 02    .m.
-L96FF:
-                cli                          ; 96FF= 58          X
-                sei                          ; 9700= 78          x
-                ldy #$83                     ; 9701= A0 83        .
-                ldx #$0B                     ; 9703= A2 0B       ".
-                jsr writeRTCByte                    ; 9705= 20 E4 98     d.
-                bit $02ED                    ; 9708= 2C ED 02    ,m.
-                bpl L971C                    ; 970B= 10 0F       ..
-                ldx #$06                     ; 970D= A2 06       ".
-L970F:
-                ldy $02EE,x                  ; 970F= BC EE 02    <n.
-                jsr writeRTCByte                    ; 9712= 20 E4 98     d.
-                inx                          ; 9715= E8          h
-                cpx #$0A                     ; 9716= E0 0A       `.
-                bcc L970F                    ; 9718= 90 F5       .u
-                bvc L9729                    ; 971A= 50 0D       P.
-L971C:
-                ldx #$00                     ; 971C= A2 00       ".
-L971E:
-                ldy $02EE,x                  ; 971E= BC EE 02    <n.
-                jsr writeRTCByte                    ; 9721= 20 E4 98     d.
-                inx                          ; 9724= E8          h
-                cpx #$06                     ; 9725= E0 06       `.
-                bcc L971E                    ; 9727= 90 F5       .u
-L9729:
-                ldx #$0B                     ; 9729= A2 0B       ".
-                ldy #$02                     ; 972B= A0 02        .
-                jmp writeRTCByte                    ; 972D= 4C E4 98    Ld.
+setTime:
+                ldx #RTC.hours
+                jsr readDecimalBCDByte
+                bcc rts9753
+                iny        
+                lda (originalX),y
+                cmp #':'
+                bne rts9753
+                ldx #RTC.minutes
+                jsr readDecimalBCDByte
+                bcc rts9753           
+                iny                   
+                lda (originalX),y     
+                cmp #':'
+                bne rts9753
+                ldx #RTC.seconds
+                jsr readDecimalBCDByte
+                bcc rts9753
+                lda #$40
+                tsb osfileParameterBlock+0   ;got time
+setRTCDate:
+                cli
+                sei
+                ldy #RTC.b.set|RTC.b._24h|RTC.b.dse
+                ldx #RTC.b
+                jsr writeRTCByte
+                bit osfileParameterBlock+0 ;N=1 if got date; V=1 if got time
+                bpl setRTCTime ;taken if not got date - must then have time
+                ldx #$06
+-
+                ldy osfileParameterBlock+1,x
+                jsr writeRTCByte
+                inx
+                cpx #RTC.a
+                bcc -
+                bvc finishRTCUpdate                    ;taken if not got date
+setRTCTime:
+                ldx #RTC.seconds
+-
+                ldy osfileParameterBlock+1,x
+                jsr writeRTCByte
+                inx
+                cpx #RTC.dayOfWeek
+                bcc -
+finishRTCUpdate:
+                ldx #RTC.b
+                ldy #RTC.b._24h
+                jmp writeRTCByte
 
-L9730:
-                jsr L9754                    ; 9730= 20 54 97     T.
-                eor #$20                     ; 9733= 49 20       I
-                beq L973B                    ; 9735= F0 04       p.
-                eor #$20                     ; 9737= 49 20       I
-                bcc L9753                    ; 9739= 90 18       ..
-L973B:
-                sta $02EE,x                  ; 973B= 9D EE 02    .n.
-                jsr L9754                    ; 973E= 20 54 97     T.
-                bcc L9753                    ; 9741= 90 10       ..
-                phy                          ; 9743= 5A          Z
-                ldy #$04                     ; 9744= A0 04        .
-                asl a                        ; 9746= 0A          .
-                asl a                        ; 9747= 0A          .
-                asl a                        ; 9748= 0A          .
-                asl a                        ; 9749= 0A          .
-L974A:
-                asl a                        ; 974A= 0A          .
-                rol $02EE,x                  ; 974B= 3E EE 02    >n.
-                dey                          ; 974E= 88          .
-                bne L974A                    ; 974F= D0 F9       Py
-                ply                          ; 9751= 7A          z
-                sec                          ; 9752= 38          8
-L9753:
-                rts                          ; 9753= 60          `
+readDecimalBCDByte:
+                jsr readDecimalDigit
+                eor #$20         ;check for ' '
+                beq +        ;taken if leading space - that's fine
+                eor #$20         ;reinstate old value
+                bcc rts9753      ;taken if non-space non-digits
++
+                sta osfileParameterBlock+1,x
+                jsr readDecimalDigit
+                bcc rts9753                  ;taken if invalid digit
 
-L9754:
-                iny                          ; 9754= C8          H
-                lda ($F0),y                  ; 9755= B1 F0       1p
-                cmp #$3A                     ; 9757= C9 3A       I:
-                bcs L9762                    ; 9759= B0 07       0.
-                cmp #$30                     ; 975B= C9 30       I0
-                bcc L9762                    ; 975D= 90 03       ..
-                and #$0F                     ; 975F= 29 0F       ).
-                rts                          ; 9761= 60          `
+                ; rotate new digit into place
+                phy
+                ldy #$04
+                asl a
+                asl a
+                asl a
+                asl a
+-
+                asl a
+                rol osfileParameterBlock+1,x
+                dey
+                bne -
+                ply
+                sec
+rts9753:
+                rts
 
-L9762:
-                clc                          ; 9762= 18          .
-                rts                          ; 9763= 60          `
+readDecimalDigit:
+                iny
+                lda (originalX),y
+                cmp #'9'+1
+                bcs notDecimalDigit
+                cmp #'0'
+                bcc notDecimalDigit
+                and #$0F
+                rts     
 
+notDecimalDigit:
+                clc
+                rts
+                
 ;-------------------------------------------------------------------------
 
-L9764:
+; TODO - is this necessary?
+;
+; There's a reference to dayOfWeekStrings-4, but that seems to be
+; because days are 1-based. The data here is presumably never
+; accesssed.
                 .text "   ",0
 
 ;-------------------------------------------------------------------------
 
-L9768:
+dayOfWeekStrings: .block
                 .text "Sun",$01
                 .text "Mon",$02
                 .text "Tue",$03
@@ -3398,10 +3399,11 @@ L9768:
                 .text "Thu",$05
                 .text "Fri",$06
                 .text "Sat",$07
-
+                .endblock
+                
 ;-------------------------------------------------------------------------
 
-L9784:
+monthStrings: .block
                 .text "Jan",$01
                 .text "Feb",$02
                 .text "Mar",$03
@@ -3414,6 +3416,7 @@ L9784:
                 .text "Oct",$10
                 .text "Nov",$11
                 .text "Dec",$12
+                .endblock
 
 ;-------------------------------------------------------------------------
 ;
@@ -3423,168 +3426,202 @@ L9784:
 osword0E:
                 pha                          ;save reason code
                 eor #$02                     ;
-                bne convertBCDClockToString
-                ldy #$07                     ; 97B9= A0 07        .
-                ldx #$00                     ; 97BB= A2 00       ".
-L97BD:
-                lda ($F0),y                  ; 97BD= B1 F0       1p
-                sta $02EE,x                  ; 97BF= 9D EE 02    .n.
-                dey                          ; 97C2= 88          .
-                inx                          ; 97C3= E8          h
-                inx                          ; 97C4= E8          h
-                cpx #$06                     ; 97C5= E0 06       `.
-                bcc L97BD                    ; 97C7= 90 F4       .t
-L97C9:
-                lda ($F0),y                  ; 97C9= B1 F0       1p
-                sta $02EE,x                  ; 97CB= 9D EE 02    .n.
-                inx                          ; 97CE= E8          h
-                dey                          ; 97CF= 88          .
-                bne L97C9                    ; 97D0= D0 F7       Pw
-                bra L9804                    ; 97D2= 80 30       .0
+                bne readClock
 
-convertBCDClockToString:
+                ; Convert given time to string. Fill out the RTC temp
+                ; data with the info from the parameter block, then
+                ; pass on to the common code.
+                ldy #$07
+
+                ; Copy hours, mins, secs.
+                ldx #$00
+-
+                lda ($F0),y
+                sta osfileParameterBlock+1,x
+                dey
+                inx
+                inx
+                cpx #$06
+                bcc -
+
+                ; Copy day of week, day of month, month, year.
+-
+                lda (originalX),y
+                sta osfileParameterBlock+1,x
+                inx
+                dey
+                bne -
+                
+                bra maybeConvertToString ; (called from here, there's no maybe about it)
+
+readClock:
                 lda originalX
                 pha
                 lda originalY
                 pha
-L97DA:
-                ldx #$0C                     ; 97DA= A2 0C       ".
-                jsr readRTCByte                    ; 97DC= 20 B7 98     7.
-                ldx #$09                     ; 97DF= A2 09       ".
-L97E1:
-                jsr readRTCByte                    ; 97E1= 20 B7 98     7.
-                sta $02EE,x                  ; 97E4= 9D EE 02    .n.
-                dex                          ; 97E7= CA          J
-                bpl L97E1                    ; 97E8= 10 F7       .w
-                ldx #$0A                     ; 97EA= A2 0A       ".
-                jsr readRTCByte                    ; 97EC= 20 B7 98     7.
-                bpl L97F5                    ; 97EF= 10 04       ..
-L97F1:
-                cli                          ; 97F1= 58          X
-                sei                          ; 97F2= 78          x
-                bra L97DA                    ; 97F3= 80 E5       .e
+readRTCClock:
+                ldx #RTC.c
+                jsr readRTCByte ;clear the various IRQ flags with a read of register C
+                ldx #RTC.year
+-
+                jsr readRTCByte
+                sta osfileParameterBlock+1,x
+                dex
+                bpl -
+                ldx #RTC.a
+                jsr readRTCByte
+                bpl L97F5 ;taken if update not in progress - result is good
+retryReadRTCClock:
+                cli
+                sei
+                bra readRTCClock
 
 L97F5:
-                ldx #$0C                     ; 97F5= A2 0C       ".
-                jsr readRTCByte                    ; 97F7= 20 B7 98     7.
-                and #$10                     ; 97FA= 29 10       ).
-                bne L97F1                    ; 97FC= D0 F3       Ps
-                pla                          ; 97FE= 68          h
-                sta $F1                      ; 97FF= 85 F1       .q
-                pla                          ; 9801= 68          h
-                sta $F0                      ; 9802= 85 F0       .p
-L9804:
-                pla                          ; 9804= 68          h
-                dec a                        ; 9805= 3A          :
-                bne L9822                    ; 9806= D0 1A       P.
-                ldy #$00                     ; 9808= A0 00        .
-                ldx #$09                     ; 980A= A2 09       ".
-L980C:
-                lda $02EE,x                  ; 980C= BD EE 02    =n.
-                sta ($F0),y                  ; 980F= 91 F0       .p
-                iny                          ; 9811= C8          H
-                dex                          ; 9812= CA          J
-                cpx #$06                     ; 9813= E0 06       `.
-                bcs L980C                    ; 9815= B0 F5       0u
-L9817:
-                lda $02ED,x                  ; 9817= BD ED 02    =m.
-                sta ($F0),y                  ; 981A= 91 F0       .p
-                iny                          ; 981C= C8          H
-                dex                          ; 981D= CA          J
-                dex                          ; 981E= CA          J
-                bpl L9817                    ; 981F= 10 F6       .v
-                rts                          ; 9821= 60          `
+                ldx #RTC.c
+                jsr readRTCByte
+                and #RTC.c.uf
+                bne retryReadRTCClock
+                pla         
+                sta originalY
+                pla         
+                sta originalX
+maybeConvertToString:
+                pla                          ;get reason code
+                dec a                        
+                bne convertTimeToString                    ;taken if 0 or 2
 
-L9822:
-                ldy #$18                     ; 9822= A0 18        .
-                lda #$0D                     ; 9824= A9 0D       ).
-                sta ($F0),y                  ; 9826= 91 F0       .p
-                ldx #$00                     ; 9828= A2 00       ".
+                ; Copy year, month, day of month, day of week.
+                ldy #$00                     ; 9808= A0 00        .
+                ldx #RTC.year
+-
+                lda osfileParameterBlock+1,x
+                sta (originalX),y
+                iny
+                dex
+                cpx #RTC.dayOfWeek
+                bcs -
+
+                ; Copy hours, minutes, seconds.
+-
+                lda osfileParameterBlock,x          
+                sta (originalX),y            
+                iny                          
+                dex                          
+                dex                          
+                bpl -
+                rts                          
+
+
+convertTimeToString:
+                ; Store terminating CR.
+                ldy #ClockStringFormat.cr
+                lda #13
+                sta (originalX),y
+                ldx #$00
                 dey                          ; 982A= 88          .
-                jsr L9890                    ; 982B= 20 90 98     ..
-                lda #$3A                     ; 982E= A9 3A       ):
-                sta ($F0),y                  ; 9830= 91 F0       .p
-                ldy #$12                     ; 9832= A0 12        .
-                sta ($F0),y                  ; 9834= 91 F0       .p
-                ldx #$02                     ; 9836= A2 02       ".
-                ldy #$14                     ; 9838= A0 14        .
-                jsr L9890                    ; 983A= 20 90 98     ..
-                ldx #$04                     ; 983D= A2 04       ".
-                ldy #$11                     ; 983F= A0 11        .
-                jsr L9890                    ; 9841= 20 90 98     ..
-                lda #$2E                     ; 9844= A9 2E       ).
-                sta ($F0),y                  ; 9846= 91 F0       .p
-                lda $02F4                    ; 9848= AD F4 02    -t.
-                asl a                        ; 984B= 0A          .
-                asl a                        ; 984C= 0A          .
-                ldy #$00                     ; 984D= A0 00        .
-                tax                          ; 984F= AA          *
-L9850:
-                lda L9764,x                  ; 9850= BD 64 97    =d.
-                sta ($F0),y                  ; 9853= 91 F0       .p
-                inx                          ; 9855= E8          h
-                iny                          ; 9856= C8          H
-                cpy #$03                     ; 9857= C0 03       @.
-                bcc L9850                    ; 9859= 90 F5       .u
-                lda #$2C                     ; 985B= A9 2C       ),
-                sta ($F0),y                  ; 985D= 91 F0       .p
-                lda $02F6                    ; 985F= AD F6 02    -v.
-                cmp #$10                     ; 9862= C9 10       I.
-                bcc L9868                    ; 9864= 90 02       ..
-                sbc #$06                     ; 9866= E9 06       i.
-L9868:
-                dec a                        ; 9868= 3A          :
-                asl a                        ; 9869= 0A          .
-                asl a                        ; 986A= 0A          .
-                tax                          ; 986B= AA          *
-                ldy #$07                     ; 986C= A0 07        .
-L986E:
-                lda L9784,x                  ; 986E= BD 84 97    =..
+                jsr storeRTCDataByteString
+                lda #':'
+                sta (originalX),y
+                ldy #ClockStringFormat.hh+2
+                sta (originalX),y
+                ldx #RTC.minutes
+                ldy #ClockStringFormat.mm+1
+                jsr storeRTCDataByteString
+                ldx #RTC.hours
+                ldy #ClockStringFormat.hh+1
+                jsr storeRTCDataByteString
+                lda #'.'
+                sta (originalX),y
+                lda osfileParameterBlock+1+RTC.dayOfWeek;
+                asl a           
+                asl a           
+                ldy #$00        
+                tax             
+-
+                lda dayOfWeekStrings-4,x     ;-4 as 1=Sunday
+                sta (originalX),y
+                inx
+                iny
+                cpy #$03
+                bcc -
+                lda #','
+                sta (originalX),y
+                lda osfileParameterBlock+1+RTC.month
+                cmp #$10
+                bcc +
+                sbc #$06            ;convert $10, $11 and $12 from BCD
++
+                dec a                        ;make month 0-based
+                asl a
+                asl a
+                tax
+                ldy #ClockStringFormat.mmm
+-
+                lda monthStrings,x
                 sta ($F0),y                  ; 9871= 91 F0       .p
                 inx                          ; 9873= E8          h
                 iny                          ; 9874= C8          H
-                cpy #$0A                     ; 9875= C0 0A       @.
-                bcc L986E                    ; 9877= 90 F5       .u
-                ldx #$09                     ; 9879= A2 09       ".
-                ldy #$0E                     ; 987B= A0 0E        .
-                jsr L9890                    ; 987D= 20 90 98     ..
-                lda #$19                     ; 9880= A9 19       ).
-                jsr L9893                    ; 9882= 20 93 98     ..
-                lda #$20                     ; 9885= A9 20       )
-                sta ($F0),y                  ; 9887= 91 F0       .p
-                ldy #$06                     ; 9889= A0 06        .
-                sta ($F0),y                  ; 988B= 91 F0       .p
-                dey                          ; 988D= 88          .
-                ldx #$07                     ; 988E= A2 07       ".
-L9890:
-                lda $02EE,x                  ; 9890= BD EE 02    =n.
-L9893:
-                pha                          ; 9893= 48          H
-                jsr L989C                    ; 9894= 20 9C 98     ..
-                pla                          ; 9897= 68          h
-                lsr a                        ; 9898= 4A          J
-                lsr a                        ; 9899= 4A          J
-                lsr a                        ; 989A= 4A          J
-                lsr a                        ; 989B= 4A          J
-L989C:
-                and #$0F                     ; 989C= 29 0F       ).
-                ora #$30                     ; 989E= 09 30       .0
-                cmp #$3A                     ; 98A0= C9 3A       I:
-                bcc L98A6                    ; 98A2= 90 02       ..
-                adc #$06                     ; 98A4= 69 06       i.
-L98A6:
-                sta ($F0),y                  ; 98A6= 91 F0       .p
-                dey                          ; 98A8= 88          .
-                rts                          ; 98A9= 60          `
+                cpy #ClockStringFormat.mmm+3
+                bcc -
+                ldx #RTC.year
+                ldy #ClockStringFormat.yyyy+3
+                jsr storeRTCDataByteString
+                lda #$19                     ;it's always 19xx... right?
+                jsr storeBCDByteString
+                lda #$20                     
+                sta ($F0),y                  
+                ldy #ClockStringFormat.nn+2
+                sta ($F0),y                  
+                dey                          
+                ldx #RTC.dayOfMonth
+storeRTCDataByteString:
+                lda osfileParameterBlock+1,x
+storeBCDByteString:
+                pha
+                jsr storeNybbleString
+                pla
+                lsr a
+                lsr a
+                lsr a
+                lsr a
+storeNybbleString:
+                and #$0F
+                ora #'0'
+                cmp #'9'+1
+                bcc +
+                adc #('A'-'9'-1)-1           ;(-1 because C set)
++
+                sta (originalX),y
+                dey
+                rts
+
+;-------------------------------------------------------------------------
 
 readDefaults2:
-                ldx #CMOSBytes.defaults2+cmosRAMRTCAddress
+                ldx #CMOSBytes.defaults2+RTC.ram
                 bra readRTCByte
+
+;-------------------------------------------------------------------------
 
 readDefaults3:
-                ldx #CMOSBytes.defaults3+cmosRAMRTCAddress
+                ldx #CMOSBytes.defaults3+RTC.ram
                 bra readRTCByte
 
+;-------------------------------------------------------------------------
+;
+; Read byte from RTC, either by 0-based CMOS RAM offset (readCMOSByte)
+; or by RTC register index (readRTCByte).
+;
+; entry:
+;
+; X = address to read from
+;
+; exit:
+;
+; A = byte read
+;
+; N,Z = set as per byte read
+;
 readCMOSByte:
                 jsr getRTCAddressForCMOSByte
                 bcs rts98DB                  ;taken if invalid address
@@ -3610,7 +3647,19 @@ rts98DB:
                 rts
 
 ;-------------------------------------------------------------------------
-
+;
+; Write byte to RTC, either by 0-based CMOS RAM offset (writeCMOSByte)
+; or by RTC register index (writeRTCByte).
+;
+; (For some reason, writeCMOSByte can't be used to write to CMOS RAM
+; offset 0.)
+;
+; entry:
+;
+; X = address to write to
+;
+; Y = value to write
+;
 writeCMOSByte:
                 txa                          ; 98DC= 8A          .
                 beq rts98DB                    ; 98DD= F0 FC       p|
@@ -3644,10 +3693,10 @@ writeRTCByte:
 ; C=0 = valid address: X = register index
 ;
 getRTCAddressForCMOSByte:
-                cpx #cmosRAMSize
+                cpx #size(RTC.ram)
                 bcs rts9905
                 txa        
-                adc #cmosRAMRTCAddress          
+                adc #RTC.ram
                 tax        
 rts9905:
                 rts        
@@ -3675,6 +3724,8 @@ setRTCAddress:
                 lda #$42
                 sta systemVIA.orb            ;RTC AS=0 CS=1 DS=0 R=0
                 rts                          ; 9922= 60          `
+
+;-------------------------------------------------------------------------
 
 L9923:
                 lda #$03                     ; 9923= A9 03       ).

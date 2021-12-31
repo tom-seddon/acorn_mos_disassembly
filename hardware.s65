@@ -224,5 +224,37 @@ data4:
                 .bend
                 .endv
 
-cmosRAMSize=50                  ;number of bytes of RAM
-cmosRAMRTCAddress=14            ;RTC register index for byte 0 of CMOS RAM
+RTC: .struct
+seconds: .fill 1
+secondsAlarm: .fill 1
+minutes: .fill 1
+minutesAlarm: .fill 1
+hours: .fill 1
+hoursAlarm: .fill 1
+dayOfWeek: .fill 1
+dayOfMonth: .fill 1
+month: .fill 1
+year: .fill 1
+a: .block
+dvMask=7
+dvShift=4
+dv4194304Hz=0<<dvShift
+dv1048576Hz=1<<dvShift
+dv32768Hz=2<<dvShift
+                .fill 1
+                .endblock
+b: .block
+set=$80
+_24h=$02
+dse=$01
+                .fill 1
+                .endblock
+c: .block
+uf=$10
+                .fill 1
+                .endblock
+d: .block
+                .fill 1
+                .endblock
+ram: .fill 50
+                .endstruct

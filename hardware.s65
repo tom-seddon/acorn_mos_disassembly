@@ -35,9 +35,9 @@ slowBlink=$20
                 .endvirtual
                 
 ;-------------------------------------------------------------------------
-ACIA=$fe08
+; ACIA=$fe08
 SERPROC=$fe10
-HADC=$fe18
+;HADC=$fe18
 TUBE=$fee0
 ROMSEL=$fe30
 ;ACCCON=$fe34
@@ -62,6 +62,60 @@ cursorXXXX=$e0
                 .endblock
                 .endvirtual
 VPALETTE=$fe21
+
+;-------------------------------------------------------------------------
+
+                .virtual $fe08
+ACIA: .block
+                
+control: .block
+counterDivide1=0<<0
+counterDivide16=1<<0
+counterDivide64=2<<0
+reset=3<<0
+
+word7DataEventParity2Stop=0<<2
+word7DataOddParity2Stop=1<<2
+word7DataEvenParity1Stop=2<<2
+word7DataOddParity1Stop=3<<2
+word8DataNoParity2Stop=4<<2
+word8DataNoParity1Stop=5<<2
+word8DataEvenParity1Stop=6<<2
+word8DataOddParity1Stop=7<<2
+
+rtsLowTXInterruptDisabled=0<<5
+rtsLowTXInterruptEnabled=1<<5
+rtsHighTXInterruptDisabled=2<<5
+rtsLowBreakTXInterruptDisabled=3<<5
+
+rtsRXInterruptDisabled=0<<7
+rtsRTSInterruptEnabled=1<<7
+                
+                .endblock
+status: .block
+                .endblock
+                
+                .fill 1
+tdr:
+rdr:
+                .fill 1
+                .endblock
+                .endvirtual
+                
+;-------------------------------------------------------------------------
+
+                .virtual $fe18
+HADC: .block
+status: .block
+                .endblock
+latch: .block
+                .endblock   
+                .fill 1
+                
+                .endblock
+                .endvirtual
+                
+;-------------------------------------------------------------------------
 
                 .virtual $fe34
 ACCCON: .block
@@ -119,10 +173,60 @@ t2cH:
                 .fill 1         ;9
 sr:
                 .fill 1         ;10
-acr:
+acr: .block
+t1OneShot=0<<6
+t1Continuous=1<<6
+t1OneShotPB7=2<<6
+t1ContinuousPB7=3<<6
+
+t2Timer=0<<5
+t2CountPB6=1<<5
+
+srDisabled=0<<2
+srShiftInT2=1<<2
+srShiftInVIAClock=2<<2
+srShiftInExtClock=3<<2
+srShiftOutT2FreeRun=4<<2
+srShiftOutT2=5<<2
+srShiftOutVIAClock=6<<2
+srShiftOutExtClock=7<<2
+
+pbLatchDisabled=0<<1
+pbLatchEnabled=1<<1
+
+paLatchDisabled=0<<0
+paLatchEnabled=1<<0
+               
                 .fill 1         ;11
-pcr:
+                .endblock
+pcr: .block
+
+cb2InputNegativeActiveEdge=0<<5
+cb2IndependentInterruptInputNegativeEdge=1<<5
+cb2InputPositiveEdge=2<<5
+cb2IndependentInterruptInputPositiveEdge=3<<5
+cb2HandshakeOutput=4<<5
+cb2PulseOutput=5<<5
+cb2LowOutput=6<<5
+cb2HighOutput=7<<5
+                
+cb1NegativeActiveEdge=0<<4
+cb1PositiveActiveEdge=1<<4
+
+ca2InputNegativeActiveEdge=0<<1
+ca2IndependentInterruptInputNegativeEdge=1<<1
+ca2InputPositiveEdge=2<<1
+ca2IndependentInterruptInputPositiveEdge=3<<1
+ca2HandshakeOutput=4<<1
+ca2PulseOutput=5<<1
+ca2LowOutput=6<<1
+ca2HighOutput=7<<1
+                
+ca1NegativeActiveEdge=0<<0
+ca1PositiveActiveEdge=1<<0
+                
                 .fill 1         ;12
+                .endblock
 ifr:
                 .fill 1         ;13
 ier:
@@ -150,8 +254,6 @@ systemVIA: .dstruct VIA
 userVIA: .dstruct VIA
                 .endv
 
-; see App Note 004 - the Tube
-                
                 .virtual $fee0
 tube: .block
 ; Parasite to Host: Carries the OSWRCH call. Data register is a FIFO
@@ -162,7 +264,7 @@ tube: .block
 
 ; write/read (clears IRQ)
 status1: .block
-; App Note 004 p13
+; [Tube p13]
 Q=$01                           ;enable HIRQ from R4
 I=$02                           ;enable PIRQ from R1
 J=$04                           ;enable PIRQ from R3

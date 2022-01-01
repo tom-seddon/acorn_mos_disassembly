@@ -3,7 +3,7 @@
                 .section terminal
 terminal: .block
                 jmp LAF77                    ; Language entry point
-                jmp L9D72                    ; Service entry point
+                jmp terminalServiceEntryPoint                    ; Service entry point
                 .byte $C2                    ; ROM type=SERV+LANG+6502
                 .byte copyrightText-1-terminal ; (C) offset
                 .byte $01
@@ -87,166 +87,178 @@ L8073:
                 jsr mos.interrogateKeyboard
                 cpx #$80        ;Z=0 C=1 if CTRL+BREAK
                 jsr mos.LF735
-                stz $028D                    ; 8099= 9C 8D 02    ...
-                ror a                        ; 809C= 6A          j
-                ldx #$9C                     ; 809D= A2 9C       ".
-                ldy #$8D                     ; 809F= A0 8D        .
-                pla                          ; 80A1= 68          h
-                beq L80AD                    ; 80A2= F0 09       p.
-                ldy #$7E                     ; 80A4= A0 7E        ~
-                bcc L80DF                    ; 80A6= 90 37       .7
-                ldy #$87                     ; 80A8= A0 87        .
-                inc $028D                    ; 80AA= EE 8D 02    n..
+                stz lastBREAKType            ;softBREAK
+                ror a
+                ldx #<intervalTimer ; TODO - $9C - is this right?
+                ldy #$8D
+                pla
+                beq L80AD
+                ldy #$7E
+                bcc L80DF
+                ldy #$87
+                inc lastBREAKType
 L80AD:
-                inc $028D                    ; 80AD= EE 8D 02    n..
-                phy                          ; 80B0= 5A          Z
-                jsr readDefaultMODE                    ; Read configured MODE
+                inc lastBREAKType
+                phy              
+                jsr readDefaultMODE          ; Read configured MODE
 L80B4:
-                ora #$08                     ; Store in OSBYTE 255 with boot off (b3=1)
-                sta $028F
+                ora #$08    ; Store in OSBYTE 255 with boot off (b3=1)
+                sta startupOptions
 L80B9:
-                jsr readDefaults3                    ; Read configured BOOT
-                and #$10
-                lsr a                        ; Reset OSBYTE 255 boot bit (b3) if BOOT
-                trb $028F
-                jsr readDefaultTVSettings                    ; 80C2= 20 5A 8E     Z.
-                sty $0290                    ; 80C5= 8C 90 02    ...
-                stx $0291                    ; 80C8= 8E 91 02    ...
+                jsr readDefaults3            ; Read configured BOOT
+                and #CMOSBytes.defaults3.autoBootMask
+                lsr a         ; Reset OSBYTE 255 boot bit (b3) if BOOT
+                trb startupOptions
+                jsr readDefaultTVSettings
+                sty tvOffset
+                stx tvInterlace
 L80CB:
                 jsr readDefaults3                    ; 80CB= 20 AE 98     ..
-                and #$08                     ; 80CE= 29 08       ).
-                beq L80D4                    ; 80D0= F0 02       p.
-                lda #$01                     ; 80D2= A9 01       ).
+                and #CMOSBytes.defaults3.protectedScrollingMask
+                beq L80D4
+                lda #VDUVariables.cursorFlags.scrollProtect
 L80D4:
-                sta $0366                    ; 80D4= 8D 66 03    .f.
+                sta vduv.cursorFlags
                 jsr restoreFont32To255
-                ply                          ; 80DA= 7A          z
-                ldx #$92                     ; 80DB= A2 92       ".
-                bra L80F7                    ; 80DD= 80 18       ..
+                ply
+                ldx #<timer0 ; $92
+                bra initializePage2Loop
 
 L80DF:
-                lda #$87                     ; Clear MODE bits from OSBYTE 255
+                lda #$87             ; Clear MODE bits from OSBYTE 255
                 trb $028F
-                lda $0355                    ; Get current screen MODE b0-b2
+                lda vduv.currentScreenMODE ; Get current screen MODE b0-b2
                 and #$07
-                tsb $028F                    ; Copy to OSBYTE 255
-                lda #$10                     ; Test shadow screen bit in VDU flags
+                tsb startupOptions           ; Copy to OSBYTE 255
+                lda #STATE.isShadowMode ; Test shadow screen bit in VDU flags
                 bit STATE                      ; Not shadow screen
-                beq L80F7
+                beq initializePage2Loop
                 lda #$80                     ; Set shadow screen bit in OSBYTE 255
-                tsb $028F
-L80F7:
-                lda $028D
-                bne L8104
-                cpx #$B1
-                bcs L8104
-                cpx #$A1
-                bcs L810E
-L8104:
-                stz $0200,x                  ; 8104= 9E 00 02    ...
-                cpx #$CD                     ; 8107= E0 CD       `M
-                bcc L810E                    ; 8109= 90 03       ..
-                dec $0200,x                  ; 810B= DE 00 02    ^..
-L810E:
-                inx                          ; 810E= E8          h
-                bne L80F7                    ; 810F= D0 E6       Pf
-                ldx #$CF                     ; 8111= A2 CF       "O
-L8113:
-                stz $00,x                    ; 8113= 74 00       t.
-                inx                          ; 8115= E8          h
-                bne L8113                    ; 8116= D0 FB       P{
-                lda $028D                    ; 8118= AD 8D 02    -..
-                bne L813D                    ; 811B= D0 20       P
-                lda $0246                    ; 8120= 48          H
+                tsb startupOptions
+initializePage2Loop:
+                lda lastBREAKType
+                bne clearPage2Byte           ;taken unless soft BREAK
+
+                ; leave the ROM information table alone on a soft
+                ; BREAK.
+                cpx #<romInformationTable+16
+                bcs clearPage2Byte
+                cpx #<romInformationTable
+                bcs nextPage2Byte
+clearPage2Byte:
+                stz $0200,x
+                cpx #$CD
+                bcc nextPage2Byte
+                dec $0200,x                  ;initialize later values to $ff
+nextPage2Byte:
+                inx
+                bne initializePage2Loop
+
+                ldx #$CF                     
+initializeZeroPageLoop:
+                stz $00,x                    
+                inx                          
+                bne initializeZeroPageLoop
+                lda lastBREAKType
+                bne L813D                    ;taken if not soft BREAK
+
+                lda noignoreState
                 pha
-                lda $024B                    ; 8124= 48          H
+                lda basicROMNumber
                 pha
-                lda $0244                    ; 8128= 48          H
+                lda oshwm
                 pha
-                lda $0257                    ; 812C= 48          H
+                lda spoolFileHandle
                 pha
-                ldx $0256                    ; 812D= AE 56 02    .V.
+                ldx execFileHandle
+                
 L8130:
-                lda mos.defaultVectorTable-1,y ; 8130= B9 D6 E2    9Vb
-                sta vectors-1,y       ; 8133= 99 FF 01    ...
-                dey                   ; 8136= 88          .
-                cpy #EVENTV+1-vectors ; 8137= C0 21       @!
-                bcs L8130             ; 8139= B0 F5       0u
-                ldy #FILEV-vectors    ; 813B= A0 12        .
+                lda mos.defaultVectorTable-1,y
+                sta vectors-1,y       
+                dey                   
+                cpy #EVENTV+1-vectors 
+                bcs L8130             
+                ldy #FILEV-vectors
+                
 L813D:
                 lda mos.defaultVectorTable-1,y ; 813D= B9 D6 E2    9Vb
                 sta vectors-1,y   ; 8140= 99 FF 01    ...
                 dey                          ; 8143= 88          .
                 bne L813D                    ; 8144= D0 F7       Pw
-                lda $028D                    ; 8146= AD 8D 02    -..
+                lda lastBREAKType
                 bne L8164                    ; 8149= D0 19       P.
-                stx $0256                    ; 814B= 8E 56 02    .V.
-                pla                          ; 814E= 68          h
-                cmp #$04                     ; 814F= C9 04       I.
-                bcs L8155                    ; 8151= B0 02       0.
-                lda #$00                     ; 8153= A9 00       ).
-L8155:
-                sta $0257                    ; 8155= 8D 57 02    .W.
-                pla                          ; 8159= 8D 44 02    .D.
-                sta $0244
-                pla                          ; 815D= 8D 4B 02    .K.
-                sta $024B
-                pla                          ; 8161= 8D 46 02    .F.
-                sta $0246
+                stx execFileHandle
+                pla                          ;restore *SPOOL file handle
+                cmp #$04                     ;is it a TAPE or ROM handle?
+                bcs +                    ;taken if no - keep it
+                lda #$00          ;auto-close it if TAPE or ROM handle
++
+                sta spoolFileHandle
+                pla
+                sta oshwm
+                pla               
+                sta basicROMNumber
+                pla               
+                sta noignoreState
 L8164:
-                jsr readDefaults1                    ; 8164= 20 AD 8E     -.
-                ldx #$20                     ; 8167= A2 20       "
-                asl a                        ; 8169= 0A          .
-                asl a                        ; 816A= 0A          .
-                bmi L8174                    ; 816B= 30 07       0.
-                ldx #$30                     ; 816D= A2 30       "0
-                asl a                        ; 816F= 0A          .
-                bmi L8174                    ; 8170= 30 02       0.
-                ldx #$A0                     ; 8172= A2 A0       "
-L8174:
-                stx $025A                    ; 8174= 8E 5A 02    .Z.
-                jsr mos.selectTerminalROM    ; 8177= 20 90 E5     .e
+                jsr readDefaults1
+                ldx #keyboardStatusByte.shiftLockDisengaged
+                asl a                        
+                asl a                        ;N=defaultCapsLockMask
+                bmi gotKeyboardStatusByte                    ;taken if defaultCapsLock
+                ldx #keyboardStatusByte.shiftLockDisengaged|keyboardStatusByte.capsLockDisengaged
+                asl a                        ;N=defaultNoLockMask
+                bmi gotKeyboardStatusByte
+                ldx #keyboardStatusByte.shiftEnabled|keyboardStatusByte.shiftLockDisengaged
+gotKeyboardStatusByte:
+                stx keyboardStatusByte
+                jsr mos.selectTerminalROM
                 jsr mos.resetKeyRepeat
-                lda $028D                    ; 817D= AD 8D 02    -..
-                beq L8196                    ; 8180= F0 14       p.
-                jsr readDefaultPrinterIgnoreChar                    ; 8182= 20 A8 8E     (.
-                sta $0286                    ; 8185= 8D 86 02    ...
+                lda lastBREAKType
+                beq L8196
+                jsr readDefaultPrinterIgnoreChar
+                sta printerIgnoreChar;
                 jsr readDefaults2
-                lsr a                        ; 818B= 4A          J
-                lsr a                        ; 818C= 4A          J
-                ror $0246                    ; 818D= 6E 46 02    nF.
-                jsr readDefaultFX5Settings                    ; 8190= 20 8D 8E     ..
-                sta $0285                    ; 8193= 8D 85 02    ...
+                lsr a                        ;C=tubeOn
+                lsr a                        ;C=usePrinterIgnoreChar
+                ror noignoreState
+                jsr readDefaultFX5Settings
+                sta printerDriverType
 L8196:
-                jsr readDefaultSerialDataFormat                    ; 8196= 20 97 8E     ..
-                asl a                        ; 8199= 0A          .
-                asl a                        ; 819A= 0A          .
-                ora #$42                     ; 819B= 09 42       .B
-                sta $0250                    ; 819D= 8D 50 02    .P.
-                jsr LA9D6                    ; 81A0= 20 D6 A9     V)
+                jsr readDefaultSerialDataFormat
+                asl a                        ;
+                asl a       ;shift into the control registerword field
+                ora #ACIA.control.rtsHighTXInterruptDisabled|ACIA.control.counterDivide64
+                sta aciaControlRegister
+                jsr resetACIAThenRewriteControlRegister                    ; 81A0= 20 D6 A9     V)
                 ldx #$01                     ; 81A3= A2 01       ".
                 lda #$7F                     ; 81A5= A9 7F       ).
-L81A7:
-                sta systemVIA.ifr,x          ; 81A7= 9D 4D FE    .M~
-                sta userVIA.ifr,x            ; 81AA= 9D 6D FE    .m~
-                dex                          ; 81AD= CA          J
-                bpl L81A7                    ; 81AE= 10 F7       .w
-                cli                          ; 81B0= 58          X
-                sei                          ; 81B1= 78          x
-                bit $FC                      ; 81B2= 24 FC       $|
-                bvc L81B9                    ; 81B4= 50 03       P.
-                jsr mos.LF8CF                ; 81B6= 20 CF F8     Ox
-L81B9:
-                ldx #$D2
+initializeVIAInterruptsLoop:
+                sta systemVIA.ifr,x          
+                sta userVIA.ifr,x            
+                dex                          
+                bpl initializeVIAInterruptsLoop
+
+                ; Let through 1 IRQ.
+                cli                          
+                sei
+
+                ; $FC was cleared above, so if bit 6 is set, there
+                ; must have been an IRQ (as A=$7f). 
+                bit $FC
+                bvc +
+                jsr mos.call1MHzBusHook
++
+                ldx #$80|VIA.irq.t1|VIA.irq.cb1|VIA.irq.ca1
                 stx systemVIA.ier
-                ldx #$04
+                ldx #VIA.pcr.cb2InputNegativeActiveEdge|VIA.pcr.cb1NegativeActiveEdge|VIA.pcr.ca2InputPositiveEdge|VIA.pcr.ca1NegativeActiveEdge
                 stx systemVIA.pcr
-                lda #$40
+                lda #VIA.acr.t1Continuous|VIA.acr.t2Timer|VIA.acr.srDisabled|VIA.acr.pbLatchDisabled|VIA.acr.paLatchDisabled
                 sta systemVIA.acr
                 lda #$0E
                 sta systemVIA.t1lL
-                sta userVIA.pcr
-                sta HADC+0
+                sta userVIA.pcr              ;VIA.pcr.cb2InputNegativeActiveEdge|VIA.pcr.cb1NegativeActiveEdge|VIA.pcr.ca2HighOutput|VIA.pcr.ca1NegativeActiveEdge
+                sta HADC.latch               ;looks benign
                 lda #$27
                 sta systemVIA.t1lH
                 sta systemVIA.t1cH
@@ -259,7 +271,7 @@ L81DD:
                 jsr mos.osbyte7A             ;
                 stx $ED                      ; 81E8= 86 ED       .m
                 ldx #$00                     ; 81EA= A2 00       ".
-                jsr mos.LE97D                ; 81EC= 20 7D E9     }i
+                jsr mos.purgeBuffer       ; 81EC= 20 7D E9     }i
                 lda serialULARegister
                 and #$7F                     ; 81F2= 29 7F       ).
                 jsr mos.LEC89                ; 81F4= 20 89 EC     .l
@@ -287,46 +299,46 @@ scanROMs:
 romsScanned:
                 lda startupOptions
                 jsr mos.setStartupMODE
-                lda $028D                    ; 822A= AD 8D 02    -..
-                dec a                        ; 822D= 3A          :
-                bne L8284                    ; 822E= D0 54       PT
-                lda $ED                      ; 8230= A5 ED       %m
-                cmp #$33                     ; 8232= C9 33       I3
-                bne L8284                    ; 8234= D0 4E       PN
-                ldx #$31                     ; 8236= A2 31       "1
-L8238:
-                phx                          ; 8238= DA          Z
-                ldy #$00                     ; 8239= A0 00        .
-                jsr writeCMOSByte                    ; 823B= 20 DC 98     \.
-                plx                          ; 823E= FA          z
-                dex                          ; 823F= CA          J
-                bpl L8238                    ; 8240= 10 F6       .v
-                ldy #$FF                     ; 8242= A0 FF        .
-                ldx #$06                     ; 8244= A2 06       ".
-                jsr writeCMOSByte                    ; 8246= 20 DC 98     \.
-                ldx #$07                     ; 8249= A2 07       ".
-                jsr writeCMOSByte                    ; 824B= 20 DC 98     \.
-                jsr alwaysPrintFollowingMessage                    ; 824E= 20 58 A9     X)
-                .byte $0D
-                .byte $0A
-                .text "CMOS RAM reset"
-                .byte $0D
-                .byte $0A
-                .text "Press break to continue"
-                .byte $0D
-                .byte $0A
-                .byte $00
-                lda #$03                     ; 827D= A9 03       ).
-                sta $0258                    ; 827F= 8D 58 02    .X.
-L8282:
-                bra L8282                    ; 8282= 80 FE       .~
+                lda lastBREAKType
+                dec a
+                bne L8284                    ;taken if not power-on reset
+                lda $ED
+                cmp #key_r
+                bne L8284                    ;taken if R not pressed
+
+                ; Reset CMOS RAM
+                ldx #size(RTC.ram)-1
+resetCMOSRAMLoop:
+                phx                          
+                ldy #$00                     
+                jsr writeCMOSByte            
+                plx                          
+                dex                          
+                bpl resetCMOSRAMLoop
+
+                ; Initialize ROM insertion flags.                
+                ldy #$FF
+                ldx #CMOSBytes.insertedROMs+0
+                jsr writeCMOSByte
+                ldx #CMOSBytes.insertedROMs+1
+                jsr writeCMOSByte
+                
+                jsr alwaysPrintFollowingMessage
+                .text 13,10,"CMOS RAM reset"
+                .text 13,10,"Press break to continue"
+                .text 13,10,0
+                
+                lda #$03
+                sta breakAndESCAPEEffect
+hang:
+                bra hang
 
 L8284:
                 jsr mos.selectHAZEL          ; 8284= 20 BA ED     :m
                 stz hazel.moveSrcHandle
                 stz hazel.moveDestHandle
                 ldy #$CA                     ; 828D= A0 CA        J
-                jsr mos.LEA7E                ; 828F= 20 7E EA     ~j
+                jsr mos.insertCharacterIntoKeyboardBuffer
                 jsr mos.osbyte247EntryPoint  ; 8292= 20 49 F3     Is
                 lda $028D                    ; 8295= AD 8D 02    -..
                 beq L829D                    ; 8298= F0 03       p.
@@ -430,8 +442,9 @@ defaultFsInfoBlocks:
                 .byte $03
                 .byte $03
 
+;-------------------------------------------------------------------------
+; 
 ; MOS command table
-; =================
 
 mos_command .macro name,routine,byte1,byte2
                 .text \name
@@ -489,25 +502,25 @@ mosCommandTable:
                 .mos_command "X",mos.starX,$00,$00  ;
                 .mos_command "",mos.callFSCV,$00,$03 ; FSC &03
                 .byte $00
-                
+
+;-------------------------------------------------------------------------
+
 L84EE:
-                lda ($B0)                    ; 84EE= B2 B0       20
-L84F0:
-                bmi L84FE                    ; 84F0= 30 0C       0.
-L84F2:
-                tya                          ; 84F2= 98          .
-L84F3:
-                clc                          ; 84F3= 18          .
-                adc $F2                      ; 84F4= 65 F2       er
-                tax                          ; 84F6= AA          *
-                ldy $F3                      ; 84F7= A4 F3       $s
-L84F9:
-                bcc L84FC                    ; 84F9= 90 01       ..
-                iny                          ; 84FB= C8          H
-L84FC:
-                lda ($B0)                    ; 84FC= B2 B0       20
-L84FE:
-                rts                          ; 84FE= 60          `
+                lda (oscliWorkspace.tablePtr)
+                bmi rts84FE
+getStringInputBufferAddressWithYOffset:
+                tya
+getStringInputBufferAddressWithAOffset:
+                clc
+                adc stringInputBufferAddress+0
+                tax
+                ldy stringInputBufferAddress+1
+                bcc +
+                iny
++
+                lda (oscliWorkspace.tablePtr)
+rts84FE:
+                rts        
 
 ; Prepare OSCLI command line
 ; ==========================
@@ -521,13 +534,13 @@ oscli:
                 ldy #$FF                     ; 850E= A0 FF        .
 L8510:
                 jsr mos.incAndSkipSpaces     ; 8510= 20 FE F2     ~r
-                beq L84FE                    ; 8513= F0 E9       pi
+                beq rts84FE                    ; 8513= F0 E9       pi
                 cmp #'*'                     ; 8515= C9 2A       I*
                 beq L8510                    ; 8517= F0 F7       pw
                 jsr mos.skipSpacesAndCheckForCRInStringInput ; 8519= 20 FF F2     .r
-                beq L84FE                    ; 851C= F0 E0       p`
+                beq rts84FE                    ; 851C= F0 E0       p`
                 cmp #'|'                     ; 851E= C9 7C       I|
-                beq L84FE                    ; 8520= F0 DC       p\
+                beq rts84FE                    ; 8520= F0 DC       p\
                 stz hazel.tempFSFlag      ; 8522= 9C C6 DF    .F_
                 cmp #'-'                  ; 8525= C9 2D       I-
                 bne L8535                    ; 8527= D0 0C       P.
@@ -540,33 +553,33 @@ L8535:
                 cmp #'/'                     ; 8535= C9 2F       I/
                 bne L8542                    ; 8537= D0 09       P.
                 iny                          ; 8539= C8          H
-                jsr L84F2                    ; 853A= 20 F2 84     r.
+                jsr getStringInputBufferAddressWithYOffset
                 lda #fscStarSlash            ; 853D= A9 02       ).
                 jmp mos.callFSCV             ; 853F= 4C E5 F1    Leq
 
 L8542:
                 sty $E6
                 lda #<mosCommandTable
-                sta $B0
+                sta oscliWorkspace.tablePtr+0
                 lda #>mosCommandTable
-                sta $B1
+                sta oscliWorkspace.tablePtr+1
                 bra L8558
 
 L854E:
-                eor ($B0)                    ; 854E= 52 B0       R0
-                and #$DF                     ; 8550= 29 DF       )_
-                bne L8569                    ; 8552= D0 15       P.
-                jsr L859B                    ; 8554= 20 9B 85     ..
+                eor (oscliWorkspace.tablePtr)
+                and #$DF
+                bne L8569
+                jsr fetchCommandTableByte
                 iny                          ; 8557= C8          H
 L8558:
-                lda ($F2),y                  ; 8558= B1 F2       1r
-                jsr mos.isLetter             ; 855A= 20 71 EA     qj
-                bcc L854E                    ; 855D= 90 EF       .o
-                lda ($B0)                    ; 855F= B2 B0       20
-                bmi L8582                    ; 8561= 30 1F       0.
-                lda ($F2),y                  ; 8563= B1 F2       1r
-                cmp #$2E                     ; 8565= C9 2E       I.
-                beq L856D                    ; 8567= F0 04       p.
+                lda (stringInputBufferAddress),y
+                jsr mos.isLetter
+                bcc L854E                    ;taken if letter
+                lda (oscliWorkspace.tablePtr)
+                bmi L8582                ;taken if end of command name
+                lda (stringInputBufferAddress),y
+                cmp #'.'                     
+                beq L856D                    ;taken if input abbreviated
 L8569:
                 clc                          ; 8569= 18          .
                 ldy $E6                      ; 856A= A4 E6       $f
@@ -574,41 +587,43 @@ L8569:
 L856D:
                 iny                          ; 856D= C8          H
 L856E:
-                jsr L859B                    ; Get byte from table, update pointer
+                jsr fetchCommandTableByte ; Get byte from table, update pointer
                 beq passStarCommandThrough   ; Zero byte
                 bpl L856E                    ; Loop until b7 set
                 bcs L8585                    ; 8575= B0 0E       0.
-                jsr L859B                    ; 8577= 20 9B 85     ..
-                jsr L859B                    ; 857A= 20 9B 85     ..
-                jsr L859B                    ; 857D= 20 9B 85     ..
-                bra L8558                    ; 8580= 80 D6       .V
+                jsr fetchCommandTableByte    
+                jsr fetchCommandTableByte    
+                jsr fetchCommandTableByte    
+                bra L8558                    
 
 L8582:
-                jsr L859B                    ; 8582= 20 9B 85     ..
+                jsr fetchCommandTableByte
 L8585:
-                pha                          ; 8585= 48          H
-                jsr L859B                    ; 8586= 20 9B 85     ..
-                pha                          ; 8589= 48          H
-                jsr L859B                    ; 858A= 20 9B 85     ..
-                bmi L8592                    ; 858D= 30 03       0.
-                stz hazel.tempFSFlag      ; 858F= 9C C6 DF    .F_
+                pha
+                jsr fetchCommandTableByte
+                pha
+                jsr fetchCommandTableByte
+                bmi L8592
+                stz hazel.tempFSFlag
 L8592:
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; 8592= 20 FF F2     .r
-                clc                          ; 8595= 18          .
-                php                          ; 8596= 08          .
-                jsr L84EE                    ; 8597= 20 EE 84     n.
-                rti                          ; 859A= 40          @
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                clc                          
+                php                          
+                jsr L84EE                    
+                rti                          
 
-L859B:
-                lda ($B0)                    ; 859B= B2 B0       20
-                pha                          ; 859D= 48          H
-                inc $B0                      ; 859E= E6 B0       f0
-                bne L85A4                    ; 85A0= D0 02       P.
-                inc $B1                      ; 85A2= E6 B1       f1
-L85A4:
-                pla                          ; 85A4= 68          h
-L85A5:
-                rts                          ; 85A5= 60          `
+fetchCommandTableByte:
+                lda (oscliWorkspace.tablePtr)
+                pha                          
+                inc oscliWorkspace.tablePtr+0
+                bne +
+                inc oscliWorkspace.tablePtr+1
++
+                pla                          
+rts85A5:
+                rts                          
+
+;-------------------------------------------------------------------------
 
 ; *BASIC
 ; ======
@@ -617,6 +632,8 @@ starBASIC:
                 bmi passStarCommandThrough ; If no BASIC ROM, jump to pass to ROMs and filing system
                 sec                          ;
                 jmp mos.osbyte8E             ; Enter ROM as a language
+
+;-------------------------------------------------------------------------
 
 ; *ADFS - pass straight to ROMs/Filing System
 ; ===========================================
@@ -627,10 +644,10 @@ passStarCommandThrough:
                 ldy $E6
                 ldx #romServiceCallUnrecognisedCommand
                 jsr mos.osbyte8F    ; Service call 4 - Unknown command
-                beq L85A5                    ; Claimed, return
+                beq rts85A5                    ; Claimed, return
 L85C0:
                 lda $E6
-                jsr L84F3                    ; F2toXY
+                jsr getStringInputBufferAddressWithAOffset
                 lda #$03
                 jmp mos.callFSCV ; mos.Pass to FSCV,3 - Unknown command
 
@@ -663,6 +680,7 @@ starHELP:
 ; exit:
 ;
 ; X = result
+; ?$e6 = result
 ; C=0 if error
 ; Z=1 if CR encountered
 ; 
@@ -764,13 +782,17 @@ readHexDigit:
                 iny                          ; 865A= C8          H
                 rts                          ; 865B= 60          `
 
+;-------------------------------------------------------------------------
+; 
 ; OSWORD 0 control block for *commands
 ; ====================================
-L865C:
+commandLineUIOSWORD0Parameters:
                 .word hazel.commandLine      ; address
                 .byte $F0			; max # chars
                 .byte $20			; min ASCII char
                 .byte $7E			; max ASCII char
+
+;-------------------------------------------------------------------------
 
 commandLineUI:
                 lda #<commandLineUIBRKHandler
@@ -790,138 +812,148 @@ commandLineUILoop:
                 bcc +                     ;taken if ESCAPE not pressed
                 jmp escapeError
 +
-                ldx #<hazel.commandLine      ; 8684= A2 00       ".
-                ldy #>hazel.commandLine      ; 8686= A0 DC        \
+                ldx #<hazel.commandLine     
+                ldy #>hazel.commandLine     
                 jsr OSCLI
                 bra commandLineUILoop
 
 commandLineUIBRKHandler:
-                jsr OSNEWL                   ; 868D= 20 E7 FF     g.
-                ldy #$00                     ; 8690= A0 00        .
+                jsr OSNEWL                  
+                ldy #$00                    
                 jsr mos.printBRKMessage
-                jsr OSNEWL                   ; 8695= 20 E7 FF     g.
-                bra commandLineUI                    ; 8698= 80 C7       .G
+                jsr OSNEWL                  
+                bra commandLineUI           
 
 badCommandError869A:
                 jmp mos.badCommandError
 
 readCommandLine:
-                lda #$00                     ; 869D= A9 00       ).
-                ldx #<L865C                  ; 869F= A2 5C       "\
-                ldy #>L865C                  ; 86A1= A0 86        .
-                jmp OSWORD                   ; 86A3= 4C F1 FF    Lq.
+                lda #$00                     
+                ldx #<commandLineUIOSWORD0Parameters
+                ldy #>commandLineUIOSWORD0Parameters
+                jmp OSWORD                   
 
+;-------------------------------------------------------------------------
+;
+; *ROMS [MasRef C.5-10]
+; 
 starROMS:
                 jsr mos.skipSpacesAndCheckForCRInStringInput
                 bne badCommandError869A
-                ldy #$0F                     ; 86AB= A0 0F        .
-L86AD:
-                iny                          ; 86AD= C8          H
-                jsr printFollowingMessage    ; 86AE= 20 27 A9     ')
-                .text "ROM "
-                .byte $00
-                tya                          ; 86B6= 98          .
-                dec a                        ; 86B7= 3A          :
-                pha                          ; 86B8= 48          H
-                jsr printHexDigit                    ; 86B9= 20 73 A8     s(
-                jsr printSpace                    ; 86BC= 20 0C 9F     ..
-                lda #$09                     ; 86BF= A9 09       ).
-                sta $F6                      ; 86C1= 85 F6       .v
-                lda #$80                     ; 86C3= A9 80       ).
-                sta $F7                      ; 86C5= 85 F7       .w
-                plx                          ; 86C7= FA          z
-                jsr mos.LE587                ; 86C8= 20 87 E5     .e
-                dey                          ; 86CB= 88          .
-                bcc L8718                    ; 86CC= 90 4A       .J
-L86CE:
-                jsr mos.osrdscEntryPoint     ; 86CE= 20 FC F3     |s
-                cmp #$20                     ; 86D1= C9 20       I
-                bcc L86E4                    ; 86D3= 90 0F       ..
-                cmp #$7F                     ; 86D5= C9 7F       I.
-                bcs L8718                    ; 86D7= B0 3F       0?
-                jsr OSWRCH                   ; 86D9= 20 EE FF     n.
-                inc $F6                      ; 86DC= E6 F6       fv
-                bit $F6                      ; 86DE= 24 F6       $v
-                bvc L86CE                    ; 86E0= 50 EC       Pl
-                bra L8718                    ; 86E2= 80 34       .4
+                ldy #$0F
+printROMsLoop:
+                iny                          ;ensure Y!=0
+                jsr printFollowingMessage
+                .text "ROM ",0
+                tya                          ;A = ROM number+1
+                dec a                        ;A = ROM number
+                pha                          ;save ROM number
+                jsr printHexDigit            ;print ROM slot
+                jsr printSpace               
+                lda #<sidewaysROMName
+                sta $F6
+                lda #>sidewaysROMName
+                sta $F7
+                plx                          ;restore ROM number
+                jsr mos.isROMValidThenSelectTerminalROM
+                dey
+                bcc invalidROM
+printROMNameLoop:
+                jsr mos.osrdscEntryPoint     ;read name byte
+                cmp #' '
+                bcc printROMVersion ;taken if non-printable char, including the terminating 0
+                cmp #127
+                bcs invalidROM  ;taken if bad (bit 7 set) char in name
+                jsr OSWRCH
+                inc $F6
+                bit $F6
+                bvc printROMNameLoop         ;taken if address<$8040
+                bra invalidROM               ;taken if name too long
 
-L86E4:
-                tax                          ; 86E4= AA          *
-                bne L8718                    ; 86E5= D0 31       P1
-                lda #$08                     ; 86E7= A9 08       ).
-                sta $F6                      ; 86E9= 85 F6       .v
-                lda #$80                     ; 86EB= A9 80       ).
-                sta $F7                      ; 86ED= 85 F7       .w
-                jsr mos.osrdscEntryPoint     ; 86EF= 20 FC F3     |s
-                jsr LA865                    ; 86F2= 20 65 A8     e(
-L86F5:
+printROMVersion:
+                tax               ;Z=1 if final char was the expected 0
+                bne invalidROM    ;taken if bad (control) char in name
+                lda #<sidewaysROMVersion
+                sta $F6
+                lda #>sidewaysROMVersion
+                sta $F7
+                jsr mos.osrdscEntryPoint
+                jsr printSpaceThenPrintHexByte
+printInsertionStatus:
                 phy                          ; 86F5= 5A          Z
                 jsr mos.getROMInsertedFlagRTCAddressAndMask
-                sta $B0                      ; 86F9= 85 B0       .0
-                jsr readRTCByte                    ; 86FB= 20 B7 98     7.
-                and $B0                      ; 86FE= 25 B0       %0
-                bne L8710                    ; 8700= D0 0E       P.
-                jsr alwaysPrintFollowingMessage                    ; 8702= 20 58 A9     X)
-                .text " unplugged"
-                .byte 0
-;JSR &6E75        :\ 8705= 20 75 6E     un
-;BVS L8776        :\ 8708= 70 6C       pl
-;ADC &67,x        :\ 870A= 75 67       ug
-;EQUB &67         :\ 870C= 67          g
-;ADC &64          :\ 870D= 65 64       ed
-;BRK              :\ 870F= 00          .
-L8710:
-                ply                          ; 8710= 7A          z
-                jsr OSNEWL                   ; 8711= 20 E7 FF     g.
-                dey                          ; 8714= 88          .
-                bpl L86AD                    ; 8715= 10 96       ..
-                rts                          ; 8717= 60          `
-
-L8718:
-                lda #'?'                     ; 8718= A9 3F       )?
-                jsr OSWRCH                   ; 871A= 20 EE FF     n.
-                bra L86F5                    ; 871D= 80 D6       .V
-
-starINSERT:
-                sec                          ; 871F= 38          8
-                bra L8723                    ; 8720= 80 01       ..
-
-starUNPLUG:
-                clc                          ; 8722= 18          .
-L8723:
-                php                          ; 8723= 08          .
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; 8724= 20 FF F2     .r
-                jsr parseSingle4BitNumberFromCommandLine                    ; 8727= 20 7D 89     }.
-                tay                          ; 872A= A8          (
-                jsr mos.getROMInsertedFlagRTCAddressAndMask
-                pha                          ; 872E= 48          H
-                jsr readRTCByte                    ; 872F= 20 B7 98     7.
-                sty $B0                      ; 8732= 84 B0       .0
-                pla                          ; 8734= 68          h
-                plp                          ; 8735= 28          (
-                bcc +                    ; 8736= 90 04       ..
-                ora $B0                      ; 8738= 05 B0       .0
-                bra L8740                    ; 873A= 80 04       ..
+                sta starROMSWorkspace.insertedFlagMask
+                jsr readRTCByte
+                and starROMSWorkspace.insertedFlagMask
+                bne +
+                jsr alwaysPrintFollowingMessage
+                .text " unplugged",0
 +
-                eor #$FF                     ; 873C= 49 FF       I.
-                and $B0                      ; 873E= 25 B0       %0
-L8740:
-                tay                          ; 8740= A8          (
-                jmp writeRTCByte                    ; 8741= 4C E4 98    Ld.
+                ply              
+                jsr OSNEWL       
+                dey              
+                bpl printROMsLoop
+                rts              
 
+invalidROM:
+                lda #'?'                     
+                jsr OSWRCH                   
+                bra printInsertionStatus
+
+;-------------------------------------------------------------------------
+;
+; *INSERT [MasRef C.5-8]
+; 
+starINSERT:
+                sec              
+                bra starINSERTOrStarUNPLUG
+
+;-------------------------------------------------------------------------
+;
+; *UNPLUG [MasRef C.5-13]
+; 
+starUNPLUG:
+                clc
+starINSERTOrStarUNPLUG:
+                php
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr parseSingle4BitNumberFromCommandLine
+                tay                          ;Y=ROM number
+                jsr mos.getROMInsertedFlagRTCAddressAndMask
+                pha
+                jsr readRTCByte                    
+                sty starROMSWorkspace.insertedFlagMask
+                pla
+                plp
+                bcc unplug                   ;taken if it's *UNPLUG
+
+                ; it's *INSERT
+                ora starROMSWorkspace.insertedFlagMask
+                bra +
+unplug:
+                eor #$FF
+                and starROMSWorkspace.insertedFlagMask
++
+                tay
+                jmp writeRTCByte
+
+;-------------------------------------------------------------------------
+;
+; *TIME [MasRef C.5-12]
+; 
 starTIME:
-                stz hazel.commandLine        ; 8744= 9C 00 DC    ..\
-                ldx #<hazel.commandLine      ; 8747= A2 00       ".
-                ldy #>hazel.commandLine      ; 8749= A0 DC        \
-                lda #$0E                     ; 874B= A9 0E       ).
-                jsr OSWORD                   ; 874D= 20 F1 FF     q.
-                ldx #255-24                  ; 8750= A2 E7       "g
+                stz hazel.commandLine        
+                ldx #<hazel.commandLine      
+                ldy #>hazel.commandLine      
+                lda #$0E                     
+                jsr OSWORD                   
+                ldx #256-size(ClockStringFormat)
 L8752:
-                lda hazel.commandLine-(255-24),x ; 8752= BD 19 DB    =.[
-                jsr OSASCI                   ; 8755= 20 E3 FF     c.
-                inx                          ; 8758= E8          h
-                bne L8752                    ; 8759= D0 F7       Pw
-                rts                          ; 875B= 60          `
+                lda hazel.commandLine-(256-size(ClockStringFormat)),x
+                jsr OSASCI                   
+                inx                          
+                bne L8752                    
+                rts                          
 
 ;-------------------------------------------------------------------------
 
@@ -1947,17 +1979,23 @@ printNo_:
                 rts                          ; 8EB8= 60          `
 
 ;-------------------------------------------------------------------------
-
+;
+; [MasRef G.5-8]
+; 
 starPRINT:
                 lda #$C0                     ; 8EB9= A9 C0       )@
                 sta hazel.fsFlags      ; 8EBB= 8D C2 DF    .B_
                 bra L8ED2                    ; 8EBE= 80 12       ..
+
+;-------------------------------------------------------------------------
 
 starLIST:
                 lsr hazel.fsFlags      ; 8EC0= 4E C2 DF    NB_
                 stz hazel.lineNumberBCD+0      ; 8EC3= 9C C3 DF    .C_
                 stz hazel.lineNumberBCD+1      ; 8EC6= 9C C4 DF    .D_
                 bra L8ECF                    ; 8EC9= 80 04       ..
+
+;-------------------------------------------------------------------------
 
 starTYPE:
                 sec                          ; 8ECB= 38          8
@@ -1987,7 +2025,7 @@ L8EEB:
                 sta hazel.lastCharPrinted      ; 8EF8= 8D C5 DF    .E_
                 cmp #$22                     ; 8EFB= C9 22       I"
                 beq L8F04                    ; 8EFD= F0 05       p.
-                jsr L9606                    ; 8EFF= 20 06 96     ..
+                jsr printGSREADChar                    ; 8EFF= 20 06 96     ..
                 bra L8F07                    ; 8F02= 80 03       ..
 
 L8F04:
@@ -2032,7 +2070,9 @@ L8F3A:
                 rts                          ; 8F41= 60          `
 
 ;-------------------------------------------------------------------------
-
+;
+; *DUMP [MasRef G.5-4]
+; 
 starDUMP:
                 stx $F2                      ; 8F42= 86 F2       .r
                 sty $F3                      ; 8F44= 84 F3       .s
@@ -2117,7 +2157,7 @@ L8FD4:
 L8FD6:
                 sta $02F5,x                  ; 8FD6= 9D F5 02    .u.
                 pla                          ; 8FD9= 68          h
-                jsr LA865                    ; 8FDA= 20 65 A8     e(
+                jsr printSpaceThenPrintHexByte                    ; 8FDA= 20 65 A8     e(
                 inx                          ; 8FDD= E8          h
                 jsr L9248                    ; 8FDE= 20 48 92     H.
                 lda $02F1                    ; 8FE1= AD F1 02    -q.
@@ -2904,271 +2944,314 @@ starDELETE:
                 bne L941F                    ; 946E= D0 AF       P/
                 jmp LA54D                    ; 9470= 4C 4D A5    LM%
 
-L9473:
-                jsr parseNumberFromString    ; 9473= 20 E6 85     f.
-                bcc L947C                    ; 9476= 90 04       ..
-                cpx #$10                     ; 9478= E0 10       `.
-                bcc L941F                    ; 947A= 90 A3       .#
-L947C:
-                jsr doFollowingError                    ; 947C= 20 ED AA     m*
-                .byte $FB                    ; 947F= FB          {
+;-------------------------------------------------------------------------
+
+parseSoftKeyNumberFromCommandLine:
+                jsr parseNumberFromString
+                bcc badKeyError
+                cpx #softKeyCount
+                bcc L941F
+badKeyError:
+                jsr doFollowingError
+                .byte $FB
                 .text "Bad key"
                 .byte 0
 
-starSHOW:
-                jsr L9473                    ; 9488 20 73 94
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; 948B 20 FF F2
-                bne L947C                    ; 948E D0 EC
-                lda #$22                     ; 9490 A9 22
-                jsr OSWRCH                   ; 9492= 20 EE FF     n.
-                lda $F4                      ; 9495= A5 F4       %t
-                pha                          ; 9497= 48          H
-                jsr mos.selectTerminalROMAndANDY2 ; 9498= 20 98 E5     .e
-                lda L8000,x                  ; 949B= BD 00 80    =..
-                sta $F2                      ; 949E= 85 F2       .r
-                lda L8011,x                  ; 94A0= BD 11 80    =..
-                sta $F3                      ; 94A3= 85 F3       .s
-                ldy $E6                      ; 94A5= A4 E6       $f
-                jsr mos.LEB55                ; 94A7= 20 55 EB     Uk
-                tay                          ; 94AA= A8          (
-                beq L94BB                    ; 94AB= F0 0E       p.
-L94AD:
-                lda ($F2)                    ; 94AD= B2 F2       2r
-                jsr L9606                    ; 94AF= 20 06 96     ..
-                inc $F2                      ; 94B2= E6 F2       fr
-                bne L94B8                    ; 94B4= D0 02       P.
-                inc $F3                      ; 94B6= E6 F3       fs
-L94B8:
-                dey                          ; 94B8= 88          .
-                bne L94AD                    ; 94B9= D0 F2       Pr
-L94BB:
-                pla                          ; 94BB= 68          h
-                jsr mos.selectROMA           ; 94BC= 20 92 E5     .e
-                lda #$22                     ; 94BF= A9 22       )"
-                jsr OSWRCH                   ; 94C1= 20 EE FF     n.
-                jmp OSNEWL                   ; 94C4= 4C E7 FF    Lg.
+;-------------------------------------------------------------------------
+;
+; [MasRef C.5-11]
+; 
+starSHOW: .proc
+                jsr parseSoftKeyNumberFromCommandLine
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                bne badKeyError
+                lda #'"'
+                jsr OSWRCH
+                lda $F4
+                pha
+                jsr mos.selectTerminalROMAndANDY2
+                lda andy.softKeys.stringLSBs,x
+                sta stringInputBufferAddress+0
+                lda andy.softKeys.stringMSBs,x
+                sta stringInputBufferAddress+1
+                ldy $E6
+                jsr mos.getSoftKeyStringLength
+                tay                          ;Y = string length
+                beq done                    ;done if length=0
+-
+                lda (stringInputBufferAddress)
+                jsr printGSREADChar
+                inc stringInputBufferAddress+0
+                bne +
+                inc stringInputBufferAddress+1
++
+                dey
+                bne -
+done
+                pla     
+                jsr mos.selectROMA
+                lda #'"'
+                jsr OSWRCH        
+                jmp OSNEWL        
+                .endproc
 
 ;-------------------------------------------------------------------------
+;
+; [MasRef C.5-8]
+; 
+starKEY: .proc
+                jsr parseSoftKeyNumberFromCommandLine
+                lda $F4                      
+                pha                          
+                jsr mos.selectTerminalROMAndANDY 
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                stz starKEYWorkspace.newStringLength
+                beq commandLineTailEmpty
+                ldx #$00
+                sec
+                jsr mos.gsinitEntryPoint
+-
+                jsr mos.gsreadEntryPoint
+                bcs bneBadKeyError
+                sta hazel.commandLine,x
+                inx
+                bra -
 
-starKEY:
-                jsr L9473                    ; 94C7= 20 73 94     s.
-                lda $F4                      ; 94CA= A5 F4       %t
-                pha                          ; 94CC= 48          H
-                jsr mos.selectTerminalROMAndANDY ; 94CD= 20 7F E5     .e
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; 94D0= 20 FF F2     .r
-                stz $B0                      ; 94D3= 64 B0       d0
-                beq L94EC                    ; 94D5= F0 15       p.
-                ldx #$00                     ; 94D7= A2 00       ".
-                sec                          ; 94D9= 38          8
-                jsr mos.gsinitEntryPoint     ; 94DA= 20 6E F2     nr
-L94DD:
-                jsr mos.gsreadEntryPoint     ; 94DD= 20 7F F2     .r
-                bcs L94E8                    ; 94E0= B0 06       0.
-                sta hazel.commandLine,x      ; 94E2= 9D 00 DC    ..\
-                inx                          ; 94E5= E8          h
-                bra L94DD                    ; 94E6= 80 F5       .u
+bneBadKeyError:
+                bne badKeyError
+                stx starKEYWorkspace.newStringLength
+commandLineTailEmpty:
+                ldy $E6                        ;Y = soft key number
+                jsr mos.getSoftKeyStringLength                
+                sta starKEYWorkspace.counter+0
+                sec                          
+                sbc starKEYWorkspace.newStringLength ;A=existing len-new len
+                bcs newStringWillFit            ;taken if new string shorter, meaning it'll definitely fit
 
-L94E8:
-                bne L947C                    ; 94E8= D0 92       P.
-                stx $B0                      ; 94EA= 86 B0       .0
-L94EC:
-                ldy $E6                      ; 94EC= A4 E6       $f
-                jsr mos.LEB55                ; 94EE= 20 55 EB     Uk
-                sta $B5                      ; 94F1= 85 B5       .5
-                sec                          ; 94F3= 38          8
-                sbc $B0                      ; 94F4= E5 B0       e0
-                bcs L950E                    ; 94F6= B0 16       0.
-                eor #$FF                     ; 94F8= 49 FF       I.
-                adc #$01                     ; 94FA= 69 01       i.
-                adc L8010                    ; 94FC= 6D 10 80    m..
-                tax                          ; 94FF= AA          *
-                lda L8021                    ; 9500= AD 21 80    -!.
-                adc #$00                     ; 9503= 69 00       i.
-                cmp #$84                     ; 9505= C9 84       I.
-                bcc L950E                    ; 9507= 90 05       ..
-                bne L94E8                    ; 9509= D0 DD       P]
-                txa                          ; 950B= 8A          .
-                bne L94E8                    ; 950C= D0 DA       PZ
-L950E:
-                lda $0268                    ; 950E= AD 68 02    -h.
-                beq L9545                    ; 9511= F0 32       p2
-                lda $02C9                    ; 9513= AD C9 02    -I.
+                eor #$FF                     
+                adc #$01                     ;A=new len-existing len
+                adc andy.softKeys.endLSB
+                tax
+                lda andy.softKeys.endMSB
+                adc #$00
+                cmp #>(andy.softKeys.end)
+                bcc newStringWillFit
+
+                ; Produce slightly cryptic "Bad key" if string won't
+                ; fit.
+                bne bneBadKeyError
+                txa
+                bne bneBadKeyError
+newStringWillFit:
+                lda softKeyStringLength
+                beq storeNewString          ;taken if new string empty
+                lda currentSoftKey
                 cmp $E6                      ; 9516= C5 E6       Ef
-                bcc L9545                    ; 9518= 90 2B       .+
-                bne L952B                    ; 951A= D0 0F       P.
+                bcc storeNewString ;taken if current soft key<key - expansion will not need to relocate
+                bne relocateCurrentSoftKeyExpansion ;taken if current soft key>key - expansion must relocate
                 jsr doFollowingError                    ; 951C= 20 ED AA     m*
                 .text $fa,"Key in use",0
-                ; EQUB $4B                   ; 9520= 4B          K
-                ; ADC $79                    ; 9521= 65 79       ey
-                ; JSR $6E69                  ; 9523= 20 69 6E     in
-                ; JSR $7375                  ; 9526= 20 75 73     us
-                ; ADC $00                    ; 9529= 65 00       e.
-L952B:
-                stz $B2                      ; 952B= 64 B2       d2
-                sec                          ; 952D= 38          8
-                lda $B0                      ; 952E= A5 B0       %0
-                sbc $B5                      ; 9530= E5 B5       e5
-                sta $B1                      ; 9532= 85 B1       .1
-                bcs L9538                    ; 9534= B0 02       0.
-                dec $B2                      ; 9536= C6 B2       F2
-L9538:
-                clc                          ; 9538= 18          .
-                lda $F8                      ; 9539= A5 F8       %x
-                adc $B1                      ; 953B= 65 B1       e1
-                sta $F8                      ; 953D= 85 F8       .x
-                lda $F9                      ; 953F= A5 F9       %y
-                adc $B2                      ; 9541= 65 B2       e2
-                sta $F9                      ; 9543= 85 F9       .y
-L9545:
-                dec $0284                    ; 9545= CE 84 02    N..
-                ldx $E6                      ; 9548= A6 E6       &f
-                lda $B5                      ; 954A= A5 B5       %5
-                beq L9593                    ; 954C= F0 45       pE
-                lda L8000,x                  ; 954E= BD 00 80    =..
-                sta $B1                      ; 9551= 85 B1       .1
-                lda L8011,x                  ; 9553= BD 11 80    =..
-                sta $B2                      ; 9556= 85 B2       .2
-                lda L8001,x                  ; 9558= BD 01 80    =..
-                sta $B3                      ; 955B= 85 B3       .3
-                lda L8012,x                  ; 955D= BD 12 80    =..
-                sta $B4                      ; 9560= 85 B4       .4
-L9562:
-                lda ($B3)                    ; 9562= B2 B3       23
-                sta ($B1)                    ; 9564= 92 B1       .1
-                inc $B1                      ; 9566= E6 B1       f1
-                bne L956C                    ; 9568= D0 02       P.
-                inc $B2                      ; 956A= E6 B2       f2
-L956C:
-                inc $B3                      ; 956C= E6 B3       f3
-                bne L9572                    ; 956E= D0 02       P.
-                inc $B4                      ; 9570= E6 B4       f4
-L9572:
-                lda $B3                      ; 9572= A5 B3       %3
-                cmp L8010                    ; 9574= CD 10 80    M..
-                lda $B4                      ; 9577= A5 B4       %4
-                sbc L8021                    ; 9579= ED 21 80    m!.
-                bcc L9562                    ; 957C= 90 E4       .d
-L957E:
-                inx                          ; 957E= E8          h
-                cpx #$11                     ; 957F= E0 11       `.
-                bcs L9593                    ; 9581= B0 10       0.
-                sec                          ; 9583= 38          8
-                lda L8000,x                  ; 9584= BD 00 80    =..
-                sbc $B5                      ; 9587= E5 B5       e5
-                sta L8000,x                  ; 9589= 9D 00 80    ...
-                bcs L957E                    ; 958C= B0 F0       0p
-                dec L8011,x                  ; 958E= DE 11 80    ^..
-                bra L957E                    ; 9591= 80 EB       .k
+relocateCurrentSoftKeyExpansion:
+                stz starKEYWorkspace.destPtr+1
+                sec
+                lda starKEYWorkspace.newStringLength
+                sbc starKEYWorkspace.counter+0
+                sta starKEYWorkspace.destPtr+0
+                bcs +
+                dec starKEYWorkspace.destPtr+1
++
+                clc
+                lda softKeyExpansionPtr+0
+                adc starKEYWorkspace.destPtr+0
+                sta softKeyExpansionPtr+0
+                lda softKeyExpansionPtr+1
+                adc starKEYWorkspace.destPtr+1
+                sta softKeyExpansionPtr+1
+storeNewString:
+                dec softKeyConsistencyFlag   ;mark soft keys inconsistent
+                ldx $E6                      ;X=key number
+                lda starKEYWorkspace.counter+0
+                beq makeSpaceForNewString ;taken if no existing string for this soft key
 
-L9593:
-                ldx $E6                      ; 9593= A6 E6       &f
-                lda $B0                      ; 9595= A5 B0       %0
-                beq L95FF                    ; 9597= F0 66       pf
-                lda L8010                    ; 9599= AD 10 80    -..
-                sta $B3                      ; 959C= 85 B3       .3
-                clc                          ; 959E= 18          .
-                adc $B0                      ; 959F= 65 B0       e0
-                sta $B1                      ; 95A1= 85 B1       .1
-                lda L8021                    ; 95A3= AD 21 80    -!.
-                sta $B4                      ; 95A6= 85 B4       .4
-                adc #$00                     ; 95A8= 69 00       i.
-                sta $B2                      ; 95AA= 85 B2       .2
-                lda $B3                      ; 95AC= A5 B3       %3
-                sec                          ; 95AE= 38          8
-                sbc L8000,x                  ; 95AF= FD 00 80    }..
-                sta $B5                      ; 95B2= 85 B5       .5
-                lda $B4                      ; 95B4= A5 B4       %4
-                sbc L8011,x                  ; 95B6= FD 11 80    }..
-                sta $B6                      ; 95B9= 85 B6       .6
-L95BB:
-                lda $B5                      ; 95BB= A5 B5       %5
-                ora $B6                      ; 95BD= 05 B6       .6
-                beq L95DF                    ; 95BF= F0 1E       p.
-                lda $B1                      ; 95C1= A5 B1       %1
-                bne L95C7                    ; 95C3= D0 02       P.
-                dec $B2                      ; 95C5= C6 B2       F2
-L95C7:
-                dec $B1                      ; 95C7= C6 B1       F1
-                lda $B3                      ; 95C9= A5 B3       %3
-                bne L95CF                    ; 95CB= D0 02       P.
-                dec $B4                      ; 95CD= C6 B4       F4
-L95CF:
-                dec $B3                      ; 95CF= C6 B3       F3
-                lda ($B3)                    ; 95D1= B2 B3       23
-                sta ($B1)                    ; 95D3= 92 B1       .1
-                lda $B5                      ; 95D5= A5 B5       %5
-                bne L95DB                    ; 95D7= D0 02       P.
-                dec $B6                      ; 95D9= C6 B6       F6
-L95DB:
-                dec $B5                      ; 95DB= C6 B5       F5
-                bra L95BB                    ; 95DD= 80 DC       .\
+                ; delete existing string
+                lda andy.softKeys.stringLSBs,x
+                sta starKEYWorkspace.destPtr+0
+                lda andy.softKeys.stringMSBs,x
+                sta starKEYWorkspace.destPtr+1
+                lda andy.softKeys.stringLSBs+1,x
+                sta starKEYWorkspace.srcPtr+0
+                lda andy.softKeys.stringMSBs+1,x
+                sta starKEYWorkspace.srcPtr+1
+deleteExistingStringLoop:
+                ; copy byte (with postincrement)
+                lda (starKEYWorkspace.srcPtr)
+                sta (starKEYWorkspace.destPtr)
 
-L95DF:
-                inx                          ; 95DF= E8          h
-                cpx #$11                     ; 95E0= E0 11       `.
-                bcs L95F3                    ; 95E2= B0 0F       0.
-                lda L8000,x                  ; 95E4= BD 00 80    =..
-                adc $B0                      ; 95E7= 65 B0       e0
-                sta L8000,x                  ; 95E9= 9D 00 80    ...
-                bcc L95DF                    ; 95EC= 90 F1       .q
-                inc L8011,x                  ; 95EE= FE 11 80    ~..
-                bra L95DF                    ; 95F1= 80 EC       .l
+                ; increment destPtr
+                inc starKEYWorkspace.destPtr+0
+                bne +
+                inc starKEYWorkspace.destPtr+1
++
 
-L95F3:
-                ldy #$00                     ; 95F3= A0 00        .
-L95F5:
-                lda hazel.commandLine,y      ; 95F5= B9 00 DC    9.\
-                sta ($B3),y                  ; 95F8= 91 B3       .3
-                iny                          ; 95FA= C8          H
-                dec $B0                      ; 95FB= C6 B0       F0
-                bne L95F5                    ; 95FD= D0 F6       Pv
-L95FF:
-                inc $0284                    ; 95FF= EE 84 02    n..
-                pla                          ; 9602= 68          h
-                jmp mos.selectROMA           ; 9603= 4C 92 E5    L.e
+                ; increment srcPtr
+                inc starKEYWorkspace.srcPtr+0
+                bne +
+                inc starKEYWorkspace.srcPtr+1
++
 
-L9606:
-                tax                          ; 9606= AA          *
-                bmi L9631                    ; 9607= 30 28       0(
-                cmp #$20                     ; 9609= C9 20       I
-                bcc L962C                    ; 960B= 90 1F       ..
-                inx                          ; 960D= E8          h
-                bmi L961F                    ; 960E= 30 0F       0.
-                dex                          ; 9610= CA          J
-                cmp #$22                     ; 9611= C9 22       I"
-                beq L9626                    ; 9613= F0 11       p.
-                cmp #$7C                     ; 9615= C9 7C       I|
-                bne L961C                    ; 9617= D0 03       P.
-                jsr OSWRCH                   ; 9619= 20 EE FF     n.
-L961C:
+                ; keep copying until end of buffer reached.
+                lda starKEYWorkspace.srcPtr+0
+                cmp andy.softKeys.endLSB
+                lda starKEYWorkspace.srcPtr+1
+                sbc andy.softKeys.endMSB
+                bcc deleteExistingStringLoop
+
+                ; update following strings' start addresses, which all
+                ; move down by the old string's length.
+updateAddressesLoop:
+                inx
+                cpx #softKeyCount+1
+                bcs makeSpaceForNewString
+                sec
+                lda andy.softKeys.stringLSBs,x
+                sbc starKEYWorkspace.counter+0
+                sta andy.softKeys.stringLSBs,x
+                bcs updateAddressesLoop
+                dec andy.softKeys.stringMSBs,x
+                bra updateAddressesLoop
+
+makeSpaceForNewString:
+                ldx $E6
+                lda starKEYWorkspace.newStringLength
+                beq done
+                lda andy.softKeys.endLSB
+                sta starKEYWorkspace.srcPtr+0
+                clc
+                adc starKEYWorkspace.newStringLength
+                sta starKEYWorkspace.destPtr+0 ;new end ptr LSB
+                lda andy.softKeys.endMSB
+                sta starKEYWorkspace.srcPtr+1
+                adc #$00
+                sta starKEYWorkspace.destPtr+1 ;new end ptr MSB
+                lda starKEYWorkspace.srcPtr+0
+                sec
+                sbc andy.softKeys.stringLSBs,x
+                sta starKEYWorkspace.counter+0
+                lda starKEYWorkspace.srcPtr+1
+                sbc andy.softKeys.stringMSBs,x
+                sta starKEYWorkspace.counter+1
+makeSpaceForNewStringLoop:
+                ; loop while counter>0
+                lda starKEYWorkspace.counter+0
+                ora starKEYWorkspace.counter+1
+                beq updateAddressesLoop2
+
+                ; decrement destPtr
+                lda starKEYWorkspace.destPtr+0
+                bne +
+                dec starKEYWorkspace.destPtr+1  
++
+                dec starKEYWorkspace.destPtr+0
+
+                ; decrement srcPtr
+                lda starKEYWorkspace.srcPtr+0  
+                bne +
+                dec starKEYWorkspace.srcPtr+1  
++
+                dec starKEYWorkspace.srcPtr+0
+
+                ; copy byte (with predecrement)
+                lda (starKEYWorkspace.srcPtr)
+                sta (starKEYWorkspace.destPtr)
+
+                ; decrement counter
+                lda starKEYWorkspace.counter+0
+                bne +
+                dec starKEYWorkspace.counter+1  
++
+                dec starKEYWorkspace.counter+0
+                
+                bra makeSpaceForNewStringLoop
+
+                ; update following strings' start addresses, which all
+                ; move up by the new string's length.
+updateAddressesLoop2:
+                inx      
+                cpx #softKeyCount+1
+                bcs copyNewString
+                lda andy.softKeys.stringLSBs,x
+                adc starKEYWorkspace.newStringLength  
+                sta andy.softKeys.stringLSBs,x
+                bcc updateAddressesLoop2
+                inc andy.softKeys.stringMSBs,x
+                bra updateAddressesLoop2
+
+copyNewString:
+                ldy #$00
+copyNewStringLoop:
+                lda hazel.commandLine,y
+                sta (starKEYWorkspace.srcPtr),y
+                iny
+                dec starKEYWorkspace.newStringLength
+                bne copyNewStringLoop
+done:
+                inc softKeyConsistencyFlag   ;mark soft keys consistent
+                pla                          
+                jmp mos.selectROMA
+                .endproc       
+
+;-------------------------------------------------------------------------
+;
+; Print char, printing control codes using the string reader escape
+; syntax. [MasRef C.5-8]
+; 
+printGSREADChar: .proc
+                tax                          ;X=char
+                bmi printHighBitChar
+                cmp #$20
+                bcc printControlChar
+                inx
+                bmi vdu127
+                dex                          ;restore old char
+                cmp #'"'
+                beq printEscapedX
+                cmp #'|'
+                bne printA
+                ; print "||"
+                jsr OSWRCH
+printA:
                 jmp OSWRCH                   ; 961C= 4C EE FF    Ln.
 
-L961F:
-                jsr L963C                    ; 961F= 20 3C 96     <.
-                lda #$3F                     ; 9622= A9 3F       )?
-                bra L961C                    ; 9624= 80 F6       .v
+vdu127:
+                ; print "|?"
+                jsr printEscapeChar
+                lda #'?'
+                bra printA
 
-L9626:
-                jsr L963C                    ; 9626= 20 3C 96     <.
+printEscapedX:
+                jsr printEscapeChar
                 txa                          ; 9629= 8A          .
-                bra L961C                    ; 962A= 80 F0       .p
+                bra printA
 
-L962C:
+printControlChar:
                 ora #$40                     ; 962C= 09 40       .@
                 tax                          ; 962E= AA          *
-                bra L9626                    ; 962F= 80 F5       .u
+                bra printEscapedX
 
-L9631:
+printHighBitChar:
                 pha                          ; 9631= 48          H
-                ldx #$21                     ; 9632= A2 21       "!
-                jsr L9626                    ; 9634= 20 26 96     &.
+                ldx #'!'
+                jsr printEscapedX
                 pla                          ; 9637= 68          h
                 and #$7F                     ; 9638= 29 7F       ).
-                bra L9606                    ; 963A= 80 CA       .J
+                bra printGSREADChar                    ; 963A= 80 CA       .J
 
-L963C:
-                lda #$7C                     ; 963C= A9 7C       )|
-                bra L961C                    ; 963E= 80 DC       .\
+printEscapeChar:
+                lda #'|'
+                bra printA
+                .endproc
+
+;-------------------------------------------------------------------------
 
 ; Day string not matched
 ; ----------------------
@@ -4331,54 +4414,67 @@ L9D6B:
 L9D71:
                 rts                          ; 9D71= 60          `
 
-L9D72:
-                cmp #$FE                     ; 9D72= C9 FE       I~
-                bcc L9DCC                    ; 9D74= 90 56       .V
-                bne L9D8C                    ; 9D76= D0 14       P.
-                cpy #$00                     ; 9D78= C0 00       @.
-                beq L9DCC                    ; 9D7A= F0 50       pP
-L9D7C:
-                bit tube.status1                   ; 9D7C= 2C E0 FE    ,`~
-                bpl L9D7C                    ; 9D7F= 10 FB       .{
-                lda tube.data1                   ; 9D81= AD E1 FE    -a~
-                beq L9DCA                    ; 9D84= F0 44       pD
-                jsr OSWRCH                   ; 9D86= 20 EE FF     n.
-                jmp L9D7C                    ; 9D89= 4C 7C 9D    L|.
+;-------------------------------------------------------------------------
+;
+; Terminal ROM service entry point.
+; 
+terminalServiceEntryPoint:
+                cmp #romServiceCallTubeSystemPostInitialisation
+                bcc L9DCC        ;taken if definitely not Tube-related
+                bne handleTubeMainInitialisation
+handleTubeSystemPostInitialisation:
+                cpy #$00           
+                beq L9DCC
 
-L9D8C:
-                lda #<tubeHost.LADE0                     ; 9D8C= A9 7B       ){
-                sta EVENTV+0                    ; 9D8E= 8D 20 02    . .
-                lda #>tubeHost.LADE0                     ; 9D91= A9 06       ).
-                sta EVENTV+1                    ; 9D93= 8D 21 02    .!.
-                lda #<tubeBrkHandlerAddr        ; 9D96= A9 16       ).
-                sta BRKV+0                    ; 9D98= 8D 02 02    ...
-                lda #>tubeBrkHandlerAddr      ; 9D9B= A9 00       ).
-                sta BRKV+1                    ; 9D9D= 8D 03 02    ...
-                lda #$8E                     ; 9DA0= A9 8E       ).
-                sta tube.status1                   ; 9DA2= 8D E0 FE    .`~
-                ldy #$00                     ; 9DA5= A0 00        .
-L9DA7:
-                lda tubeHost.codePage0,y                  ; 9DA7= B9 6E AB    9n+
+                ; [Tube p28] - write out the startup message that the
+                ; second processor has been stuck trying to write out.
+writeSecondProcessorStartupMessageLoop:
+                bit tube.status1
+                bpl writeSecondProcessorStartupMessageLoop
+                lda tube.data1  
+                beq L9DCA       
+                jsr OSWRCH      
+                jmp writeSecondProcessorStartupMessageLoop
+
+handleTubeMainInitialisation:
+                lda #<tubeHost.eventHandler
+                sta EVENTV+0
+                lda #>tubeHost.eventHandler
+                sta EVENTV+1
+                lda #<tubeBrkHandlerAddr
+                sta BRKV+0
+                lda #>tubeBrkHandlerAddr
+                sta BRKV+1
+                lda #tube.status1.S|tube.status1.M|tube.status1.J|tube.status1.I;
+                sta tube.status1
+
+                ; Copy Tube host code into main RAM.
+                ldy #$00
+-
+                lda tubeHost.codePage0,y
                 sta tubeHostAddr+0*256,y
-                lda tubeHost.codePages12,y                  ; 9DAD= B9 65 AC    9e,
+                lda tubeHost.codePages12,y
                 sta tubeHostAddr+1*256,y
-                lda tubeHost.codePages12+256,y                  ; 9DB3= B9 65 AD    9e-
+                lda tubeHost.codePages12+256,y
                 sta tubeHostAddr+2*256,y
-                dey                          ; 9DB9= 88          .
-                bne L9DA7                    ; 9DBA= D0 EB       Pk
-                jsr tubeHost.LAB8D                    ; 9DBC= 20 1F 04     ..
-                ldx #tubeHost.brkHandler.size
-L9DC1:
-                lda tubeHost.brkHandler,x                  ; 9DC1= BD 2D AB    =-+
-                sta @wtubeBrkHandlerAddr,x                  ; 9DC4= 9D 16 00    ...
-                dex                          ; 9DC7= CA          J
-                bpl L9DC1                    ; 9DC8= 10 F7       .w
+                dey                   
+                bne -
+                
+                jsr tubeHost.resetTubeClaim
+
+                ; Copy BRK handler into zero page.
+                ldx #size(tubeHost.brkHandler)
+-
+                lda tubeHost.brkHandler,x
+                sta @wtubeBrkHandlerAddr,x
+                dex
+                bpl -
 
 L9DCA:
                 lda #$00                     ; Claim call and return
 
 L9DCC:
-                cmp #$12                     ; Jump if not SelectFS
+                cmp #romServiceCallInitialiseFilingSystem
                 bne L9DEA
                 cpy #$04                     ; Exit if not TAPE/ROM
                 bcs L9E16
@@ -4396,7 +4492,7 @@ L9DE3:
                 bra L9DCA                    ; Jump to claim and return
 
 L9DEA:
-                cmp #$06                     ; Not ErrorOccured
+                cmp #romServiceCallBreakInstruction
                 bne L9E17
                 lda hazel.hasACCCONChanged ; Skip if ACCCON not changed
                 beq L9DFC
@@ -4421,7 +4517,7 @@ L9E16:
                 rts                          ; 9E16= 60          `
 
 L9E17:
-                cmp #$26                     ; 9E17= C9 26       I&
+                cmp #romServiceCallCloseAllOpenFiles
                 bne L9E38                    ; 9E19= D0 1D       P.
                 lda #$8D                     ; 9E1B= A9 8D       ).
                 jsr L9E2C                    ; 9E1D= 20 2C 9E     ,.
@@ -4441,7 +4537,7 @@ L9E2C:
                 rts                          ; 9E37= 60          `
 
 L9E38:
-                cmp #$09                     ; 9E38= C9 09       I.
+                cmp #romServiceCallHelp
                 bne L9E8F                    ; 9E3A= D0 53       PS
                 phy                          ; 9E3C= 5A          Z
                 lda ($F2),y                  ; 9E3D= B1 F2       1r
@@ -4455,134 +4551,137 @@ L9E38:
                 .text 0
                 bra L9E8B
 L9E61:
-                ldx #$02                     ; 9E61= A2 02       ".
+                ldx #size(mosHelpSubject)-1
 L9E63:
-                lda ($F2),y                  ; 9E63= B1 F2       1r
-                cmp #$2E                     ; 9E65= C9 2E       I.
+                lda (stringInputBufferAddress),y
+                cmp #'.'
                 beq L9E95                    ; 9E67= F0 2C       p,
                 and #$DF                     ; 9E69= 29 DF       )_
-                cmp L9E92,x                  ; 9E6B= DD 92 9E    ]..
+                cmp mosHelpSubject,x
                 bne L9E7B                    ; 9E6E= D0 0B       P.
                 iny                          ; 9E70= C8          H
                 dex                          ; 9E71= CA          J
                 bpl L9E63                    ; 9E72= 10 EF       .o
-                lda ($F2),y                  ; 9E74= B1 F2       1r
-                jsr mos.isLetter             ; 9E76= 20 71 EA     qj
-                bcs L9E95                    ; 9E79= B0 1A       0.
+                lda (stringInputBufferAddress),y
+                jsr mos.isLetter
+                bcs L9E95       
 L9E7B:
-                lda ($F2),y                  ; 9E7B= B1 F2       1r
-                cmp #$0D                     ; 9E7D= C9 0D       I.
-                beq L9E8B                    ; 9E7F= F0 0A       p.
-                iny                          ; 9E81= C8          H
-                cmp #$20                     ; 9E82= C9 20       I
-                bne L9E7B                    ; 9E84= D0 F5       Pu
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; 9E86= 20 FF F2     .r
-                bne L9E61                    ; 9E89= D0 D6       PV
+                lda (stringInputBufferAddress),y
+                cmp #13
+                beq L9E8B
+                iny
+                cmp #' '
+                bne L9E7B
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                bne L9E61
 L9E8B:
-                ply                          ; 9E8B= 7A          z
-                lda #$09                     ; 9E8C= A9 09       ).
-                rts                          ; 9E8E= 60          `
+                ply
+                lda #romServiceCallHelp
+                rts
 
 L9E8F:
                 jmp LAE19                    ; 9E8F= 4C 19 AE    L..
 
-L9E92:
-                .text "SOM"
-                ; EQUB $53                   ; 9E92= 53          S
-                ; EQUB $4F                   ; 9E93= 4F          O
-                ; EOR LFC20                  ; 9E94= 4D 20 FC    M |
-                ; STZ $68A9,x                ; 9E97= 9E A9 68    .)h
+mosHelpSubject: .text "SOM"
 
 L9E95:
                 jsr L9EFC                    ; 9E95= 20 FC 9E
-                lda #$68                     ; 9E98= A9 68
-                sta $B0                      ; 9E9A= 85 B0       .0
-                lda #$83                     ; 9E9C= A9 83       ).
-                sta $B1                      ; 9E9E= 85 B1       .1
+                lda #<mosCommandTable
+                sta terminalHELPWorkspace.tablePtr+0
+                lda #>mosCommandTable
+                sta terminalHELPWorkspace.tablePtr+1
 L9EA0:
-                lda ($B0)                    ; 9EA0= B2 B0       20
+                lda (terminalHELPWorkspace.tablePtr)
                 bmi L9EF4                    ; 9EA2= 30 50       0P
                 jsr printSpace                    ; 9EA4= 20 0C 9F     ..
                 jsr printSpace                    ; 9EA7= 20 0C 9F     ..
-                lda ($B0)                    ; 9EAA= B2 B0       20
+                lda (terminalHELPWorkspace.tablePtr)
 L9EAC:
-                jsr L9F0E                    ; 9EAC= 20 0E 9F     ..
-                inc $B0                      ; 9EAF= E6 B0       f0
-                bne L9EB5                    ; 9EB1= D0 02       P.
-                inc $B1                      ; 9EB3= E6 B1       f1
+                jsr L9F0E
+                inc terminalHELPWorkspace.tablePtr+0
+                bne L9EB5
+                inc terminalHELPWorkspace.tablePtr+1  
 L9EB5:
-                lda ($B0)                    ; 9EB5= B2 B0       20
-                bpl L9EAC                    ; 9EB7= 10 F3       .s
-                lda #$04                     ; 9EB9= A9 04       ).
-                clc                          ; 9EBB= 18          .
-                adc $B0                      ; 9EBC= 65 B0       e0
-                sta $B0                      ; 9EBE= 85 B0       .0
-                bcc L9EC4                    ; 9EC0= 90 02       ..
-                inc $B1                      ; 9EC2= E6 B1       f1
-L9EC4:
-                jsr mos.LE25C                ; 9EC4= 20 5C E2     \b
-                cpx #$13                     ; 9EC7= E0 13       `.
-                beq L9EEF                    ; 9EC9= F0 24       p$
+                lda (terminalHELPWorkspace.tablePtr)
+                bpl L9EAC
+
+                ; add 4 to tablePtr
+                lda #$04                     
+                clc                          
+                adc terminalHELPWorkspace.tablePtr+0
+                sta terminalHELPWorkspace.tablePtr+0
+                bcc +          
+                inc terminalHELPWorkspace.tablePtr+1
++
+                jsr mos.LE25C
+                cpx #19
+                beq L9EEF
 L9ECB:
                 jsr mos.getTextCursorPositionWithColumn81
                 txa                          ; 9ECE= 8A          .
                 beq L9EA0                    ; 9ECF= F0 CF       pO
-                cpx #$14                     ; 9ED1= E0 14       `.
-                beq L9EA0                    ; 9ED3= F0 CB       pK
-                bcc L9EE4                    ; 9ED5= 90 0D       ..
-                cpx #$28                     ; 9ED7= E0 28       `(
-                beq L9EA0                    ; 9ED9= F0 C5       pE
-                bcs L9EE9                    ; 9EDB= B0 0C       0.
+                cpx #20
+                beq L9EA0
+                bcc L9EE4
+                cpx #40
+                beq L9EA0
+                bcs L9EE9
                 jsr mos.LE25C                ; 9EDD= 20 5C E2     \b
-                cpx #$27                     ; 9EE0= E0 27       `'
+                cpx #39
                 beq L9EEF                    ; 9EE2= F0 0B       p.
 L9EE4:
                 jsr printSpace                    ; 9EE4= 20 0C 9F     ..
                 bra L9ECB                    ; 9EE7= 80 E2       .b
 
 L9EE9:
-                cpx #$3C                     ; 9EE9= E0 3C       `<
-                bcc L9EE4                    ; 9EEB= 90 F7       .w
-                beq L9EA0                    ; 9EED= F0 B1       p1
+                cpx #60
+                bcc L9EE4
+                beq L9EA0
 L9EEF:
-                jsr printNewLine                    ; 9EEF= 20 1E 9F     ..
-                bra L9EA0                    ; 9EF2= 80 AC       .,
+                jsr printNewLine
+                bra L9EA0
 
 L9EF4:
                 jsr mos.getTextCursorPositionWithColumn81
-                txa                          ; 9EF7= 8A          .
-                beq L9E8B                    ; 9EF8= F0 91       p.
-                bra L9EEF                    ; 9EFA= 80 F3       .s
+                txa      
+                beq L9E8B
+                bra L9EEF
 
 L9EFC:
-                phy                          ; 9EFC= 5A          Z
-                jsr alwaysPrintFollowingMessage                    ; 9EFD= 20 58 A9     X)
+                phy
+                jsr alwaysPrintFollowingMessage
                 .text 13,"OS 3.20",13,0
                 ply
-                rts                          ; 9F0B= 60          `
+                rts
 
+;-------------------------------------------------------------------------
+;
 printSpace:
-                lda #$20                     ; 9F0C= A9 20       )
+                lda #$20          
 L9F0E:
-                phx                          ; 9F0E= DA          Z
-                ldx $B0                      ; 9F0F= A6 B0       &0
-                phx                          ; 9F11= DA          Z
-                ldx $B1                      ; 9F12= A6 B1       &1
-                jsr OSWRCH                   ; 9F14= 20 EE FF     n.
-L9F17:
-                stx $B1                      ; 9F17= 86 B1       .1
-                plx                          ; 9F19= FA          z
-                stx $B0                      ; 9F1A= 86 B0       .0
-                plx                          ; 9F1C= FA          z
-                rts                          ; 9F1D= 60          `
+                phx               
+                ldx $B0           
+                phx               
+                ldx $B1           
+                jsr OSWRCH        
+restoreB1AndB0:
+                stx $B1           
+                plx               
+                stx $B0           
+                plx               
+                rts               
+
+;-------------------------------------------------------------------------
 
 printNewLine:
-                phx                          ; 9F1E= DA          Z
-                ldx $B0                      ; 9F1F= A6 B0       &0
-                phx                          ; 9F21= DA          Z
-                ldx $B1                      ; 9F22= A6 B1       &1
-                jsr OSNEWL                   ; 9F24= 20 E7 FF     g.
-                bra L9F17                    ; 9F27= 80 EE       .n
+                phx               
+                ldx $B0           
+                phx               
+                ldx $B1           
+                jsr OSNEWL        
+                bra restoreB1AndB0
+
+;-------------------------------------------------------------------------
 
 ; TAPE/ROM OSARGS handler
 ; =======================
@@ -5563,7 +5662,7 @@ LA4E1:
                 dec $BC                      ; A4E5= C6 BC       F<
                 bpl LA4F0                    ; A4E7= 10 07       ..
 LA4E9:
-                jsr LAA12                    ; A4E9= 20 12 AA     .*
+                jsr resetACIA                    ; A4E9= 20 12 AA     .*
                 ldy #$00                     ; A4EC= A0 00        .
 LA4EE:
                 sty $C2                      ; A4EE= 84 C2       .B
@@ -5934,7 +6033,7 @@ LA743:
 LA74F:
                 jsr LA778                    ; A74F= 20 78 A7     x'
                 jsr LA778                    ; A752= 20 78 A7     x'
-                jsr LAA12                    ; A755= 20 12 AA     .*
+                jsr resetACIA                    ; A755= 20 12 AA     .*
                 lda #$01                     ; A758= A9 01       ).
                 jsr LA78A                    ; A75A= 20 8A A7     .'
                 plp                          ; A75D= 28          (
@@ -6028,7 +6127,7 @@ LA7DD:
                 txa                          ; A7F1= 8A          .
                 clc                          ; A7F2= 18          .
                 adc $03C9                    ; A7F3= 6D C9 03    mI.
-                jsr LA865                    ; A7F6= 20 65 A8     e(
+                jsr printSpaceThenPrintHexByte                    ; A7F6= 20 65 A8     e(
 LA7F9:
                 lda $03C8                    ; A7F9= AD C8 03    -H.
                 jsr printHexByte                    ; A7FC= 20 6A A8     j(
@@ -6086,7 +6185,9 @@ LA85D:
 LA864:
                 rts                          ; A864= 60          `
 
-LA865:
+;-------------------------------------------------------------------------
+
+printSpaceThenPrintHexByte:
                 pha                          ; A865= 48          H
                 jsr printSpace                    ; A866= 20 0C 9F     ..
                 pla                          ; A869= 68          h
@@ -6106,6 +6207,8 @@ printHexDigit:
                 adc #'A'-('9'+1)-1           ;adjust - -1 because C set
 LA87D:
                 jmp OSWRCH                   ; A87D= 4C EE FF    Ln.
+
+;-------------------------------------------------------------------------
 
 LA880:
                 php                          ; A880= 08          .
@@ -6306,7 +6409,7 @@ LA978:
                 lda #$22                     ; A97F= A9 22       )"
                 bit $BB                      ; A981= 24 BB       $;
                 beq LA99D                    ; A983= F0 18       p.
-                jsr LAA12                    ; A985= 20 12 AA     .*
+                jsr resetACIA                    ; A985= 20 12 AA     .*
                 tay                          ; A988= A8          (
                 jsr printFollowingMessage    ; A989= 20 27 A9     ')
                 .byte $0D
@@ -6350,12 +6453,16 @@ LA9CA:
                 stz $EA                      ; A9D2= 64 EA       dj
                 bra LA9D7                    ; A9D4= 80 01       ..
 
-LA9D6:
-                php                          ; A9D6= 08          .
+;-------------------------------------------------------------------------
+
+resetACIAThenRewriteControlRegister:
+                php
 LA9D7:
-                jsr LAA12                    ; A9D7= 20 12 AA     .*
-                lda $0250                    ; A9DA= AD 50 02    -P.
-                jmp mos.LE921                ; A9DD= 4C 21 E9    L!i
+                jsr resetACIA
+                lda aciaControlRegister
+                jmp mos.writeACIAControlRegister
+
+;-------------------------------------------------------------------------
 
 LA9E0:
                 plp                          ; A9E0= 28          (
@@ -6392,13 +6499,17 @@ LAA00:
                 bmi LA9E0                    ; AA07= 30 D7       0W
                 lda #$01                     ; AA09= A9 01       ).
                 sta $EA                      ; AA0B= 85 EA       .j
-                jsr LAA12                    ; AA0D= 20 12 AA     .*
+                jsr resetACIA                    ; AA0D= 20 12 AA     .*
                 plp                          ; AA10= 28          (
                 rts                          ; AA11= 60          `
 
-LAA12:
-                lda #$03                     ; AA12= A9 03       ).
-                bra LAA31                    ; AA14= 80 1B       ..
+;-------------------------------------------------------------------------
+
+resetACIA:
+                lda #ACIA.control.reset
+                bra writeACIAControlRegister
+
+;-------------------------------------------------------------------------
 
 LAA16:
                 lda #$30                     ; AA16= A9 30       )0
@@ -6419,9 +6530,11 @@ LAA2A:
                 sty SERPROC+0                    ; AA2C= 8C 10 FE    ..~
 LAA2F:
                 ora $C6                      ; AA2F= 05 C6       .F
-LAA31:
+writeACIAControlRegister:
                 sta ACIA+0                    ; AA31= 8D 08 FE    ..~
                 rts                          ; AA34= 60          `
+
+;-------------------------------------------------------------------------
 
 LAA35:
                 ldx $03C6                    ; AA35= AE C6 03    .F.
@@ -6648,8 +6761,7 @@ callCommandRoutine:
                 ; ???
                 .dword $8000
                 .here
-size=*-brkHandler
-                .bend
+                .endblock
 
 ; Slightly ugly aliases for inner symbol :(
 idleStartup=brkHandler.idleStartup
@@ -6679,14 +6791,14 @@ release:
                 jsr sendR4
                 jsr sendR4TubeClaimantID
                 plp                          ; AB8C= 28          (
-LAB8D:
-                lda #$80                     ; AB8D= A9 80       ).
-                sta $15                      ; AB8F= 85 15       ..
-                sta $14                      ; AB91= 85 14       ..
-                rts                          ; AB93= 60          `
+resetTubeClaim:
+                lda #$80
+                sta tubeClaimantID
+                sta tubeNotClaimed
+                rts
 
 claim:
-                asl tubeClaimed    ;test if Tube free
+                asl tubeNotClaimed    ;test if Tube free
                 bcs claim2         ;taken if Tube free - with C=1 and
                                    ;tube marked as claimed
                 cmp tubeClaimantID
@@ -7150,7 +7262,7 @@ LADDA:
                 ror a                        ; ADDD= 6A          j
                 bra LADEF                    ; ADDE= 80 0F       ..
 
-LADE0:
+eventHandler:
                 pha                          ; ADE0= 48          H
                 lda #$00                     ; ADE1= A9 00       ).
                 jsr LADEF                    ; ADE3= 20 8A 06     ..

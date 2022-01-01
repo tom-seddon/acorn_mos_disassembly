@@ -27,6 +27,8 @@
 ; AdvRef - Advanced Reference Manual for the BBC Master (has the odd
 ; useful item)
 ;
+; Tube - Tube Application Note (Acorn App Note 004)
+;
 ;-------------------------------------------------------------------------
 
                 .include "hardware.s65"
@@ -54,7 +56,7 @@
 
 ;-------------------------------------------------------------------------
 
-tubeBrkHandlerAddr=$16
+
 tubeHostAddr=$400
                 
 ;-------------------------------------------------------------------------
@@ -126,16 +128,58 @@ eventUser=9
 ;-------------------------------------------------------------------------
 
 ; [MasRef D.2-27]
-                
+
+; Input buffers
 bufferKeyboard=0
 bufferRS423Input=1
+
+; Output buffers                
+bufferFirstOutput=2
 bufferRS423Output=2
 bufferPrinter=3
 bufferSoundChannel0=4
 bufferSoundChannel1=5
 bufferSoundChannel2=6
 bufferSoundChannel3=7
+                
+; What's buffer 8? There's indices allocated for it...
 
+bufferKeyboardAddress=$03e0
+bufferKeyboardSize=32
+bufferRS423InputAddress=$0a00
+bufferRS423InputSize=256
+bufferRS423OutputAddress=$0900
+bufferRS423OutputSize=192
+bufferPrinterAddress=$0880
+bufferPrinterSize=64
+bufferSoundChannel0Address=$0840
+bufferSoundChannel0Size=16
+bufferSoundChannel1Address=$0850
+bufferSoundChannel1Size=16
+bufferSoundChannel2Address=$0860
+bufferSoundChannel2Size=16
+bufferSoundChannel3Address=$0870
+bufferSoundChannel3Size=16
+buffer8Address=$09c0
+buffer8Size=64
+
+
+                
+; BufferInfo: .function bufferAddress,bufferSizeByte
+;                 .endfunction (bufferAddress,256-bufferSizeByte)
+                
+; ; buffer info is (base address,size)
+;  _:=[]
+; _..=[BufferInfo($0300,32)];bufferKeyboard=0
+; _..=[BufferInfo($0a00,256)];bufferRS423Input=1
+; _..=[BufferInfo($08c0,192)];bufferRS423Output=2
+; _..=[BufferInfo($07c0,64)];bufferPrinter=3
+; _..=[BufferInfo($0750,16)];bufferSoundChannel0=4
+; _..=[BufferInfo($0760,16)];bufferSoundChannel1=5
+; _..=[BufferInfo($0770,16)];bufferSoundChannel2=6
+; _..=[BufferInfo($0780,16)];bufferSoundChannel3=7
+; _..=[BufferInfo($0900,64)];What's buffer 8?
+                
 ;-------------------------------------------------------------------------
 
 ; [MasRef C.5-5]
@@ -156,7 +200,18 @@ printerDriverFX5=5
                 
 ;-------------------------------------------------------------------------
 
-; 
+; AUG p261
+
+netPrinterRequest0=0
+netPrinterRequest1=1
+netPrinterRequest2=2
+netPrinterRequest3=3
+netWriteCharacterAttempted=4
+netPrinterRequest5=5
+netReadCharacterAttempted=6
+netOSBYTEAttempted=7
+netOSWORDAttempted=8
+netOSWORD0Complete=13
                 
 ;-------------------------------------------------------------------------
 
@@ -370,6 +425,8 @@ oshwm: .fill 1
 rs423InputInterpretationStatus: .fill 1
 
 ; OSBYTE 182 (&B6) Read NOIGNORE state [MasRef D.2-55]
+;
+; TODO - not a great name, no matter how official - should probably be usePrinterIgnoreChar or something
 noignoreState: .fill 1
 
 ; OSBYTE 183 (&B7) Read/write cassette/ROM filing system [MasRef D.2-55]
@@ -430,7 +487,14 @@ breakAndESCAPEEffect: .fill 1
 keyboardStatus: .fill 1
 
 ; OSBYTE 202 (&CA) Read/write keyboard status byte [MasRef D.2-63]
-keyboardStatusByte: .fill 1
+keyboardStatusByte: .block
+shiftPressed=1<<3
+capsLockDisengaged=1<<4
+shiftLockDisengaged=1<<5
+ctrlPressed=1<<6
+shiftEnabled=1<<7
+                .fill 1
+                .endblock
 
 ; OSBYTE 203 (&CB) Read/write RS423 input buffer [MasRef D.2-64]
 rs423InputBufferMinimumSpace: .fill 1
@@ -615,9 +679,12 @@ intervalTimer=$29c
 romInformationTable=$2a1
 adcResultLSBs=$2b6
 adcResultMSBs=$2ba
+currentSoftKey=$02c9
 adcLastConvertedChannel=$2be
 printerDriverDormant=$2d1        ;bit 7 set if printer driver dormant,
                                  ;clear if active
+bufferStartIndices=$2d7
+bufferEndIndices=$2e0
 
 ; Also used by the clock routines to hold a (possibly partial) mirror
 ; of the RTC time/date registers.
@@ -1048,10 +1115,21 @@ pixelsLimitX:                   ;34
 HorizontalLineFillWorkspaceANDY: .struct
 ecfPattern: .fill 8
                 .endstruct
+
+softKeyCount=16
+softKeyDataTotalSize=$400
                 
                 .virtual $8000
 andy: .block
-                .fill $800
+softKeys: .block
+stringLSBs: .fill softKeyCount
+endLSB: .fill 1
+stringMSBs: .fill softKeyCount
+endMSB: .fill 1
+                .fill softKeys+$400-*
+end:
+                .endblock
+                .fill $8800-*;(softKeyCount*2+1)
 ecfPatterns:
 ecfPattern1: .fill 8
 ecfPattern2: .fill 8
@@ -1142,8 +1220,10 @@ tubeLanguageHostAddr: .fill 2
                 
                 .virtual $12
 tubeTransferAddr: .fill 2
-tubeClaimed: .fill 1            ;bit 7 clear if tube claimed
+tubeNotClaimed: .fill 1            ;bit 7 clear if tube claimed
 tubeClaimantID: .fill 1
+tubeBrkHandlerAddr:
+                ; Tube BRK handler sits here.
                 .endv
 
                 .virtual $53
@@ -1183,6 +1263,7 @@ zhlfw: .dstruct HorizontalLineFillWorkspaceZP
                 .endv
 
                 
+softKeyExpansionPtr=$f8       ;pointer to current char when expanding soft key.
 SEIWKA=$fa
 SEIWKB=$fb
 
@@ -1197,7 +1278,49 @@ gcolModeEOR=3
 gcolModeInvert=4
 gcolModeLeave=5
 
-fsPtr=$b0                       ;pointer available for use by FS calls
+;-------------------------------------------------------------------------
+
+StarKEYWorkspace: .struct
+newStringLength: .fill 1
+destPtr: .fill 2
+srcPtr: .fill 2
+counter: .fill 2
+                .endstruct
+
+OSGBPBWorkspace: .struct
+ptr: .fill 2
+                .endstruct
+
+ParseFileNameFSWorkspace: .struct
+fsInfoOffset: .fill 1
+                .endstruct
+
+OSCLIWorkspace: .struct
+tablePtr: .fill 2
+                .endstruct
+
+                ; TODO - could do being renamed, as it's used (in the
+                ; same way) by *UNPLUG and *INSERT.
+StarROMSWorkspace: .struct
+insertedFlagMask: .fill 1
+                .endstruct
+
+TerminalHELPWorkspace: .struct
+tablePtr: .fill 2
+                .endstruct
+                
+                .virtual $b0
+                .union
+starKEYWorkspace: .dstruct StarKEYWorkspace
+osgbpbWorkspace: .dstruct OSGBPBWorkspace
+parseFileNameFSWorkspace: .dstruct ParseFileNameFSWorkspace
+oscliWorkspace: .dstruct OSCLIWorkspace
+starROMSWorkspace: .dstruct StarROMSWorkspace
+terminalHELPWorkspace: .dstruct TerminalHELPWorkspace
+                .endunion
+                .endvirtual
+
+;-------------------------------------------------------------------------
 
 ; ROM number containing Terminal
 terminalROM=15
@@ -1289,6 +1412,7 @@ hasServiceEntry=128
                 .endblock
                 .endvirtual
 sidewaysROMCopyrightOffset=$8007
+sidewaysROMVersion=$8008
 sidewaysROMName=$8009
 
 ;-------------------------------------------------------------------------
@@ -1318,7 +1442,6 @@ ss:
 cr:
                 .fill 1                      ;'\n'
                 .endstruct
-                
 
 ;-------------------------------------------------------------------------
 

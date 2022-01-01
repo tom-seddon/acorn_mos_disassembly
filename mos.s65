@@ -160,7 +160,7 @@ outputToVDU:
                 sta vduv.queueEnd-1-255,x     ;add to queue
                 inc vduQueueNegativeLength  ;one more in the queue...
                 beq outputQueueToVDU    ;taken if queue now filled
-clcThenRTS:
+clcThenRTSC034:
                 clc
 
 ;-------------------------------------------------------------------------
@@ -184,10 +184,10 @@ outputQueueToVDU:
                 ; ????
                 ldy vduv.jumpVector+1
                 cpy #>vdu1EntryPoint
-                bne clcThenRTS
+                bne clcThenRTSC034
                 ldy vduv.jumpVector+0
                 cpy #<vdu1EntryPoint
-                bne clcThenRTS
+                bne clcThenRTSC034
                 
 outputCharToPrinter:
                 tax                          ;save char to print
@@ -6410,13 +6410,13 @@ getTextCursorPositionWithColumn81:
 ;-------------------------------------------------------------------------
 
 LE25C:
-                sec                          ; E25C= 38          8
-                lda $030A                    ; E25D= AD 0A 03    -..
-                sbc $0308                    ; E260= ED 08 03    m..
-                pha                          ; E263= 48          H
-                lda #$00                     ; E264= A9 00       ).
-                tay                          ; E266= A8          (
-                bra LE279                    ; E267= 80 10       ..
+                sec
+                lda vduv.textWindowRight
+                sbc vduv.textWindowLeft
+                pha
+                lda #$00
+                tay
+                bra LE279
 
 ;-------------------------------------------------------------------------
 ;
@@ -6611,9 +6611,9 @@ end:
                 .word rtsFFAA ; NETV=$224
                 .word rtsFFAA ; VDUV=$226 
                 .word LF74C ; KEYV=$228 
-                .word LEA43 ; INSV=$22a 
-                .word LE9F8 ; REMV=$22c 
-                .word LE97B ; CNPV=$22e 
+                .word insEntryPoint ; INSV=$22a 
+                .word remEntryPoint ; REMV=$22c 
+                .word cnpEntryPoint ; CNPV=$22e 
                 .word rtsFFAA ; IND1V=$230
                 .word rtsFFAA ; IND2V=$232
                 .word rtsFFAA ; IND3V=$234
@@ -6837,7 +6837,9 @@ nextROM:
 ; Exit:
 ;
 ; C=0 if ROM invalid; C=1 if ROM valid
-
+;
+; ROM of interest is selected
+; 
 isROMValid: .proc ;e3f7
                 jsr selectROMX
                 ldx #$03
@@ -7094,12 +7096,12 @@ selectROMX:   ;e581
 
 ;-------------------------------------------------------------------------
 ;
-LE587:
-                phy                          ; E587= 5A          Z
-                jsr isROMValid                    ; E588= 20 F7 E3     wc
-                jsr selectTerminalROM                    ; E58B= 20 90 E5     .e
-                ply                          ; E58E= 7A          z
-                rts                          ; E58F= 60          `
+isROMValidThenSelectTerminalROM:
+                phy
+                jsr isROMValid
+                jsr selectTerminalROM
+                ply
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -7180,7 +7182,7 @@ LE5D4:
 LE5E4:
                 ldx #$40                     ; E5E4= A2 40       "@
 LE5E6:
-                jmp LE912                    ; E5E6= 4C 12 E9    L.i
+                jmp resetACIA                    ; E5E6= 4C 12 E9    L.i
 
 LE5E9:
                 ldy ACIA+1                    ; E5E9= AC 09 FE    ,.~
@@ -7617,7 +7619,7 @@ oswrchEntryPoint:
                 bit $0260                    ; E826= 2C 60 02    ,`.
                 bpl LE833                    ; E829= 10 08       ..
                 tay                          ; E82B= A8          (
-                lda #$04                     ; E82C= A9 04       ).
+                lda #netWriteCharacterAttempted
                 jsr callNETV                    ; E82E= 20 04 EB     .k
                 bcs LE8A5                    ; E831= B0 72       0r
 LE833:
@@ -7726,7 +7728,7 @@ LE8D5:
                 bne LE8FD                    ; E8DB= D0 20       P
                 jsr osbyte91                    ; E8DD= 20 F4 E9     ti
                 ror $02D1                    ; E8E0= 6E D1 02    nQ.
-                bmi LE928                    ; E8E3= 30 43       0C
+                bmi rtsE928                    ; E8E3= 30 43       0C
                 ldy #$82                     ; E8E5= A0 82        .
                 sty userVIA.ier              ; E8E7= 8C 6E FE    .n~
                 sta userVIA.ora              ; E8EA= 8D 61 FE    .a~
@@ -7749,24 +7751,29 @@ LE908:
                 lsr $024F                    ; E908= 4E 4F 02    NO.
 LE90B:
                 jsr LED27                    ; E90B= 20 27 ED     'm
-                bcc LE928                    ; E90E= 90 18       ..
-                ldx #$20                     ; E910= A2 20       "
-LE912:
-                ldy #$9F                     ; E912= A0 9F        .
+                bcc rtsE928                    ; E90E= 90 18       ..
+                ldx #ACIA.control.rtsLowTXInterruptEnabled ;TODO - $20 - is this right?
+resetACIA:
+                ldy #ACIA.control.rtsRTSInterruptEnabled|ACIA.control.word8DataOddParity1Stop|ACIA.control.reset
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 156 (&9C) Read/write serial ACIA control [MasRef D.2-47]
+; 
 osbyte9C:
-                php                          ; E914= 08          .
-                sei                          ; E915= 78          x
-                tya                          ; E916= 98          .
-                stx $FA                      ; E917= 86 FA       .z
-                and $0250                    ; E919= 2D 50 02    -P.
-                eor $FA                      ; E91C= 45 FA       Ez
-                ldx $0250                    ; E91E= AE 50 02    .P.
-LE921:
-                sta $0250                    ; E921= 8D 50 02    .P.
-                sta ACIA+0                    ; E924= 8D 08 FE    ..~
-                plp                          ; E927= 28          (
-LE928:
-                rts                          ; E928= 60          `
+                php
+                sei
+                tya
+                stx SEIWKA
+                and aciaControlRegister
+                eor SEIWKA
+                ldx aciaControlRegister
+writeACIAControlRegister:
+                sta aciaControlRegister
+                sta ACIA.control
+                plp
+rtsE928:
+                rts
 
 ;-------------------------------------------------------------------------
 
@@ -7839,48 +7846,54 @@ LE967:
                 stz $0268                    ; E96F= 9C 68 02    .h.
                 stz vduQueueNegativeLength                    ; E972= 9C 6A 02    .j.
 LE975:
-                jsr LED21                    ; E975= 20 21 ED     !m
+                jsr purgeBufferViaCNPV                    ; E975= 20 21 ED     !m
                 plp                          ; E978= 28          (
                 pla                          ; E979= 68          h
                 rts                          ; E97A= 60          `
 
-LE97B:
-                bvc LE984                    ; E97B= 50 07       P.
-LE97D:
-                lda $02D7,x                  ; E97D= BD D7 02    =W.
-                sta $02E0,x                  ; E980= 9D E0 02    .`.
-                rts                          ; E983= 60          `
+;-------------------------------------------------------------------------
+;
+; Count/purge entry point [AUG p264]
+; 
+cnpEntryPoint:
+                bvc countBuffer
+purgeBuffer:
+                lda bufferStartIndices,x
+                sta bufferEndIndices,x
+                rts                          
 
-LE984:
-                php                          ; E984= 08          .
-                sei                          ; E985= 78          x
-                php                          ; E986= 08          .
-                sec                          ; E987= 38          8
-                lda $02E0,x                  ; E988= BD E0 02    =`.
-                sbc $02D7,x                  ; E98B= FD D7 02    }W.
-                bcs LE994                    ; E98E= B0 04       0.
-                sec                          ; E990= 38          8
-                sbc LE9DB,x                  ; E991= FD DB E9    }[i
+countBuffer:
+                php                          
+                sei                          
+                php                          
+                sec                          
+                lda bufferEndIndices,x
+                sbc bufferStartIndices,x
+                bcs LE994                    
+                sec                          
+                sbc bufferIndex0Offsets,x                  
 LE994:
-                plp                          ; E994= 28          (
-                bcc LE99D                    ; E995= 90 06       ..
-                clc                          ; E997= 18          .
-                adc LE9DB,x                  ; E998= 7D DB E9    }[i
-                eor #$FF                     ; E99B= 49 FF       I.
+                plp                          
+                bcc LE99D                    
+                clc                          
+                adc bufferIndex0Offsets,x                  
+                eor #$FF                     
 LE99D:
-                ldy #$00                     ; E99D= A0 00        .
-                tax                          ; E99F= AA          *
-                plp                          ; E9A0= 28          (
-LE9A1:
-                rts                          ; E9A1= 60          `
+                ldy #$00                     
+                tax                          
+                plp                          
+rtsE9A1:
+                rts                          
+
+;-------------------------------------------------------------------------
 
 LE9A2:
                 cli                          ; E9A2= 58          X
 LE9A3:
                 sei                          ; E9A3= 78          x
 LE9A4:
-                jsr LEA40                    ; E9A4= 20 40 EA     @j
-                bcc LE9A1                    ; E9A7= 90 F8       .x
+                jsr callINSV                    ; E9A4= 20 40 EA     @j
+                bcc rtsE9A1                    ; E9A7= 90 F8       .x
                 jsr LF241                    ; E9A9= 20 41 F2     Ar
                 pha                          ; E9AC= 48          H
                 jsr LF735                    ; E9AD= 20 35 F7     5w
@@ -7929,133 +7942,195 @@ getROMInsertedFlagRTCAddressAndMask:
 
 ;-------------------------------------------------------------------------
 
-LE9C9:
-                .byte $03                    ; E9C9= 03          .
-                asl a                        ; E9CA= 0A          .
-                php                          ; E9CB= 08          .
-                .byte $07                    ; E9CC= 07          .
-                .byte $07                    ; E9CD= 07          .
-                .byte $07                    ; E9CE= 07          .
-                .byte $07                    ; E9CF= 07          .
-                .byte $07                    ; E9D0= 07          .
-;ORA #&00         :\ E9D1= 09 00       ..
-                .byte $09
-LE9D2:
-                .byte $00
-                brk                          ; E9D3= 00          .
-                cpy #$C0                     ; E9D4= C0 C0       @@
-                bvc LEA38                    ; E9D6= 50 60       P`
-                bvs LE95A                    ; E9D8= 70 80       p.
-                brk                          ; E9DA= 00          .
-LE9DB:
-                cpx #$00                     ; E9DB= E0 00       `.
-                rti                          ; E9DD= 40          @
+_:=[]
+_..=[(bufferKeyboardAddress,bufferKeyboardSize)]
+_..=[(bufferRS423InputAddress,bufferRS423InputSize)]
+_..=[(bufferRS423OutputAddress,bufferRS423OutputSize)]
+_..=[(bufferPrinterAddress,bufferPrinterSize)]
+_..=[(bufferSoundChannel0Address,bufferSoundChannel0Size)]
+_..=[(bufferSoundChannel1Address,bufferSoundChannel1Size)]
+_..=[(bufferSoundChannel2Address,bufferSoundChannel2Size)]
+_..=[(bufferSoundChannel3Address,bufferSoundChannel3Size)]
+_..=[(buffer8Address,buffer8Size)]
+buffers=_
 
-                cpy #$F0                     ; E9DE= C0 F0       @p
-;BEQ LE9D2        :\ E9E0= F0 F0       pp
-                .byte $F0
-                .byte $F0
-;BEQ LE9A4        :\ E9E2= F0 C0       p@
-                .byte $F0
-                .byte $C0
-LE9E4:
-                lda LE9D2,x                  ; E9E4= BD D2 E9    =Ri
-                sta $FA                      ; E9E7= 85 FA       .z
-                lda LE9C9,x                  ; E9E9= BD C9 E9    =Ii
-                sta $FB                      ; E9EC= 85 FB       .{
-                rts                          ; E9EE= 60          `
+BufferTableIndex0Offset: .function buffer
+                .endfunction 256-buffer[1]
+                
+BufferTableBase: .function buffer
+                .endfunction buffer[0]-BufferTableIndex0Offset(buffer)
 
+;-------------------------------------------------------------------------
+;
+; Buffer base addresses - each buffer's address, offset by the offset
+; for index 0 (see bufferIndex0Offsets).
+;
+bufferBaseAddressMSBs:
+                .for i=0,i<len(buffers),i+=1
+                .byte >BufferTableBase(buffers[i])
+                .endfor
+                
+bufferBaseAddressLSBs:
+                .for i=0,i<len(buffers),i+=1
+                .byte <BufferTableBase(buffers[i])
+                .endfor
+                
+;-------------------------------------------------------------------------
+
+; Offset of buffer index 0 for each buffer. Index 0 is (-buffer size)
+; - buffer indexes count up, and wrap once they reach 0.
+
+bufferIndex0Offsets:
+                .for i=0,i<len(buffers),i+=1
+                .byte BufferTableIndex0Offset(buffers[i])
+                .endfor
+
+;-------------------------------------------------------------------------
+;
+; Get base address for a buffer.
+;
+; entry:
+;
+; X = buffer number
+;
+; exit:
+;
+; ($FA) = buffer base address
+;
+getBufferBaseAddress:
+                lda bufferBaseAddressLSBs,x
+                sta $FA
+                lda bufferBaseAddressMSBs,x
+                sta $FB
+                rts
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 152 (&98) Examine buffer status [MasRef D.2-45]
+;
 osbyte98:
-                bit valueFF                    ; E9EF= 2C 4E E3    ,Nc
-                bra LE9F5                    ; E9F2= 80 01       ..
+                bit valueFF                  ;V=1
+                bra callREMV
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 145 (&91) Get character from buffer [MasRef D.2-45]
+;
 osbyte91:
-                clv                          ; E9F4= B8          8
-LE9F5:
-                jmp (REMV)                  ; E9F5= 6C 2C 02    l,.
+                clv         
+callREMV:
+                jmp (REMV)  
 
-LE9F8:
-                php                          ; E9F8= 08          .
-                sei                          ; E9F9= 78          x
-                lda $02D7,x                  ; E9FA= BD D7 02    =W.
-                cmp $02E0,x                  ; E9FD= DD E0 02    ]`.
-                beq LEA6E                    ; EA00= F0 6C       pl
-                tay                          ; EA02= A8          (
-                jsr LE9E4                    ; EA03= 20 E4 E9     di
-                lda ($FA),y                  ; EA06= B1 FA       1z
-                bvs LEA24                    ; EA08= 70 1A       p.
-                pha                          ; EA0A= 48          H
-                iny                          ; EA0B= C8          H
-                tya                          ; EA0C= 98          .
-                bne LEA12                    ; EA0D= D0 03       P.
-                lda LE9DB,x                  ; EA0F= BD DB E9    =[i
-LEA12:
-                sta $02D7,x                  ; EA12= 9D D7 02    .W.
-                cpx #$02                     ; EA15= E0 02       `.
-                bcc LEA23                    ; EA17= 90 0A       ..
-                cmp $02E0,x                  ; EA19= DD E0 02    ]`.
-                bne LEA23                    ; EA1C= D0 05       P.
-                ldy #$00                     ; EA1E= A0 00        .
-                jsr eventEntryPoint                    ; EA20= 20 28 EA     (j
+;-------------------------------------------------------------------------
+;
+; Buffer remove entry point. [AUG p263]
+; 
+remEntryPoint:
+                php
+                sei
+                lda bufferStartIndices,x
+                cmp bufferEndIndices,x
+                beq insOrRemDoneWithFailure  ;taken if buffer empty
+                tay                          ;Y=start index
+                jsr getBufferBaseAddress
+                lda ($FA),y                  ;get byte from buffer
+                bvs remDone                    ;taken if only looking
+                pha                          ;save buffered byte
+                iny                          ;next char in buffer
+                tya                          ;set Z if wrap
+                bne +                        ;branch taken if no wrap
+                lda bufferIndex0Offsets,x    ;reset index on wrap
++
+                sta bufferStartIndices,x
+
+                ; Issue output buffer empty event when appropriate.
+                cpx #bufferFirstOutput
+                bcc LEA23 ;taken if keyboard or RS423 input - i.e., buffer is input
+                cmp bufferEndIndices,x       ;buffer now empty?
+                bne LEA23                    ;taken if not empty
+                ldy #eventOutputBufferEmpty
+                jsr eventEntryPoint
 LEA23:
                 pla                          ; EA23= 68          h
-LEA24:
+remDone:
                 tay                          ; EA24= A8          (
-LEA25:
+insOrRemDoneWithSuccess:
                 plp                          ; EA25= 28          (
                 clc                          ; EA26= 18          .
                 rts                          ; EA27= 60          `
 
+;-------------------------------------------------------------------------
+;
+; [MasRef D.9-1]
+; 
 eventEntryPoint:
-                php                          ; EA28= 08          .
-                sei                          ; EA29= 78          x
-                pha                          ; EA2A= 48          H
-                lda $02BF,y                  ; EA2B= B9 BF 02    9?.
-                beq LEA6D                    ; EA2E= F0 3D       p=
-                tya                          ; EA30= 98          .
-                ply                          ; EA31= 7A          z
-                phy                          ; EA32= 5A          Z
-                jsr LF8BF                    ; EA33= 20 BF F8     ?x
-                bra LEA23                    ; EA36= 80 EB       .k
+                php                          
+                sei                          
+                pha                          
+                lda $02BF,y                  
+                beq LEA6D                    
+                tya                          
+                ply                          
+                phy                          
+                jsr LF8BF                    
+                bra LEA23                    
 
-LEA38:
-                tya                          ; EA38= 98          .
-                ldy #$02                     ; EA39= A0 02        .
-                jsr eventEntryPoint                    ; EA3B= 20 28 EA     (j
-                tay                          ; EA3E= A8          (
-osbyte8A: ;LEA3F:
-                tya                          ; EA3F= 98          .
-LEA40:
-                jmp (INSV)                  ; EA40= 6C 2A 02    l*.
+;-------------------------------------------------------------------------
+;
+; Insert character into buffer and issue an event for it.
+;
+; entry:
+;
+; Y = buffer number
+; 
+insertCharacterIntoBuffer:
+                tya                          
+                ldy #eventCharacterEnteringBuffer
+                jsr eventEntryPoint
+                tay                          
 
-LEA43:
-                php                          ; EA43= 08          .
-                sei                          ; EA44= 78          x
-                pha                          ; EA45= 48          H
-                lda $02E0,x                  ; EA46= BD E0 02    =`.
-                inc a                        ; EA49= 1A          .
-                bne LEA4F                    ; EA4A= D0 03       P.
-                lda LE9DB,x                  ; EA4C= BD DB E9    =[i
-LEA4F:
-                cmp $02D7,x                  ; EA4F= DD D7 02    ]W.
-                beq LEA62                    ; EA52= F0 0E       p.
-                ldy $02E0,x                  ; EA54= BC E0 02    <`.
-                sta $02E0,x                  ; EA57= 9D E0 02    .`.
-                jsr LE9E4                    ; EA5A= 20 E4 E9     di
-                pla                          ; EA5D= 68          h
-                sta ($FA),y                  ; EA5E= 91 FA       .z
-                bra LEA25                    ; EA60= 80 C3       .C
+;-------------------------------------------------------------------------
+;
+; OSBYTE 138 (&8A) Insert character code into buffer [MasRef D.2-43]
+; 
+osbyte8A:
+                tya                          
+callINSV:
+                jmp (INSV)                  
 
-LEA62:
-                pla                          ; EA62= 68          h
-                cpx #$02                     ; EA63= E0 02       `.
-                bcs LEA6E                    ; EA65= B0 07       0.
-                ldy #$01                     ; EA67= A0 01        .
+;-------------------------------------------------------------------------
+;
+; Default INSV entry point [AUG p263]
+; 
+insEntryPoint:
+                php
+                sei
+                pha
+                lda bufferEndIndices,x
+                inc a                        ;bump index
+                bne +          ;taken if index hasn't wrapped around
+                lda bufferIndex0Offsets,x        ;reset index due to wrap
++
+                cmp bufferStartIndices,x     ;are we at the start index?
+                beq bufferFull       ;taken if yes - i.e., buffer full
+                ldy bufferEndIndices,x       ;note old buffer end
+                sta bufferEndIndices,x       ;update buffer end
+                jsr getBufferBaseAddress
+                pla
+                sta ($FA),y                  ;store byte in buffer
+                bra insOrRemDoneWithSuccess
+
+bufferFull
+                ; Issue input buffer full event when appropriate.
+                pla                          
+                cpx #bufferFirstOutput
+                bcs insOrRemDoneWithFailure  ;taken if output buffer
+                ldy #eventInputBufferFull
                 jsr eventEntryPoint                    ; EA69= 20 28 EA     (j
                 pha                          ; EA6C= 48          H
 LEA6D:
                 pla                          ; EA6D= 68          h
-LEA6E:
+insOrRemDoneWithFailure:
                 plp                          ; EA6E= 28          (
                 sec                          ; EA6F= 38          8
                 rts                          ; EA70= 60          `
@@ -8086,33 +8161,38 @@ isLetter: .proc                 ;EA71
                 .pend
 
 ;-------------------------------------------------------------------------
-
-LEA7E:
-                ldx #$00                     ; EA7E= A2 00       ".
+;
+; OSBYTE 153 (&99) Insert character code into buffer, checking for
+; ESCAPE [MasRef D.2-46]
+;
+insertCharacterIntoKeyboardBuffer:
+                ldx #$00                     
 osbyte99:
-                txa                          ; EA80= 8A          .
-                and $0245                    ; EA81= 2D 45 02    -E.
-                bne osbyte8A                    ; EA84= D0 B9       P9
-                tya                          ; EA86= 98          .
-                eor $026C                    ; EA87= 4D 6C 02    Ml.
-                ora $0275                    ; EA8A= 0D 75 02    .u.
-                bne LEA38                    ; EA8D= D0 A9       P)
-                lda $0258                    ; EA8F= AD 58 02    -X.
-                ror a                        ; EA92= 6A          j
-                tya                          ; EA93= 98          .
-                bcs LEAA0                    ; EA94= B0 0A       0.
-                ldy #$06                     ; EA96= A0 06        .
-                jsr eventEntryPoint                    ; EA98= 20 28 EA     (j
-                bcc LEAA0                    ; EA9B= 90 03       ..
-                jsr osbyte7D                    ; EA9D= 20 57 EC     Wl
-LEAA0:
+                txa                          ;X=1 if RS423, 0 if keyboard
+                and rs423InputInterpretationStatus ;A=0 if RS423 simulates keyboard, 1=default
+                bne osbyte8A ;taken if default - don't treat RS423 as keyboard
+                tya          ;A=char
+                eor escapeCharacter
+                ora escapeKeyStatus
+                bne insertCharacterIntoBuffer
+                lda breakAndESCAPEEffect
+                ror a                        ;C=0 if normal ESCAPE action
+                tya                          ;A=char
+                bcs osbyte99Done             ;taken if ESCAPE inhibited
+                ldy #eventESCAPEPressed
+                jsr eventEntryPoint
+                bcc osbyte99Done             ;taken if event handled
+                jsr osbyte7D
+osbyte99Done:
                 clc                          ; EAA0= 18          .
                 rts                          ; EAA1= 60          `
+
+;-------------------------------------------------------------------------
 
 LEAA2:
                 ror a                        ; EAA2= 6A          j
                 pla                          ; EAA3= 68          h
-                bcs LEABD                    ; EAA4= B0 17       0.
+                bcs clcThenRTSEABD                    ; EAA4= B0 17       0.
 LEAA6:
                 tya                          ; EAA6= 98          .
                 and #$0F                     ; EAA7= 29 0F       ).
@@ -8130,16 +8210,18 @@ LEAA6:
                 pla                          ; EAB8= 68          h
                 clc                          ; EAB9= 18          .
                 adc $0265,y                  ; EABA= 79 65 02    ye.
-LEABD:
+clcThenRTSEABD:
                 clc                          ; EABD= 18          .
                 rts                          ; EABE= 60          `
+
+;-------------------------------------------------------------------------
 
 LEABF:
                 jsr vdu7EntryPoint           ; EABF= 20 B6 EF     6o
                 plx                          ; EAC2= FA          z
 LEAC3:
                 jsr osbyte91                    ; EAC3= 20 F4 E9     ti
-                bcs LEB28                    ; EAC6= B0 60       0`
+                bcs rtsEB28                    ; EAC6= B0 60       0`
                 pha                          ; EAC8= 48          H
                 cpx #$01                     ; EAC9= E0 01       `.
                 bne LEAD3                    ; EACB= D0 06       P.
@@ -8149,19 +8231,19 @@ LEAC3:
 LEAD3:
                 pla                          ; EAD3= 68          h
                 bcc LEADB                    ; EAD4= 90 05       ..
-                ldy $0245                    ; EAD6= AC 45 02    ,E.
-                bne LEB27                    ; EAD9= D0 4C       PL
+                ldy rs423InputInterpretationStatus
+                bne clcThenRTSEB27
 LEADB:
                 tay                          ; EADB= A8          (
-                bpl LEB27                    ; EADC= 10 49       .I
+                bpl clcThenRTSEB27                    ; EADC= 10 49       .I
                 and #$0F                     ; EADE= 29 0F       ).
                 cmp #$0B                     ; EAE0= C9 0B       I.
                 bcc LEAA6                    ; EAE2= 90 C2       .B
                 adc #$7B                     ; EAE4= 69 7B       i{
                 pha                          ; EAE6= 48          H
-                lda $027D                    ; EAE7= AD 7D 02    -}.
+                lda cursorEditingStatus
                 bne LEAA2                    ; EAEA= D0 B6       P6
-                lda $027C                    ; EAEC= AD 7C 02    -|.
+                lda characterDestinationStatus
                 ror a                        ; EAEF= 6A          j
                 ror a                        ; EAF0= 6A          j
                 pla                          ; EAF1= 68          h
@@ -8169,39 +8251,39 @@ LEADB:
                 cmp #$87                     ; EAF4= C9 87       I.
                 beq LEB29                    ; EAF6= F0 31       p1
                 phx                          ; EAF8= DA          Z
-                jsr LEB5D                    ; EAF9= 20 5D EB     ]k
+                jsr LDF78Thunk                    ; EAF9= 20 5D EB     ]k
                 plx                          ; EAFC= FA          z
 LEAFD:
-                bit $025F                    ; EAFD= 2C 5F 02    ,_.
+                bit econetInputInterpretationStatus
                 bpl LEB07                    ; EB00= 10 05       ..
-                lda #$06                     ; EB02= A9 06       ).
+                lda #netReadCharacterAttempted
 callNETV:
                 jmp (NETV)                  ; EB04= 6C 24 02    l$.
 
 LEB07:
-                lda $0268                    ; EB07= AD 68 02    -h.
-                beq LEAC3                    ; EB0A= F0 B7       p7
-                txa                          ; EB0C= 8A          .
-                and $0245                    ; EB0D= 2D 45 02    -E.
-                bne LEAC3                    ; EB10= D0 B1       P1
-                lda $F4                      ; EB12= A5 F4       %t
-                pha                          ; EB14= 48          H
-                jsr selectTerminalROMAndANDY2 ; EB15= 20 98 E5     .e
-                lda ($F8)                    ; EB18= B2 F8       2x
-                plx                          ; EB1A= FA          z
-                jsr selectROMX                    ; EB1B= 20 81 E5     .e
-                dec $0268                    ; EB1E= CE 68 02    Nh.
-                inc $F8                      ; EB21= E6 F8       fx
-                bne LEB27                    ; EB23= D0 02       P.
-                inc $F9                      ; EB25= E6 F9       fy
-LEB27:
-                clc                          ; EB27= 18          .
-LEB28:
-                rts                          ; EB28= 60          `
+                lda softKeyStringLength
+                beq LEAC3
+                txa
+                and rs423InputInterpretationStatus
+                bne LEAC3
+                lda $F4
+                pha    
+                jsr selectTerminalROMAndANDY2
+                lda (softKeyExpansionPtr)
+                plx
+                jsr selectROMX
+                dec softKeyStringLength
+                inc softKeyExpansionPtr+0
+                bne clcThenRTSEB27
+                inc softKeyExpansionPtr+1
+clcThenRTSEB27:
+                clc
+rtsEB28:
+                rts
 
 LEB29:
                 phx                          ; EB29= DA          Z
-                jsr LEB63                    ; EB2A= 20 63 EB     ck
+                jsr LDF5EThunk                    ; EB2A= 20 63 EB     ck
                 beq LEABF                    ; EB2D= F0 90       p.
                 plx                          ; EB2F= FA          z
                 clc                          ; EB30= 18          .
@@ -8212,33 +8294,44 @@ LEB32:
                 bcc LEAC3                    ; EB33= 90 8E       ..
                 tya                          ; EB35= 98          .
                 sta $02C9                    ; EB36= 8D C9 02    .I.
-                lda $F4                      ; EB39= A5 F4       %t
-                pha                          ; EB3B= 48          H
-                jsr selectTerminalROMAndANDY2 ; EB3C= 20 98 E5     .e
-                jsr LEB55                    ; EB3F= 20 55 EB     Uk
-                sta $0268                    ; EB42= 8D 68 02    .h.
-                lda L8000,y                  ; EB45= B9 00 80    9..
-                sta $F8                      ; EB48= 85 F8       .x
-                lda L8011,y                  ; EB4A= B9 11 80    9..
-                sta $F9                      ; EB4D= 85 F9       .y
-                pla                          ; EB4F= 68          h
-                jsr selectROMA                    ; EB50= 20 92 E5     .e
-                bra LEAFD                    ; EB53= 80 A8       .(
+                lda $F4                      
+                pha                           ;save old ROMSEL
+                jsr selectTerminalROMAndANDY2 
+                jsr getSoftKeyStringLength
+                sta softKeyStringLength
+                lda andy.softKeys.stringLSBs,y
+                sta softKeyExpansionPtr+0
+                lda andy.softKeys.stringMSBs,y
+                sta softKeyExpansionPtr+1             
+                pla                          
+                jsr selectROMA               ;restore old ROMSEL
+                bra LEAFD                    
 
-LEB55:
-                lda L8001,y                  ; EB55= B9 01 80    9..
-LEB58:
-                sec                          ; EB58= 38          8
-                sbc L8000,y                  ; EB59= F9 00 80    y..
-                rts                          ; EB5C= 60          `
+;-------------------------------------------------------------------------
 
-LEB5D:
-                jsr withMOSROM               ; EB5D= 20 AB F3     +s
-                jmp LDF78                    ; EB60= 4C 78 DF    Lx_
+getSoftKeyStringLength:
+                lda andy.softKeys.stringLSBs+1,y
+                sec                          
+                sbc andy.softKeys.stringLSBs+0,y
+                rts                          
 
-LEB63:
-                jsr withMOSROM               ; EB63= 20 AB F3     +s
-                jmp LDF5E                    ; EB66= 4C 5E DF    L^_
+;-------------------------------------------------------------------------
+;
+; Page HAZEL out, page MOS in, call LDF78.
+; 
+LDF78Thunk:
+                jsr withMOSROM
+                jmp LDF78     
+
+;-------------------------------------------------------------------------
+;
+; Page HAZEL out, page MOS in, call LDF5E.
+; 
+LDF5EThunk:
+                jsr withMOSROM
+                jmp LDF5E     
+
+;-------------------------------------------------------------------------
 
 ; OSBYTE Dispatch Table
 ; =====================
@@ -8601,24 +8694,31 @@ LED18:
                 eor #$FF                     ; ED19= 49 FF       I.
                 tax                          ; ED1B= AA          *
                 cpx #$02                     ; ED1C= E0 02       `.
-LED1E:
-                clv                          ; ED1E= B8          8
-                bra LED24                    ; ED1F= 80 03       ..
 
-LED21:
-                bit valueFF                    ; ED21= 2C 4E E3    ,Nc
-LED24:
+;-------------------------------------------------------------------------
+
+countBufferViaCNPV:
+                clv                          ; ED1E= B8          8
+                bra callCNPV                    ; ED1F= 80 03       ..
+
+purgeBufferViaCNPV:
+                bit valueFF                  ;V=1
+callCNPV:
                 jmp (CNPV)                  ; ED24= 6C 2E 02    l..
+
+;-------------------------------------------------------------------------
 
 LED27:
                 sec                          ; ED27= 38          8
-                ldx #$01                     ; ED28= A2 01       ".
-                jsr LED1E                    ; ED2A= 20 1E ED     .m
+                ldx #bufferRS423Input
+                jsr countBufferViaCNPV
                 cpy #$01                     ; ED2D= C0 01       @.
                 bcs LED34                    ; ED2F= B0 03       0.
                 cpx $025B                    ; ED31= EC 5B 02    l[.
 LED34:
                 rts                          ; ED34= 60          `
+
+;-------------------------------------------------------------------------
 
 osbyte80:                       ;ed35
                 bmi LED18                    ; ED35= 30 E1       0a
@@ -8974,10 +9074,12 @@ callOSBYTEOrOSWORDFromTable:
                 tay             ;get table offset in Y
                 bit econetInterceptionStatus
                 bpl LEEE0             ;taken if no Econet interception
-                txa                          ; EED9= 8A          .
-                clv                          ; EEDA= B8          8
-                jsr callNETV                    ; EEDB= 20 04 EB     .k
-                bvs LEEFA                    ; EEDE= 70 1A       p.
+                txa
+                .cerror (netOSBYTEAttempted!=romServiceCallUnrecognisedOSBYTE),"net/rom reason codes mismatch"
+                .cerror (netOSWORDAttempted!=romServiceCallUnrecognisedOSWORD),"net/rom reason codes mismatch"
+                clv
+                jsr callNETV
+                bvs LEEFA
 LEEE0:
                 lda osbyteAndOSWORDRoutineTable+1,y
                 sta SEIWKB
@@ -9214,7 +9316,7 @@ vdu7EntryPoint:
                 ora #$04                     ; EFBD= 09 04       ..
                 tax                          ; EFBF= AA          *
                 lda bellSound
-                jsr LEA40                    ; EFC3= 20 40 EA     @j
+                jsr callINSV                    ; EFC3= 20 40 EA     @j
                 lda bellDuration
                 pha                          ; EFC9= 48          H
                 lda bellFrequency
@@ -9223,9 +9325,9 @@ LEFCE:
                 sec                          ; EFCE= 38          8
                 ror $0800,x                  ; EFCF= 7E 00 08    ~..
                 pla                          ; EFD2= 68          h
-                jsr LEA40                    ; EFD3= 20 40 EA     @j
+                jsr callINSV                    ; EFD3= 20 40 EA     @j
                 pla                          ; EFD6= 68          h
-                jsr LEA40                    ; EFD7= 20 40 EA     @j
+                jsr callINSV                    ; EFD7= 20 40 EA     @j
                 plp                          ; EFDA= 28          (
                 rts                          ; EFDB= 60          `
 
@@ -10899,7 +11001,7 @@ LF839:
                 jsr LF9A6                    ; F83A= 20 A6 F9     &y
                 lda $0259                    ; F83D= AD 59 02    -Y.
                 bne LF845                    ; F840= D0 03       P.
-                jsr LEA7E                    ; F842= 20 7E EA     ~j
+                jsr insertCharacterIntoKeyboardBuffer
 LF845:
                 ldx $ED                      ; F845= A6 ED       &m
                 beq LF852                    ; F847= F0 09       p.
@@ -11000,7 +11102,7 @@ LF8BF:
                 .byte $FF
                 .byte $AE
 ; caps       axfyjk@:       ret       k/     kDel       k.
-LF8CF:
+call1MHzBusHook:
                 jmp ($FDFE)
                 .byte 2
                 .text "scghnl;]"
@@ -11196,9 +11298,9 @@ osgbpbEntryPoint: .proc
                 ; handle, and pass the request along.
                 phy                          ;save OSGBPB Y
                 pha                          ;save OSGBPB A
-                stx fsPtr+0
-                sty fsPtr+1
-                lda (fsPtr)                  ;get file handle
+                stx osgbpbWorkspace.ptr+0
+                sty osgbpbWorkspace.ptr+1
+                lda (osgbpbWorkspace.ptr)    ;get file handle
                 tay                          
                 pla                          ;restore OSGBPB A
                 jsr selectFSForHandle
@@ -11443,8 +11545,8 @@ LFAC1:
                 beq badFilingSystemName
                 txa                      ;A=offset in info blocks
                 clc
-                adc #$08
-                sta $B0         ;offset of end of name
+                adc #size(fsInfoBlock.name)
+                sta parseFileNameFSWorkspace.fsInfoOffset
                 phy
 compareFSNameLoop:
                 lda (stringInputBufferAddress),y
@@ -11458,7 +11560,7 @@ compareFSNameLoop:
                 cmp #'9'+1
                 bcs notValidFSNameChar       ;branch taken if not digit
 validFSNameChar:
-                cpx $B0                  
+                cpx parseFileNameFSWorkspace.fsInfoOffset
                 bcs nextFSInfoBlock ;branch taken if end of FS
                                          ;info block name was reached
                 eor hazel.fsInfoBlocks,x
@@ -11470,7 +11572,7 @@ validFSNameChar:
 
 nextFSInfoBlock:
                 ply                          
-                ldx $B0         ;offset of end of name
+                ldx parseFileNameFSWorkspace.fsInfoOffset ;offset of end of name
                 inx                          
                 inx                          
                 inx             ;advance to next entry
@@ -11484,18 +11586,18 @@ notValidFSNameChar:
                 cmp #'-'
                 bne badFilingSystemName
                 iny                       ;consume input '-'
-                cpx $B0                   
+                cpx parseFileNameFSWorkspace.fsInfoOffset                   
                 beq foundFSInfoBlock     ;branch taken if a match due
                                          ;to being right at end of the
                                          ;FS info block name
                 lda hazel.fsInfoBlocks,x ;
-                cmp #$20
+                cmp #' '
                 bne nextFSInfoBlock      ;branch taken if not a match
                                          ;as tthe supplied name was a
                                          ;prefix of this FS's name
 foundFSInfoBlock:
                 pla
-                ldx $B0
+                ldx parseFileNameFSWorkspace.fsInfoOffset
                 lda hazel.fsInfoBlocks+(fsInfoBlock.fsNumber-(fsInfoBlock.name+size(fsInfoBlock.name))),x
                 rts
 

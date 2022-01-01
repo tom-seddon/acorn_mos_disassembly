@@ -260,6 +260,11 @@ argsCheckANFS=2                 ;https://beebwiki.mdfs.net/OSARGS
 argsGetLibFS=3                  ;
 argsFlushBuffers=$ff            ;[AUG p338]
 
+argsFileGetPTR=0
+argsFileSetPTR=1
+argsFileGetEXT=2
+argsFileFlush=$ff
+
 fileSave=0                      ;[AUG p336]
 fileWriteMetadata=1             ;[AUG p336]
 fileWriteLoadAddress=2          ;[AUG p336]

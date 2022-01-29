@@ -761,14 +761,26 @@ readDigitFromString:
                 rts
 
 L8641:
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; 8641= 20 FF F2     .r
+                jsr mos.skipSpacesAndCheckForCRInStringInput
                 cmp #$0D
 errorReadingString:
                 clc
                 rts
 
 ;-------------------------------------------------------------------------
-
+;
+; Read a hex digit from a string
+;
+; entry:
+;
+; (stringInputBufferAddress),y = next byte to read
+;
+; exit:
+;
+; C=1 if ok: A = digit read
+;
+; C=0 if error: Z=1 if CR encountered
+; 
 readHexDigit:
                 jsr readDigitFromString
                 bcs +                        ; branch taken if digit
@@ -781,8 +793,8 @@ readHexDigit:
                 eor #$48
                 inc a
 +
-                iny                          ; 865A= C8          H
-                rts                          ; 865B= 60          `
+                iny
+                rts
 
 ;-------------------------------------------------------------------------
 ; 
@@ -2205,7 +2217,7 @@ L8FF3:
                 bra L8FA3
 
 L8FF8:
-                jmp LA54D
+                jmp notFoundError
 
 L8FFB:
                 jsr closeFile
@@ -2406,7 +2418,7 @@ L9108:
                 stz hazel.moveSrcHandle
                 jsr OSFIND                   ; Close source file
 L9134:
-                jmp LA54D                    ; Jump to 'Not found' error
+                jmp notFoundError                    ; Jump to 'Not found' error
 
 ; Source and dest opened
 ; ----------------------
@@ -2764,7 +2776,7 @@ rts92F4:
 ;
 starGO:
                 jsr mos.skipSpacesAndCheckForCRInStringInput ; Skip spaces
-                bne starGOIO                    ; Jump to read parameters
+                bne starGOIO             ; Jump to read parameters
                 jmp commandLineUI        ; No parameters, enter CLICOM
 
 ;-------------------------------------------------------------------------
@@ -2772,74 +2784,87 @@ starGO:
 ; *GOIO <addr> [MasRef C.5-7]
 ; 
 starGOIO:
-                ldx #$00                     ; Use &02ED-&02F0
-                jsr parseHexAddressFromCommandLine                    ; Read hex address
+                ldx #$00
+                jsr parseHexAddressFromCommandLine ; Read hex address
                 jsr mos.skipSpacesAndCheckForCRInStringInput ; Skip spaces
-                php                          ; Update &F2/3 to point to any further parameters
+                php  ; Update &F2/3 to point to any further parameters
                 tya
                 clc
-                adc $F2
-                sta $F2
-                bcc L9310
-                inc $F3
-L9310:
-                ldy #$00                     ; (&F2),y=>parameters, EQ if no parameters
+                adc stringInputBufferAddress+0
+                sta stringInputBufferAddress+0
+                bcc +
+                inc stringInputBufferAddress+1
++
+                ldy #$00    ; (&F2),y=>parameters, EQ if no parameters
                 plp
-                jmp ($02ED)                  ; Jump to address
+                jmp (osfileParameterBlock+0) ; Jump to address
+
+;-------------------------------------------------------------------------
 
 starLOAD:
-                lda #$FF                     ; 9316= A9 FF       ).
+                lda #fileLoad
 starCommandThroughOSFILE:
-                lsr hazel.tempFSFlag      ; 9318= 4E C6 DF    NF_
+                lsr hazel.tempFSFlag
 L931B:
-                stx $F2                      ; 931B= 86 F2       .r
-                sty $F3                      ; 931D= 84 F3       .s
-                stx $02ED                    ; 931F= 8E ED 02    .m.
-                sty $02EE                    ; 9322= 8C EE 02    .n.
-                pha                          ; 9325= 48          H
-                ldx #$02                     ; 9326= A2 02       ".
-                jsr clearOSFILEParameterBlockDWORD                    ; 9328= 20 BC 92     <.
-                ldx #$0A                     ; 932B= A2 0A       ".
-                jsr clearOSFILEParameterBlockDWORD                    ; 932D= 20 BC 92     <.
-                ldy #$FF                     ; 9330= A0 FF        .
-                sty $02F3                    ; 9332= 8C F3 02    .s.
-                iny                          ; 9335= C8          H
+                stx stringInputBufferAddress+0
+                sty stringInputBufferAddress+1
+                stx osfileParameterBlock+OSFILEParameterBlock.fileName+0
+                sty osfileParameterBlock+OSFILEParameterBlock.fileName+1
+                pha                          ;save OSFILE reason
+                ldx #OSFILEParameterBlock.load
+                jsr clearOSFILEParameterBlockDWORD
+                ldx #OSFILEParameterBlock.length
+                jsr clearOSFILEParameterBlockDWORD
+                ldy #$FF
+                sty osfileParameterBlock+OSFILEParameterBlock.exec+0 ;by default, load to file's load address
+                iny                                                  ;Y=0
                 jsr mos.gsinitForFilenameParsing
 L9339:
-                jsr mos.gsreadEntryPoint     ; 9339= 20 7F F2     .r
-                bcc L9339                    ; 933C= 90 FB       .{
-                pla                          ; 933E= 68          h
-                pha                          ; 933F= 48          H
-                bpl L9392                    ; 9340= 10 50       .P
-                ldx #$02                     ; 9342= A2 02       ".
-                jsr parseHexAddressFromString                    ; 9344= 20 C9 92     I.
-                bcs L9361                    ; 9347= B0 18       0.
-                beq L9366                    ; 9349= F0 1B       p.
+                jsr mos.gsreadEntryPoint
+                bcc L9339
+                pla                          ;restore OSFILE reason
+                pha                          ;save OSFILE reason
+                bpl finishStarSAVE                    ;taken if *SAVE
+                ldx #OSFILEParameterBlock.load
+                jsr parseHexAddressFromString ;parse *LOAD address
+                bcs doStarLOADWithExplicitAddress ;taken if good address
+                beq L9366        ;taken if CR encountered (this is ok)
 badAddressError:
-                jsr doFollowingError                    ; 934B= 20 ED AA     m*
+                jsr doFollowingError
                 .text $fc,"Bad address",0
+
+;-------------------------------------------------------------------------
+;
+; Parse hex address from command line.
+;
 parseHexAddressFromCommandLine:
-                jsr parseHexAddressFromString                    ; Read hex address
-                bcc badAddressError                    ; Jump with bad address
+                jsr parseHexAddressFromString ; Read hex address
+                bcc badAddressError           ; Jump with bad address
                 rts
 
-L9361:
-                bne badCommandError93E2                    ; 9361= D0 7F       P.
-                inc $02F3                    ; 9363= EE F3 02    ns.
-L9366:
-                asl hazel.tempFSFlag      ; 9366= 0E C6 DF    .F_
-L9369:
-                ldx #$ED                     ; 9369= A2 ED       "m
-                ldy #$02                     ; 936B= A0 02        .
-                pla                          ; 936D= 68          h
-                jmp OSFILE                   ; 936E= 4C DD FF    L].
+;-------------------------------------------------------------------------
 
+doStarLOADWithExplicitAddress:
+                bne badCommandError93E2
+                inc osfileParameterBlock+OSFILEParameterBlock.exec+0 ;load to parameter block load address
+L9366:
+                asl hazel.tempFSFlag
+callOSFILEWithOSFILEParameterBlock:
+                ldx #<osfileParameterBlock
+                ldy #>osfileParameterBlock
+                pla
+                jmp OSFILE
+
+;-------------------------------------------------------------------------
+;
+; *REMOVE [MasRef G.5-9]
+; 
 starREMOVE:
-                stx $02ED                    ; 9371= 8E ED 02    .m.
-                sty $02EE                    ; 9374= 8C EE 02    .n.
-                lda #$06                     ; 9377= A9 06       ).
-                pha                          ; 9379= 48          H
-                bra L9369                    ; 937A= 80 ED       .m
+                stx osfileParameterBlock+OSFILEParameterBlock.fileName+0
+                sty osfileParameterBlock+OSFILEParameterBlock.fileName+1
+                lda #fileDelete
+                pha
+                bra callOSFILEWithOSFILEParameterBlock
 
 ;-------------------------------------------------------------------------
 ;
@@ -2853,63 +2878,81 @@ starCLOSE:
                 jmp (FINDV)                  ;OSFIND A=0 Y=0
 
 ;-------------------------------------------------------------------------
-
+;
+; *IGNORE [MasRef C.5-7]
+; 
 starIGNORE:
-                bne L938E                    ; 9387= D0 05       P.
-                sec                          ; 9389= 38          8
-                ror $0246                    ; 938A= 6E 46 02    nF.
-                rts                          ; 938D= 60          `
+                bne L938E
+                sec
+                ror noignoreState
+                rts
+
+;-------------------------------------------------------------------------
 
 L938E:
                 lda #$06                     ; 938E= A9 06       ).
                 bra starCommandThroughOSBYTE                    ; 9390= 80 59       .Y
 
-L9392:
-                bne L939B                    ; 9392= D0 07       P.
-                ldx #$0A                     ; 9394= A2 0A       ".
-                jsr parseHexAddressFromString                    ; 9396= 20 C9 92     I.
-                bcc badCommandError93E2                    ; 9399= 90 47       .G
+;-------------------------------------------------------------------------
+
+finishStarSAVE:
+                bne L939B
+                ldx #OSFILEParameterBlock.saveStart
+                jsr parseHexAddressFromString
+                bcc badCommandError93E2
 L939B:
-                clv                          ; 939B= B8          8
-                lda ($F2),y                  ; 939C= B1 F2       1r
-                cmp #$2B                     ; 939E= C9 2B       I+
-                bne L93A6                    ; 93A0= D0 04       P.
-                bit mos.valueFF
-                iny                          ; 93A5= C8          H
+                clv
+                lda (stringInputBufferAddress),y
+                cmp #'+'
+                bne L93A6                    ;taken if "*SAVE START END..."
+                bit mos.valueFF              ;V=1
+                iny
 L93A6:
-                ldx #$0E                     ; 93A6= A2 0E       ".
-                jsr parseHexAddressFromString                    ; 93A8= 20 C9 92     I.
-                bcc badCommandError93E2                    ; 93AB= 90 35       .5
-                php                          ; 93AD= 08          .
-                bvc L93BF                    ; 93AE= 50 0F       P.
-                ldx #$FC                     ; 93B0= A2 FC       "|
-                clc                          ; 93B2= 18          .
-L93B3:
-                lda $01FB,x                  ; 93B3= BD FB 01    ={.
-                adc $01FF,x                  ; 93B6= 7D FF 01    }..
-                sta $01FF,x                  ; 93B9= 9D FF 01    ...
-                inx                          ; 93BC= E8          h
-                bne L93B3                    ; 93BD= D0 F4       Pt
+                ldx #OSFILEParameterBlock.saveEnd
+                jsr parseHexAddressFromString
+                bcc badCommandError93E2
+                php
+                bvc L93BF                    ;taken if "*SAVE START END"
+
+                ; Get the save end address.
+                ldx #256-4
+                clc
+-
+                ; TODO - not sure why the @w notation is required here?
+                lda@w osfileParameterBlock+OSFILEParameterBlock.saveStart-(256-4),x
+                adc@w osfileParameterBlock+OSFILEParameterBlock.saveEnd-(256-4),x
+                sta@w osfileParameterBlock+OSFILEParameterBlock.saveEnd-(256-4),x
+                inx
+                bne -
 L93BF:
-                ldx #$03                     ; 93BF= A2 03       ".
-L93C1:
-                lda $02F7,x                  ; 93C1= BD F7 02    =w.
-                sta $02F3,x                  ; 93C4= 9D F3 02    .s.
-                sta $02EF,x                  ; 93C7= 9D EF 02    .o.
-                dex                          ; 93CA= CA          J
-                bpl L93C1                    ; 93CB= 10 F4       .t
-                plp                          ; 93CD= 28          (
-                beq L9366                    ; 93CE= F0 96       p.
-                ldx #$06                     ; 93D0= A2 06       ".
-                jsr parseHexAddressFromString                    ; 93D2= 20 C9 92     I.
-                bcc badCommandError93E2                    ; 93D5= 90 0B       ..
-                beq L9366                    ; 93D7= F0 8D       p.
-                ldx #$02                     ; 93D9= A2 02       ".
-                jsr parseHexAddressFromString                    ; 93DB= 20 C9 92     I.
-                bcc badCommandError93E2                    ; 93DE= 90 02       ..
-                beq L9366                    ; 93E0= F0 84       p.
+
+                ; Initialize load and exec addresses to save start
+                ; address.
+                ldx #$03
+-
+                lda@w osfileParameterBlock+OSFILEParameterBlock.saveStart,x
+                sta@w osfileParameterBlock+OSFILEParameterBlock.exec,x
+                sta@w osfileParameterBlock+OSFILEParameterBlock.load,x
+                dex
+                bpl -
+                
+                plp
+                beq L9366
+                
+                ldx #OSFILEParameterBlock.exec
+                jsr parseHexAddressFromString
+                bcc badCommandError93E2
+                beq L9366
+                
+                ldx #OSFILEParameterBlock.load
+                jsr parseHexAddressFromString
+                bcc badCommandError93E2
+                beq L9366
+                
 badCommandError93E2:
                 jmp mos.badCommandError
+
+;-------------------------------------------------------------------------
 
 starFX:
                 jsr parseNumberFromString    ; 93E5= 20 E6 85     f.
@@ -2944,6 +2987,8 @@ L9412:
 L941F:
                 rts                          ; 941F= 60          `
 
+;-------------------------------------------------------------------------
+
 starSPOOLON:
                 sec                          ; 9420= 38          8
                 bra starSPOOL                    ; 9421= 80 10       ..
@@ -2975,10 +3020,10 @@ L944D:
                 jsr OSFIND                   ; 9450= 20 CE FF     N.
                 tay                          ; 9453= A8          (
                 beq badCommandError93E2                    ; 9454= F0 8C       p.
-                sta $0257                    ; 9456= 8D 57 02    .W.
+                sta spoolFileHandle
                 tay                          ; 9459= A8          (
 setPTRToEOF:
-                lda #$02                     ;read length of file
+                lda #argsFileGetEXT
                 jsr callOSARGSWithBuffer
 setFilePointerFromOSARGSBuffer:
                 lda #argsFileSetPTR
@@ -2996,7 +3041,7 @@ starDELETE:
                 jsr starREMOVE                    ; 946A= 20 71 93     q.
                 tay                          ; 946D= A8          (
                 bne L941F                    ; 946E= D0 AF       P/
-                jmp LA54D                    ; 9470= 4C 4D A5    LM%
+                jmp notFoundError                    ; 9470= 4C 4D A5    LM%
 
 ;-------------------------------------------------------------------------
 
@@ -4076,7 +4121,7 @@ L9A89:
                 pha                          ; 9A9B= 48          H
                 ldx #$2C                     ; 9A9C= A2 2C       ",
                 ldy #$46                     ; 9A9E= A0 46        F
-                jsr mos.LD5CC                ; 9AA0= 20 CC D5     LU
+                jsr mos.sortVDUVariableWords                ; 9AA0= 20 CC D5     LU
                 tya                          ; 9AA3= 98          .
                 tax                          ; 9AA4= AA          *
                 ldy #$46                     ; 9AA5= A0 46        F
@@ -4087,7 +4132,7 @@ L9AAB:
                 beq L9ABB                    ; 9AAD= F0 0C       p.
                 ldx #$37                     ; 9AAF= A2 37       "7
                 ldy #$42                     ; 9AB1= A0 42        B
-                jsr mos.LD5CC                ; 9AB3= 20 CC D5     LU
+                jsr mos.sortVDUVariableWords                ; 9AB3= 20 CC D5     LU
                 ldy #$42                     ; 9AB6= A0 42        B
                 jsr mos.copyFourBytesWithinVDUVariables
 L9ABB:
@@ -4242,25 +4287,29 @@ L9B90:
                 plp                          ; 9BA1= 28          (
                 rts                          ; 9BA2= 60          `
 
-L9BA3:
+;-------------------------------------------------------------------------
+;
+; 112–119 = Plot parallelogram [MasRef E.3-27]
+; 
+plotParallelogram:
                 ldx #$28                     ; 9BA3= A2 28       "(
                 stx $DA                      ; 9BA5= 86 DA       .Z
                 ldx #$14                     ; 9BA7= A2 14       ".
                 ldy #$20                     ; 9BA9= A0 20
                 lda #$24                     ; 9BAB= A9 24       )$
-                jsr mos.LD580                ; 9BAD= 20 80 D5     .U
+                jsr mos.addRegionDimensionsToVDUVariableCoordinates                ; 9BAD= 20 80 D5     .U
                 ldy #$14                     ; 9BB0= A0 14        .
                 ldx #$24                     ; 9BB2= A2 24       "$
-                jsr mos.LD5B7                ; 9BB4= 20 B7 D5     7U
+                jsr mos.sortVDUVariableCoordinates                ; 9BB4= 20 B7 D5     7U
                 stx L8830                    ; 9BB7= 8E 30 88    .0.
                 ldx #$20                     ; 9BBA= A2 20       "
-                jsr mos.LD5B7                ; 9BBC= 20 B7 D5     7U
+                jsr mos.sortVDUVariableCoordinates                ; 9BBC= 20 B7 D5     7U
                 stx L8831                    ; 9BBF= 8E 31 88    .1.
                 ldx #$28                     ; 9BC2= A2 28       "(
-                jsr mos.LD5B7                ; 9BC4= 20 B7 D5     7U
+                jsr mos.sortVDUVariableCoordinates                ; 9BC4= 20 B7 D5     7U
                 sty L8833                    ; 9BC7= 8C 33 88    .3.
                 ldy L8831                    ; 9BCA= AC 31 88    ,1.
-                jsr mos.LD5B7                ; 9BCD= 20 B7 D5     7U
+                jsr mos.sortVDUVariableCoordinates                ; 9BCD= 20 B7 D5     7U
                 sty L8832                    ; 9BD0= 8C 32 88    .2.
                 ldy L8830                    ; 9BD3= AC 30 88    ,0.
                 jsr L9C0F                    ; 9BD6= 20 0F 9C     ..
@@ -4280,7 +4329,7 @@ L9BA3:
 L9BF7;
                 ldy #$14                     ; 9BF7= A0 14        .
                 ldx #$24                     ; 9BF9= A2 24       "$
-                jsr mos.LD5B7                ; 9BFB= 20 B7 D5     7U
+                jsr mos.sortVDUVariableCoordinates                ; 9BFB= 20 B7 D5     7U
                 sty L8832                    ; 9BFE= 8C 32 88    .2.
                 ldy #$20                     ; 9C01= A0 20
                 jsr L9C0F                    ; 9C03= 20 0F 9C     ..
@@ -4290,10 +4339,10 @@ L9C0C:
                 jmp mos.LDAE4                ; 9C0C= 4C E4 DA    LdZ
 
 L9C0F:
-                jsr mos.LD5B7                ; 9C0F= 20 B7 D5     7U
+                jsr mos.sortVDUVariableCoordinates                ; 9C0F= 20 B7 D5     7U
                 stx L8830                    ; 9C12= 8E 30 88    .0.
                 ldx L8832                    ; 9C15= AE 32 88    .2.
-                jsr mos.LD5B7                ; 9C18= 20 B7 D5     7U
+                jsr mos.sortVDUVariableCoordinates                ; 9C18= 20 B7 D5     7U
                 sty L8832                    ; 9C1B= 8C 32 88    .2.
                 stx L8831                    ; 9C1E= 8E 31 88    .1.
                 ldy L8830                    ; 9C21= AC 30 88    ,0.
@@ -4341,7 +4390,7 @@ L9C67:
                 ldx #$2C                     ; 9C79= A2 2C       ",
                 jsr mos.LD726                ; 9C7B= 20 26 D7     &W
                 ldy #$37                     ; 9C7E= A0 37        7
-                jsr mos.LD5CC                ; 9C80= 20 CC D5     LU
+                jsr mos.sortVDUVariableWords                ; 9C80= 20 CC D5     LU
                 phx                          ; 9C83= DA          Z
                 ldx #$FC                     ; 9C84= A2 FC       "|
 L9C86:
@@ -5768,7 +5817,7 @@ LA506:
                 bvs LA55B                    ; A53A= 70 1F       p.
                 jsr LA9CA                    ; A53C= 20 CA A9     J)
                 bit $CE                      ; A53F= 24 CE       $N
-                bvc LA54D                    ; A541= 50 0A       P.
+                bvc notFoundError                    ; A541= 50 0A       P.
                 sec                          ; A543= 38          8
 rtsA544:
                 rts                          ; A544= 60          `
@@ -5780,7 +5829,7 @@ openFileForReading:
                 jsr OSFIND
                 tay
                 bne rtsA544
-LA54D:
+notFoundError:
                 jsr doFollowingError                    ; A54D= 20 ED AA     m*
                 .text $d6,"Not found",0
 
@@ -5800,7 +5849,7 @@ LA564:
 LA56B:
                 beq LA584                    ; A56B= F0 17       p.
                 pha                          ; A56D= 48          H
-                lda #$07                     ; A56E= A9 07       ).
+                lda #fscFileHandleRange
                 jsr mos.callFSCV             ; A570= 20 E5 F1     eq
                 pla                          ; A573= 68          h
                 clc                          ; A574= 18          .
@@ -5891,9 +5940,9 @@ LA603:
                 bra LA5B7                    ; A606= 80 AF       ./
 
 LA608:
-                cmp #$2A                     ; A608= C9 2A       I*
+                cmp #'*'
                 beq LA643                    ; A60A= F0 37       p7
-                cmp #$23                     ; A60C= C9 23       I#
+                cmp #'#'
                 bne LA61F                    ; A60E= D0 0F       P.
                 inc $03C6                    ; A610= EE C6 03    nF.
                 bne LA618                    ; A613= D0 03       P.
@@ -5909,12 +5958,6 @@ LA61F:
                 .byte $D7
                 .text "Bad ROM"
                 .byte 0
-                ; EQUB $D7                   ; A625= D7          W
-                ; EQUB $42                   ; A626= 42          B
-                ; ADC ($64,x)                ; A627= 61 64       ad
-                ; JSR $4F52                  ; A629= 20 52 4F     RO
-                ; EOR LA000                  ; A62C= 4D 00 A0    M.
-                ; EQUB $FF                   ; A62F= FF          .
 
 LA62E:
                 ldy #$FF
@@ -7122,20 +7165,29 @@ close:
                 jsr OSFIND      ;call OSFIND
                 bra sendR27FThenGoIdle
                 .pend
-                
+
+;-------------------------------------------------------------------------
+;
+; Handle a Tube OSARGS request.
+;
+; [Tube p24]
+; 
 doARGS:
-                jsr recvR2                    ; ACBE= 20 A1 06     !.
-                tay                          ; ACC1= A8          (
-                ldx #$04                     ; ACC2= A2 04       ".
-                jsr LADF8                    ; ACC4= 20 93 06     ..
-                jsr OSARGS                   ; ACC7= 20 DA FF     Z.
-                jsr sendR2A                    ; ACCA= 20 61 06     a.
-                ldx #$03                     ; ACCD= A2 03       ".
-LACCF:
-                lda $00,x                    ; ACCF= B5 00       5.
-                jsr sendR2A                    ; ACD1= 20 61 06     a.
-                dex                          ; ACD4= CA          J
-                bpl LACCF                    ; ACD5= 10 F8       .x
+                jsr recvR2                   ;receive file handle
+                tay                          ;Y = file handle
+                ldx #$04
+                jsr recvR2N ;receive 4 bytes OSARGS data, + operation code
+                jsr OSARGS  ;call OSARGS
+                jsr sendR2A ;send OSARGS result
+
+                ; send 4 bytes OSARGS data
+                ldx #$03
+-
+                lda $00,x
+                jsr sendR2A
+                dex
+                bpl -
+                
                 bra goIdle_0
 
 ;-------------------------------------------------------------------------
@@ -7150,13 +7202,14 @@ recvR2String: .proc
                 ldy #$00        ;index
 -
                 jsr recvR2      ;get next string char
-                sta $0700,y     ;store in string buffer
+                sta tubeStringBuffer,y     ;store in string buffer
                 iny
                 beq +           ;taken if too many bytes received
                 cmp #$0D
                 bne -           ;taken if end of string data not reached
 +
-                ldy #$07        ;on exit, YX=$0700
+                ldy #>tubeStringBuffer
+                .cerror (<tubeStringBuffer)!=0,"tubeStringBuffer must be page-aligned"
                 rts                          
                 .pend
 
@@ -7164,7 +7217,7 @@ recvR2String: .proc
 ;
 ; Handle a Tube OSCLI request.
 ;
-; See App Note 004 p22
+; [Tube p22]
 ;
 doCLI:
                 jsr recvR2String
@@ -7179,101 +7232,135 @@ sendR2AThenGoIdle:
 goIdle_0:
                 bra goIdle_1
 
+;-------------------------------------------------------------------------
+;
+; Handle a Tube OSGBPB request.
+;
+; [Tube p25]
+; 
 doGBPB:
-                ldx #$0D                     ; ACFF= A2 0D       ".
-                jsr LADF8                    ; AD01= 20 93 06     ..
-                ldy #$00                     ; AD04= A0 00        .
-                jsr OSGBPB                   ; AD06= 20 D1 FF     Q.
-                pha                          ; AD09= 48          H
-                ldx #$0C                     ; AD0A= A2 0C       ".
-LAD0C:
-                lda $00,x                    ; AD0C= B5 00       5.
-                jsr sendR2A                    ; AD0E= 20 61 06     a.
-                dex                          ; AD11= CA          J
-                bpl LAD0C                    ; AD12= 10 F8       .x
-                pla                          ; AD14= 68          h
-                bra sendR2CAThenGoIdle
-                
+                ldx #size(OSGBPBParameterBlock)
+                .cerror tubeOSGBPBParameterBlock!=0,"Tube OSGBPB parameter block must be at $0000"
+                jsr recvR2N     ;receive parameter block + reason code
+                ldy #>tubeOSGBPBParameterBlock
+                jsr OSGBPB      ;call OSGBPB
+                pha             ;save OSGBPB A result
+
+                ; Send updated OSGBPB parameter block.
+                ldx #size(OSGBPBParameterBlock)-1
+-
+                lda tubeOSGBPBParameterBlock,x
+                jsr sendR2A
+                dex
+                bpl -
+                pla                          ;restore OSGBPB A result
+                bra sendR2CAThenGoIdle       ;send OSGBPB full result
+
+;-------------------------------------------------------------------------
+;
+; Handle a Tube OSFILE request.
+;
+; [Tube p24]
+; 
 doFILE: .proc
-                ldx #$10                     ; AD17= A2 10       ".
+                ; receive non-name part of OSFILE parameter block
+                ldx #size(OSFILEParameterBlock)-2
 -
-                jsr recvR2                    ; AD19= 20 A1 06     !.
-                sta $01,x                    ; AD1C= 95 01       ..
-                dex                          ; AD1E= CA          J
+                jsr recvR2
+                sta tubeOSFILEParameterBlock.addresses-1,x
+                dex
                 bne -
-                jsr recvR2String                    ; AD21= 20 74 05     t.
-                stx $00                      ; AD24= 86 00       ..
-                sty $01                      ; AD26= 84 01       ..
-                ldy #$00                     ; AD28= A0 00        .
-                jsr recvR2                    ; AD2A= 20 A1 06     !.
-                jsr OSFILE                   ; AD2D= 20 DD FF     ].
-                jsr sendR2A                    ; AD30= 20 61 06     a.
-                ldx #$10                     ; AD33= A2 10       ".
+                jsr recvR2String
+                stx tubeOSFILEParameterBlock+0
+                sty tubeOSFILEParameterBlock+1
+                ldy #>tubeOSFILEParameterBlock
+                .cerror (<tubeOSFILEParameterBlock)!=0,"Tube OSFILE parameter block must be at $0000"
+                jsr recvR2                   ;receive OSFILE reason code
+                jsr OSFILE                   ;call OSFILE
+                jsr sendR2A                  ;send OSFILE result
+
+                ; send non-name part of updated OSFILE parameter block
+                ldx #size(OSFILEParameterBlock)-2
 -
-                lda $01,x                    ; AD35= B5 01       5.
-                jsr sendR2A                    ; AD37= 20 61 06     a.
-                dex                          ; AD3A= CA          J
+                lda tubeOSFILEParameterBlock.addresses-1,x
+                jsr sendR2A
+                dex
                 bne -
                 bra goIdle_1
                 .pend
 
 ;-------------------------------------------------------------------------
 ;
-; Do a small (A<$80) OSBYTE 
+; Handle a Tube small (A<$80) OSBYTE.
+;
+; [Tube p22]
 ;
 doSBYT:
                 jsr recvR2XA    ;receive X and A arguments
                 jsr OSBYTE
 sendR2X:
-                bit tube.status2                   ; AD45= 2C E2 FE    ,b~
+                bit tube.status2
                 bvc sendR2X
-                stx tube.data2                   ; AD4A= 8E E3 FE    .c~
+                stx tube.data2
 goIdle_1:
-                jmp idleLoop                    ; AD4D= 4C 36 00    L6.
+                jmp idleLoop
 
+;-------------------------------------------------------------------------
+;
+; Handle a Tube non-small OSBYTE.
+;
+; [Tube p22]
 doBYTE:
-                jsr recvR2XA                    ; AD50= 20 9D 06     ..
-                tay                          ; AD53= A8          (
-                jsr recvR2                    ; AD54= 20 A1 06     !.
-                jsr OSBYTE                   ; AD57= 20 F4 FF     t.
-                eor #$9D                     ; AD5A= 49 9D       I.
-                beq goIdle_1
-                ror a                        ; AD5E= 6A          j
-                jsr sendR2A                    ; AD5F= 20 61 06     a.
-LAD62:
-                bit tube.status2                   ; AD62= 2C E2 FE    ,b~
-                bvc LAD62                    ; AD65= 50 FB       P{
-                sty tube.data2                   ; AD67= 8C E3 FE    .c~
-                bra sendR2X
+                jsr recvR2XA                ;receive X and Y arguments
+                tay                         ;Y = Y argument
+                jsr recvR2                  ;receive A argument
+                jsr OSBYTE                  ;call OSBYTE
+                eor #$9D                    ;was it Fast Tube BPUT?
+                beq goIdle_1      ;if it was, done.
+                ror a             
+                jsr sendR2A       ;send carry result
+-
+                bit tube.status2
+                bvc -
+                sty tube.data2               ;send Y result
+                bra sendR2X                  ;send X result
 
+;-------------------------------------------------------------------------
+;
+; Handle a Tube OSWORD request.
+;
+; [Tube p22]
+; 
 doWORD:
-                jsr recvR2                    ; AD6C= 20 A1 06     !.
-                tay                          ; AD6F= A8          (
-                jsr LAE0F                    ; AD70= 20 AA 06     *.
-                bmi LAD7F                    ; AD73= 30 0A       0.
+                jsr recvR2
+                tay
+                jsr LAE0F
+                bmi LAD7F
 LAD75:
-                jsr recvR2                    ; AD75= 20 A1 06     !.
-                sta $0128,x                  ; AD78= 9D 28 01    .(.
-                dex                          ; AD7B= CA          J
-                bpl LAD75                    ; AD7C= 10 F7       .w
-                tya                          ; AD7E= 98          .
+                jsr recvR2
+                sta tubeOSWORDBuffer,x
+                dex
+                bpl LAD75
+                tya
 LAD7F:
-                ldx #$28                     ; AD7F= A2 28       "(
-                ldy #$01                     ; AD81= A0 01        .
-                jsr OSWORD                   ; AD83= 20 F1 FF     q.
-                jsr LAE0F                    ; AD86= 20 AA 06     *.
+                ldx #<tubeOSWORDBuffer
+                ldy #>tubeOSWORDBuffer
+                jsr OSWORD
+                jsr LAE0F
                 bmi goIdle_1
 LAD8B:
-                ldy $0128,x                  ; AD8B= BC 28 01    <(.
+                ldy tubeOSWORDBuffer,x
 LAD8E:
-                bit tube.status2                   ; AD8E= 2C E2 FE    ,b~
-                bvc LAD8E                    ; AD91= 50 FB       P{
-                sty tube.data2                   ; AD93= 8C E3 FE    .c~
-                dex                          ; AD96= CA          J
-                bpl LAD8B                    ; AD97= 10 F2       .r
+                bit tube.status2
+                bvc LAD8E
+                sty tube.data2
+                dex
+                bpl LAD8B
 LAD99:
                 bra goIdle_1
-                
+
+;-------------------------------------------------------------------------
+
 doRDLN:
                 ldx #$04                     ; AD9B= A2 04       ".
 LAD9D:
@@ -7336,21 +7423,60 @@ LADEF:
                 sta tube.data1                   ; ADF4= 8D E1 FE    .a~
                 rts                          ; ADF7= 60          `
 
-LADF8:
-                jsr recvR2                    ; ADF8= 20 A1 06     !.
-                sta $ff,x                    ; ADFB= 95 FF       ..
-                dex                          ; ADFD= CA          J
-                bne LADF8                    ; ADFE= D0 F8       Px
-                bra recvR2                    ; AE00= 80 04       ..
+;-------------------------------------------------------------------------
+;
+; Receive multiple bytes via R2: some kind of parameter block,
+; followed by the reason code. Store the first N-1 received in zero
+; page, starting at $00.
+;
+; entry:
+;
+; X = number of bytes to receive, minus 1
+;
+; exit:
+;
+; ?$00, ?$01... = first N-1 bytes received
+;
+; A = final byte received
+;
+; X = 0
+;
+recvR2N:
+                jsr recvR2
+                sta $ff,x
+                dex
+                bne recvR2N
+                bra recvR2
 
+;-------------------------------------------------------------------------
+;
+; Receive 2 bytes via R2.
+;
+; exit:
+;
+; X = first byte received
+;
+; A = second byte received
+; 
 recvR2XA:
-                jsr recvR2                    ; AE02= 20 A1 06     !.
-                tax                          ; AE05= AA          *
+                jsr recvR2
+                tax
+
+;-------------------------------------------------------------------------
+;
+; Receive 1 byte via R2.
+;
+; exit:
+;
+; A = byte received
+; 
 recvR2:
-                bit tube.status2                   ; AE06= 2C E2 FE    ,b~
-                bpl recvR2                    ; AE09= 10 FB       .{
-                lda tube.data2                   ; AE0B= AD E3 FE    -c~
-                rts                          ; AE0E= 60          `
+                bit tube.status2
+                bpl recvR2
+                lda tube.data2
+                rts
+
+;-------------------------------------------------------------------------
 
 LAE0F:
                 bit tube.status2                   ; AE0F= 2C E2 FE    ,b~
@@ -7361,17 +7487,19 @@ LAE0F:
                 .here
                 .bend
 
+;-------------------------------------------------------------------------
+
 LAE19:
                 php                          ; AE19= 08          .
                 phy                          ; AE1A= 5A          Z
                 phx                          ; AE1B= DA          Z
                 pha                          ; AE1C= 48          H
-                cmp #$04                     ; AE1D= C9 04       I.
-                beq LAE2E                    ; AE1F= F0 0D       p.
-                cmp #$07                     ; AE21= C9 07       I.
-                beq LAE4A                    ; AE23= F0 25       p%
-                cmp #$2A                     ; AE25= C9 2A       I*
-                beq LAE9D                    ; AE27= F0 74       pt
+                cmp #romServiceCallUnrecognisedCommand
+                beq handleUnrecognisedCommand
+                cmp #romServiceCallUnrecognisedOSBYTE
+                beq handleUnrecognisedOSBYTE
+                cmp #romServiceCallLanguageChange
+                beq handleLanguageChange
 LAE29:
                 pla                          ; AE29= 68          h
                 plx                          ; AE2A= FA          z
@@ -7379,7 +7507,7 @@ LAE29:
                 plp                          ; AE2C= 28          (
                 rts                          ; AE2D= 60          `
 
-LAE2E:
+handleUnrecognisedCommand:
                 jsr LB832                    ; AE2E= 20 32 B8     28
                 cmp #$0B                     ; AE31= C9 0B       I.
                 bne LAE29                    ; AE33= D0 F4       Pt
@@ -7390,7 +7518,7 @@ LAE2E:
 LAE3C:
                 ldx #$04                     ; AE3C= A2 04       ".
 LAE3E:
-                lda $0229,x                  ; AE3E= BD 29 02    =).
+                lda INSV-1,x                  ; AE3E= BD 29 02    =).
                 cmp LAE93-1,x                ; AE41= DD 92 AE    ]..
                 bne LAE49                    ; AE44= D0 03       P.
                 dex                          ; AE46= CA          J
@@ -7398,7 +7526,7 @@ LAE3E:
 LAE49:
                 rts                          ; AE49= 60          `
                 
-LAE4A:
+handleUnrecognisedOSBYTE:
                 phy                          ; AE4A= 5A          Z
                 ply                          ; AE4B= 7A          z
                 bne LAE29                    ; AE4C= D0 DB       P[
@@ -7427,7 +7555,7 @@ LAE6A:
 
 LAE6C:
                 lsr a                        ; AE6C= 4A          J
-                bcc LAE9D                    ; AE6D= 90 2E       ..
+                bcc handleLanguageChange
                 stz $75                      ; AE6F= 64 75       du
                 jsr LAE3C                    ; AE71= 20 3C AE     <.
                 beq LAE29                    ; AE74= F0 B3       p3
@@ -7442,20 +7570,21 @@ LAE78:
                 ldx #$06                     ; AE86= A2 06       ".
 LAE88:
                 lda LAE97-1,x                  ; AE88= BD 96 AE    =..
-                sta ExtendedVectorAddress(INSV)-1,x;extendedVectorSpace+insvIndex*3-1,x
+                sta ExtendedVectorAddress(INSV)-1,x
                 dex                          ; AE8E= CA          J
                 bne LAE88                    ; AE8F= D0 F7       Pw
                 bra LAE6A                    ; AE91= 80 D7       .W
 
 LAE93:
-                .word E_INSV             ;
+                .word E_INSV
                 .word E_REMV
 LAE97:
                 .word LAED4
-                .byte $0f
+                .byte terminalROM
                 .word LAF13
-                .byte $0F                    ; AE9C= 0F          .
-LAE9D:
+                .byte terminalROM
+                
+handleLanguageChange:
                 sei                          ; AE9D= 78          x
                 jsr LAE3C                    ; AE9E= 20 3C AE     <.
                 bne LAE6A                    ; AEA1= D0 C7       PG
@@ -9182,9 +9311,9 @@ LB835:
                 phy                          ; B838= 5A          Z
                 jsr LB89E                    ; B839= 20 9E B8     .8
 LB83C:
-                cmp #$2E                     ; B83C= C9 2E       I.
+                cmp #'.'                     ; B83C= C9 2E       I.
                 beq LB858                    ; B83E= F0 18       p.
-                cmp #$40                     ; B840= C9 40       I@
+                cmp #'@'                     ; B840= C9 40       I@
                 bcs LB846                    ; B842= B0 02       0.
                 lda #$00                     ; B844= A9 00       ).
 LB846:

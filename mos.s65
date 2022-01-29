@@ -404,6 +404,9 @@ LC147:
                 .word LC195                  ; C151= 95 C1       ..
                 .word LC1A2                  ; C153= A2 C1       ..
                 .word LC1A2                  ; C155= A2 C1       ..
+
+;-------------------------------------------------------------------------
+
 LC157:
                 .word LC201                  ; C157= 01 C2       ..
                 .word LC1EE                  ; C159= EE C1       ..
@@ -413,15 +416,24 @@ LC157:
                 .word LC221                  ; C161= 21 C2       !.
                 .word LC210                  ; C163= 10 C2       ..
                 .word LC210                  ; C165= 10 C2       ..
-LC167:
-                .word LC2D3                  ; C167= D3 C2       ..
-                .word LC2CB                  ; C169= CB C2       ..
-                .word LC2D3                  ; C16B= D3 C2       ..
-                .word LC2CB                  ; C16D= CB C2       ..
-                .word LC2E2                  ; C16F= E2 C2       ..
-                .word LC2E2                  ; C171= E2 C2       ..
-                .word LC2DA                  ; C173= DA C2       ..
-                .word LC2DA                  ; C175= DA C2       ..
+
+;-------------------------------------------------------------------------
+; 
+; Indexed by the swapAxes, invertVertical and invertHorizontal cursor
+; flags bits.
+; 
+setTextCursorXPositionRoutinesTable:
+                .word setTextCursorXPosition           ;0
+                .word setTextCursorXPositionInvertHorizontal           ;invertHorizontal
+                .word setTextCursorXPosition           ;invertVertical
+                .word setTextCursorXPositionInvertHorizontal           ;invertVertical|invertHorizontal
+                .word setTextCursorXPositionSwapAxes           ;swapAxes
+                .word setTextCursorXPositionSwapAxes           ;swapAxes|invertHorizontal
+                .word setTextCursorXPositionSwapAxesInvertVertical           ;swapAxes|invertVertical
+                .word setTextCursorXPositionSwapAxesInvertVertical           ;swapAxes|invertVertical|invertHorizontal
+
+;-------------------------------------------------------------------------
+
 LC177:
                 .word LC310                  ; C177= 10 C3       ..
                 .word LC2F2                  ; C179= F2 C2       ..
@@ -431,6 +443,9 @@ LC177:
                 .word LC35A                  ; C181= 5A C3       Z.
                 .word LC338                  ; C183= 38 C3       8.
                 .word LC338                  ; C185= 38 C3       8.
+
+;-------------------------------------------------------------------------
+
 LC187:
                 eor $0366                    ; C187= 4D 66 03    Mf.
                 and #$0E                     ; C18A= 29 0E       ).
@@ -571,7 +586,7 @@ LC269:
                 jmp LD051                    ; C270= 4C 51 D0    LQP
 
 LC273:
-                jmp setCRTCCursorAddress
+                jmp updateCRTCCursorAddress
 
 LC276:
                 jsr testVDU5State                    ; C276= 20 D2 E2     Rb
@@ -616,35 +631,53 @@ LC2BE:
                 jsr LC2E9                    ; C2C0= 20 E9 C2     iB
                 bra LC269                    ; C2C3= 80 A4       .$
 
-LC2C5:
-                lda #$00                     ; C2C5= A9 00       ).
-LC2C7:
-                clc                          ; C2C7= 18          .
-                jmp (LC167,x)                ; C2C8= 7C 67 C1    |gA
+;-------------------------------------------------------------------------
+;
+; Set/reset cursor position, taking cursor flags into account.
+;
+; entry:
+;
+; (set only) A = cursor position
+;
+; X = cursorFlags bits: swapAxes, invertVertical, invertHorizontal
+; 
+resetTextCursorXPositionWithCursorFlags:
+                lda #$00
+setTextCursorXPositionWithCursorFlags:
+                clc
+                jmp (setTextCursorXPositionRoutinesTable,x)
 
-LC2CB:
-                sec                          ; C2CB= 38          8
-                eor #$FF                     ; C2CC= 49 FF       I.
-                adc $030A                    ; C2CE= 6D 0A 03    m..
-                bra LC2D6                    ; C2D1= 80 03       ..
+;-------------------------------------------------------------------------
 
-LC2D3:
-                adc $0308                    ; C2D3= 6D 08 03    m..
-LC2D6:
-                sta $0318                    ; C2D6= 8D 18 03    ...
-                rts                          ; C2D9= 60          `
+setTextCursorXPositionInvertHorizontal:
+                sec                          ;+1
+                eor #$FF          ;^$ff+1 (i.e., adc will add the -ve)
+                adc vduv.textWindowRight
+                bra staTextCursorXPosition
 
-LC2DA:
-                sec                          ; C2DA= 38          8
-                eor #$FF                     ; C2DB= 49 FF       I.
-                adc $0309                    ; C2DD= 6D 09 03    m..
-                bra LC2E5                    ; C2E0= 80 03       ..
+;-------------------------------------------------------------------------
 
-LC2E2:
-                adc $030B                    ; C2E2= 6D 0B 03    m..
-LC2E5:
-                sta $0319                    ; C2E5= 8D 19 03    ...
-                rts                          ; C2E8= 60          `
+setTextCursorXPosition:
+                adc vduv.textWindowLeft
+staTextCursorXPosition:
+                sta vduv.textCursorXPosition
+                rts
+
+;-------------------------------------------------------------------------
+
+setTextCursorXPositionSwapAxesInvertVertical:
+                sec
+                eor #$FF
+                adc vduv.textWindowBottom
+                bra staTextCursorYPosition
+
+setTextCursorXPositionSwapAxes:
+                adc vduv.textWindowTop
+staTextCursorYPosition:
+                sta vduv.textCursorYPosition
+                rts
+
+;-------------------------------------------------------------------------
 
 LC2E9:
                 eor $0366                    ; C2E9= 4D 66 03    Mf.
@@ -733,8 +766,8 @@ LC37B:
                 bvs LC397                    ; C38C= 70 09       p.
                 pla                          ; C38E= 68          h
 LC38F:
-                jsr LC2C5                    ; C38F= 20 C5 C2     EB
-                jsr getAddressForTextCursorPosition                    ; C392= 20 FA CC     zL
+                jsr resetTextCursorXPositionWithCursorFlags                    ; C38F= 20 C5 C2     EB
+                jsr updateZMEMTWithTextCursorPosition                    ; C392= 20 FA CC     zL
                 clc                          ; C395= 18          .
                 rts                          ; C396= 60          `
 
@@ -800,7 +833,7 @@ vdu13EntryPoint:
                 lsr $036C                    ; C401= 4E 6C 03    Nl.
                 jsr LC38F                    ; C404= 20 8F C3     .C
 LC407:
-                jmp setCRTCCursorAddress
+                jmp updateCRTCCursorAddress
 
 LC40A:
                 jsr LC1DE                    ; C40A= 20 DE C1     ^A
@@ -818,7 +851,7 @@ vdu16EntryPoint:
                 beq LC3A4                    ;taken if MODE 7
                 ldx #VDUVariables.graphicsWindowPixelsLeft
                 jsr copyEightBytesToWorkspace28
-                jsr LC951
+                jsr prepareForPlotBackground
 LC420:
                 ldx #$2A                     ; C420= A2 2A       "*
                 ldy #$2E                     ; C422= A0 2E        .
@@ -840,82 +873,97 @@ LC436:
                 rts                          ; C447= 60          `
 
 LC448:
-                ldx #$20                     ; C448= A2 20       "
-                jsr LC8E6                    ; C44A= 20 E6 C8     fH
+                ldx #VDUVariables.queueEnd-4
+                jsr prepareAABB                    ; C44A= 20 E6 C8     fH
                 bra LC420                    ; C44D= 80 D1       .Q
 
-                ; VDU 12 - CLS
-                ; ============
+;-------------------------------------------------------------------------
+;
+; VDU 12 (&0C) Clear text window [MasRef E.3-5]
+; 
 vdu12EntryPoint:
-                lda #$20
+                lda #STATE.isVDU5
                 bit STATE
-                bne LC410                    ; VDU 5 mode
-                lda #$08
+                bne LC410                    ;taken if VDU 5 mode
+                lda #STATE.isTextWindow
                 bit STATE
-                bne LC45E                    ; Software CLS (window defined)
-                jmp LC866                    ; Do a hardware CLS
+                bne clearTextWindow                    ;taken if text window
+                jmp clsFastPath
 
                 ; Clear screen within text window
                 ; -------------------------------
-LC45E:
-                jsr copyTextWindowWidthInBytesToWorkspace28                    ; C45E= 20 08 C9     .I
-                ldx $0308                    ; C461= AE 08 03    ...
-                stx $0318                    ; C464= 8E 18 03    ...
-                ldx $030B                    ; C467= AE 0B 03    ...
-LC46A:
-                stx $0319                    ; C46A= 8E 19 03    ...
-                jsr getAddressForTextCursorPosition                    ; C46D= 20 FA CC     zL
-                jsr LCAE8                    ; C470= 20 E8 CA     hJ
-                ldx $0319                    ; C473= AE 19 03    ...
-                cpx $0309                    ; C476= EC 09 03    l..
-                inx                          ; C479= E8          h
-                bcc LC46A                    ; C47A= 90 EE       .n
+clearTextWindow:
+                jsr copyTextWindowWidthInBytesToWorkspace28
+                ldx vduv.textWindowLeft
+                stx vduv.textCursorXPosition
+                ldx vduv.textWindowTop
+clearTextWindowRowsLoop:
+                stx vduv.textCursorYPosition
+                jsr updateZMEMTWithTextCursorPosition
+                jsr LCAE8
+                ldx vduv.textCursorYPosition
+                cpx vduv.textWindowBottom
+                inx
+                bcc clearTextWindowRowsLoop
+
+;-------------------------------------------------------------------------
+;
+; VDU 30 (&1E) Home cursor [MasRef E.3-36]
+; 
 vdu30EntryPoint:
-                stz $0323                    ; C47C= 9C 23 03    .#.
-                stz $0322                    ; C47F= 9C 22 03    .".
+                ; pretend it's VDU 31,0,0
+                stz vduv.queueEnd-1
+                stz vduv.queueEnd-2
+
+;-------------------------------------------------------------------------
+;
+; VDU 31 (&1F) Tab cursor [MasRef E.3-36]
+; 
 vdu31EntryPoint:
-                lda $0366                    ; C482= AD 66 03    -f.
-                and #$0E                     ; C485= 29 0E       ).
-                tax                          ; C487= AA          *
+                lda vduv.cursorFlags
+                and #vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal
+                tax
 LC488:
-                jsr testVDU5State                    ; C488= 20 D2 E2     Rb
-                bne LC4CF                    ; C48B= D0 42       PB
-                lda $0318                    ; C48D= AD 18 03    -..
-                pha                          ; C490= 48          H
-                lda $0319                    ; C491= AD 19 03    -..
-                pha                          ; C494= 48          H
-                lda $0322                    ; C495= AD 22 03    -".
-                jsr LC2C7                    ; C498= 20 C7 C2     GB
-                phx                          ; C49B= DA          Z
-                txa                          ; C49C= 8A          .
-                eor #$08                     ; C49D= 49 08       I.
-                tax                          ; C49F= AA          *
-                lda $0323                    ; C4A0= AD 23 03    -#.
-                jsr LCCD7                    ; C4A3= 20 D7 CC     WL
-                plx                          ; C4A6= FA          z
-                bcc LC4BA                    ; C4A7= 90 11       ..
-                lda #$01                     ; C4A9= A9 01       ).
-                bit $0366                    ; C4AB= 2C 66 03    ,f.
-                beq LC4C1                    ; C4AE= F0 11       p.
-                lda $0322                    ; C4B0= AD 22 03    -".
-                dec a                        ; C4B3= 3A          :
-                jsr LCCD7                    ; C4B4= 20 D7 CC     WL
-                bcs LC4C1                    ; C4B7= B0 08       0.
-                sec                          ; C4B9= 38          8
+                jsr testVDU5State
+                bne LC4CF                    ;taken if VDU 5
+                lda vduv.textCursorXPosition
+                pha                          ;save old X pos
+                lda vduv.textCursorYPosition
+                pha                          ;save old Y pos
+                lda vduv.queueEnd-2          ;X coordinate
+                jsr setTextCursorXPositionWithCursorFlags
+                phx                          ;save true cursorFlags bits
+                txa
+                eor #vduv.cursorFlags.swapAxes ;cheekily do the other axis by just changing the cursor flags
+                tax
+                lda vduv.queueEnd-1          ;Y coordinate
+                jsr LCCD7
+                plx                    ;restore true cursorFlags bits
+                bcc LC4BA              ;taken if no scrolling required
+                lda #vduv.cursorFlags.scrollProtect
+                bit $0366
+                beq LC4C1                 ;taken if scroll protect off
+
+                ; Wrap text cursor X.
+                lda vduv.queueEnd-2       ;X coordinate
+                dec a
+                jsr LCCD7
+                bcs LC4C1
+                sec
 LC4BA:
-                ror $036C                    ; C4BA= 6E 6C 03    nl.
-                pla                          ; C4BD= 68          h
-                pla                          ; C4BE= 68          h
-                bra LC4CC                    ; C4BF= 80 0B       ..
+                ror vduv.column81
+                pla                          ;discard old Y pos
+                pla                          ;discard old X pos
+                bra LC4CC
 
 LC4C1:
-                pla                          ; C4C1= 68          h
-                sta $0319                    ; C4C2= 8D 19 03    ...
-                pla                          ; C4C5= 68          h
-                sta $0318                    ; C4C6= 8D 18 03    ...
-                jsr getAddressForTextCursorPosition                    ; C4C9= 20 FA CC     zL
+                pla                          
+                sta vduv.textCursorYPosition ;restore old Y pos
+                pla
+                sta vduv.textCursorXPosition ;restore old X pos
+                jsr updateZMEMTWithTextCursorPosition
 LC4CC:
-                jmp setCRTCCursorAddress
+                jmp updateCRTCCursorAddress
 
 LC4CF:
                 lda $0322                    ; C4CF= AD 22 03    -".
@@ -954,10 +1002,19 @@ LC50A:
                 sbc $030C,x                  ; C50D= FD 0C 03    }..
                 sta $0310,x                  ; C510= 9D 10 03    ...
                 rts                          ; C513= 60          `
-                
+
+;-------------------------------------------------------------------------
+;
+; VDU 14 (&0E) Page mode on [MasRef E.3-6]
+; 
 vdu14EntryPoint:
                 stz pagedModeCounter                    ; C514= 9C 69 02    .i.
                 lda #$91                     ; C517= A9 91       ).
+
+;-------------------------------------------------------------------------
+;
+; VDU 21 (&15) Disable VDU driver [MasRef E.3-11]
+; 
 vdu21EntryPoint:
                 eor #$95                     ; C519= 49 95       I.
 LC51B:
@@ -1325,12 +1382,12 @@ vdu26EntryPoint:
 ; Update CRTC cursor address to reflect text cursor position.
 ; 
 updateCRTCTextCursor:
-                jsr getAddressForTextCursorPosition
-                bra setCRTCCursorAddress
+                jsr updateZMEMTWithTextCursorPosition
+                bra updateCRTCCursorAddress
 
 ;-------------------------------------------------------------------------
 
-LC6DD:
+setCRTCCursorAddress:
                 stx vduv.textCursorCRTCAddress+0
                 sta vduv.textCursorCRTCAddress+1
                 bpl +
@@ -1343,7 +1400,7 @@ LC6DD:
 ;-------------------------------------------------------------------------
 ;
 ; 
-setCRTCCursorAddress:
+updateCRTCCursorAddress:
                 ldx vduv.textCursorCRTCAddress+0
                 lda vduv.textCursorCRTCAddress+1
                 ldy #$0E
@@ -1389,45 +1446,66 @@ setCRTCAddressRegisters:
 ;-------------------------------------------------------------------------
 ;
 ; VDU 24 (&18) Define graphics window [MasRef E.3-21]
+;
+; VDU queue:
+;
+; -8 = <left
+; -7 = >left
+; -6 = <bottom
+; -5 = >bottom
+; -4 = <right
+; -3 = >right
+; -2 = <top
+; -1 = >top
 ; 
 vdu24EntryPoint:
-                jsr LC779                    ; C71F= 20 79 C7     yG
-                ldx #$02                     ; C722= A2 02       ".
-LC724:
-                sec                          ; C724= 38          8
-                lda $0320,x                  ; C725= BD 20 03    = .
-                sbc $031C,x                  ; C728= FD 1C 03    }..
-                sta $032C,x                  ; C72B= 9D 2C 03    .,.
-                lda $0321,x                  ; C72E= BD 21 03    =!.
-                sbc $031D,x                  ; C731= FD 1D 03    }..
-                sta $032D,x                  ; C734= 9D 2D 03    .-.
-                dex                          ; C737= CA          J
-                dex                          ; C738= CA          J
-                bpl LC724                    ; C739= 10 E9       .i
-                ora $032F                    ; C73B= 0D 2F 03    ./.
-                bmi LC779                    ; C73E= 30 39       09
-                ldx #$20                     ; C740= A2 20       "
-                jsr eigabsEntryPoint         ; C742= 20 DE D1     ^Q
-                ldx #$1C                     ; C745= A2 1C       ".
-                jsr eigabsEntryPoint         ; C747= 20 DE D1     ^Q
-                lda $031F                    ; C74A= AD 1F 03    -..
-                ora $031D                    ; C74D= 0D 1D 03    ...
-                bmi LC779                    ; C750= 30 27       0'
-                lda $0323                    ; C752= AD 23 03    -#.
-                bne LC779                    ; C755= D0 22       P"
-                ldx $0355                    ; C757= AE 55 03    .U.
-                lda $0321                    ; C75A= AD 21 03    -!.
-                sta $DA                      ; C75D= 85 DA       .Z
-                lda $0320                    ; C75F= AD 20 03    - .
-                lsr $DA                      ; C762= 46 DA       FZ
-                ror a                        ; C764= 6A          j
-                lsr $DA                      ; C765= 46 DA       FZ
-                bne LC779                    ; C767= D0 10       P.
-                ror a                        ; C769= 6A          j
-                lsr a                        ; C76A= 4A          J
-                cmp modeMaxColumn,x                  ; C76B= DD 09 E1    ].a
-                beq LC772                    ; C76E= F0 02       p.
-                bpl LC779                    ; C770= 10 07       ..
+                jsr LC779
+                
+                ldx #2
+-
+                sec
+
+                ; <height when X=2, then <width when X=0
+                lda vduv.queueEnd-4+0,x
+                sbc vduv.queueEnd-8+0,x
+                sta vduv.workspace._2C+0,x
+
+                ; >height when X=2, then >width when X=0
+                lda vduv.queueEnd-4+1,x
+                sbc vduv.queueEnd-8+1,x
+                sta vduv.workspace._2C+1,x
+                
+                dex
+                dex
+                bpl -
+
+                ora vduv.workspace._2C+3     ;A=>width|>height
+                bmi LC779 ;taken if either dimension negative - window invalid
+                ldx #VDUVariables.queueEnd-4 ;left bottom
+                jsr eigabsEntryPoint         ;convert to pixels
+                ldx #VDUVariables.queueEnd-8 ;right top
+                jsr eigabsEntryPoint         ;convert to pixels
+                lda vduv.queueEnd-5          ;>bottom
+                ora vduv.queueEnd-7          ;>left
+                bmi LC779 ;taken if either bottom or left negative - window invalid
+                lda vduv.queueEnd-1          ;>top
+                bne LC779          ;taken if top>=256 - window invalid
+                ldx vduv.currentScreenMODE
+                lda vduv.queueEnd-3          ;>right
+                sta ZTEMP+0
+                lda vduv.queueEnd-4          ;<right
+                lsr ZTEMP+0                  ;>(right/2)
+                ror a                        ;<(right/2)
+                lsr ZTEMP+0                  ;>(right/4)
+
+                ; 639>>2=159 - so any valid pixel X in any mode will
+                ; have an MSB of 0 after being shifted right 2.
+                bne LC779 ;taken if right edge definitely off screen - window invalid
+                ror a     ;<(right/4)
+                lsr a     ;<(right/8)
+                cmp modeMaxColumn,x
+                beq LC772                    ;taken if right edge just on screen
+                bpl LC779 ;taken if right edge off screen - window definitely invalid
 LC772:
                 ldy #VDUVariables.graphicsWindowPixelsLeft
                 ldx #VDUVariables.queueEnd-8
@@ -1435,7 +1513,7 @@ LC772:
 LC779:
                 ldx #VDUVariables.graphicsCursorPositionX
                 ldy #VDUVariables.workspace._28
-                jmp exchangeFourVDUBytes                    ; C77D= 4C BA E2    L:b
+                jmp exchangeFourVDUBytes
 
 ;-------------------------------------------------------------------------
 ;
@@ -1578,12 +1656,12 @@ setShadowMODE:
 
                 ; Do a fast hardware CLS of the whole screen
                 ; ------------------------------------------
-LC866:
+clsFastPath:
                 ldx #$00
                 lda vduv.startScreenAddressHighByte
                 stz vduv.screenTopLeftAddress+0
                 sta vduv.screenTopLeftAddress+1
-                jsr LC6DD                    ; C871= 20 DD C6     ]F
+                jsr setCRTCCursorAddress
                 ldy #$0C
                 jsr setCRTCAddressRegisters
                 stz pagedModeCounter                    ; C879= 9C 69 02    .i.
@@ -1655,25 +1733,43 @@ LC8D7:
                 tay                          ; C8E4= A8          (
                 rts                          ; C8E5= 60          `
 
-LC8E6:
-                ldy #$24                     ; C8E6= A0 24        $
-                jsr LD5B7                    ; C8E8= 20 B7 D5     7U
-                phy                          ; C8EB= 5A          Z
-                phx                          ; C8EC= DA          Z
-                jsr LD5CC                    ; C8ED= 20 CC D5     LU
-                pla                          ; C8F0= 68          h
-                phy                          ; C8F1= 5A          Z
-                ldy #$28                     ; C8F2= A0 28        (
-                jsr LC8F9                    ; C8F4= 20 F9 C8     yH
-                plx                          ; C8F7= FA          z
-                pla                          ; C8F8= 68          h
-LC8F9:
-                pha                          ; C8F9= 48          H
-                jsr copyTwoBytesWithinVDUVariables                    ; C8FA= 20 0C C9     .I
-                plx                          ; C8FD= FA          z
-                inx                          ; C8FE= E8          h
-                inx                          ; C8FF= E8          h
-                bra copyTwoBytesWithinVDUVariables                    ; C900= 80 0A       ..
+;-------------------------------------------------------------------------
+;
+; Prepare AABB based on the current graphics cursor and some other
+; coordinate.
+;
+; entry:
+;
+; X = VDU variable offset of other coordinate (4 bytes: X;Y;)
+;
+; exit:
+;
+; vduv.workspace._28 = minimum
+;
+; vduv.workspace._2c = maximum
+;
+prepareAABB:
+                ldy #VDUVariables.graphicsCursorPixels
+                jsr sortVDUVariableCoordinates
+                phy                          ;save greater Y
+                phx                          ;save lesser Y
+                jsr sortVDUVariableWords     ;X=lesser X, Y=greater X
+                pla                          ;A=lesser Y
+                phy                          ;save greater X
+                ldy #VDUVariables.workspace._28
+                jsr +
+                plx                          ;X=greater X
+                pla                          ;A=greater Y
++
+                ; Copy VDU variable word +X to VDU variable word+Y.
+                ; Then cropy VDU variable word +A+2 to VDU variable
+                ; word+Y+2. Return with updated Y.
+                pha
+                jsr copyTwoBytesWithinVDUVariables
+                plx
+                inx
+                inx
+                bra copyTwoBytesWithinVDUVariables
 
 ;-------------------------------------------------------------------------
 ;
@@ -1849,13 +1945,15 @@ getBytesPerExclusiveTextRow:
 ;-------------------------------------------------------------------------
 ;
 ;
-LC951:
+prepareForPlotBackground:
                 ldx #$08                     ;plot background
                 stx vduv.graphicsPlotState
                 lda vduv.backgroundGCOLMode
                 and #$0F                     ; C959= 29 0F       ).
                 sta vduv.graphicsPlotMode
                 rts                          ; C95E= 60          `
+
+;-------------------------------------------------------------------------
 
 LC95F:
                 lda #$00                     ; C95F= A9 00       ).
@@ -2058,11 +2156,15 @@ LCACE:
                 sta $0328                    ; CAE4= 8D 28 03    .(.
                 rts                          ; CAE7= 60          `
 
+;-------------------------------------------------------------------------
+
 LCAE8:
                 ldx ZMEMT+0                      ; CAE8= A6 D8       &X
                 lda ZMEMT+1                      ; CAEA= A5 D9       %Y
                 jsr LCC2C                    ; CAEC= 20 2C CC     ,L
                 bra LCB6A                    ; CAEF= 80 79       .y
+
+;-------------------------------------------------------------------------
 
 LCAF1:
                 ldx #$77                     ; CAF1= A2 77       "w
@@ -2291,34 +2393,52 @@ LCC23:
                 sta (ZMEMT)                    ; CC28= 92 D8       .X
                 bra LCC11                    ; CC2A= 80 E5       .e
 
-LCC2C:
-                pha                          ; CC2C= 48          H
-                txa                          ; CC2D= 8A          .
-                clc                          ; CC2E= 18          .
-                adc $0328                    ; CC2F= 6D 28 03    m(.
-                tax                          ; CC32= AA          *
-                pla                          ; CC33= 68          h
-                adc $0329                    ; CC34= 6D 29 03    m).
-                bvc LCC56                    ; CC37= 50 1D       P.
-                stx $E0                      ; CC39= 86 E0       .`
-                and #$7F                     ; CC3B= 29 7F       ).
-                sta $E1                      ; CC3D= 85 E1       .a
-                ora $E0                      ; CC3F= 05 E0       .`
-                beq LCC55                    ; CC41= F0 12       p.
-                php                          ; CC43= 08          .
-                sec                          ; CC44= 38          8
-                lda $0328                    ; CC45= AD 28 03    -(.
-                sbc $E0                      ; CC48= E5 E0       e`
-                sta $DE                      ; CC4A= 85 DE       .^
-                lda $0329                    ; CC4C= AD 29 03    -).
-                sbc $E1                      ; CC4F= E5 E1       ea
-                sta $DF                      ; CC51= 85 DF       ._
-                plp                          ; CC53= 28          (
-                rts                          ; CC54= 60          `
+;-------------------------------------------------------------------------
+;
+; Get pointers for a text window row.
+;
+; entry:
+;
+; vduv.workspace._28; = text window stride, in bytes
+;
+; >A, <X = address
+;
+; exit:
+;
+; V=0: >A, <X = new address
+;
+; V=1: (ZTEMPC) = 
 
-LCC55:
+LCC2C:
+                pha                          ;save >address
+                txa                          ;A=<address
+                clc
+                adc vduv.workspace._28       ;A=<(new address)
+                tax                          ;X=<(new address)
+                pla                          ;restore >addcess
+                adc vduv.workspace._29       ;A=>(new address)
+                bvc rtsCC56                  ;taken if no address wrap
+                stx ZTEMPD+0
+                and #$7F                     ;
+                sta ZTEMPD+1
+                ora ZTEMPD+0
+                beq clvThenRTS
+                php
+                sec
+                lda vduv.workspace._28
+                sbc ZTEMPD+0
+                sta ZTEMPC+0
+                lda vduv.workspace._29
+                sbc ZTEMPD+1
+                sta ZTEMPC+1
+                plp
+                rts
+
+;-------------------------------------------------------------------------
+
+clvThenRTS:
                 clv                          ; CC55= B8          8
-LCC56:
+rtsCC56:
                 rts                          ; CC56= 60          `
 
 LCC57:
@@ -2395,7 +2515,7 @@ getAddressForTextPosition:
                 pha                          ; CCB7= 48          H
                 stx vduv.textCursorXPosition
                 sty vduv.textCursorYPosition
-                jsr getAddressForTextCursorPosition                    ; CCBE= 20 FA CC     zL
+                jsr updateZMEMTWithTextCursorPosition                    ; CCBE= 20 FA CC     zL
                 ply                          ; CCC1= 7A          z
                 sty vduv.textCursorYPosition
                 ply                          ; CCC5= 7A          z
@@ -2405,33 +2525,33 @@ getAddressForTextPosition:
 ;-------------------------------------------------------------------------
 
 LCCCA:
-                beq LCCCF                    ; CCCA= F0 03       p.
-                dex                          ; CCCC= CA          J
-                stx $DC                      ; CCCD= 86 DC       .\
+                beq LCCCF
+                dex
+                stx ZTEMPB+0
 LCCCF:
-                lda $0366                    ; CCCF= AD 66 03    -f.
-                and #$0E                     ; CCD2= 29 0E       ).
-                tax                          ; CCD4= AA          *
-                lda $DC                      ; CCD5= A5 DC       %\
+                lda vduv.cursorFlags
+                and #vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal
+                tax
+                lda ZTEMPB+0
 LCCD7:
-                jsr LC2C7                    ; CCD7= 20 C7 C2     GB
+                jsr setTextCursorXPositionWithCursorFlags
 LCCDA:
-                ldx $0318                    ; CCDA= AE 18 03    ...
-                cpx $0308                    ; CCDD= EC 08 03    l..
-                bmi LCCF8                    ; CCE0= 30 16       0.
-                cpx $030A                    ; CCE2= EC 0A 03    l..
-                beq LCCE9                    ; CCE5= F0 02       p.
-                bpl LCCF8                    ; CCE7= 10 0F       ..
+                ldx vduv.textCursorXPosition
+                cpx vduv.textWindowLeft
+                bmi LCCF8            ;taken if off left edge of window
+                cpx vduv.textWindowRight
+                beq LCCE9            ;taken if at right edge of window
+                bpl LCCF8            ;taken if off right edge of window
 LCCE9:
-                ldx $0319                    ; CCE9= AE 19 03    ...
-                cpx $030B                    ; CCEC= EC 0B 03    l..
-                bmi LCCF8                    ; CCEF= 30 07       0.
-                cpx $0309                    ; CCF1= EC 09 03    l..
-                bmi getAddressForTextCursorPosition                    ; CCF4= 30 04       0.
-                beq getAddressForTextCursorPosition                    ; CCF6= F0 02       p.
+                ldx vduv.textCursorYPosition
+                cpx vduv.textWindowTop
+                bmi LCCF8
+                cpx vduv.textWindowBottom
+                bmi updateZMEMTWithTextCursorPosition
+                beq updateZMEMTWithTextCursorPosition
 LCCF8:
-                sec                          ; CCF8= 38          8
-                rts                          ; CCF9= 60          `
+                sec
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -2439,7 +2559,7 @@ LCCF8:
 ; 
 ; Set up display address without using BBC lookup table at &E0/1
 ; 
-getAddressForTextCursorPosition:
+updateZMEMTWithTextCursorPosition:
                 lda vduv.currentScreenMODEGroup
                 and #$fe                     ; Reduce to 0,0,2,2,4
                 tax                          ; Index into jump table
@@ -3006,16 +3126,16 @@ LCFA0:
                 tay
                 lda solidColoursTable-1,y
                 sta vduv.queueEnd-8,x
-                dex                          ; CFB6= CA          J
-                bpl LCFA0                    ; CFB7= 10 E7       .g
+                dex
+                bpl LCFA0
                 lda #%01010101
                 ldx vduv.currentScreenMODE
                 bne +                 ;taken if not MODE 0
                 lda #%00110011        ;double-width pattern for MODE 0
 +
-                sta ZTEMP+0                  ; CFC2= 85 DA       .Z
-                ply                          ; CFC4= 7A          z
-                ldx #$07                     ; CFC5= A2 07       ".
+                sta ZTEMP+0
+                ply
+                ldx #$07
 LCFC7:
                 lda vduv.queueEnd-8,x
                 dex
@@ -3024,10 +3144,10 @@ LCFC7:
                 eor vduv.queueEnd-8,x
                 sta andy.ecfPatterns+0,y
                 sta andy.ecfPatterns+4,y
-                dey                          ; CFD9= 88          .
-                dex                          ; CFDA= CA          J
-                bpl LCFC7                    ; CFDB= 10 EA       .j
-                bra LCF93                    ; CFDD= 80 B4       .4
+                dey
+                dex
+                bpl LCFC7
+                bra LCF93
 
 ;-------------------------------------------------------------------------
 ;
@@ -3162,7 +3282,7 @@ LD0AD:
                 and #$0E                     ; D0B3= 29 0E       ).
                 tax                          ; D0B5= AA          *
                 tya                          ; D0B6= 98          .
-                jsr LC2C7                    ; D0B7= 20 C7 C2     GB
+                jsr setTextCursorXPositionWithCursorFlags                    ; D0B7= 20 C7 C2     GB
                 ldx #$00                     ; D0BA= A2 00       ".
                 lda $0338                    ; D0BC= AD 38 03    -8.
                 cpy $0331                    ; D0BF= CC 31 03    L1.
@@ -3184,7 +3304,7 @@ LD0D3:
                 sta $0319                    ; D0DB= 8D 19 03    ...
                 pla                          ; D0DE= 68          h
                 sta $0318                    ; D0DF= 8D 18 03    ...
-                jmp getAddressForTextCursorPosition                    ; D0E2= 4C FA CC    LzL
+                jmp updateZMEMTWithTextCursorPosition                    ; D0E2= 4C FA CC    LzL
 
 LD0E5:
                 pha                          ; D0E5= 48          H
@@ -3443,6 +3563,10 @@ getOutcodeForYAxis:
 ; exit:
 ;
 ; ZTEMP?0 = outcode - 0, 1 or 2
+;
+; A = outcode
+;
+; N/Z set as per outcode
 ;
 getOutcodeForAxis:
                 lda #$00                     ;initialize result
@@ -4040,68 +4164,140 @@ LD562:
                 lda L883D                    ; D57C= AD 3D 88    -=.
                 rts                          ; D57F= 60          `
 
-LD580:
-                jsr LD58D                    ; D580= 20 8D D5     .U
-                iny                          ; D583= C8          H
-                iny                          ; D584= C8          H
-                inx                          ; D585= E8          h
-                inx                          ; D586= E8          h
-                inc a                        ; D587= 1A          .
-                inc a                        ; D588= 1A          .
-                inc $DA                      ; D589= E6 DA       fZ
-                inc $DA                      ; D58B= E6 DA       fZ
-LD58D:
-                phx                          ; D58D= DA          Z
-                phy                          ; D58E= 5A          Z
-                pha                          ; D58F= 48          H
-                clc                          ; D590= 18          .
-                lda $0300,x                  ; D591= BD 00 03    =..
-                adc $0300,y                  ; D594= 79 00 03    y..
-                sta $DE                      ; D597= 85 DE       .^
-                lda $0301,x                  ; D599= BD 01 03    =..
-                adc $0301,y                  ; D59C= 79 01 03    y..
-                plx                          ; D59F= FA          z
-                pha                          ; D5A0= 48          H
-                ldy $DA                      ; D5A1= A4 DA       $Z
-                sec                          ; D5A3= 38          8
-                lda $DE                      ; D5A4= A5 DE       %^
-                sbc $0300,x                  ; D5A6= FD 00 03    }..
-                sta $0300,y                  ; D5A9= 99 00 03    ...
-                pla                          ; D5AC= 68          h
-                sbc $0301,x                  ; D5AD= FD 01 03    }..
-                sta $0301,y                  ; D5B0= 99 01 03    ...
-                txa                          ; D5B3= 8A          .
-                ply                          ; D5B4= 7A          z
-                plx                          ; D5B5= FA          z
-                rts                          ; D5B6= 60          `
+;-------------------------------------------------------------------------
+;
+; Add dimension of region to a coordinate.
+;
+; entry:
+;
+; X = VDU variable offset of coordinate
+;
+; A = VDU variable offset of minimum coordinate of region
+;
+; Y = VDU variable offset of maximum coordinate of region
+;
+; ZTEMP?0 = VDU variable offset for result
+;
+; exit:
+;
+; result variable = coordinate+(min-max)
+;
+addRegionDimensionsToVDUVariableCoordinates:
+                jsr addRegionDimensionToVDUVariableCoordinate ;do X
 
-LD5B7:
-                sec                          ; D5B7= 38          8
-                lda $0302,y                  ; D5B8= B9 02 03    9..
-                sbc $0302,x                  ; D5BB= FD 02 03    }..
-                sta $DE                      ; D5BE= 85 DE       .^
-                lda $0303,y                  ; D5C0= B9 03 03    9..
-                sbc $0303,x                  ; D5C3= FD 03 03    }..
-                bmi LD5D1                    ; D5C6= 30 09       0.
-                ora $DE                      ; D5C8= 05 DE       .^
-                bne LD5D5                    ; D5CA= D0 09       P.
-LD5CC:
-                jsr LD5D6                    ; D5CC= 20 D6 D5     VU
-                bpl LD5D5                    ; D5CF= 10 04       ..
-LD5D1:
-                txa                          ; D5D1= 8A          .
-                phy                          ; D5D2= 5A          Z
-                plx                          ; D5D3= FA          z
-                tay                          ; D5D4= A8          (
-LD5D5:
-                rts                          ; D5D5= 60          `
+                ; bump offsets to do Y.
+                iny
+                iny
+                inx
+                inx
+                inc a
+                inc a
+                inc ZTEMP+0
+                inc ZTEMP+0
 
-LD5D6:
-                lda $0300,y                  ; D5D6= B9 00 03    9..
-                cmp $0300,x                  ; D5D9= DD 00 03    ]..
-                lda $0301,y                  ; D5DC= B9 01 03    9..
-                sbc $0301,x                  ; D5DF= FD 01 03    }..
-                rts                          ; D5E2= 60          `
+                ; TODO - not a great name. Could probably just be
+                ; addDifference, or something.
+addRegionDimensionToVDUVariableCoordinate:
+                phx                          ;save VX
+                phy                          ;save VY
+                pha                          ;save VA
+                clc
+                lda vduv+0,x                 ;<VX
+                adc vduv+0,y                 ;<(VX+VY)
+                sta ZTEMPC+0                 ;ZTEMPC?0=<(VX+VY)
+                lda vduv+1,x                 ;>VX
+                adc vduv+1,y                 ;>(VX+VY)
+                plx                          ;X=VA
+                pha                          ;save >(VX+VY)
+                ldy ZTEMP+0                  ;Y=VT
+                sec
+                lda ZTEMPC+0                 ;<(VX+VY)
+                sbc vduv+0,x                 ;<(VX+VY-VA)
+                sta vduv+0,y                 ;<VT=<(VX+VY-VA)
+                pla                          ;>(VX+VY)
+                sbc vduv+1,x                 ;>(VX+VY-VA)
+                sta vduv+1,y                 ;>VT=<(VX+VY-VA)
+                txa                          ;restore old A
+                ply                          ;restore old Y
+                plx                          ;restore old X
+                rts
+
+;-------------------------------------------------------------------------
+;
+; Sort points by Y coordinate, then X.
+;
+; entry:
+;
+; X = VDU variable offset of point A (4 bytes: X;Y;)
+;
+; Y = VDU variable offset of point B (4 bytes: X;Y;)
+;
+; exit:
+;
+; X = offset of point with lesser Y (or lesser X, if same Y)
+;
+; Y = offset of point with greater Y (or greater X, if same Y)
+; 
+sortVDUVariableCoordinates:
+                sec
+                lda vduv+2,y
+                sbc vduv+2,x
+                sta ZTEMPC
+                lda vduv+3,y
+                sbc vduv+3,x
+                bmi exchangeXAndY           ;taken if PX.y>PY.y
+                ora ZTEMPC
+                bne rtsD5D5                  ;taken if PX.y<PY.y
+
+;-------------------------------------------------------------------------
+;
+; Sort words by value.
+;
+; entry:
+;
+; X = VDU variable offset of word A
+;
+; Y = VDU variable offset of word B
+;
+; exit:
+;
+; X = offset of lesser value
+;
+; Y = offset of greater value
+; 
+sortVDUVariableWords:
+                jsr compareVDUVariableWords
+                bpl rtsD5D5
+exchangeXAndY:
+                txa
+                phy
+                plx
+                tay
+rtsD5D5:
+                rts
+
+;-------------------------------------------------------------------------
+;
+; Compare 2 16-bit VDU variable values.
+;
+; entry:
+;
+; X = offset of one variable
+;
+; Y = offset of the other variable
+;
+; exit:
+;
+; N=1 if X>Y
+; 
+compareVDUVariableWords:
+                lda vduv+0,y
+                cmp vduv+0,x
+                lda vduv+1,y
+                sbc vduv+1,x
+                rts
+
+;-------------------------------------------------------------------------
 
 LD5E3:
                 inc L8847                    ; D5E3= EE 47 88    nG.
@@ -4872,7 +5068,7 @@ LDAE4:
                 ldx #$42                     ; DAE4= A2 42       "B
                 ldy #$46                     ; DAE6= A0 46        F
 LDAE8:
-                jsr LD5CC                    ; DAE8= 20 CC D5     LU
+                jsr sortVDUVariableWords                    ; DAE8= 20 CC D5     LU
                 stx $DE                      ; DAEB= 86 DE       .^
                 sty $DF                      ; DAED= 84 DF       ._
                 ldx $DF                      ; DAEF= A6 DF       &_
@@ -5427,14 +5623,14 @@ done:
                 
 ;-------------------------------------------------------------------------
 ;
-; Translate char ASCII to the SAA5050 character set.
+; Translate ASCII char to the SAA5050 character set.
 ;
 ; # ($23) becomes $5f
 ; _ ($5f) becomes $60
 ; GBP ($60) becomes $23
 ;
-; Because the mapping is a kind of cycle, you can call this routine twice to
-; translate from SAA5050 to ASCII.
+; Because the mapping is a kind of cycle, you can call this routine
+; twice to translate from SAA5050 to ASCII.
 ;
 ; entry:
 ;
@@ -5530,10 +5726,10 @@ nextFontChar:
 ; VDU variables workspace.
 ; 
 LDE56: .proc
-                ldx ZMEMT+0                      ; DE56= A6 D8       &X
-                lda ZMEMT+1                      ; DE58= A5 D9       %Y
+                ldx ZMEMT+0
+                lda ZMEMT+1
                 jsr getNext3ColumnAddresses
-                ldy #$07                     ; DE5D= A0 07        .
+                ldy #$07
 loop:
                 ldx vduv.numberOfLogicalColoursMinusOne
                 cpx #$03
@@ -5797,24 +5993,38 @@ LDFDC:
 LDFDE:
                 rts                          ; DFDE= 60          `
 
-LDFDF:
-                ldx #$80|extROM ; DFDF= A2 8E       ".  ; select VIEW+ANDY
-                jsr selectROMX                    ; DFE1= 20 81 E5     .e
-                jsr ext.LBEBE                    ; DFE4= 20 BE BE     >>
-                bra LDFF1                    ; DFE7= 80 08       ..
+;-------------------------------------------------------------------------
+;
+; 184–191 = Move/copy rectangle [MasRef E.3-31]
+; 
+plotMoveOrCopyRectangle:
+                ldx #$80|extROM   ; select VIEW+ANDY
+                jsr selectROMX
+                jsr ext.plotMoveOrCopyRectangle
+                bra LDFF1
 
-LDFE9:
-                ldx #$80|extROM                     ; DFE9= A2 8E       ".
-                jsr selectROMX                    ; DFEB= 20 81 E5     .e
-                jsr ext.LBA00                    ; DFEE= 20 00 BA     .:
+;-------------------------------------------------------------------------
+;
+; 192–199 = Plot ellipse outline [MasRef E.3-32]
+; 
+plotEllipseOutline:
+                ldx #$80|extROM
+                jsr selectROMX
+                jsr ext.plotEllipseOutline
 LDFF1:
-                jmp selectTerminalROMAndANDY                    ; DFF1= 4C 7F E5    L.e
+                jmp selectTerminalROMAndANDY
 
-LDFF4:
-                ldx #$80|extROM             ; DFF4= A2 8E       ".
-                jsr selectROMX                    ; DFF6= 20 81 E5     .e
-                jsr ext.LBA67                    ; DFF9= 20 67 BA     g:
-                bra LDFF1                    ; DFFC= 80 F3       .s
+;-------------------------------------------------------------------------
+;
+; 200–207 = Plot solid ellipse [MasRef E.3-32]
+; 
+plotSolidEllipse:
+                ldx #$80|extROM
+                jsr selectROMX
+                jsr ext.plotSolidEllipse
+                bra LDFF1
+
+;-------------------------------------------------------------------------
 
                 .text 0,0
 startupMessages: .block
@@ -5966,7 +6176,7 @@ plotEntryPointTable:
                 .word plotHorizontalLineFillRight ;88–95 = Horizontal line fill (right to background) [MasRef E.3-25]
                 .word LC448 ;96–103 = Plot rectangle [MasRef E.3-26]
                 .word plotHorizontalLineFill ;104–111 = Horizontal line fill (left and right to foreground) [MasRef E.3-26]
-                .word terminal.L9BA3 ;112–119 = Plot parallelogram [MasRef E.3-27]
+                .word terminal.plotParallelogram ;112–119 = Plot parallelogram [MasRef E.3-27]
                 .word plotHorizontalLineFillRight ;120–127 = Horizontal line fill (right to non-foreground) [MasRef E.3-27]
                 .word terminal.L9CF9 ;128–135 = Flood fill to non-background [MasRef E.3-28]
                 .word terminal.L9CF9 ;136–143 = Flood fill to foreground [MasRef E.3-28]
@@ -5975,9 +6185,9 @@ plotEntryPointTable:
                 .word terminal.L9999 ;160–167 = Plot circular arc [MasRef E.3-29]
                 .word terminal.L9935 ;168–175 = Plot filled chord segment [MasRef E.3-30]
                 .word terminal.L9923 ;176–183 = Plot filled sector [MasRef E.3-30]
-                .word LDFDF ;184–191 = Move/copy rectangle [MasRef E.3-31]
-                .word LDFE9 ;192–199 = Plot ellipse outline [MasRef E.3-32]
-                .word LDFF4 ;200–207 = Plot solid ellipse [MasRef E.3-32]
+                .word plotMoveOrCopyRectangle ;184–191 = Move/copy rectangle [MasRef E.3-31]
+                .word plotEllipseOutline ;192–199 = Plot ellipse outline [MasRef E.3-32]
+                .word plotSolidEllipse ;200–207 = Plot solid ellipse [MasRef E.3-32]
 
 ; Times 40 lookup table, high bytes
 multiplyBy40TableHigh:
@@ -6044,14 +6254,13 @@ bytesPerCharacterForMODE:
                 .byte 16                     ;MODE 5
                 .byte 8                      ;MODE 6
 LE120:
-                .byte 1                      ;MODE 7
-                .byte $ff
-                ;ora ($FF,x)                  ; E120= 01 FF       ..
-                eor $FF,x                    ; E122= 55 FF       U.
-                .byte $77                    ; E124= 77          w
-                .byte $33                    ; E125= 33          3
-;ORA (&FF),y      :\ E126= 11 FF       ..
-                .byte $11
+                .byte %00000001              ;MODE 7
+                .byte %11111111
+                .byte %01010101
+                .byte %11111111
+                .byte %01110111
+                .byte %00110011
+                .byte %00010001
 
 ;-------------------------------------------------------------------------
 

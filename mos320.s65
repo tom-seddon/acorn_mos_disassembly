@@ -30,6 +30,15 @@
 ; Tube - Tube Application Note (Acorn App Note 004)
 ;
 ;-------------------------------------------------------------------------
+;
+; Some notes:
+;
+; . there are some parseFromString/parseFromCommandLine pairs of
+; routines - the FromString ones indicate error silently (e.g., by
+; returning with C=0), and the FromCommandLine ones issue a BRK if
+; there's a problem
+;
+;-------------------------------------------------------------------------
 
                 .include "hardware.s65"
                 
@@ -277,6 +286,7 @@ fileLoad=$ff                    ;[AUG p336]
 OSFILEParameterBlock: .struct
 fileName:
                 .fill 2
+addresses:
 load:
                 .fill 4
 exec:
@@ -691,8 +701,17 @@ printerDriverDormant=$2d1        ;bit 7 set if printer driver dormant,
 bufferStartIndices=$2d7
 bufferEndIndices=$2e0
 
-; Also used by the clock routines to hold a (possibly partial) mirror
-; of the RTC time/date registers.
+; Probably needs a better name :(
+;
+; Used by various file routines to store OSGBPB and OSFILE parameter
+; blocks.
+;
+; Used by the clock routines to hold a (possibly partial) mirror of
+; the RTC time/date registers.
+;
+; Used when parsing hex addresses from the command line - obviously
+; designed primarily for convenient use when building up the OSFILE
+; parameter block for use with *LOAD and *SAVE.
 osfileParameterBlock=$2ed
                 
 ; rtcTempData=$2ee
@@ -890,6 +909,7 @@ graphicsCursorPositionX: .fill 2
 ; &12 2 Graphics cursor Y coordinate. (e)
 graphicsCursorPositionY: .fill 2
 ; &14 2 Previous graphics cursor X coordinate. (p)
+oldGraphicsCursorPixels:
 oldGraphicsCursorPixelsX: .fill 2
 ; &16 2 Previous graphics cursor Y coordinate. (p)
 oldGraphicsCursorPixelsY: .fill 2
@@ -911,6 +931,7 @@ graphicsCursorPixelsY: .fill 2
 ; &28–&49 Workspace. But variable &38 must not be used in a Teletext mode (mode 7 or 135).
                 .union
 hlfw: .dstruct HorizontalLineFillWorkspaceVDUVariables
+mocr: .dstruct MoveOrCopyRectangleWorkspaceVDUVariables
 workspace: .dstruct GenericWorkspaceVDUVariables
                 .endunion
 ; &4A 2 Address at which the 6845 is to display the text cursor.
@@ -1024,6 +1045,16 @@ vduv: .dstruct VDUVariables
 ; &8E00–FF    RAM  Current definitions of characters &C0–DF.
 ; &8F00–FF    RAM  Current definitions of characters &E0–FF.
 
+VDUCoordinate: .struct
+x: .fill 2
+y: .fill 2
+                .endstruct
+
+VDUAABB: .struct
+min: .dstruct VDUCoordinate
+max: .dstruct VDUCoordinate
+                .endstruct
+                
 GenericWorkspaceVDUVariables: .struct
 _28:
                 .fill 1
@@ -1105,6 +1136,15 @@ d: .fill 1
 resultEOR: .fill 1
                 .endstruct
 
+MoveOrCopyRectangleWorkspaceVDUVariables: .struct
+src: .dstruct VDUAABB
+                .fill 4
+dest: .dstruct VDUAABB
+                .fill 9
+copy:
+                .fill 1         ;0=move, 2=copy
+                .endstruct
+                
 HorizontalLineFillWorkspaceVDUVariables: .struct
                 .fill 6
 pixelsX:                        ;2e
@@ -1219,17 +1259,25 @@ L884E=$884e
                 ; written to during startup
 LFE8E=$fe8e
 
+;-------------------------------------------------------------------------
+
                 .virtual $00
+                .union
+tubeOSFILEParameterBlock: .dstruct OSFILEParameterBlock
+tubeOSGBPBParameterBlock: .dstruct OSGBPBParameterBlock
 tubeLanguageHostAddr: .fill 2
-                .endv
-                
-                .virtual $12
+                .endunion
 tubeTransferAddr: .fill 2
 tubeNotClaimed: .fill 1            ;bit 7 clear if tube claimed
 tubeClaimantID: .fill 1
 tubeBrkHandlerAddr:
                 ; Tube BRK handler sits here.
                 .endv
+
+tubeStringBuffer=$700
+tubeOSWORDBuffer=$0128
+                
+;-------------------------------------------------------------------------
 
                 .virtual $53
 tubeLanguageParasiteAddr: .fill 4
@@ -1313,7 +1361,10 @@ insertedFlagMask: .fill 1
 TerminalHELPWorkspace: .struct
 tablePtr: .fill 2
                 .endstruct
-                
+
+                ; TODO - tediously verbose names. Acronyms work well
+                ; enough for the VDU variables. Do the same thing
+                ; here.
                 .virtual $b0
                 .union
 starKEYWorkspace: .dstruct StarKEYWorkspace
@@ -1448,6 +1499,14 @@ cr:
                 .fill 1                      ;'\n'
                 .endstruct
 
+;-------------------------------------------------------------------------
+
+; Not really MOS stuff. This is the Terminal ROM zero page workspace.
+
+oldINSV=$6f
+oldREMV=$71
+                .cerror oldREMV!=oldINSV+2,"oldREMV and oldINSV must be adjacent"
+                
 ;-------------------------------------------------------------------------
 
 beword .macro value

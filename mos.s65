@@ -424,13 +424,13 @@ LC157:
 ; 
 setTextCursorXPositionRoutinesTable:
                 .word setTextCursorXPosition           ;0
-                .word setTextCursorXPositionInvertHorizontal           ;invertHorizontal
-                .word setTextCursorXPosition           ;invertVertical
-                .word setTextCursorXPositionInvertHorizontal           ;invertVertical|invertHorizontal
-                .word setTextCursorXPositionSwapAxes           ;swapAxes
-                .word setTextCursorXPositionSwapAxes           ;swapAxes|invertHorizontal
-                .word setTextCursorXPositionSwapAxesInvertVertical           ;swapAxes|invertVertical
-                .word setTextCursorXPositionSwapAxesInvertVertical           ;swapAxes|invertVertical|invertHorizontal
+                .word setTextCursorXPositionInvertHorizontal ;invertHorizontal
+                .word setTextCursorXPosition ;invertVertical
+                .word setTextCursorXPositionInvertHorizontal ;invertVertical|invertHorizontal
+                .word setTextCursorXPositionSwapAxes         ;swapAxes
+                .word setTextCursorXPositionSwapAxes ;swapAxes|invertHorizontal
+                .word setTextCursorXPositionSwapAxesInvertVertical ;swapAxes|invertVertical
+                .word setTextCursorXPositionSwapAxesInvertVertical ;swapAxes|invertVertical|invertHorizontal
 
 ;-------------------------------------------------------------------------
 
@@ -9406,8 +9406,8 @@ osword06:
                 lda (originalX),y            ;read value to write
                 sta (SEIWKA)               ;write value to the address
 lda00ThenRTS:
-                lda #$00                     ; EF60= A9 00       ).
-                rts                          ; EF62= 60          `
+                lda #$00
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -9711,35 +9711,55 @@ LF09F:
                 rol a                        ; F0A1= 2A          *
                 rts                          ; F0A2= 60          `
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 3 (&03) Specify output stream [MasRef D.2-19]
+; 
 osbyte03:
-                phx                          ; F0A3= DA          Z
-                ldx $027C                    ; F0A4= AE 7C 02    .|.
-                lda #$0A                     ; F0A7= A9 0A       ).
-                jsr callPrinterDriver                    ; F0A9= 20 3C E9     <i
-                plx                          ; F0AC= FA          z
-                lda #$03                     ; F0AD= A9 03       ).
-                ldy #$00                     ; F0AF= A0 00        .
-                bra osbyte04                 ; F0B1= 80 23       .#
+                phx
+                ldx characterDestinationStatus
+                lda #printerDriverFX3
+                jsr callPrinterDriver
+                plx
+                lda #$03
+                ldy #$00
+                bra osbyte04
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 6 (&06) Write printer ignore character [MasRef D.2-21]
+;
 osbyte06:                       ;f0b3
                 lsr $0246                    ; F0B3= 4E 46 02    NF.
                 bra osbyte01                    ; F0B6= 80 16       ..
 
+;-------------------------------------------------------------------------
+;
+; OSBYTE 114 (&72) Write usage of shadow memory [MasRef D.2-32]
+;
 osbyte72:                       ;f0b8
                 lda #$1F                     ; F0B8= A9 1F       ).
                 bra LF0CC                    ; F0BA= 80 10       ..
 
-osbyte05:                       ;f0bc
-                cli                          ; F0BC= 58          X
-                sei                          ; F0BD= 78          x
-                bit $FF                      ; F0BE= 24 FF       $.
-                bmi LF0EB                    ; F0C0= 30 29       0)
-                bit $02D1                    ; F0C2= 2C D1 02    ,Q.
-                bpl osbyte05
-                jsr callPrinterDriver                    ; F0C7= 20 3C E9     <i
-                ldy #$00                     ; F0CA= A0 00        .
+;-------------------------------------------------------------------------
+;
+; OSBYTE 5 (&05) Write printer driver type [MasRef D.2-20]
+;
+osbyte05:
+waitForPrinterDriverDormant:
+                cli
+                sei
+                bit $FF                      ;test for ESCAPE
+                bmi rtsF0EB                  ;taken if ESCAPE pressed
+                bit printerDriverDormant
+                bpl waitForPrinterDriverDormant ;taken if printer driver active
+                jsr callPrinterDriver    ;call with A=printerDriverFX5
+                ldy #$00
 LF0CC:
-                stz $F1                      ; F0CC= 64 F1       dq
+                stz $F1
+
+                ; fall through to standard MOS variable handling,
+                ; affecting printerDriverType
 
 ;-------------------------------------------------------------------------
 ;
@@ -9805,7 +9825,7 @@ osbyteA6:
                 sta mosVariables-firstMOSVariableOSBYTE,y     ;set new variable value
                 lda mosVariables-firstMOSVariableOSBYTE+1,y
                 tay             ;Y=contents of next location
-LF0EB:
+rtsF0EB:
                 rts                          ; F0EB= 60          `
 
 ;-------------------------------------------------------------------------
@@ -9882,26 +9902,31 @@ resetKeyRepeat:
 ; MasRef says X undefined on exit; in fact, X=0, and terminal.scanROMs
 ; relies on this.
 ; 
-osbyte12:                                    ;f11a
-                sec                          ; F11A= 38          8
-                ror $0284                    ; F11B= 6E 84 02    n..
-                lda $F4                      ; F11E= A5 F4       %t
-                pha                          ; F120= 48          H
-                jsr selectTerminalROMAndANDY                    ; F121= 20 7F E5     .e
-                ldx #$10                     ; F124= A2 10       ".
-LF126:
-                lda #$22                     ; F126= A9 22       )"
-                sta L8000,x                  ; F128= 9D 00 80    ...
-                lda #$80                     ; F12B= A9 80       ).
-                sta L8011,x                  ; F12D= 9D 11 80    ...
-                dex                          ; F130= CA          J
-                bpl LF126                    ; F131= 10 F3       .s
-                pla                          ; F133= 68          h
-                jsr selectROMA                    ; F134= 20 92 E5     .e
-                stz $0268                    ; F137= 9C 68 02    .h.
-                stz $0284                    ; F13A= 9C 84 02    ...
-                inx                          ; F13D= E8          h
-                rts                          ; F13E= 60          `
+osbyte12:                                    
+                sec
+                ror softKeyConsistencyFlag   ;mark soft keys inconsistent
+                lda $F4
+                pha                          ;push selected paged ROM
+                jsr selectTerminalROMAndANDY
+
+                ; point each soft key at the 0th byte of the strings -
+                ; they all then have length 0.
+                ldx #softKeyCount
+-
+                lda #<andy.softKeys.strings
+                sta andy.softKeys.stringLSBs,x
+                lda #>andy.softKeys.strings
+                sta andy.softKeys.stringMSBs,x
+                dex
+                bpl -
+                
+                pla                 ;pop previously selected paged ROM
+                jsr selectROMA
+                
+                stz softKeyStringLength
+                stz softKeyConsistencyFlag   ;mark soft keys consistent
+                inx
+                rts
 
 ;-------------------------------------------------------------------------
 ;

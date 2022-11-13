@@ -17,6 +17,8 @@ labels to give you a clue about what each bit of code might be doing
 (even if the algorithm isn't fully described). This is intended to
 simplify following along when looking at an unadorned disassembly
 (e.g., on the Master itself), looking at MOS ROM addresses, and so on.
+That's the sort of situation where I've personally most missed having
+an annotated disassembly.
 
 My longer term goal is to produce a decent-quality modifiable source
 file, with all label references located and all current assumptions
@@ -41,6 +43,21 @@ the cross-referencing a bit time-consuming in the end, though, so I
 didn't keep up with this.
 
 ## notation ##
+
+### BASIC-style notation
+
+`?M` means the byte at address `M`. `M?N` means the byte at address
+`M+N`.
+
+`!M` and `M!N` are the same, but for 32-bit dwords.
+
+`;` means the quantity is a 16-bit word, as per the BASIC `VDU`
+statement. This doesn't really have any strict syntax. I've mainly
+used it when commented the VDU driver code.
+
+### 64tass-style notation
+
+`<M` is the LSB of `M`, and `>M` is the MSB of M.
 
 ### entry/exit/preserves ###
 
@@ -136,3 +153,4 @@ There's 1.5 KB of MOS code at the end, which is included in this repo.
 ## ViewSheet
 
 Nobody appears to have disassembled ViewSheet.
+\

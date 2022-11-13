@@ -206,6 +206,8 @@ printerDriverActivate=1
 printerDriverVDU2=2
 printerDriverVDU3=3
 printerDriverFX5=5
+
+printerDriverFX3=10             ;undocumented???
                 
 ;-------------------------------------------------------------------------
 
@@ -1171,6 +1173,7 @@ stringLSBs: .fill softKeyCount
 endLSB: .fill 1
 stringMSBs: .fill softKeyCount
 endMSB: .fill 1
+strings:
                 .fill softKeys+$400-*
 end:
                 .endblock
@@ -1516,6 +1519,14 @@ beword .macro value
                 
 ;-------------------------------------------------------------------------
 
+zterm: .struct
+numRowsMinusOne=$39
+numColumns=$38
+numColumnsMinusOne=$37
+                .endstruct
+                
+;-------------------------------------------------------------------------
+                
                 .include "terminal.s65"
                 .include "mos.s65"
                 .include "ext.s65"

@@ -2,8 +2,8 @@
 
                 .section terminal
 terminal: .block
-                jmp LAF77                    ; Language entry point
-                jmp terminalServiceEntryPoint                    ; Service entry point
+                jmp terminalLanguageEntryPoint ; Language entry point
+                jmp terminalServiceEntryPoint  ; Service entry point
                 .byte $C2                    ; ROM type=SERV+LANG+6502
                 .byte copyrightText-1-terminal ; (C) offset
                 .byte $01
@@ -7533,6 +7533,9 @@ handleUnrecognisedOSBYTE:
                 lda $EF                      ; AE4E= A5 EF       %o
                 cmp #$60                     ; AE50= C9 60       I`
                 bne LAE29                    ; AE52= D0 D5       PU
+
+                ; handle OSBYTE $60
+osbyte60:
                 pla                          ; AE54= 68          h
                 phy                          ; AE55= 5A          Z
                 sei                          ; AE56= 78          x
@@ -7602,14 +7605,14 @@ LAEB2:
                 dex                          ; AEB7= CA          J
                 bne LAEB2                    ; AEB8= D0 F8       Px
                 lda #$E6                     ; AEBA= A9 E6       )f
-                jsr LB823                    ; AEBC= 20 23 B8     #8
+                jsr osbyteX00Y00                    ; AEBC= 20 23 B8     #8
                 lda #$CB                     ; AEBF= A9 CB       )K
                 ldx #$09                     ; AEC1= A2 09       ".
-                jsr LB825                    ; AEC3= 20 25 B8     %8
+                jsr osbyteY00                    ; AEC3= 20 25 B8     %8
                 jsr LB11A                    ; AEC6= 20 1A B1     .1
                 inc a                        ; AEC9= 1A          .
 LAECA:
-                jsr LB823                    ; AECA= 20 23 B8     #8
+                jsr osbyteX00Y00                    ; AECA= 20 23 B8     #8
                 dec a                        ; AECD= 3A          :
                 cmp #$01                     ; AECE= C9 01       I.
                 bne LAECA                    ; AED0= D0 F8       Px
@@ -7704,113 +7707,135 @@ LAF48:
 LAF4E:
                 rts                          ; AF4E= 60          `
 
-LAF4F:
-                lda #$DA                     ; AF4F= A9 DA       )Z
-                jsr LB823                    ; AF51= 20 23 B8     #8
-                jsr LB634                    ; AF54= 20 34 B6     46
-                ldy #$00                     ; AF57= A0 00        .
-                lda ($FD),y                  ; AF59= B1 FD       1}
-                bne LAF63                    ; AF5B= D0 06       P.
-                stz $20                      ; AF5D= 64 20       d
-                lda #$16                     ; AF5F= A9 16       ).
-                sta $6F                      ; AF61= 85 6F       .o
+;-------------------------------------------------------------------------
+
+terminalBRKHandler:
+                lda #$DA                     
+                jsr osbyteX00Y00             ;Set VDU queue length to 0
+                jsr disableESCAPE
+                ldy #$00
+                lda (errPtr),y
+                bne LAF63
+                stz $20
+                lda #$16
+                sta $6F
 LAF63:
-                lda #$0D                     ; AF63= A9 0D       ).
-LAF65:
-                jsr OSASCI                   ; AF65= 20 E3 FF     c.
-                iny                          ; AF68= C8          H
-                lda ($FD),y                  ; AF69= B1 FD       1}
-                bne LAF65                    ; AF6B= D0 F8       Px
-                jsr OSNEWL                   ; AF6D= 20 E7 FF     g.
-                sec                          ; AF70= 38          8
-                ror $19                      ; AF71= 66 19       f.
-                lda $1A                      ; AF73= A5 1A       %.
-                bne LAFF4                    ; AF75= D0 7D       P}
-LAF77:
-                dec a                        ; AF77= 3A          :
-                bne LAF4E                    ; AF78= D0 D4       PT
-                lda #$01                     ; AF7A= A9 01       ).
-                sta $6F                      ; AF7C= 85 6F       .o
+                lda #13
+-
+                jsr OSASCI
+                iny
+                lda (errPtr),y
+                bne -
+                jsr OSNEWL
+                sec
+                ror $19
+                lda $1A
+                bne LAFF4
+terminalLanguageEntryPoint:
+                dec a
+                bne LAF4E
+                lda #$01
+                sta $6F
 LAF7E:
-                sei                          ; AF7E= 78          x
-                ldx #$FE                     ; AF7F= A2 FE       "~
-                txs                          ; AF81= 9A          .
-                lda #<LAF4F                     ; AF82= A9 4F       )O
+                sei
+                ldx #$FE
+                txs
+                lda #<terminalBRKHandler
                 sta BRKV+0
-                lda #>LAF4F
+                lda #>terminalBRKHandler
                 sta BRKV+1
-                lda #<LB7B1
+                lda #<terminalINDnHandler
                 sta IND1V+0
-                lda #>LB7B1
+                lda #>terminalINDnHandler
                 sta IND1V+1
-                lda #<LB7B1
+                lda #<terminalINDnHandler
                 sta IND2V+0
-                lda #>LB7B1
+                lda #>terminalINDnHandler
                 sta IND2V+1
-                ldx #$6E                     ; AFA0= A2 6E       "n
-LAFA2:
-                stz $00,x                    ; AFA2= 74 00       t.
-                dex                          ; AFA4= CA          J
-                bpl LAFA2                    ; AFA5= 10 FB       .{
+
+                ; Clear zero page
+                ldx #$6E
+-
+                stz $00,x
+                dex
+                bpl -
+                
                 dec $21                      ; AFA7= C6 21       F!
                 dec $34                      ; AFA9= C6 34       F4
                 dec $36                      ; AFAB= C6 36       F6
                 cli                          ; AFAD= 58          X
                 lda #$0B                     ; AFAE= A9 0B       ).
                 jsr LB690                    ; AFB0= 20 90 B6     .6
-                lda #$87                     ; AFB3= A9 87       ).
-                jsr OSBYTE                   ; AFB5= 20 F4 FF     t.
-                tya                          ; AFB8= 98          .
-                jsr LB579                    ; AFB9= 20 79 B5     y5
-                ldy #$FF                     ; AFBC= A0 FF        .
-LAFBE:
-                iny                          ; AFBE= C8          H
-                lda LAFCE,y                  ; AFBF= B9 CE AF    9N/
-                beq LAFF4                    ; AFC2= F0 30       p0
-                ldx LAFE1,y                  ; AFC4= BE E1 AF    >a/
-                phy                          ; AFC7= 5A          Z
-                jsr LB825                    ; AFC8= 20 25 B8     %8
-                ply                          ; AFCB= 7A          z
-                bra LAFBE                    ; AFCC= 80 F0       .p
+                lda #$87
+                jsr OSBYTE                   ;Read screen mode
+                tya                          ;A = screen mode
+                jsr reinitDisplayMode
+                ldy #$FF
+-
+                iny
+                lda initOSBYTEAs,y
+                beq LAFF4
+                ldx initOSBYTEXs,y
+                phy
+                jsr osbyteY00
+                ply
+                bra -
 
-LAFCE:
-                .byte $CB                    ; AFCE= CB          K
-                rts                          ; AFCF= 60          `
+;-------------------------------------------------------------------------
 
-                rts                          ; AFD0= 60          `
+initOSBYTEAs:
+                .byte $CB ;OSBYTE 203 (&CB) Read/write RS423 input buffer [MasRef D.2-64]
+                .byte $60 ;OSBYTE 96 (&60) ???
+                .byte $60 ;OSBYTE 96 (&60) ???
+                .byte $60 ;OSBYTE 96 (&60) ???
+                .byte $0F ;OSBYTE 15 (&0F) Flush buffer [MasRef D.2-24]
+                .byte $0F ;OSBYTE 15 (&0F) Flush buffer [MasRef D.2-24]
+                .byte $dd ;OSBYTE 221 (&DD) Read/write interpretation of input values 192-207 [MasRef D.2-73]
+                .byte $de ;OSBYTE 222 (&DE) Read/write interpretation of input values 208-223 [MasRef D.2-73]
+                .byte $df ;OSBYTE 223 (&DF) Read/write interpretation of input values 224-239 [MasRef D.2-73]
+                .byte $e0 ;OSBYTE 224 (&E0) Read/write interpretation of input values 240-255 [MasRef D.2-73]
+                .byte $e1 ;OSBYTE 225 (&E1) Read/write soft key interpretation [MasRef D.2-74]
+                .byte $E2 ;OSBYTE 226 (&E2) Read/write SHIFT+soft key interpretation [MasRef D.2-74]
+                .byte $E3 ;OSBYTE 227 (&E3) Read/write CTRL+soft key interpretation [MasRef D.2-74]
+                .byte $e4 ;OSBYTE 228 (&E4) Read/write SHIFT+CTRL+soft key interpretation [MasRef D.2-74]
+                .byte $e5 ;OSBYTE 229 (&E5) Read/write ESCAPE key status [MasRef D.2-75]
+                .byte $04 ;OSBYTE 4 (&04) Enable/disable cursor editing [MasRef D.2-19]
+                .byte $7e ;OSBYTE 126 (&7E) Acknowledge escape condition [MasRef D.2-37]
+                .byte $e6 ;OSBYTE 230 (&E6) Read/write ESCAPE effects [MasRef D.2-75]
+                .byte $02 ;OSBYTE 2 (&02) Specify input stream [MasRef D.2-18]
+                
+initOSBYTEXs:
+                .byte $00
+                .byte $01
+                .byte $03
+                .byte $ff
+                .byte $01
+                .byte $02
+                .byte $c0
+                .byte $d0
+                .byte $e0
+                .byte $f0
+                .byte $01
+                .byte $90
+                .byte $a0
+                .byte $a0
+                .byte $01
+                .byte $00
+                .byte $00
+                .byte $01
+                .byte $02
 
-                rts                          ; AFD1= 60          `
+;-------------------------------------------------------------------------
 
-                .byte $0F                    ; AFD2= 0F          .
-                .byte $0F                    ; AFD3= 0F          .
-                cmp mos.LDFDE,x              ; AFD4= DD DE DF    ]^_
-                cpx #$E1                     ; AFD7= E0 E1       `a
-                .byte $E2                    ; AFD9= E2          b
-                .byte $E3                    ; AFDA= E3          c
-                cpx $E5                      ; AFDB= E4 E5       de
-                tsb $7E                      ; AFDD= 04 7E       .~
-                inc $02                      ; AFDF= E6 02       f.
-LAFE1:
-                brk                          ; AFE1= 00          .
-                ora ($03,x)                  ; AFE2= 01 03       ..
-                .byte $FF                    ; AFE4= FF          .
-                ora ($02,x)                  ; AFE5= 01 02       ..
-                cpy #$D0                     ; AFE7= C0 D0       @P
-                cpx #$F0                     ; AFE9= E0 F0       `p
-                ora ($90,x)                  ; AFEB= 01 90       ..
-                ldy #$A0                     ; AFED= A0 A0
-                ora ($00,x)                  ; AFEF= 01 00       ..
-                brk                          ; AFF1= 00          .
-                ora ($02,x)                  ; AFF2= 01 02       ..
 LAFF4:
-                ldx #$FE                     ; AFF4= A2 FE       "~
-                txs                          ; AFF6= 9A          .
-                sec                          ; AFF7= 38          8
-                ror $1A                      ; AFF8= 66 1A       f.
-                stz $1D                      ; AFFA= 64 1D       d.
-                jsr LB004                    ; AFFC= 20 04 B0     .0
-                jsr LB004                    ; AFFF= 20 04 B0     .0
-                bra LB030                    ; B002= 80 2C       .,
+                ldx #$FE
+                txs
+                sec
+                ror $1A
+                stz $1D
+                jsr LB004
+                jsr LB004
+                bra LB030
 
 LB004:
                 jsr LB041                    ; B004= 20 41 B0     A0
@@ -7928,7 +7953,7 @@ LB096:
                 stz $6F                      ; B0A1= 64 6F       do
                 pha                          ; B0A3= 48          H
                 lda #$D9                     ; B0A4= A9 D9       )Y
-                jsr LB823                    ; B0A6= 20 23 B8     #8
+                jsr osbyteX00Y00                    ; B0A6= 20 23 B8     #8
                 pla                          ; B0A9= 68          h
                 ldy #$18                     ; B0AA= A0 18        .
                 sty $1F                      ; B0AC= 84 1F       ..
@@ -7940,7 +7965,7 @@ LB0B0:
 
 LB0B1:
                 lda #$81                     ; B0B1= A9 81       ).
-                jsr LB823                    ; B0B3= 20 23 B8     #8
+                jsr osbyteX00Y00                    ; B0B3= 20 23 B8     #8
                 txa                          ; B0B6= 8A          .
                 bcs LB0B0                    ; B0B7= B0 F7       0w
                 bpl LB0B0                    ; B0B9= 10 F5       .u
@@ -8626,7 +8651,7 @@ LB485:
                 jsr LB30D                    ; B489= 20 0D B3     .3
                 jsr LB821                    ; B48C= 20 21 B8     !8
 LB48F:
-                cpy $39                      ; B48F= C4 39       D9
+                cpy zterm.numRowsMinusOne                      ; B48F= C4 39       D9
                 bra LB47E                    ; B491= 80 EB       .k
 
 LB493:
@@ -8634,7 +8659,7 @@ LB493:
                 sta $2C                      ; B495= 85 2C       .,
                 jsr LB30D                    ; B497= 20 0D B3     .3
                 jsr LB821                    ; B49A= 20 21 B8     !8
-                cpx $37                      ; B49D= E4 37       d7
+                cpx zterm.numColumnsMinusOne
 LB49F:
                 bcc LB480                    ; B49F= 90 DF       ._
                 lda $34                      ; B4A1= A5 34       %4
@@ -8742,7 +8767,7 @@ LB53A:
                 jsr LB565                    ; B53D= 20 65 B5     e5
                 bcs LB547                    ; B540= B0 05       0.
                 lda $3A                      ; B542= A5 3A       %:
-                bra LB579                    ; B544= 80 33       .3
+                bra reinitDisplayMode                    ; B544= 80 33       .3
 
 LB546:
                 pla                          ; B546= 68          h
@@ -8780,37 +8805,44 @@ LB573:
 
                 jsr LB2FA                    ; B574= 20 FA B2     z2
                 bcs LB547                    ; B577= B0 CE       0N
-LB579:
-                tay                          ; B579= A8          (
-                and #$7F                     ; B57A= 29 7F       ).
-                cmp #$08                     ; B57C= C9 08       I.
-                bcs LB547                    ; B57E= B0 C7       0G
-                tax                          ; B580= AA          *
-                lda LB5A1,x                  ; B581= BD A1 B5    =!5
-                lsr a                        ; B584= 4A          J
-                ldx #$1F                     ; B585= A2 1F       ".
-                bcs LB58B                    ; B587= B0 02       0.
-                ldx #$18                     ; B589= A2 18       ".
-LB58B:
-                stx $39                      ; B58B= 86 39       .9
-                sta $37                      ; B58D= 85 37       .7
-                inc a                        ; B58F= 1A          .
-                sta $38                      ; B590= 85 38       .8
-                lda #$16                     ; B592= A9 16       ).
-                jsr OSWRCH                   ; B594= 20 EE FF     n.
-                tya                          ; B597= 98          .
-                jsr OSWRCH                   ; B598= 20 EE FF     n.
-                asl a                        ; B59B= 0A          .
-                cmp #$0E                     ; B59C= C9 0E       I.
-                ror $30                      ; B59E= 66 30       f0
-                rts                          ; B5A0= 60          `
+reinitDisplayMode:
+                tay              ;Y = screen mode
+                and #$7F         ;mask off shadow bit (unnecessarily!)
+                cmp #$08
+                bcs LB547                    ;branch taken if mode>=8
+                tax                          ;X = mode number
+                lda screenDimensionsForMode,x                  ;
+                lsr a       ;A = width -1; C = height flag (1=32 rows,
+                            ;0=25 rows)
+                ldx #$1F                     ;assume 32 rows
+                bcs +                        ;taken if 32 rows
+                ldx #$18                     ;25 rows
++
+                stx zterm.numRowsMinusOne    ;store rows
+                sta zterm.numColumnsMinusOne ;store columns
+                inc a                        ;compute column count
+                sta zterm.numColumns
 
-LB5A1:
-                .byte $9F                    ; B5A1= 9F          .
-                .byte $4F                    ; B5A2= 4F          O
-                .byte $27                    ; B5A3= 27          '
-                .byte $9e,$4f,$27            ; B5A4= 9E 4F 27    .O'
-                .byte $4e,$4e                ; B5A7= 4E 4E
+                ; re-select mode
+                lda #22
+                jsr OSWRCH
+                tya
+                jsr OSWRCH
+                
+                asl a
+                cmp #$0E                     ;C=1 if Mode 7
+                ror $30                      ;?$30 bit 7 set if Mode 7
+                rts
+
+screenDimensionsForMode:
+                .byte 79<<1|1 ;mode 0 - 80 columns, 32 rows
+                .byte 39<<1|1 ;mode 1 - 40 columns, 32 rows
+                .byte 19<<1|1 ;mode 2 - 20 columns, 32 rows
+                .byte 79<<1|0 ;mode 3 - 80 columns, 25 rows
+                .byte 39<<1|1 ;mode 4 - 40 columns, 32 rows
+                .byte 19<<1|1 ;mode 5 - 20 columns, 32 rows
+                .byte 39<<1|0 ;mode 6 - 40 columns, 25 rows
+                .byte 39<<1|0 ;mode 7 - 40 columns, 25 rows
 
 LB5A9:
                 jsr LB2FA                    ; B5A9= 20 FA B2
@@ -8859,7 +8891,7 @@ LB5E1:
 LB5F2:
                 jsr LB30D                    ; B5F2= 20 0D B3     .3
                 jsr LB821                    ; B5F5= 20 21 B8     !8
-                cpx $38                      ; B5F8= E4 38       d8
+                cpx zterm.numColumns                      ; B5F8= E4 38       d8
                 jmp LB49F                    ; B5FA= 4C 9F B4    L.4
 
 LB5FD:
@@ -8895,16 +8927,16 @@ LB61F:
 
 LB628:
                 lda #$E5                     ; B628= A9 E5       )e
-                jsr LB823                    ; B62A= 20 23 B8     #8
+                jsr osbyteX00Y00                    ; B62A= 20 23 B8     #8
                 ldx #$00                     ; B62D= A2 00       ".
                 ldy #$05                     ; B62F= A0 05        .
                 jsr OSCLI                   ; B631= 20 F7 FF     w.
-LB634:
-                lda #$E5                     ; B634= A9 E5       )e
-                ldx #$01                     ; B636= A2 01       ".
-                jsr LB825                    ; B638= 20 25 B8     %8
-                lda #$7E                     ; B63B= A9 7E       )~
-                jmp OSBYTE                   ; B63D= 4C F4 FF    Lt.
+disableESCAPE:
+                lda #$E5
+                ldx #$01
+                jsr osbyteY00                ;disable ESCAPE key
+                lda #$7E
+                jmp OSBYTE                   ;acknowledge ESCAPE
 
 LB640:
                 jsr LB1C6                    ; B640= 20 C6 B1     F1
@@ -9033,7 +9065,7 @@ LB6ED:
 LB6F4:
                 lda #$CB                     ; B6F4= A9 CB       )K
 LB6F6:
-                jmp LB825                    ; B6F6= 4C 25 B8    L%8
+                jmp osbyteY00                    ; B6F6= 4C 25 B8    L%8
 
 LB6F9:
                 cpy #$03                     ; B6F9= C0 03       @.
@@ -9102,7 +9134,7 @@ LB746:
 LB74C:
                 pha                          ; B74C= 48          H
                 jsr LB821                    ; B74D= 20 21 B8     !8
-                cpx $38                      ; B750= E4 38       d8
+                cpx zterm.numColumns                      ; B750= E4 38       d8
                 beq LB75E                    ; B752= F0 0A       p.
 LB754:
                 pla                          ; B754= 68          h
@@ -9145,7 +9177,7 @@ LB77D:
                 beq LB79B                    ; B78C= F0 0D       p.
                 sta $0440,y                  ; B78E= 99 40 04    .@.
                 iny                          ; B791= C8          H
-                cpy $38                      ; B792= C4 38       D8
+                cpy zterm.numColumns                      ; B792= C4 38       D8
                 bne LB77D                    ; B794= D0 E7       Pg
                 jsr OSNEWL                   ; B796= 20 E7 FF     g.
                 bra LB754                    ; B799= 80 B9       .9
@@ -9164,7 +9196,7 @@ LB7A6:
                 jsr OSWRCH                   ; B7AC= 20 EE FF     n.
                 bra LB7A6                    ; B7AF= 80 F5       .u
 
-LB7B1:
+terminalINDnHandler:
                 bcc LB7F9                    ; B7B1= 90 46       .F
 LB7B3:
                 sec                          ; B7B3= 38          8
@@ -9173,25 +9205,25 @@ LB7B6:
                 ldx #$32                     ; B7B6= A2 32       "2
 LB7B8:
                 lda #$D5                     ; B7B8= A9 D5       )U
-                jsr LB825                    ; B7BA= 20 25 B8     %8
+                jsr osbyteY00                    ; B7BA= 20 25 B8     %8
                 phx                          ; B7BD= DA          Z
                 ldx #$01                     ; B7BE= A2 01       ".
                 lda #$D6                     ; B7C0= A9 D6       )V
-                jsr LB825                    ; B7C2= 20 25 B8     %8
+                jsr osbyteY00                    ; B7C2= 20 25 B8     %8
                 phx                          ; B7C5= DA          Z
                 lda #$EC                     ; B7C6= A9 EC       )l
                 ldx #$14                     ; B7C8= A2 14       ".
-                jsr LB825                    ; B7CA= 20 25 B8     %8
+                jsr osbyteY00                    ; B7CA= 20 25 B8     %8
                 lda #$07                     ; B7CD= A9 07       ).
                 jsr OSWRCH                   ; B7CF= 20 EE FF     n.
                 lda #$EC                     ; B7D2= A9 EC       )l
-                jsr LB825                    ; B7D4= 20 25 B8     %8
+                jsr osbyteY00                    ; B7D4= 20 25 B8     %8
                 plx                          ; B7D7= FA          z
                 lda #$D6                     ; B7D8= A9 D6       )V
-                jsr LB825                    ; B7DA= 20 25 B8     %8
+                jsr osbyteY00                    ; B7DA= 20 25 B8     %8
                 plx                          ; B7DD= FA          z
                 lda #$D5                     ; B7DE= A9 D5       )U
-                bra LB825                    ; B7E0= 80 43       .C
+                bra osbyteY00                    ; B7E0= 80 43       .C
 
 LB7E2:
                 ldx #$8C                     ; B7E2= A2 8C       ".
@@ -9287,17 +9319,17 @@ LB812:
                 .byte $80
 LB821:
                 lda #$A5
-LB823:
+osbyteX00Y00:
                 ldx #$00
-LB825:
+osbyteY00:
                 ldy #$00                     ; B825= A0 00        .
-LB827:
+-
                 jmp OSBYTE                   ; B827= 4C F4 FF    Lt.
 
 LB82A:
                 lda #$9C                     ; B82A= A9 9C       ).
                 ldy #$9F                     ; B82C= A0 9F        .
-                bra LB827                    ; B82E= 80 F7       .w
+                bra -
 
 LB830:
                 ldy #$00                     ; B830= A0 00        .

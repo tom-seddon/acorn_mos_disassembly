@@ -86,7 +86,7 @@ L8073:
                 ldx #key_ctrl
                 jsr mos.interrogateKeyboard
                 cpx #$80        ;Z=0 C=1 if CTRL+BREAK
-                jsr mos.LF735
+                jsr mos.updateKeyboardLEDs
                 stz lastBREAKType            ;softBREAK
                 ror a
                 ldx #<intervalTimer ; TODO - $9C - is this right?

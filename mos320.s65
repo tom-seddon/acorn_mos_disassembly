@@ -81,7 +81,10 @@ goodString=$01
                 .endblock
                 .endvirtual
 stringInputPlingFlag=$e5        ;bit 7 set if last char was '!'
-                
+readCharacterTimedFlag=$e6
+autoRepeatCountdownTimer=$e7
+lastKeyPressedInternal=$ec
+firstKeyPressedInternal=$ed
 stringInputBufferAddress=$f2    ;word
 
 ;-------------------------------------------------------------------------
@@ -505,11 +508,11 @@ keyboardStatus: .fill 1
 
 ; OSBYTE 202 (&CA) Read/write keyboard status byte [MasRef D.2-63]
 keyboardStatusByte: .block
-shiftPressed=1<<3
-capsLockDisengaged=1<<4
-shiftLockDisengaged=1<<5
-ctrlPressed=1<<6
-shiftEnabled=1<<7
+shiftPressed=%1<<3
+capsLockDisengaged=%1<<4
+shiftLockDisengaged=%1<<5
+ctrlPressed=%1<<6
+shiftEnabled=%1<<7
                 .fill 1
                 .endblock
 
@@ -694,9 +697,11 @@ timer0=$292
 timer1=$297
 intervalTimer=$29c
 romInformationTable=$2a1
+inkeyTimeoutCounter=$2b1
 adcResultLSBs=$2b6
 adcResultMSBs=$2ba
 currentSoftKey=$02c9
+keyboardFirstAutoRepeatCount=$02ca
 adcLastConvertedChannel=$2be
 printerDriverDormant=$2d1        ;bit 7 set if printer driver dormant,
                                  ;clear if active
@@ -798,6 +803,25 @@ key_f6=$75
 key_f7=$16
 key_f8=$76
 key_f9=$77
+key_numpad_0=$6a
+key_numpad_1=$6b
+key_numpad_2=$7c
+key_numpad_3=$6c
+key_numpad_4=$7a
+key_numpad_5=$7b
+key_numpad_6=$1a
+key_numpad_7=$1b
+key_numpad_8=$2a
+key_numpad_9=$2b
+key_numpad_plus=$3a
+key_numpad_minus=$3b
+key_numpad_divide=$4a
+key_numpad_hash=$5a
+key_numpad_multiply=$5b
+key_numpad_comma=$5c
+key_numpad_return=$3c
+key_numpad_delete=$4b
+key_numpad_stop=$4c
 
 fsInfoBlock: .struct
 name: .fill 8
@@ -1458,6 +1482,7 @@ originalX=$f0
 originalY=$f1
 irqTempA=$fc
 errPtr=$fd                      ;REPTR in OS 1.20
+escapeFlag=$ff
                 
 envelope1Data=$8c0
 

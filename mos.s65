@@ -6819,7 +6819,7 @@ end:
                 .word rtsFFAA ; UPTV=$222
                 .word rtsFFAA ; NETV=$224
                 .word rtsFFAA ; VDUV=$226 
-                .word LF74C ; KEYV=$228 
+                .word keyEntryPoint ; KEYV=$228 
                 .word insEntryPoint ; INSV=$22a 
                 .word remEntryPoint ; REMV=$22c 
                 .word cnpEntryPoint ; CNPV=$22e 
@@ -6836,7 +6836,7 @@ defaultMOSVariables:
                 .word mosVariables-166       ;mosVariablesAddress
                 .word extendedVectorSpace    ;extendedVectorSpaceAddress
                 .word romInformationTable  ;romInformationTableAddress
-                .word LF892-16               ;keyboardTranslationTableAddress
+                .word keyTranslationTable-16 ;keyboardTranslationTableAddress
                 .word vduv                   ;vduVariablesAddress
                 .byte $00                    ;cfsTimeoutCounter
                 .byte $00                    ;inputSource
@@ -7586,30 +7586,30 @@ incrementIntervalTimer:
                 ldy #eventIntervalTimerCrossingZero
                 jsr eventEntryPoint
 intervalTimerDone:
-                lda $02B1                    ; E708= AD B1 02    -1.
-                bne LE715                    ; E70B= D0 08       P.
-                lda $02B2                    ; E70D= AD B2 02    -2.
-                beq LE718                    ; E710= F0 06       p.
-                dec $02B2                    ; E712= CE B2 02    N2.
+                lda inkeyTimeoutCounter+0
+                bne LE715
+                lda inkeyTimeoutCounter+1
+                beq LE718
+                dec inkeyTimeoutCounter+1
 LE715:
-                dec $02B1                    ; E715= CE B1 02    N1.
+                dec inkeyTimeoutCounter+0
 LE718:
-                bit $02CD                    ; E718= 2C CD 02    ,M.
-                bpl LE728                    ; E71B= 10 0B       ..
-                inc $02CD                    ; E71D= EE CD 02    nM.
-                cli                          ; E720= 58          X
+                bit $02CD
+                bpl LE728
+                inc $02CD
+                cli
                 jsr LF416                    ;update sound???
-                sei                          ; E724= 78          x
-                dec $02CD                    ; E725= CE CD 02    NM.
+                sei
+                dec $02CD
 LE728:
                 bit valueFF                  ;V=1
                 jsr irq1Handler
-                lda $EC                      ; E72E= A5 EC       %l
-                ora $ED                      ; E730= 05 ED       .m
+                lda lastKeyPressedInternal
+                ora firstKeyPressedInternal
                 and keyboardSemaphore
                 beq +
-                sec                          ; E737= 38          8
-                jsr LF8FF                    ; E738= 20 FF F8     .x
+                sec
+                jsr LF8FF
 +
                 jsr pollPrinterDriver
                 ldy romPollingSemaphore
@@ -7617,9 +7617,9 @@ LE728:
                 ldx #romServiceCallPollingInterrupt
                 jsr makeROMServiceCall
 +
-                bit HADC+0                   ; E748= 2C 18 FE    ,.~
-                bvs LE752                    ; E74B= 70 05       p.
-                rts                          ; E74D= 60          `
+                bit HADC+0
+                bvs LE752
+                rts
 
 checkForSystemVIACB1Interrupt:
                 bit #VIA.irq.cb1
@@ -7728,47 +7728,47 @@ printBRKMessage:
 ;-------------------------------------------------------------------------
 
 LE7B1:
-                stx $02B1                    ; E7B1= 8E B1 02    .1.
-                sty $02B2                    ; E7B4= 8C B2 02    .2.
-                ror $E6                      ; E7B7= 66 E6       ff
-                cli                          ; E7B9= 58          X
-                bra LE7BE                    ; E7BA= 80 02       ..
+                stx inkeyTimeoutCounter+0
+                sty inkeyTimeoutCounter+1
+                ror readCharacterTimedFlag
+                cli
+                bra osrdchWithTimeout
 
 ;-------------------------------------------------------------------------
 
 osrdchEntryPoint:
-                stz $E6                      ; E7BC= 64 E6       df
-LE7BE:
-                phx                          ; E7BE= DA          Z
-                phy                          ; E7BF= 5A          Z
-                ldy $0256                    ; E7C0= AC 56 02    ,V.
-                beq LE7D7                    ; E7C3= F0 12       p.
-                sec                          ; E7C5= 38          8
-                ror $EB                      ; E7C6= 66 EB       fk
-                jsr OSBGET                   ; E7C8= 20 D7 FF     W.
-                stz $EB                      ; E7CB= 64 EB       dk
-                bcc LE7F3                    ; E7CD= 90 24       .$
-                lda #$00                     ; E7CF= A9 00       ).
-                stz $0256                    ; E7D1= 9C 56 02    .V.
-                jsr OSFIND                   ; E7D4= 20 CE FF     N.
-LE7D7:
-                lda $FF                      ; E7D7= A5 FF       %.
-                asl a                        ; E7D9= 0A          .
-                lda #$1B                     ; E7DA= A9 1B       ).
-                bcs LE7F3                    ; E7DC= B0 15       0.
-                ldx $0241                    ; E7DE= AE 41 02    .A.
-                jsr LEAFD                    ; E7E1= 20 FD EA     }j
-                bcc LE7F3                    ; E7E4= 90 0D       ..
-                bit $E6                      ; E7E6= 24 E6       $f
-                bpl LE7D7                    ; E7E8= 10 ED       .m
-                lda $02B2                    ; E7EA= AD B2 02    -2.
-                ora $02B1                    ; E7ED= 0D B1 02    .1.
-                bne LE7D7                    ; E7F0= D0 E5       Pe
-                dec a                        ; E7F2= 3A          :
+                stz $E6
+osrdchWithTimeout:
+                phx
+                phy
+                ldy execFileHandle
+                beq osrdchLoop               ;taken if not *EXEC'ing
+                sec
+                ror $EB
+                jsr OSBGET
+                stz $EB
+                bcc LE7F3
+                lda #$00
+                stz execFileHandle
+                jsr OSFIND
+osrdchLoop:
+                lda escapeFlag
+                asl a                        ;C=1 if ESCAPE pressed
+                lda #27                      ;ASCII for ESCAPE
+                bcs LE7F3                    ;taken if ESCAPE pressed
+                ldx inputSource
+                jsr LEAFD                    ;handle Econet/soft key stuff???
+                bcc LE7F3
+                bit $E6
+                bpl osrdchLoop
+                lda inkeyTimeoutCounter+1
+                ora inkeyTimeoutCounter+0
+                bne osrdchLoop
+                dec a
 LE7F3:
-                ply                          ; E7F3= 7A          z
-                plx                          ; E7F4= FA          z
-                rts                          ; E7F5= 60          `
+                ply
+                plx
+                rts
 
 ;-------------------------------------------------------------------------
 
@@ -8105,7 +8105,7 @@ LE9A4:
                 bcc rtsE9A1                    ; E9A7= 90 F8       .x
                 jsr LF241                    ; E9A9= 20 41 F2     Ar
                 pha                          ; E9AC= 48          H
-                jsr LF735                    ; E9AD= 20 35 F7     5w
+                jsr updateKeyboardLEDs
                 asl a                        ; E9B0= 0A          .
                 pla                          ; E9B1= 68          h
                 bcc LE9A2                    ; E9B2= 90 EE       .n
@@ -11066,211 +11066,230 @@ LF717:
 
 LF724:
                 ldx #$FF                     ; F724= A2 FF       ".
-                lda $EC                      ; F726= A5 EC       %l
-                ora $ED                      ; F728= 05 ED       .m
+                lda lastKeyPressedInternal                      ; F726= A5 EC       %l
+                ora firstKeyPressedInternal                      ; F728= 05 ED       .m
                 bne LF732                    ; F72A= D0 06       P.
                 lda #$81                     ; F72C= A9 81       ).
                 sta systemVIA.ier            ; F72E= 8D 4E FE    .N~
                 inx                          ; F731= E8          h
 LF732:
-                stx $0242                    ; F732= 8E 42 02    .B.
-LF735:
-                php                          ; F735= 08          .
-                lda $025A                    ; F736= AD 5A 02    -Z.
-                lsr a                        ; F739= 4A          J
-                and #$18                     ; F73A= 29 18       ).
-                ora #$06                     ; F73C= 09 06       ..
-                sta systemVIA.orb            ; F73E= 8D 40 FE    .@~
-                lsr a                        ; F741= 4A          J
-                ora #$07                     ; F742= 09 07       ..
-                sta systemVIA.orb            ; F744= 8D 40 FE    .@~
-                jsr LF91C                    ; F747= 20 1C F9     .y
-                pla                          ; F74A= 68          h
-                rts                          ; F74B= 60          `
+                stx $0242
+updateKeyboardLEDs:
+                php
+                lda keyboardStatusByte
+                lsr a
+
+                ; bit 3 = caps lock off
+                ; bit 4 = shift lock off
+                and #(keyboardStatusByte.capsLockDisengaged|keyboardStatusByte.shiftLockDisengaged)>>1
+                ora #$06                     ;latch B6 for caps lock
+                sta systemVIA.orb            ;update caps lock LED
+                lsr a                        ;bit 3 = shift lock off
+                ora #$07                     ;latch B7 for shift lock
+                sta systemVIA.orb            ;update shift lock LED
+                jsr enableKeyboardScanning
+                pla
+                rts
 
 ; KEYV handler
 ; ============
-LF74C:
-                bvc LF758                    ; F74C= 50 0A       P.
-                lda #$01                     ; F74E= A9 01       ).
-                sta systemVIA.ier            ; F750= 8D 4E FE    .N~
-                bcs LF75D                    ; F753= B0 08       0.
-                jmp LF865                    ; F755= 4C 65 F8    Lex
+keyEntryPoint:
+                bvc keyVClear
+                lda #$01
+                sta systemVIA.ier
+                bcs keyboardTimerInterrupt
+                jmp keyPressedInterrupt
 
-LF758:
-                bcc LF760                    ; F758= 90 06       ..
-                jmp LF916                    ; F75A= 4C 16 F9    L.y
+keyVClear:
+                bcc keyTestSHIFTAndCTRLOrTimerInterrupt
+                jmp scanKeyboard
 
-LF75D:
-                inc $0242                    ; F75D= EE 42 02    nB.
+keyboardTimerInterrupt:
+                inc $0242
 
-; Test Shift & Ctrl keys
-; ----------------------
-LF760:
-                lda $025A                    ; F760= AD 5A 02    -Z.
-                and #$B7                     ; F763= 29 B7       )7
-                ldx #$00                     ; F765= A2 00       ".
-                jsr interrogateKeyboard                    ; F767= 20 80 F8     .x
-                bcc LF76E                    ; F76A= 90 02       ..
-                stx $FA                      ; F76C= 86 FA       .z
-LF76E:
-                clv                          ; F76E= B8          8
-                bpl LF776                    ; F76F= 10 05       ..
-                bit valueFF                    ; F771= 2C 4E E3    ,Nc
-                ora #$08                     ; F774= 09 08       ..
-LF776:
-                inx                          ; F776= E8          h
-                jsr interrogateKeyboard                    ; F777= 20 80 F8     .x
-                bcc LF735                    ; F77A= 90 B9       .9
-                bpl LF780                    ; F77C= 10 02       ..
-                ora #$40                     ; F77E= 09 40       .@
-LF780:
-                sta $025A                    ; F780= 8D 5A 02    .Z.
-                ldx $EC                      ; F783= A6 EC       &l
-                beq LF7D4                    ; F785= F0 4D       pM
-                jsr interrogateKeyboard                    ; F787= 20 80 F8     .x
-                bmi LF799                    ; F78A= 30 0D       0.
-                cpx $EC                      ; F78C= E4 EC       dl
-LF78E:
-                stx $EC                      ; F78E= 86 EC       .l
-                bne LF7D4                    ; F790= D0 42       PB
-                stz $EC                      ; F792= 64 EC       dl
-LF794:
-                jsr LF875                    ; F794= 20 75 F8     ux
-                bra LF7D4                    ; F797= 80 3B       .;
+;-------------------------------------------------------------------------
+; 
+; Test Shift & Ctrl keys, or deal with timer interrupt.
+;
+; Entry: C=0 if KEYV V=0 C=0 - test SHIFT+CTRL keys
+;        C=1 if KEYV V=1 C=1 - keyboard timer interrupt
+;
+keyTestSHIFTAndCTRLOrTimerInterrupt:
+                lda keyboardStatusByte
+                and #~(keyboardStatusByte.shiftPressed|keyboardStatusByte.ctrlPressed)
+                ldx #key_shift
+                jsr interrogateKeyboard      ;X=$80 if SHIFT pressed
+                bcc +                        ;taken if testing
+                                             ;SHIFT+CTRL only
+                stx SEIWKA                   ;b7 set if SHIFT pressed
++
+                clv                        ;V=0
+                bpl testCTRL               ;taken if SHIFT not pressed
+                bit valueFF                ;V=1 N=1
+                ora #keyboardStatusByte.shiftPressed
+testCTRL:
+                inx                          ;X=1 - key_ctrl
+                jsr interrogateKeyboard
+                bcc updateKeyboardLEDs ;taken if testing SHIFT+CTRL only
+                bpl updateKeyboardStatusByte ;taken if CTRL not pressed
+                ora #keyboardStatusByte.ctrlPressed
+updateKeyboardStatusByte:
+                sta keyboardStatusByte
+                ldx lastKeyPressedInternal
+                beq braRolloverChecks        ;taken if no key pressed
+                jsr interrogateKeyboard      ;still pressed?
+                bmi checkForKeyAutoRepeat    ;taken if still pressed
+                cpx lastKeyPressedInternal   ;X=0 at this point
+storeLastKeyPressed:
+                stx lastKeyPressedInternal   ;update last key pressed
+                bne braRolloverChecks  ;taken if still nothing pressed
+                stz lastKeyPressedInternal   ;reset last key pressed
+resetAutoRepeatAndContinue:
+                jsr resetAutoRepeatCounters
+                bra braRolloverChecks
 
-LF799:
-                cpx $EC                      ; F799= E4 EC       dl
-                bne LF78E                    ; F79B= D0 F1       Pq
-                lda $E7                      ; F79D= A5 E7       %g
-                beq LF7D4                    ; F79F= F0 33       p3
-                dec $E7                      ; F7A1= C6 E7       Fg
-                bne LF7D4                    ; F7A3= D0 2F       P/
-                lda $02CA                    ; F7A5= AD CA 02    -J.
-                sta $E7                      ; F7A8= 85 E7       .g
-                lda $0255                    ; F7AA= AD 55 02    -U.
-                sta $02CA                    ; F7AD= 8D CA 02    .J.
-                lda $025A                    ; F7B0= AD 5A 02    -Z.
-                ldx $EC                      ; F7B3= A6 EC       &l
-                cpx #$D0                     ; F7B5= E0 D0       `P
-                beq LF7CB                    ; F7B7= F0 12       p.
-                cpx #$C0                     ; F7B9= E0 C0       `@
-                bne LF7D6                    ; F7BB= D0 19       P.
-                ora #$A0                     ; F7BD= 09 A0       .
-                bit $FA                      ; F7BF= 24 FA       $z
-                bpl LF7C7                    ; F7C1= 10 04       ..
-                ora #$10                     ; F7C3= 09 10       ..
-                eor #$80                     ; F7C5= 49 80       I.
-LF7C7:
-                eor #$90                     ; F7C7= 49 90       I.
-                bra LF7CF                    ; F7C9= 80 04       ..
+checkForKeyAutoRepeat:
+                cpx lastKeyPressedInternal
+                bne storeLastKeyPressed      ;taken if new key pressed
+                lda autoRepeatCountdownTimer
+                beq braRolloverChecks      ;taken if countdown timer 0
+                dec autoRepeatCountdownTimer ;timer--
+                bne braRolloverChecks        ;taken if timer newly 0
+                lda keyboardFirstAutoRepeatCount
+                sta autoRepeatCountdownTimer
+                lda keyboardAutoRepeatRate
+                sta keyboardFirstAutoRepeatCount
+                lda keyboardStatusByte
+                ldx lastKeyPressedInternal
+                cpx #$80|key_shift_lock
+                beq shiftLockPressed
+                cpx #$80|key_caps_lock
+                bne getASCIICode
+capsLockPressed:
+                ora #keyboardStatusByte.shiftEnabled|keyboardStatusByte.shiftLockDisengaged
+                bit SEIWKA                   ;test SHIFT status
+                bpl +                        ;taken if SHIFT not pressed
+                ; Do the SHIFT+CAPS LOCK thing
+                ora #keyboardStatusByte.capsLockDisengaged
+                eor #keyboardStatusByte.shiftEnabled
++
+                eor #keyboardStatusByte.shiftEnabled|keyboardStatusByte.capsLockDisengaged
+                bra resetKeyboardStatusAndTimer
 
-LF7CB:
-                ora #$90                     ; F7CB= 09 90       ..
-                eor #$A0                     ; F7CD= 49 A0       I
-LF7CF:
-                sta $025A                    ; F7CF= 8D 5A 02    .Z.
-                stz $E7                      ; F7D2= 64 E7       dg
-LF7D4:
-                bra LF845                    ; F7D4= 80 6F       .o
+shiftLockPressed:
+                ora #keyboardStatusByte.shiftEnabled|keyboardStatusByte.capsLockDisengaged
+                eor #keyboardStatusByte.shiftEnabled|keyboardStatusByte.shiftLockDisengaged
+resetKeyboardStatusAndTimer:
+                sta keyboardStatusByte
+                stz autoRepeatCountdownTimer
+braRolloverChecks:
+                bra keyboardRolloverChecks
 
-LF7D6:
-                lda LF801+1,x                ; F7D6= BD 02 F8    =.x ; ?????????
-                beq LF7E3                    ; F7D9= F0 08       p.
-                cmp #$9D                     ; F7DB= C9 9D       I.
-                bne LF7E6                    ; F7DD= D0 07       P.
-                eor #$10                     ; F7DF= 49 10       I.
-                bra LF7EA                    ; F7E1= 80 07       ..
+;-------------------------------------------------------------------------
+;
+; Convert internal key number (with bit 7 set) to ASCII code, taking
+; into account state of CTRL, SHIFT, CAPS LOCK and SHIFT LOCK.
+; 
+getASCIICode:
+                ; -$80 to adjust for bit 7 set; -16 because
+                ; interesting keys start at 16
+                lda keyTranslationTable-$80-16,x
+                beq handleTAB                ;taken if TAB
+                cmp #$9D                     ;was it key_numpad_return?
+                bne LF7E6                    ;taken if not
+                eor #$10                     ;transform into $8d
+                bra getNumpadASCIICode
 
-LF7E3:
-                lda $026B                    ; F7E3= AD 6B 02    -k.
+handleTAB:
+                lda tabKeyCode
 LF7E6:
-                cmp #$A0                     ; F7E6= C9 A0       I
-                bcc LF7F6                    ; F7E8= 90 0C       ..
-LF7EA:
-                sbc #$31                     ; F7EA= E9 31       i1
-                adc $027E                    ; F7EC= 6D 7E 02    m~.
-                eor #$80                     ; F7EF= 49 80       I.
-                ldx $028E                    ; F7F1= AE 8E 02    ...
-                bne LF839                    ; F7F4= D0 43       PC
+                cmp #$A0                     ;numpad key?
+                bcc LF7F6                    ;taken if not
+getNumpadASCIICode:
+                ; C=1 at this point
+                sbc #$31
+                adc numericKeypadInterpretation
+                eor #$80
+                ldx $028E
+                bne LF839
 LF7F6:
-                ldx $025A                    ; F7F6= AE 5A 02    .Z.
-                stx $FA                      ; F7F9= 86 FA       .z
-                rol $FA                      ; F7FB= 26 FA       &z
-                bpl LF806                    ; F7FD= 10 07       ..
-                ldx $ED                      ; F7FF= A6 ED       &m
+                ldx keyboardStatusByte
+                stx $FA
+                rol $FA
+                bpl LF806
+                ldx firstKeyPressedInternal
 LF801:
-                bne LF794                    ; F801= D0 91       P.
-                jsr implementCTRLCodes       ; F803= 20 36 F3     6s
+                bne resetAutoRepeatAndContinue
+                jsr implementCTRLCodes
 LF806:
-                rol $FA                      ; F806= 26 FA       &z
-                bmi LF811                    ; F808= 30 07       0.
-                jsr implementShift           ; F80A= 20 13 F3     .s
-                rol $FA                      ; F80D= 26 FA       &z
-                bra LF81D                    ; F80F= 80 0C       ..
+                rol $FA
+                bmi LF811
+                jsr implementShift
+                rol $FA
+                bra LF81D
 
 LF811:
-                rol $FA                      ; F811= 26 FA       &z
-                bmi LF822                    ; F813= 30 0D       0.
-                jsr isLetter                    ; F815= 20 71 EA     qj
-                bcs LF822                    ; F818= B0 08       0.
-                jsr implementShift           ; F81A= 20 13 F3     .s
+                rol $FA
+                bmi LF822
+                jsr isLetter
+                bcs LF822
+                jsr implementShift
 LF81D:
-                ldx $025A                    ; F81D= AE 5A 02    .Z.
-                bpl LF82D                    ; F820= 10 0B       ..
+                ldx keyboardStatusByte
+                bpl LF82D
 LF822:
-                rol $FA                      ; F822= 26 FA       &z
-                bpl LF82D                    ; F824= 10 07       ..
-                ldx $ED                      ; F826= A6 ED       &m
-                bne LF801                    ; F828= D0 D7       PW
-                jsr implementShift           ; F82A= 20 13 F3     .s
+                rol $FA
+                bpl LF82D
+                ldx firstKeyPressedInternal
+                bne LF801
+                jsr implementShift
 LF82D:
-                cmp $026C                    ; F82D= CD 6C 02    Ml.
-                bne LF839                    ; F830= D0 07       P.
-                ldx $0275                    ; F832= AE 75 02    .u.
-                bne LF839                    ; F835= D0 02       P.
-                stz $E7                      ; F837= 64 E7       dg
+                cmp $026C
+                bne LF839
+                ldx $0275
+                bne LF839
+                stz autoRepeatCountdownTimer
 LF839:
-                tay                          ; F839= A8          (
-                jsr LF9A6                    ; F83A= 20 A6 F9     &y
-                lda $0259                    ; F83D= AD 59 02    -Y.
-                bne LF845                    ; F840= D0 03       P.
+                tay
+                jsr LF9A6
+                lda $0259
+                bne keyboardRolloverChecks
                 jsr insertCharacterIntoKeyboardBuffer
-LF845:
-                ldx $ED                      ; F845= A6 ED       &m
-                beq LF852                    ; F847= F0 09       p.
-                jsr interrogateKeyboard                    ; F849= 20 80 F8     .x
-                stx $ED                      ; F84C= 86 ED       .m
-                bmi LF868                    ; F84E= 30 18       0.
-                stz $ED                      ; F850= 64 ED       dm
+keyboardRolloverChecks:
+                ldx firstKeyPressedInternal
+                beq LF852
+                jsr interrogateKeyboard
+                stx firstKeyPressedInternal
+                bmi LF868
+                stz firstKeyPressedInternal
 LF852:
-                ldy #$EC                     ; F852= A0 EC        l
-                jsr LF96C                    ; F854= 20 6C F9     ly
-                bmi LF862                    ; F857= 30 09       0.
-                lda $EC                      ; F859= A5 EC       %l
-                sta $ED                      ; F85B= 85 ED       .m
+                ldy #lastKeyPressedInternal
+                jsr LF96C
+                bmi LF862
+                lda lastKeyPressedInternal
+                sta firstKeyPressedInternal
 LF85D:
-                stx $EC                      ; F85D= 86 EC       .l
-                jsr LF875                    ; F85F= 20 75 F8     ux
+                stx lastKeyPressedInternal
+                jsr resetAutoRepeatCounters
 LF862:
-                jmp LF724                    ; F862= 4C 24 F7    L$w
+                jmp LF724
 
-LF865:
-                jsr interrogateKeyboard                    ; F865= 20 80 F8     .x
+keyPressedInterrupt:
+                jsr interrogateKeyboard
 LF868:
-                lda $EC                      ; F868= A5 EC       %l
-                bne LF862                    ; F86A= D0 F6       Pv
-                ldy #$ED                     ; F86C= A0 ED        m
-                jsr LF96C                    ; F86E= 20 6C F9     ly
-                bmi LF862                    ; F871= 30 EF       0o
-                bra LF85D                    ; F873= 80 E8       .h
+                lda lastKeyPressedInternal
+                bne LF862
+                ldy #firstKeyPressedInternal
+                jsr LF96C
+                bmi LF862
+                bra LF85D
 
-LF875:
-                ldx #$01                     ; F875= A2 01       ".
-                stx $E7                      ; F877= 86 E7       .g
-                ldx $0254                    ; F879= AE 54 02    .T.
-                stx $02CA                    ; F87C= 8E CA 02    .J.
-                rts                          ; F87F= 60          `
+resetAutoRepeatCounters:
+                ldx #$01
+                stx autoRepeatCountdownTimer
+                ldx $0254
+                stx keyboardFirstAutoRepeatCount
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -11299,82 +11318,124 @@ interrogateKeyboard: .proc
 
 ; Default keyboard table
 ; ======================
-LF892:
-                .text "q345"
-                .byte $84
-                .text "8"
-                .byte $87
-                .text "-^"
-                .byte $8C
-                .byte $B6
-                .byte $B7
-;     q345        f4       8        f7       -^      Left       k6       k7
+keyTranslationTable:
+                .text "q"                    ;10 q
+                .byte "3"                    ;11 3
+                .byte "4"                    ;12 4
+                .byte "5"                    ;13 5
+                .byte $84                    ;14 f4
+                .text "8"                    ;15 8
+                .byte $87                    ;16 f7
+                .text "-"                    ;17 minus
+                .text "^"                    ;18 caret
+                .byte $8C                    ;19 left
+                .byte $B6                    ;1a numpad_6
+                .byte $B7                    ;1b numpad_7
 osbyte92:
-                ldy $FC00,x
-                rts
-                .byte $80
-                .text "wet7i90_"
-                .byte $8E
-                .byte $B8
-                .byte $B9
-;     f0       wet7i90_      Down       k8       k9
+                ldy $FC00,x                  ;1c 1d 1e
+                rts                          ;1f
+
+                .cerror *-keyTranslationTable!=16,'oops'
+                .byte $80                    ;20 f0
+                .text "w"                    ;21 w
+                .text "e"                    ;22 e 
+                .text "t"                    ;23 t
+                .text "7"                    ;24 7
+                .text "i"                    ;25 i
+                .text "9"                    ;26 9
+                .text "0"                    ;27 0
+                .text "_"                    ;28 underline
+                .byte $8E                    ;29 down
+                .byte $B8                    ;2a numpad_8
+                .byte $B9                    ;2b numpad_9
 osbyte94:
-                ldy $FD00,x
-                rts
-                .text "12dr6uop["
-                .byte $8F
-                .byte $AB
-                .byte $AD
-                .byte $9D
-;     12dr6uop[        Up       k+       k-     kRet
+                ldy $FD00,x                  ;2c 2d 2e
+                rts                          ;2f
+                
+                .cerror *-keyTranslationTable!=32,'oops'
+                .text "1"                    ;30 1
+                .text "2"                    ;31 2
+                .text "d"                    ;32 d
+                .text "r"                    ;33 r
+                .text "6"                    ;34 6
+                .text "u"                    ;35 u
+                .text "o"                    ;36 o
+                .text "p"                    ;37 p
+                .text "["                    ;38 left_square_bracket
+                .byte $8F                    ;39 up
+                .byte $AB                    ;3a numpad_plus
+                .byte $AD                    ;3b numpad_minus
+                .byte $9D                    ;3c numpad_return
 LF8BF:
-                jmp (EVENTV)
-                .byte 1
-                .text "axfyjk@:"
-                .byte $0D
-                .byte $AF
-                .byte $FF
-                .byte $AE
-; caps       axfyjk@:       ret       k/     kDel       k.
+                jmp (EVENTV)                 ;3d 3e 3f
+                .cerror *-keyTranslationTable!=48,'oops'
+                .byte 1                      ;40 caps_lock
+                .text "a"                    ;41 a
+                .text "x"                    ;42 x
+                .text "f"                    ;43 f
+                .text "y"                    ;44 y
+                .text "j"                    ;45 j
+                .text "k"                    ;46 k
+                .text "@"                    ;47 at
+                .text ":"                    ;48 colon
+                .byte $0D                    ;49 return
+                .byte $AF                    ;4a numpad_divide
+                .byte $FF                    ;4b numpad_delete
+                .byte $AE                    ;4c numpad_stop
 call1MHzBusHook:
-                jmp ($FDFE)
-                .byte 2
-                .text "scghnl;]"
-                .byte $7F
-                .byte $A3
-                .byte $AA
-                .byte $AC
-; shlk       scghnl;]       del       k#       k*       k,
+                jmp ($FDFE)                  ;4d 4e 4f
+                
+                .cerror *-keyTranslationTable!=64,'oops'
+                .byte 2                      ;50 shift_lock
+                .text "s"                    ;51 s
+                .text "c"                    ;52 c
+                .text "g"                    ;53 g
+                .text "h"                    ;54 h
+                .text "n"                    ;55 n
+                .text "l"                    ;56 l
+                .text ";"                    ;57 semicolon
+                .text "]"                    ;58 right_square_bracket
+                .byte $7F                    ;59 delete
+                .byte $A3                    ;5a numpad_hash
+                .byte $AA                    ;5b numpad_multiply
+                .byte $AC                    ;5c numpad_comma
 callSEIWKA:
-                jmp (SEIWKA)
-                .byte 0
-                .text "z vbm,./"
-                .byte $8B
-                .byte $B0
-                .byte $B1
-                .byte $B3
-;  tab       z vbm,./      copy       k0       k1       k3
-                .byte 0
-                .byte 0
-                .byte 0
-                .byte 27
-                .byte $81
-                .byte $82
-                .byte $83
-                .byte $85
-                .byte $86
-                .byte $88
-                .byte $89
-                .byte $5C
-                .byte $8D
-                .byte $B4
-                .byte $B5
-                .byte $B2
-;   esc       f1       f2       f3       f5       f6       f8       f9        \    right       k4       k5       k2
+                jmp (SEIWKA)                 ;5d 5e 5f
+                .cerror *-keyTranslationTable!=80,'oops'
+                .byte 0                      ;60 tab
+                .text "z"                    ;61 z
+                .text " "                    ;62 space
+                .text "v"                    ;63 v
+                .text "b"                    ;64 b
+                .text "m"                    ;65 m
+                .text ","                    ;66 comma
+                .text "."                    ;67 stop
+                .text "/"                    ;68 divide
+                .byte $8B                    ;69 copy
+                .byte $B0                    ;6a numpad_0
+                .byte $B1                    ;6b numpad_1
+                .byte $B3                    ;6c numpad_3
+                .byte 0                      ;6d
+                .byte 0                      ;6e
+                .byte 0                      ;6f
+                .cerror *-keyTranslationTable!=96,'oops'
+                .byte 27                     ;70 escape
+                .byte $81                    ;71 f1
+                .byte $82                    ;72 f2
+                .byte $83                    ;73 f3
+                .byte $85                    ;74 f5
+                .byte $86                    ;75 f6
+                .byte $88                    ;76 f8
+                .byte $89                    ;77 f9
+                .byte $5C                    ;78 backslash
+                .byte $8D                    ;79 right
+                .byte $B4                    ;7a numpad_4
+                .byte $B5                    ;7b numpad_5
+                .byte $B2                    ;7c numpad_2
 LF8FF:
-                bit valueFF                    ; Set V
-callKEYV:                                    ;f902
-                jmp (KEYV)                  ; Jump to KEYV
+                bit valueFF                  ; Set V
+callKEYV:                                    
+                jmp (KEYV)                   ; Jump to KEYV
 
 ;-------------------------------------------------------------------------
 ;
@@ -11394,8 +11455,8 @@ osbyte83:
 ; MasRef D.2-33
 ;
 osbyte78:                          ;f90b
-                sty $EC                      ; F90B= 84 EC       .l
-                stx $ED                      ; F90D= 86 ED       .m
+                sty lastKeyPressedInternal                      ; F90B= 84 EC       .l
+                stx firstKeyPressedInternal                      ; F90D= 86 ED       .m
                 rts                          ; F90F= 60          `
 
 ;-------------------------------------------------------------------------
@@ -11412,15 +11473,15 @@ osbyte7A:
 
 ;-------------------------------------------------------------------------
 
-LF916:
+scanKeyboard:
                 txa                          ; F916= 8A          .
                 bpl LF923                    ; F917= 10 0A       ..
                 jsr interrogateKeyboard                    ; F919= 20 80 F8     .x
-LF91C:
-                lda #$0B                     ; F91C= A9 0B       ).
-                sta systemVIA.orb            ; F91E= 8D 40 FE    .@~
-                txa                          ; F921= 8A          .
-                rts                          ; F922= 60          `
+enableKeyboardScanning:
+                lda #8|3                     ;set latch B3 - auto scan mode
+                sta systemVIA.orb            ;set auto scan mode
+                txa      
+                rts
 
 LF923:
                 stx $02CB                    ; F923= 8E CB 02    .K.
@@ -11456,7 +11517,7 @@ LF964:
                 dex                          ; F964= CA          J
                 bpl LF937                    ; F965= 10 D0       .P
                 ldx $02CC                    ; F967= AE CC 02    .L.
-                bra LF91C                    ; F96A= 80 B0       .0
+                bra enableKeyboardScanning                    ; F96A= 80 B0       .0
 
 LF96C:
                 ldx #$0C                     ; F96C= A2 0C       ".
@@ -11490,7 +11551,7 @@ LF99C:
                 bcc LF98E                    ; F9A3= 90 E9       .i
                 tax                          ; F9A5= AA          *
 LF9A6:
-                jsr LF91C                    ; F9A6= 20 1C F9     .y
+                jsr enableKeyboardScanning                    ; F9A6= 20 1C F9     .y
                 cli                          ; F9A9= 58          X
                 sei                          ; F9AA= 78          x
                 txa                          ; F9AB= 8A          .

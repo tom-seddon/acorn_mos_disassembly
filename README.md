@@ -153,4 +153,3 @@ There's 1.5 KB of MOS code at the end, which is included in this repo.
 ## ViewSheet
 
 Nobody appears to have disassembled ViewSheet.
-\

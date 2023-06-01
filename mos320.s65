@@ -83,6 +83,7 @@ goodString=$01
 stringInputPlingFlag=$e5        ;bit 7 set if last char was '!'
 readCharacterTimedFlag=$e6
 autoRepeatCountdownTimer=$e7
+tapeCritical=$eb
 lastKeyPressedInternal=$ec
 firstKeyPressedInternal=$ed
 stringInputBufferAddress=$f2    ;word
@@ -136,6 +137,7 @@ eventESCAPEPressed=6
 eventRS423Error=7
 eventNetworkError=8
 eventUser=9
+eventMax=9
 
 ;-------------------------------------------------------------------------
 
@@ -153,9 +155,11 @@ bufferSoundChannel0=4
 bufferSoundChannel1=5
 bufferSoundChannel2=6
 bufferSoundChannel3=7
-                
-; What's buffer 8? There's indices allocated for it...
+; What's buffer 8? Previously speech on OS 1.20. There's indices
+; allocated for it...
+bufferMax=8
 
+                
 bufferKeyboardAddress=$03e0
 bufferKeyboardSize=32
 bufferRS423InputAddress=$0a00
@@ -616,10 +620,23 @@ tubePresence: .fill 1
 speechSystemByte2: .fill 1
 
 ; OSBYTE 236 (&EC) Read/write character destination status [MasRef D.2-77]
-characterDestinationStatus: .fill 1
+characterDestinationStatus: .block
+                .fill 1
+rs423_enable=1
+vdu_disable=2
+printer_disable=4               ;printer always off
+printer_enable=8                ;printer always on
+spool_disable=16
+printer_maybe=64                ;printer on when VDU 1 only
+                .endblock
 
 ; OSBYTE 237 (&ED) Read/write cursor editing status [MasRef D.2-77]
-cursorEditingStatus: .fill 1
+editKeysMode: .block
+editKeys=0                      ;edit keys do editing
+asciiKeys=1                     ;edit keys are ASCII 135-139
+functionKeys=2                  ;edit keys are F keys 11-15
+                .fill 1
+                .endblock
 
 ; OSBYTE 238 (&EE) Read/write numeric keypad [MasRef D.2-78]
 numericKeypadInterpretation: .fill 1
@@ -700,8 +717,15 @@ romInformationTable=$2a1
 inkeyTimeoutCounter=$2b1
 adcResultLSBs=$2b6
 adcResultMSBs=$2ba
+adcLastChannelRead=$2be
+eventEnabledFlags=$2bf
 currentSoftKey=$02c9
 keyboardFirstAutoRepeatCount=$02ca
+previousKeyPressedWhenReadingLastKey=$2cb
+previousKeyPressedWhenReadingFirstKey=$2cc
+previousKeyPressedWhenReadingOSBYTE=$2cd
+soundIsUpdatingFlag=$2ce
+bufferEmptyFlags=$2cf
 adcLastConvertedChannel=$2be
 printerDriverDormant=$2d1        ;bit 7 set if printer driver dormant,
                                  ;clear if active
@@ -1028,7 +1052,7 @@ isColourECF: .fill 1
 isForegroundECF: .fill 1
 ; &6B 1 0 if graphics background colour is solid, non-zero if background colour is an ECF
 isBackgroundECF: .fill 1
-; &6C 1 Top bit set when cursor is in “column 81”.
+; &6C 1 Top bit set when cursor is in "column 81".
 column81: .fill 1
 ; &6D 1 Current graphics foreground colour (as set by VDU 18).
 foregroundGraphicsColour: .fill 1

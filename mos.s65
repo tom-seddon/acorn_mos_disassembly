@@ -156,11 +156,11 @@ LC024:
 ; 
 outputToVDU:
                 ldx vduQueueNegativeLength  ;get VDU queue length
-                beq outputCharToVDU                    ;taken if empty
-                sta vduv.queueEnd-1-255,x     ;add to queue
+                beq outputCharToVDU         ;taken if empty
+                sta vduv.queueEnd-1-255,x   ;add to queue
                 inc vduQueueNegativeLength  ;one more in the queue...
-                beq outputQueueToVDU    ;taken if queue now filled
-clcThenRTSC034:
+                beq outputQueueToVDU        ;taken if queue now filled
+clc_rts_c034:
                 clc
 
 ;-------------------------------------------------------------------------
@@ -184,10 +184,10 @@ outputQueueToVDU:
                 ; ????
                 ldy vduv.jumpVector+1
                 cpy #>vdu1EntryPoint
-                bne clcThenRTSC034
+                bne clc_rts_c034
                 ldy vduv.jumpVector+0
                 cpy #<vdu1EntryPoint
-                bne clcThenRTSC034
+                bne clc_rts_c034
                 
 outputCharToPrinter:
                 tax                          ;save char to print
@@ -1051,7 +1051,7 @@ vdu5EntryPoint:
                 lda $0361                    ; C52D= AD 61 03    -a.
                 beq LC52C                    ; C530= F0 FA       pz
                 lda #$20                     ; C532= A9 20       )
-                jsr hideCursor               ; C534= 20 53 CF     SO
+                jsr setCRTCRegister10               ; C534= 20 53 CF     SO
                 bra LC51B                    ; C537= 80 E2       .b
 
 ;-------------------------------------------------------------------------
@@ -2422,7 +2422,7 @@ LCC2C:
                 and #$7F                     ;
                 sta ZTEMPD+1
                 ora ZTEMPD+0
-                beq clvThenRTS
+                beq clv_rts
                 php
                 sec
                 lda vduv.workspace._28
@@ -2436,7 +2436,7 @@ LCC2C:
 
 ;-------------------------------------------------------------------------
 
-clvThenRTS:
+clv_rts:
                 clv                          ; CC55= B8          8
 rtsCC56:
                 rts                          ; CC56= 60          `
@@ -3023,7 +3023,7 @@ vdu23_1_EntryPoint:
                 jmp (LCF3C,x)
 
 LCF3C:
-                .word hideCursor            ; 23,1,0... - hide
+                .word setCRTCRegister10            ; 23,1,0... - hide
                 .word showCursor            ; 23,1,1... - show
                 .word steadyCursor          ; 23,1,2... - steady
                 .word slowFlashCursor       ; 23,1,3... - flash slowly
@@ -3038,7 +3038,7 @@ slowFlashCursor:
                 tsb vduv.lastCursorStartRegisterValue ;slow blink cursor
 showCursor:
                 lda vduv.lastCursorStartRegisterValue
-hideCursor:
+setCRTCRegister10:
                 ldy #$0A
                 bra setCRTCRegisterRaw
 
@@ -3387,15 +3387,15 @@ handleColumn81:
                 phx
                 jsr testVDU5State
                 sec
-                bne plxThenPLAThenRTS        ;taken if VDU5
+                bne plx_pla_rts        ;taken if VDU5
                 clc
                 bit vduv.column81
-                bpl plxThenPLAThenRTS        ;taken if not column 81
+                bpl plx_pla_rts        ;taken if not column 81
                 php
                 jsr vdu13EntryPoint          ;CR
                 jsr vdu10EntryPoint          ;LF
                 plp
-plxThenPLAThenRTS:
+plx_pla_rts:
                 plx                          ; D143= FA          z
                 pla                          ; D144= 68          h
 rtsD145:
@@ -5506,13 +5506,13 @@ shouldFillByte:
                 pha                
                 lda zhlfw.pixelsX+1
                 sbc #$00           
-                bcc plaThenRTS               ;taken if past X=0
+                bcc pla_rts_DD83             ;taken if past X=0
                 sta zhlfw.pixelsX+1
                 pla
                 sta zhlfw.pixelsX+0
                 rts                
 
-plaThenRTS:
+pla_rts_DD83:
                 pla                
 rtsDD84:
                 rts                
@@ -5883,115 +5883,133 @@ LDF1F:
                 ldx ZTEMP+0 ;get scanline in row
                 jsr setupColourMasks
                 ldy vduv.graphicsAddressOffset
-LDF3E:
+ldaim00_rts_DF3E:
                 lda #$00                     ;return with Z=1, as per WIND
                 rts                          ; DF40= 60          `
 
 ;-------------------------------------------------------------------------
 
 LDF41:
-                jsr gaddrEntryPoint                    ; DF41= 20 C8 DE     H^
-                phx                          ; DF44= DA          Z
-                ldx #$00                     ; DF45= A2 00       ".
-                lda $035A                    ; DF47= AD 5A 03    -Z.
-                cmp #$04                     ; DF4A= C9 04       I.
-                bcs LDF59                    ; DF4C= B0 0B       0.
-                ldx $036A                    ; DF4E= AE 6A 03    .j.
-                lda $0359                    ; DF51= AD 59 03    -Y.
-                beq LDF59                    ; DF54= F0 03       p.
-                ldx $036B                    ; DF56= AE 6B 03    .k.
+                jsr gaddrEntryPoint
+                phx
+                ldx #$00
+                lda $035A
+                cmp #$04
+                bcs LDF59
+                ldx $036A
+                lda $0359
+                beq LDF59
+                ldx $036B
 LDF59:
-                stx $0369                    ; DF59= 8E 69 03    .i.
-                plx                          ; DF5C= FA          z
-                rts                          ; DF5D= 60          `
+                stx $0369
+                plx
+                rts
 
-LDF5E:
+;-------------------------------------------------------------------------
+
+handleCopyKey:
                 lda #STATE.isVDU5
-                bit STATE                      
-                bvc LDF3E                      ;taken if not cursor editing
-                bne LDF3E                    ;taken if VDU5
+                bit STATE
+                bvc ldaim00_rts_DF3E      ;taken if not cursor editing
+                bne ldaim00_rts_DF3E      ;taken if VDU5
                 jsr readCharacterAtTextCursor
-                beq LDF77                    ; DF69= F0 0C       p.
-                pha                          ; DF6B= 48          H
-                jsr LDFD5                    ; DF6C= 20 D5 DF     U_
-                bne LDF76                    ; DF6F= D0 05       P.
-                lda #$09                     ; DF71= A9 09       ).
-                jsr LDFBC                    ; DF73= 20 BC DF     <_
-LDF76:
-                pla                          ; DF76= 68          h
-LDF77:
-                rts                          ; DF77= 60          `
+                beq rtsDF77              ;taken if char not recognised
+                pha                      ;save char recognised
+                jsr isCursorEditingPossible
+                bne pla_rts_DF76
+                lda #$09
+                jsr moveEditCursor
+pla_rts_DF76:
+                pla
+rtsDF77:
+                rts
 
-LDF78:
-                pha                          ; DF78= 48          H
-                jsr LDFD5                    ; DF79= 20 D5 DF     U_
-                bne LDF76                    ; DF7C= D0 F8       Px
-                bvs LDF96                    ; DF7E= 70 16       p.
-                lda $035F                    ; DF80= AD 5F 03    -_.
-                and #$DF                     ; DF83= 29 DF       )_
-                jsr hideCursor               ; DF85= 20 53 CF     SO
+;-------------------------------------------------------------------------
+;
+; Handle cursor key press.
+;
+; Entry: A = one of the cursor key codes:
+;            $88 = left
+;            $89 = right
+;            $8a = down
+;            $8b = up
+
+handleCursorKey:
+                pha                          ;save cursor key code
+                jsr isCursorEditingPossible
+                bne pla_rts_DF76             ;bail if editing not possible
+                bvs editing                  ;taken if already editing
+beginEditing:
+                lda vduv.lastCursorStartRegisterValue
+                and #%11011111
+                jsr setCRTCRegister10        ;hide cursor
                 ldx #VDUVariables.textCursorXPosition
                 ldy #VDUVariables.editCursorXPosition
-                jsr copyTwoBytesWithinVDUVariables                    ; DF8C= 20 0C C9     .I
-                jsr activateEditCursor                    ; DF8F= 20 05 C1     .A
-                lda #$02                     ; DF92= A9 02       ).
-                tsb STATE                      ; DF94= 04 D0       .P
-LDF96:
-                pla                          ; DF96= 68          h
-                and #$7F                     ; DF97= 29 7F       ).
-                sta $DA                      ; DF99= 85 DA       .Z
-                cmp #$0A                     ; DF9B= C9 0A       I.
-                bcs LDFAD                    ; DF9D= B0 0E       0.
-                lda $0366                    ; DF9F= AD 66 03    -f.
-                lsr a                        ; DFA2= 4A          J
-                and #$05                     ; DFA3= 29 05       ).
-                bit #$04                     ; DFA5= 89 04       ..
-                beq LDFBA                    ; DFA7= F0 11       p.
-                eor #$07                     ; DFA9= 49 07       I.
-                bra LDFBA                    ; DFAB= 80 0D       ..
+                jsr copyTwoBytesWithinVDUVariables ;edit cursor pos =
+                                                   ;text cursor pos
+                jsr activateEditCursor
+                lda #STATE.isScrollingDisabled
+                tsb STATE
+editing:
+                pla                          ;restore cursor key code
 
-LDFAD:
-                lda $0366                    ; DFAD= AD 66 03    -f.
-                lsr a                        ; DFB0= 4A          J
-                lsr a                        ; DFB1= 4A          J
-                and #$03                     ; DFB2= 29 03       ).
-                bit #$02                     ; DFB4= 89 02       ..
-                beq LDFBA                    ; DFB6= F0 02       p.
-                eor #$01                     ; DFB8= 49 01       I.
-LDFBA:
-                eor $DA                      ; DFBA= 45 DA       EZ
-LDFBC:
-                tay                          ; DFBC= A8          (
-                lda #$40                     ; DFBD= A9 40       )@
-                trb STATE                      ; DFBF= 14 D0       .P
-                tya                          ; DFC1= 98          .
-LDFC2:
-                ldx $036C                    ; DFC2= AE 6C 03    .l.
-LDFC5:
-                phx                          ; DFC5= DA          Z
-LDFC6:
-                lsr $036C                    ; DFC6= 4E 6C 03    Nl.
-LDFC9:
-                jsr outputToVDU
-LDFCC:
-                pla                          ; DFCC= 68          h
-LDFCD:
-                sta $036C                    ; DFCD= 8D 6C 03    .l.
-                lda #$40                     ; DFD0= A9 40       )@
-                tsb STATE                      ; DFD2= 04 D0       .P
-LDFD4:
-                rts                          ; DFD4= 60          `
+                ; Form appropriate VDU command (8/9/10/11) for the
+                ; key, assuming no VDU axis rearrangement.
+                and #$7F
+                sta ZTEMP                    ;save VDU command
 
-LDFD5:
-                ldx vduQueueNegativeLength                    ; DFD5= AE 6A 02    .j.
-LDFD8:
-                bne LDFDE                    ; DFD8= D0 04       P.
-LDFDA:
-                lda #$A0                     ; DFDA= A9 A0       )
-LDFDC:
-                bit STATE                      ; DFDC= 24 D0       $P
-LDFDE:
-                rts                          ; DFDE= 60          `
+                ; Adjust VDU command based on axis swap/inversion. 
+                cmp #$0A
+                bcs handleCursorUpOrDown     ;taken if up/down
+handleCursorLeftOrRightOrCopy:
+                lda vduv.cursorFlags
+                lsr a
+                and #(vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertHorizontal)>>1
+                bit #vduv.cursorFlags.swapAxes>>1
+                beq gotActualMoveCommand
+
+                eor #(vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal)>>1
+                bra gotActualMoveCommand
+
+handleCursorUpOrDown:
+                lda vduv.cursorFlags
+                lsr a               
+                lsr a
+                and #(vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical)>>2 ;000000SV
+                bit #vduv.cursorFlags.swapAxes>>2
+                beq gotActualMoveCommand
+                
+                eor #vduv.cursorFlags.invertVertical>>2
+gotActualMoveCommand:
+                eor ZTEMP
+moveEditCursor:
+                tay                          ;save command
+                lda #STATE.isCursorEditing
+                trb STATE            ;temporarily disable edit mode
+                tya                  ;restore command
+                ldx vduv.column81
+                phx                  ;save old column 81 flag
+                lsr vduv.column81    ;temporarily reset column 81 flag
+                jsr outputToVDU      ;print the cursor movement command
+                pla                  
+                sta vduv.column81            ;restore column 81 flag
+                lda #STATE.isCursorEditing
+                tsb STATE                    ;reinstate edit mode
+                rts
+
+; Check if cursor editing is possible.
+;
+; Exit: Z=1 - editing is possible
+;             V reflects current STATE.isCursorEditing bit
+;       Z=0 - editing not possible
+isCursorEditingPossible:
+                ldx vduQueueNegativeLength
+                bne +                        ;return with Z=0 if VDU
+                                             ;queue not empty
+                lda #STATE.isVDU21|STATE.isVDU5
+                bit STATE   ;return with Z=0 if neither VDU21 nor VDU5
++
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -6649,7 +6667,7 @@ LE279:
                 tay                          ;Y = Y position
                 lda #vduv.cursorFlags.swapAxes
                 bit vduv.cursorFlags
-                beq plxThenRTS ;taken if axes unswapped - so X = X position, Y = Y position
+                beq plx_rts ;taken if axes unswapped - so X = X position, Y = Y position
                 ply                          ;Y = Y position, X = X position
                 rts                          
 
@@ -6704,7 +6722,7 @@ getDefaultBoundsForCurrentScreenMODE:
                 ldy modeMaxColumn,x          ;Y = max column
                 phy                          ;save max column
                 ldy modeMaxRow,x             ;Y = max row
-plxThenRTS:
+plx_rts:
                 plx                          ;X = max column
                 rts
 
@@ -6899,7 +6917,7 @@ valueFF:        .byte $FF                    ;userVIAInterruptMask
                 .byte $00                    ;tubePresence
                 .byte $00                    ;speechSystemByte2
                 .byte $00                    ;characterDestinationStatus
-                .byte $00                    ;cursorEditingStatus
+                .byte editKeysMode.editKeys  ;editKeysMode
                 .byte $30                    ;numericKeypadInterpretation
                 .byte $01                    ;shadowRAMState
                 .byte $00                    ;countryFlag
@@ -7385,7 +7403,7 @@ LE5D4:
                 ror $024F                    ; E5D5= 6E 4F 02    nO.
                 bit $0250                    ; E5D8= 2C 50 02    ,P.
                 bpl LE5E4                    ; E5DB= 10 07       ..
-                jsr LED27                    ; E5DD= 20 27 ED     'm
+                jsr getRS423InputBufferFreeBytes                    ; E5DD= 20 27 ED     'm
                 ldx #$00                     ; E5E0= A2 00       ".
                 bcs LE5E6                    ; E5E2= B0 02       0.
 LE5E4:
@@ -7401,7 +7419,7 @@ LE5E9:
                 bne LE5FE                    ; E5F3= D0 09       P.
                 inx                          ; E5F5= E8          h
                 jsr osbyte99                    ; E5F6= 20 80 EA     .j
-                jsr LED27                    ; E5F9= 20 27 ED     'm
+                jsr getRS423InputBufferFreeBytes                    ; E5F9= 20 27 ED     'm
                 bcc LE5E4                    ; E5FC= 90 E6       .f
 LE5FE:
                 rts                          ; E5FE= 60          `
@@ -7727,45 +7745,46 @@ printBRKMessage:
 
 ;-------------------------------------------------------------------------
 
-LE7B1:
+osbyte81Timed:
                 stx inkeyTimeoutCounter+0
                 sty inkeyTimeoutCounter+1
-                ror readCharacterTimedFlag
+                ror readCharacterTimedFlag   ;set the timed flag
                 cli
                 bra osrdchWithTimeout
 
 ;-------------------------------------------------------------------------
 
 osrdchEntryPoint:
-                stz $E6
+                stz readCharacterTimedFlag   ;clear the timed flag
 osrdchWithTimeout:
                 phx
                 phy
                 ldy execFileHandle
                 beq osrdchLoop               ;taken if not *EXEC'ing
                 sec
-                ror $EB
-                jsr OSBGET
-                stz $EB
-                bcc LE7F3
-                lda #$00
-                stz execFileHandle
-                jsr OSFIND
+                ror tapeCritical
+                jsr OSBGET             ;get 1 byte from the *EXEC file
+                stz tapeCritical
+                bcc osrdchDone                    ;taken if byte valid
+                lda #$00                     ;OSFIND close file
+                stz execFileHandle           ;reset *EXEC handle
+                jsr OSFIND                   ;close *EXEC file
 osrdchLoop:
-                lda escapeFlag
+                lda escapeFlag               ;b7 set if ESCAPE pressed
                 asl a                        ;C=1 if ESCAPE pressed
                 lda #27                      ;ASCII for ESCAPE
-                bcs LE7F3                    ;taken if ESCAPE pressed
+                bcs osrdchDone               ;exit with C=1 if ESCAPE
+                                             ;pressed
                 ldx inputSource
-                jsr LEAFD                    ;handle Econet/soft key stuff???
-                bcc LE7F3
-                bit $E6
-                bpl osrdchLoop
+                jsr readFromEconetOrSoftKeyOrInputBufferA                    ;handle Econet/soft key stuff???
+                bcc osrdchDone
+                bit readCharacterTimedFlag
+                bpl osrdchLoop     ;taken if no timeout - keep looping
                 lda inkeyTimeoutCounter+1
                 ora inkeyTimeoutCounter+0
-                bne osrdchLoop
-                dec a
-LE7F3:
+                bne osrdchLoop     ;taken if timeout not timed out yet
+                dec a              ;timed out: A=$ff, C=1
+osrdchDone:
                 ply
                 plx
                 rts
@@ -7879,7 +7898,7 @@ LE86E:
                 pha                          ; E87F= 48          H
                 jsr osbyte98                    ; E880= 20 EF E9     oi
                 bcc LE888                    ; E883= 90 03       ..
-                jsr LE908                    ; E885= 20 08 E9     .i
+                jsr clearRS423BusyAndSetRS423Active                    ; E885= 20 08 E9     .i
 LE888:
                 pla                          ; E888= 68          h
                 ldx #$02                     ; E889= A2 02       ".
@@ -7950,18 +7969,18 @@ LE8D5:
                 rts                          ; E8FC= 60          `
 
 LE8FD:
-                dec a                        ; E8FD= 3A          :
-                bne activatePrinterDriver                    ; E8FE= D0 29       P)
-                ldy $EA                      ; E900= A4 EA       $j
-                dey                          ; E902= 88          .
-                bpl LE959                    ; E903= 10 54       .T
-                lsr $02D1                    ; E905= 4E D1 02    NQ.
-LE908:
-                lsr $024F                    ; E908= 4E 4F 02    NO.
-LE90B:
-                jsr LED27                    ; E90B= 20 27 ED     'm
-                bcc rtsE928                    ; E90E= 90 18       ..
-                ldx #ACIA.control.rtsLowTXInterruptEnabled ;TODO - $20 - is this right?
+                dec a
+                bne activatePrinterDriver
+                ldy $EA
+                dey
+                bpl LE959
+                lsr $02D1
+clearRS423BusyAndSetRS423Active:
+                lsr rs423Busy
+setRS423Active:
+                jsr getRS423InputBufferFreeBytes
+                bcc rtsE928
+                ldx #ACIA.control.rtsLowTXInterruptEnabled
 resetACIA:
                 ldy #ACIA.control.rtsRTSInterruptEnabled|ACIA.control.word8DataOddParity1Stop|ACIA.control.reset
 
@@ -8018,47 +8037,54 @@ callPrinterDriver:
                 jmp (UPTV)                  ; E942= 6C 22 02    l".
 
 ;-------------------------------------------------------------------------
-
-osbyte0F:                       ;e945
-                bne LE956                    ; E945= D0 0F       P.
+;
+; OSBYTE 15 (&0F) Flush buffer
+; 
+osbyte0F:
+                bne LE956
 LE947:
-                ldx #$08                     ; E947= A2 08       ".
+                ldx #$08
 LE949:
-                cli                          ; E949= 58          X
-                sei                          ; E94A= 78          x
+                cli
+                sei
                 jsr osbyte15
-                dex                          ; E94E= CA          J
-                bpl LE949                    ; E94F= 10 F8       .x
+                dex
+                bpl LE949
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 21 (&15) Flush selected buffer
+; 
 osbyte15:                                    ;e951
-                cpx #$09                     ; E951= E0 09       `.
-                bcc LE959                    ; E953= 90 04       ..
-                rts                          ; E955= 60          `
+                cpx #bufferMax+1
+                bcc LE959
+                rts
 
 LE956:
-                ldx $0241                    ; E956= AE 41 02    .A.
+                ldx inputSource
 LE959:
-                clc                          ; E959= 18          .
+                clc
 LE95A:
-                pha                          ; E95A= 48          H
-                php                          ; E95B= 08          .
-                sei                          ; E95C= 78          x
-                bcs LE967                    ; E95D= B0 08       0.
-                txa                          ; E95F= 8A          .
-                and #$04                     ; E960= 29 04       ).
-                beq LE967                    ; E962= F0 03       p.
-                jsr LF55D                    ; E964= 20 5D F5     ]u
+                pha
+                php
+                sei
+                bcs LE967
+                txa
+                and #$04                     ;buffer 4-7?
+                beq LE967                    ;taken if not sound buffer
+                jsr LF55D
 LE967:
-                sec                          ; E967= 38          8
-                ror $02CE,x                  ; E968= 7E CE 02    ~N.
-                cpx #$02                     ; E96B= E0 02       `.
-                bcs LE975                    ; E96D= B0 06       0.
-                stz $0268                    ; E96F= 9C 68 02    .h.
-                stz vduQueueNegativeLength                    ; E972= 9C 6A 02    .j.
+                sec
+                ror bufferEmptyFlags-1,x
+                cpx #bufferFirstOutput
+                bcs LE975                    ;taken if output buffer
+                stz softKeyStringLength
+                stz vduQueueNegativeLength
 LE975:
-                jsr purgeBufferViaCNPV                    ; E975= 20 21 ED     !m
-                plp                          ; E978= 28          (
-                pla                          ; E979= 68          h
-                rts                          ; E97A= 60          `
+                jsr purgeBufferViaCNPV
+                plp
+                pla
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -8204,13 +8230,13 @@ bufferIndex0Offsets:
 ;
 ; exit:
 ;
-; ($FA) = buffer base address
+; (SEIWKA) = buffer base address
 ;
 getBufferBaseAddress:
                 lda bufferBaseAddressLSBs,x
-                sta $FA
+                sta SEIWKA
                 lda bufferBaseAddressMSBs,x
-                sta $FB
+                sta SEIWKB
                 rts
 
 ;-------------------------------------------------------------------------
@@ -8225,25 +8251,29 @@ osbyte98:
 ;
 ; OSBYTE 145 (&91) Get character from buffer [MasRef D.2-45]
 ;
+; X = buffer number
 osbyte91:
-                clv         
+                clv                          ;remove
 callREMV:
                 jmp (REMV)  
 
 ;-------------------------------------------------------------------------
 ;
 ; Buffer remove entry point. [AUG p263]
+;
+; Even in remove mode, A is the character removed on exit. Some of the
+; other MOS routines rely on this.
 ; 
 remEntryPoint:
                 php
                 sei
                 lda bufferStartIndices,x
                 cmp bufferEndIndices,x
-                beq insOrRemDoneWithFailure  ;taken if buffer empty
+                beq plp_sec_rts  ;taken if buffer empty
                 tay                          ;Y=start index
                 jsr getBufferBaseAddress
-                lda ($FA),y                  ;get byte from buffer
-                bvs remDone                    ;taken if only looking
+                lda (SEIWKA),y               ;get byte from buffer
+                bvs tay_plp_clc_rts                  ;taken if only looking
                 pha                          ;save buffered byte
                 iny                          ;next char in buffer
                 tya                          ;set Z if wrap
@@ -8254,19 +8284,20 @@ remEntryPoint:
 
                 ; Issue output buffer empty event when appropriate.
                 cpx #bufferFirstOutput
-                bcc LEA23 ;taken if keyboard or RS423 input - i.e., buffer is input
+                bcc pla_tay_plp_clc_rts ;taken if keyboard or RS423
+                                        ;input - i.e., buffer is input
                 cmp bufferEndIndices,x       ;buffer now empty?
-                bne LEA23                    ;taken if not empty
+                bne pla_tay_plp_clc_rts           ;taken if not empty
                 ldy #eventOutputBufferEmpty
                 jsr eventEntryPoint
-LEA23:
-                pla                          ; EA23= 68          h
-remDone:
-                tay                          ; EA24= A8          (
-insOrRemDoneWithSuccess:
-                plp                          ; EA25= 28          (
-                clc                          ; EA26= 18          .
-                rts                          ; EA27= 60          `
+pla_tay_plp_clc_rts:
+                pla                          ;restore buffered byte
+tay_plp_clc_rts:
+                tay                          ;Y=buffered byte
+plp_clc_rts:
+                plp
+                clc
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -8276,13 +8307,13 @@ eventEntryPoint:
                 php                          
                 sei                          
                 pha                          
-                lda $02BF,y                  
-                beq LEA6D                    
+                lda eventEnabledFlags,y      ;is the event enabled?
+                beq pla_plp_sec_rts                    ;
                 tya                          
                 ply                          
                 phy                          
                 jsr LF8BF                    
-                bra LEA23                    
+                bra pla_tay_plp_clc_rts                    
 
 ;-------------------------------------------------------------------------
 ;
@@ -8314,8 +8345,8 @@ callINSV:
 insEntryPoint:
                 php
                 sei
-                pha
-                lda bufferEndIndices,x
+                pha                          ;save value to insert
+                lda bufferEndIndices,x       ;get buffer index
                 inc a                        ;bump index
                 bne +          ;taken if index hasn't wrapped around
                 lda bufferIndex0Offsets,x        ;reset index due to wrap
@@ -8325,24 +8356,24 @@ insEntryPoint:
                 ldy bufferEndIndices,x       ;note old buffer end
                 sta bufferEndIndices,x       ;update buffer end
                 jsr getBufferBaseAddress
-                pla
-                sta ($FA),y                  ;store byte in buffer
-                bra insOrRemDoneWithSuccess
+                pla                          ;restore value to insert
+                sta (SEIWKA),y               ;store byte in buffer
+                bra plp_clc_rts              ;done
 
 bufferFull
                 ; Issue input buffer full event when appropriate.
                 pla                          
                 cpx #bufferFirstOutput
-                bcs insOrRemDoneWithFailure  ;taken if output buffer
+                bcs plp_sec_rts  ;taken if output buffer
                 ldy #eventInputBufferFull
-                jsr eventEntryPoint                    ; EA69= 20 28 EA     (j
-                pha                          ; EA6C= 48          H
-LEA6D:
-                pla                          ; EA6D= 68          h
-insOrRemDoneWithFailure:
-                plp                          ; EA6E= 28          (
-                sec                          ; EA6F= 38          8
-                rts                          ; EA70= 60          `
+                jsr eventEntryPoint
+                pha
+pla_plp_sec_rts:
+                pla
+plp_sec_rts:
+                plp
+                sec
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -8398,123 +8429,124 @@ osbyte99Done:
 
 ;-------------------------------------------------------------------------
 
-LEAA2:
-                ror a                        ; EAA2= 6A          j
-                pla                          ; EAA3= 68          h
-                bcs clcThenRTSEABD                    ; EAA4= B0 17       0.
-LEAA6:
-                tya                          ; EAA6= 98          .
-                and #$0F                     ; EAA7= 29 0F       ).
-                pha                          ; EAA9= 48          H
-                tya                          ; EAAA= 98          .
-                lsr a                        ; EAAB= 4A          J
-                lsr a                        ; EAAC= 4A          J
-                lsr a                        ; EAAD= 4A          J
-                lsr a                        ; EAAE= 4A          J
-                eor #$04                     ; EAAF= 49 04       I.
-                tay                          ; EAB1= A8          (
-                lda $0265,y                  ; EAB2= B9 65 02    9e.
-                lsr a                        ; EAB5= 4A          J
-                beq LEB32                    ; EAB6= F0 7A       pz
-                pla                          ; EAB8= 68          h
-                clc                          ; EAB9= 18          .
-                adc $0265,y                  ; EABA= 79 65 02    ye.
-clcThenRTSEABD:
-                clc                          ; EABD= 18          .
-                rts                          ; EABE= 60          `
+; A = 0 (edit keys)/1 (ascii keys)/2 (F keys)
+handleCursorKeysAndCopy:
+                ror a                        ;test edit keys mode bit 0
+                pla                          ;restore translated value
+                bcs clc_rts_EABD       ;taken if value was asciiKeys
+handleFunctionKey:
+                tya
+                and #$0F
+                pha
+                tya
+                lsr a
+                lsr a
+                lsr a
+                lsr a
+                eor #$04
+                tay
+                lda input192To207Interpretation-8,y
+                lsr a
+                beq LEB32
+                pla
+                clc
+                adc input192To207Interpretation-8,y
+clc_rts_EABD:
+                clc
+                rts
 
 ;-------------------------------------------------------------------------
 
-LEABF:
-                jsr vdu7EntryPoint           ; EABF= 20 B6 EF     6o
-                plx                          ; EAC2= FA          z
-LEAC3:
-                jsr osbyte91                    ; EAC3= 20 F4 E9     ti
-                bcs rtsEB28                    ; EAC6= B0 60       0`
-                pha                          ; EAC8= 48          H
-                cpx #$01                     ; EAC9= E0 01       `.
-                bne LEAD3                    ; EACB= D0 06       P.
-                jsr LE90B                    ; EACD= 20 0B E9     .i
-                sec                          ; EAD0= 38          8
-                ldx #$01                     ; EAD1= A2 01       ".
+copyCharNotRecognised:
+                jsr vdu7EntryPoint           ;beep
+                plx
+readFromInputBufferX:
+                jsr osbyte91          ;extract character from buffer X
+                bcs rtsEB28           ;taken if buffer empty
+                pha                   ;save character extracted
+                cpx #bufferRS423Input ;was it RS423 input buffer?
+                bne LEAD3             ;taken if not RS423 input buffer
+                jsr setRS423Active
+                sec
+                ldx #bufferRS423Input
 LEAD3:
-                pla                          ; EAD3= 68          h
-                bcc LEADB                    ; EAD4= 90 05       ..
-                ldy rs423InputInterpretationStatus
-                bne clcThenRTSEB27
+                pla                          ;restore char extracted
+                bcc LEADB                    ;taken if keyboard buffer
+                ldy rs423InputInterpretationStatus ;D.2-54
+                bne clc_rts_EB27             ;taken if default mode
 LEADB:
-                tay                          ; EADB= A8          (
-                bpl clcThenRTSEB27                    ; EADC= 10 49       .I
-                and #$0F                     ; EADE= 29 0F       ).
-                cmp #$0B                     ; EAE0= C9 0B       I.
-                bcc LEAA6                    ; EAE2= 90 C2       .B
-                adc #$7B                     ; EAE4= 69 7B       i{
-                pha                          ; EAE6= 48          H
-                lda cursorEditingStatus
-                bne LEAA2                    ; EAEA= D0 B6       P6
+                tay                          ;Y = char
+                bpl clc_rts_EB27             ;if normal char, all good
+                and #$0F
+                cmp #$0B
+                bcc handleFunctionKey        ;taken if F key
+                adc #$7B    ;C=1, so +$7c - convert $0b-0$f to $87-$8B
+                pha         ;save translated value
+                lda editKeysMode
+                bne handleCursorKeysAndCopy  ;taken if not editKeys
                 lda characterDestinationStatus
-                ror a                        ; EAEF= 6A          j
-                ror a                        ; EAF0= 6A          j
-                pla                          ; EAF1= 68          h
-                bcs LEAC3                    ; EAF2= B0 CF       0O
-                cmp #$87                     ; EAF4= C9 87       I.
-                beq LEB29                    ; EAF6= F0 31       p1
-                phx                          ; EAF8= DA          Z
-                jsr LDF78Thunk                    ; EAF9= 20 5D EB     ]k
-                plx                          ; EAFC= FA          z
-LEAFD:
+                ror a                        ;C=rs423_enable
+                ror a                        ;C=vdu_disable
+                pla                          ;restore translated value
+                bcs readFromInputBufferX     ;taken if VDU output disabled
+                cmp #$87                     ;COPY?
+                beq readCopyChar
+                phx                          ;save buffer number
+                jsr handleCursorKeyThunk     ;handle cursor key
+                plx
+readFromEconetOrSoftKeyOrInputBufferA:
                 bit econetInputInterpretationStatus
-                bpl LEB07                    ; EB00= 10 05       ..
+                bpl readFromSoftKeyOrInputBufferA
                 lda #netReadCharacterAttempted
 callNETV:
-                jmp (NETV)                  ; EB04= 6C 24 02    l$.
+                jmp (NETV)
 
-LEB07:
+readFromSoftKeyOrInputBufferA:
                 lda softKeyStringLength
-                beq LEAC3
+                beq readFromInputBufferX
                 txa
                 and rs423InputInterpretationStatus
-                bne LEAC3
+                bne readFromInputBufferX
                 lda $F4
-                pha    
+                pha
                 jsr selectTerminalROMAndANDY2
                 lda (softKeyExpansionPtr)
                 plx
                 jsr selectROMX
                 dec softKeyStringLength
                 inc softKeyExpansionPtr+0
-                bne clcThenRTSEB27
+                bne clc_rts_EB27
                 inc softKeyExpansionPtr+1
-clcThenRTSEB27:
+clc_rts_EB27:
                 clc
 rtsEB28:
                 rts
 
-LEB29:
-                phx                          ; EB29= DA          Z
-                jsr LDF5EThunk                    ; EB2A= 20 63 EB     ck
-                beq LEABF                    ; EB2D= F0 90       p.
-                plx                          ; EB2F= FA          z
-                clc                          ; EB30= 18          .
-                rts                          ; EB31= 60          `
+readCopyChar:
+                phx
+                jsr handleCopyKeyThunk
+                beq copyCharNotRecognised
+                plx
+                clc
+                rts
 
 LEB32:
-                ply                          ; EB32= 7A          z
-                bcc LEAC3                    ; EB33= 90 8E       ..
-                tya                          ; EB35= 98          .
-                sta $02C9                    ; EB36= 8D C9 02    .I.
-                lda $F4                      
+                ply
+                bcc readFromInputBufferX
+                tya
+                sta currentSoftKey
+                lda $F4
                 pha                           ;save old ROMSEL
-                jsr selectTerminalROMAndANDY2 
+                jsr selectTerminalROMAndANDY2
                 jsr getSoftKeyStringLength
                 sta softKeyStringLength
                 lda andy.softKeys.stringLSBs,y
                 sta softKeyExpansionPtr+0
                 lda andy.softKeys.stringMSBs,y
-                sta softKeyExpansionPtr+1             
-                pla                          
+                sta softKeyExpansionPtr+1
+                pla
                 jsr selectROMA               ;restore old ROMSEL
-                bra LEAFD                    
+                bra readFromEconetOrSoftKeyOrInputBufferA
 
 ;-------------------------------------------------------------------------
 
@@ -8526,19 +8558,19 @@ getSoftKeyStringLength:
 
 ;-------------------------------------------------------------------------
 ;
-; Page HAZEL out, page MOS in, call LDF78.
+; Page HAZEL out, page MOS in, call handleCursorKey.
 ; 
-LDF78Thunk:
+handleCursorKeyThunk:
                 jsr withMOSROM
-                jmp LDF78     
+                jmp handleCursorKey     
 
 ;-------------------------------------------------------------------------
 ;
-; Page HAZEL out, page MOS in, call LDF5E.
+; Page HAZEL out, page MOS in, call handleCopyKey.
 ; 
-LDF5EThunk:
+handleCopyKeyThunk:
                 jsr withMOSROM
-                jmp LDF5E     
+                jmp handleCopyKey     
 
 ;-------------------------------------------------------------------------
 
@@ -8613,7 +8645,7 @@ osbyteAndOSWORDRoutineTable:
                 .word osbyte7F ;Check for end of file on an opened file
                 .word osbyte80 ;Read ADC channel or get buffer status
                 .word osbyte81 ;Read key with time limit
-                .word osbyte82 ;
+                .word osbyte82 ;Read machine high order address
                 .word osbyte83 ;Read Operating System High Water Mark (OSHWM)
                 .word osbyte84 ;Read top of user RAM
                 .word osbyte85 ;Read top of user RAM for given mode
@@ -8821,88 +8853,144 @@ osbyte0A:                                    ;ec94
 
 ;-------------------------------------------------------------------------
 ;
-; OSBYTE &02
+; OSBYTE 2 (&02) Specify input stream
 ;
-; D.2-10
+; Input may be taken from either the keyboard (by default) or the
+; RS423 port. This call specifies the selection for all subsequent
+; input.
+;
+; Entry parameters :
+; X=0 selects keyboard input and disables RS423
+; X=1 selects and enables RS423 input
+; X=2 selects keyboard input and enables RS423
+; Y=0
+; 
+; On exit : X=0 indicates previous input was from the keyboard
+;           X=1 indicates previous input was from RS423
+;           Y is undefined
+;
+; D.2-18
                 
 osbyte02:                       ;ecb4
-                txa                          ; ECB4= 8A          .
-                and #$01                     ; ECB5= 29 01       ).
-                pha                          ; ECB7= 48          H
-                lda $0250                    ; ECB8= AD 50 02    -P.
-                rol a                        ; ECBB= 2A          *
-                cpx #$01                     ; ECBC= E0 01       `.
-                ror a                        ; ECBE= 6A          j
-                cmp $0250                    ; ECBF= CD 50 02    MP.
-                php                          ; ECC2= 08          .
-                sta $0250                    ; ECC3= 8D 50 02    .P.
-                sta ACIA+0                    ; ECC6= 8D 08 FE    ..~
-                jsr LE90B                    ; ECC9= 20 0B E9     .i
-                plp                          ; ECCC= 28          (
-                beq LECD2                    ; ECCD= F0 03       p.
-                bit ACIA+1                    ; ECCF= 2C 09 FE    ,.~
+                txa
+                and #$01
+                pha
+                lda $0250
+                rol a
+                cpx #$01
+                ror a
+                cmp $0250
+                php
+                sta $0250
+                sta ACIA+0
+                jsr setRS423Active
+                plp
+                beq LECD2
+                bit ACIA+1
 LECD2:
-                ldx $0241                    ; ECD2= AE 41 02    .A.
-                pla                          ; ECD5= 68          h
-                sta $0241                    ; ECD6= 8D 41 02    .A.
+                ldx $0241
+                pla
+                sta $0241
 LECD9:
-                rts                          ; ECD9= 60          `
+                rts
 
-osbyte0D:                       ;ecda
-                tya                          ; ECDA= 98          .
-osbyte0E:                                    ;ecda
-                cpx #$0A                     ; ECDB= E0 0A       `.
-                bcs LEC90                    ; ECDD= B0 B1       01
-                ldy $02BF,x                  ; ECDF= BC BF 02    <?.
-                sta $02BF,x                  ; ECE2= 9D BF 02    .?.
-                bra LEC8F                    ; ECE5= 80 A8       .(
+;-------------------------------------------------------------------------
+;
+; OSBYTE 13 (&0D) Disable event
+;
+; All events are assigned a unique number and this call provides a
+; means of disabling specific events.
+;
+; Entry parameters:
+; X = event number
+;
+; On exit: X = Y = <old enable state> (0=disabled)
+osbyte0D:
+                tya             ;A=0
 
-osbyte10:                       ;ece7
-                beq LECEC                    ; ECE7= F0 03       p.
+;-------------------------------------------------------------------------
+;
+; OSBYTE 14 (&0E) Enable event
+;
+; This call provides a means of enabling specific events.
+;
+; 
+osbyte0E:
+                cpx #eventMax+1
+                bcs LEC90
+                ldy eventEnabledFlags,x
+                sta eventEnabledFlags,x
+                bra LEC8F
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 16 (&10) Write number of ADC channels
+;
+; By default, each of the four ADC channels is sampled and converted
+; in turn so that each reading is updated every 40 milliseconds. This
+; call enables the number of channels to be changed so that if, for
+; example, only two channels are required, each will be updated every
+; 20 milliseconds.
+; 
+osbyte10:
+                beq +                        ;taken if X=0
                 jsr osbyte11
-LECEC:
-                lda $024D                    ; ECEC= AD 4D 02    -M.
-                stx $024D                    ; ECEF= 8E 4D 02    .M.
-                tax                          ; ECF2= AA          *
-                rts                          ; ECF3= 60          `
++
+                lda maximumADCChannel
+                stx maximumADCChannel
+                tax
+                rts
 
-osbyte81:                       ;ecf4
-                tya                          ; ECF4= 98          .
-                bmi LED01                    ; ECF5= 30 0A       0.
-                jsr LE7B1                    ; ECF7= 20 B1 E7     1g
-                bcs LECFF                    ; ECFA= B0 03       0.
-                tax                          ; ECFC= AA          *
+;-------------------------------------------------------------------------
+;
+; OSBYTE 129 (&81) Read key with time limit
+;
+; This call may be used to read a key from the keyboard subject to a
+; specified time limit or to perform a keyboard scan for a specified
+; key depression.
+
+osbyte81:
+                tya
+                bmi LED01          ;taken if scanning for specific key
+                jsr osbyte81Timed
+                bcs LECFF                 ;taken if timed out or error
+                tax                       ;X = ASCII char
 LECFD:
-                lda #$00                     ; ECFD= A9 00       ).
+                lda #$00
 LECFF:
-                tay                          ; ECFF= A8          (
-                rts                          ; ED00= 60          `
+                tay
+                rts
 
 LED01:
-                txa                          ; ED01= 8A          .
-                beq LED14                    ; ED02= F0 10       p.
-                eor #$7F                     ; ED04= 49 7F       I.
-                tax                          ; ED06= AA          *
+                txa
+                beq LED14
+                eor #$7F
+                tax
                 jsr callKEYV
-                rol a                        ; ED0A= 2A          *
-osbyte82:                                    ;ed0b
-                ldx #$FF                     ; ED0B= A2 FF       ".
-                ldy #$FF                     ; ED0D= A0 FF        .
-                bcs LED13                    ; ED0F= B0 02       0.
-                inx                          ; ED11= E8          h
-                iny                          ; ED12= C8          H
-LED13:
-                rts                          ; ED13= 60          `
+                rol a
+                ; fall through
+
+;-------------------------------------------------------------------------
+
+osbyte82:
+                ldx #$FF
+                ldy #$FF
+                bcs +                        ;if OSBYTE $82, done
+                inx
+                iny
++
+                rts
 
 LED14:
-                ldx #$FD                     ; ED14= A2 FD       "}
-                bra LECFD                    ; ED16= 80 E5       .e
+                ldx #$FD
+                bra LECFD
 
 LED18:
-                txa                          ; ED18= 8A          .
-                eor #$FF                     ; ED19= 49 FF       I.
-                tax                          ; ED1B= AA          *
-                cpx #$02                     ; ED1C= E0 02       `.
+                txa
+                eor #$FF
+                tax
+                cpx #$02
+                ; fall through
 
 ;-------------------------------------------------------------------------
 
@@ -8917,40 +9005,43 @@ callCNPV:
 
 ;-------------------------------------------------------------------------
 
-LED27:
-                sec                          ; ED27= 38          8
+getRS423InputBufferFreeBytes:
+                sec
                 ldx #bufferRS423Input
                 jsr countBufferViaCNPV
-                cpy #$01                     ; ED2D= C0 01       @.
-                bcs LED34                    ; ED2F= B0 03       0.
-                cpx $025B                    ; ED31= EC 5B 02    l[.
-LED34:
-                rts                          ; ED34= 60          `
+                cpy #$01                     ;check MSB
+                bcs +                        ;if >= 256 bytes, all good
+                cpx rs423InputBufferMinimumSpace ;compare to min space
++
+                rts
 
 ;-------------------------------------------------------------------------
 
-osbyte80:                       ;ed35
-                bmi LED18                    ; ED35= 30 E1       0a
-                beq LED45                    ; ED37= F0 0C       p.
-                cpx #$05                     ; ED39= E0 05       `.
-                bcs osbyte82                    ; ED3B= B0 CE       0N
-                ldy $02B9,x                  ; ED3D= BC B9 02    <9.
-                lda $02B5,x                  ; ED40= BD B5 02    =5.
-                tax                          ; ED43= AA          *
-                rts                          ; ED44= 60          `
+osbyte80:
+                bmi LED18
+                beq LED45
+                cpx #$05
+                bcs osbyte82                 ;return with X=$ff Y=$ff
+                ldy adcResultMSBs-1,x
+                lda adcResultLSBs-1,x
+                tax
+                rts
+
+;-------------------------------------------------------------------------
 
 LED45:
-                lda systemVIA.irb            ; ED45= AD 40 FE    -@~
-                ror a                        ; ED48= 6A          j
-                ror a                        ; ED49= 6A          j
-                ror a                        ; ED4A= 6A          j
-                ror a                        ; ED4B= 6A          j
-                eor #$FF                     ; ED4C= 49 FF       I.
-                and #$03                     ; ED4E= 29 03       ).
-                ldy $02BE                    ; ED50= AC BE 02    ,>.
-                stx $02BE                    ; ED53= 8E BE 02    .>.
-                tax                          ; ED56= AA          *
-                rts                          ; ED57= 60          `
+                ; Put joystick buttons in bits 0/1.
+                lda systemVIA.irb
+                ror a
+                ror a
+                ror a
+                ror a
+                eor #$FF
+                and #$03
+                ldy adcLastChannelRead
+                stx adcLastChannelRead
+                tax
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -8959,42 +9050,42 @@ LED45:
 ; D.2-31
 ;
 osbyte70:                       ;ed58
-                jsr LED70                    ; ED58= 20 70 ED     pm
-                asl a                        ; ED5B= 0A          .
+                jsr LED70
+                asl a
                 beq clearACCCCONE
 LED5E:
-                tsb ACCCON                    ; ED5E= 0C 34 FE    .4~
-                rts                          ; ED61= 60          `
+                tsb ACCCON
+                rts
 
 clearACCCCONE:
                 lda #ACCCON.E
 LED64:
-                trb ACCCON                    ; ED64= 1C 34 FE    .4~
-                rts                          ; ED67= 60          `
+                trb ACCCON
+                rts
 
 osbyte71:                       ;ed68
-                jsr LED70                    ; ED68= 20 70 ED     pm
-                bne LED5E                    ; ED6B= D0 F1       Pq
-                inc a                        ; ED6D= 1A          .
-                bra LED64                    ; ED6E= 80 F4       .t
+                jsr LED70
+                bne LED5E
+                inc a
+                bra LED64
 
 LED70:
-                tay                          ; ED70= A8          (
-                txa                          ; ED71= 8A          .
-                sta $021A,y                  ; ED72= 99 1A 02    ...
-                bne LED80                    ; ED75= D0 09       P.
-                lda STATE                      ; ED77= A5 D0       %P
+                tay
+                txa
+                sta $021A,y
+                bne LED80
+                lda STATE
                 and #STATE.isShadowMode
                 beq LED83       ;
 LED7D:
-                lda #$01                     ; ED7D= A9 01       ).
-                rts                          ; ED7F= 60          `
+                lda #$01
+                rts
 
 LED80:
-                dec a                        ; ED80= 3A          :
-                bne LED7D                    ; ED81= D0 FA       Pz
+                dec a
+                bne LED7D
 LED83:
-                rts                          ; ED83= 60          `
+                rts
 
 ; OSBYTE &6E (110), &6F (111)
 ; ===========================
@@ -9002,17 +9093,17 @@ LED83:
 osbyteUnused:                   ;ed84
                 ldx #romServiceCallUnrecognisedOSBYTE
                 jsr makeROMServiceCall
-                ldx $F0                      ; ED89= A6 F0       &p
-                eor #$00                     ; ED8B= 49 00       I.
-                rts                          ; ED8D= 60          `
+                ldx $F0
+                eor #$00
+                rts
 
 osbyteA1:
-                jsr withTerminalROM          ; ED8E= 20 84 F3     .s
+                jsr withTerminalROM
                 jmp terminal.readCMOSByte
 
 osbyteA2:
-                jsr withTerminalROM          ; ED94= 20 84 F3     .s
-                jmp terminal.writeCMOSByte           ; ED97= 4C DC 98    L\.
+                jsr withTerminalROM
+                jmp terminal.writeCMOSByte
 
 ;-------------------------------------------------------------------------
 ;
@@ -9339,9 +9430,9 @@ handleUnrecognisedOSBYTEOrOSWORD:
 
 LEF1B:
                 lda $EB
-                bmi lda00ThenRTS
+                bmi ldaim00_rts_EF60
                 lda spoolFileHandle
-                bne lda00ThenRTS
+                bne ldaim00_rts_EF60
                 lda #$08        
                 and $E2         
                 bne LEF2E       
@@ -9405,7 +9496,7 @@ osword06:
                 jsr getAddressFromOSWORDParameterBlock
                 lda (originalX),y            ;read value to write
                 sta (SEIWKA)               ;write value to the address
-lda00ThenRTS:
+ldaim00_rts_EF60:
                 lda #$00
                 rts
 
@@ -9433,7 +9524,7 @@ getAddressFromOSWORDParameterBlock:
                 lda (originalX),y                  ; EF66= B1 F0       1p
                 sta SEIWKA+1
                 ldy #$04                     ; EF6A= A0 04        .
-ldx03ThenRTS:
+ldxim03_rts:
                 ldx #$03                     ; EF6C= A2 03       ".
                 rts                          ; EF6E= 60          `
                 
@@ -9455,7 +9546,7 @@ ldx03ThenRTS:
 ; D.2-18
 ;
 osbyte00:                       ;ef6f
-                bne ldx03ThenRTS ;branch taken if X<>0 - return with
+                bne ldxim03_rts ;branch taken if X<>0 - return with
                                  ;X=3
 
 ; do a BRK and print MOS version number.
@@ -9793,7 +9884,7 @@ osbyte0B:
 ;
 osbyte04:
                 clc
-                adc #firstMOSVariableOSBYTE+(cursorEditingStatus-mosVariables)-4 ;-4 because OSBYTE 4
+                adc #firstMOSVariableOSBYTE+(editKeysMode-mosVariables)-4 ;-4 because OSBYTE 4
 
                 ;if originally OSBYTE 4 (&04) Enable/disable cursor
                 ;editing [MasRef D.2-19], it's now OSBYTE 237 (&ED)
@@ -10520,7 +10611,7 @@ withTerminalROM:
                 sta $0106,x
                 
                 jsr selectTerminalROM      ; F3A6= 20 90 E5     .e
-                bra popXAPThenRTS
+                bra plx_pla_plp_rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -10551,7 +10642,7 @@ withMOSROM:
                 sta $0108,x                  ; overwrite RH
                 lda #ACCCON.Y
                 trb ACCCON                   ; HAZEL off
-popXAPThenRTS:
+plx_pla_plp_rts:
                 ; S=[X; A; P; RL; RH; thunkRL; thunkRH; old ACCCON/ROMSEL]
                 plx                          ; F3D3= FA          z
                 pla                          ; F3D4= 68          h
@@ -10784,19 +10875,23 @@ LF54D:
 LF55A:
                 jmp LF685                    ; F55A= 4C 85 F6    L.v
 
+;-------------------------------------------------------------------------
+
 LF55D:
-                jsr LF592                    ; F55D= 20 92 F5     .u
-                tya                          ; F560= 98          .
-                stz $0818,x                  ; F561= 9E 18 08    ...
-                stz $02CE,x                  ; F564= 9E CE 02    .N.
-                stz $0800,x                  ; F567= 9E 00 08    ...
-                ldy #$03                     ; F56A= A0 03        .
+                jsr LF592
+                tya
+                stz $0818,x
+                stz bufferEmptyFlags-1,x
+                stz $0800,x
+                ldy #$03
 LF56C:
-                sta $082C,y                  ; F56C= 99 2C 08    .,.
-                dey                          ; F56F= 88          .
-                bpl LF56C                    ; F570= 10 FA       .z
-                sty $0838                    ; F572= 8C 38 08    .8.
-                bra LF5DA                    ; F575= 80 63       .c
+                sta $082C,y
+                dey
+                bpl LF56C
+                sty $0838
+                bra LF5DA
+
+;-------------------------------------------------------------------------
 
 LF577:
                 php                          ; F577= 08          .
@@ -11064,16 +11159,16 @@ LF717:
                 lda $F5                      ; F721= A5 F5       %u
                 rts                          ; F723= 60          `
 
-LF724:
-                ldx #$FF                     ; F724= A2 FF       ".
-                lda lastKeyPressedInternal                      ; F726= A5 EC       %l
-                ora firstKeyPressedInternal                      ; F728= 05 ED       .m
-                bne LF732                    ; F72A= D0 06       P.
-                lda #$81                     ; F72C= A9 81       ).
-                sta systemVIA.ier            ; F72E= 8D 4E FE    .N~
-                inx                          ; F731= E8          h
-LF732:
-                stx $0242
+tidyUpAfterKeyboardProcessing:
+                ldx #$FF
+                lda lastKeyPressedInternal
+                ora firstKeyPressedInternal
+                bne +                    ;taken if any keys pressed
+                lda #$81
+                sta systemVIA.ier            ;re-enable keyboard IRQ
+                inx                          ;X=0
++
+                stx keyboardSemaphore
 updateKeyboardLEDs:
                 php
                 lda keyboardStatusByte
@@ -11082,10 +11177,10 @@ updateKeyboardLEDs:
                 ; bit 3 = caps lock off
                 ; bit 4 = shift lock off
                 and #(keyboardStatusByte.capsLockDisengaged|keyboardStatusByte.shiftLockDisengaged)>>1
-                ora #$06                     ;latch B6 for caps lock
+                ora #$06                     ;latch B6 - caps lock
                 sta systemVIA.orb            ;update caps lock LED
                 lsr a                        ;bit 3 = shift lock off
-                ora #$07                     ;latch B7 for shift lock
+                ora #$07                     ;latch B7 - shift lock
                 sta systemVIA.orb            ;update shift lock LED
                 jsr enableKeyboardScanning
                 pla
@@ -11105,7 +11200,7 @@ keyVClear:
                 jmp scanKeyboard
 
 keyboardTimerInterrupt:
-                inc $0242
+                inc keyboardSemaphore
 
 ;-------------------------------------------------------------------------
 ; 
@@ -11196,75 +11291,80 @@ getASCIICode:
                 lda keyTranslationTable-$80-16,x
                 beq handleTAB                ;taken if TAB
                 cmp #$9D                     ;was it key_numpad_return?
-                bne LF7E6                    ;taken if not
-                eor #$10                     ;transform into $8d
+                bne handleKey                ;taken if not
+                
+                ;Transform $9d into $8d, aka 13|$80. ($8d is already
+                ; used in the table for right arrow.)
+                eor #$10
                 bra getNumpadASCIICode
 
 handleTAB:
                 lda tabKeyCode
-LF7E6:
+handleKey:
                 cmp #$A0                     ;numpad key?
-                bcc LF7F6                    ;taken if not
+                bcc processModifiers         ;taken if not
 getNumpadASCIICode:
                 ; C=1 at this point
-                sbc #$31
-                adc numericKeypadInterpretation
-                eor #$80
-                ldx $028E
-                bne LF839
-LF7F6:
+                sbc #'0'+1      ;+1 to compensate for C=1 in the next
+                                ;addition
+                adc numericKeypadInterpretation ;form actual ASCII value
+                eor #$80                     ;clear bit 7
+                ldx numericKeypadShiftEffect ;does SHIFT affect the
+                                             ;keypad?
+                bne LF839                    ;taken if no
+processModifiers:
                 ldx keyboardStatusByte
-                stx $FA
-                rol $FA
-                bpl LF806
+                stx SEIWKA
+                rol SEIWKA                  ;b7 = ctrlPressed
+                bpl testShiftLock           ;taken if ctrl not pressed
                 ldx firstKeyPressedInternal
-LF801:
+localResetAutoRepeatAndContinue:
                 bne resetAutoRepeatAndContinue
                 jsr implementCTRLCodes
-LF806:
-                rol $FA
-                bmi LF811
-                jsr implementShift
-                rol $FA
-                bra LF81D
+testShiftLock:
+                rol SEIWKA                   ;b7 = shiftLockDisengaged
+                bmi testCapsLock             ;taken if shift lock off
+                jsr implementShift           ;shift lock on - apply shift
+                rol SEIWKA                   ;b7 = capsLockDisengaged
+                bra testShiftEnabled
 
-LF811:
-                rol $FA
-                bmi LF822
+testCapsLock:
+                rol SEIWKA                   ;b7 = capsLockDisengaged
+                bmi testShift                ;taken if caps lock off
                 jsr isLetter
-                bcs LF822
-                jsr implementShift
-LF81D:
-                ldx keyboardStatusByte
-                bpl LF82D
-LF822:
-                rol $FA
-                bpl LF82D
+                bcs testShift                ;taken if not a letter
+                jsr implementShift ;letter + caps lock - make upper case
+testShiftEnabled:
+                ldx keyboardStatusByte       ;b7 = shiftEnabled
+                bpl testEscape               ;taken if not shiftEnabled
+testShift:
+                rol SEIWKA                   ;b7 = shiftPressed
+                bpl testEscape               ;taken if not shiftPressed
                 ldx firstKeyPressedInternal
-                bne LF801
+                bne localResetAutoRepeatAndContinue
                 jsr implementShift
-LF82D:
-                cmp $026C
+testEscape:
+                cmp escapeCharacter
                 bne LF839
-                ldx $0275
+                ldx escapeKeyStatus
                 bne LF839
                 stz autoRepeatCountdownTimer
 LF839:
                 tay
-                jsr LF9A6
-                lda $0259
+                jsr enableKeyboardScanningFlippingInterrupts
+                lda keyboardStatus
                 bne keyboardRolloverChecks
                 jsr insertCharacterIntoKeyboardBuffer
 keyboardRolloverChecks:
                 ldx firstKeyPressedInternal
-                beq LF852
-                jsr interrogateKeyboard
-                stx firstKeyPressedInternal
-                bmi LF868
-                stz firstKeyPressedInternal
+                beq LF852                    ;taken if 1 key down
+                jsr interrogateKeyboard      ;test first key pressed
+                stx firstKeyPressedInternal  ;save it
+                bmi LF868                    ;taken if still pressed
+                stz firstKeyPressedInternal  ;reset first key
 LF852:
                 ldy #lastKeyPressedInternal
-                jsr LF96C
+                jsr scanKeyboardWithExclusion
                 bmi LF862
                 lda lastKeyPressedInternal
                 sta firstKeyPressedInternal
@@ -11272,7 +11372,7 @@ LF85D:
                 stx lastKeyPressedInternal
                 jsr resetAutoRepeatCounters
 LF862:
-                jmp LF724
+                jmp tidyUpAfterKeyboardProcessing
 
 keyPressedInterrupt:
                 jsr interrogateKeyboard
@@ -11280,7 +11380,7 @@ LF868:
                 lda lastKeyPressedInternal
                 bne LF862
                 ldy #firstKeyPressedInternal
-                jsr LF96C
+                jsr scanKeyboardWithExclusion
                 bmi LF862
                 bra LF85D
 
@@ -11318,6 +11418,7 @@ interrogateKeyboard: .proc
 
 ; Default keyboard table
 ; ======================
+
 keyTranslationTable:
                 .text "q"                    ;10 q
                 .byte "3"                    ;11 3
@@ -11329,8 +11430,8 @@ keyTranslationTable:
                 .text "-"                    ;17 minus
                 .text "^"                    ;18 caret
                 .byte $8C                    ;19 left
-                .byte $B6                    ;1a numpad_6
-                .byte $B7                    ;1b numpad_7
+                .byte "6"|$80                ;1a numpad_6
+                .byte "7"|$80                ;1b numpad_7
 osbyte92:
                 ldy $FC00,x                  ;1c 1d 1e
                 rts                          ;1f
@@ -11346,8 +11447,8 @@ osbyte92:
                 .text "0"                    ;27 0
                 .text "_"                    ;28 underline
                 .byte $8E                    ;29 down
-                .byte $B8                    ;2a numpad_8
-                .byte $B9                    ;2b numpad_9
+                .byte "8"|$80                ;2a numpad_8
+                .byte "9"|$80                ;2b numpad_9
 osbyte94:
                 ldy $FD00,x                  ;2c 2d 2e
                 rts                          ;2f
@@ -11363,8 +11464,8 @@ osbyte94:
                 .text "p"                    ;37 p
                 .text "["                    ;38 left_square_bracket
                 .byte $8F                    ;39 up
-                .byte $AB                    ;3a numpad_plus
-                .byte $AD                    ;3b numpad_minus
+                .byte "+"|$80                ;3a numpad_plus
+                .byte "-"|$80                ;3b numpad_minus
                 .byte $9D                    ;3c numpad_return
 LF8BF:
                 jmp (EVENTV)                 ;3d 3e 3f
@@ -11379,9 +11480,9 @@ LF8BF:
                 .text "@"                    ;47 at
                 .text ":"                    ;48 colon
                 .byte $0D                    ;49 return
-                .byte $AF                    ;4a numpad_divide
-                .byte $FF                    ;4b numpad_delete
-                .byte $AE                    ;4c numpad_stop
+                .byte "/"|$80                ;4a numpad_divide
+                .byte 127|$80                ;4b numpad_delete
+                .byte "."|$80                ;4c numpad_stop
 call1MHzBusHook:
                 jmp ($FDFE)                  ;4d 4e 4f
                 
@@ -11396,9 +11497,9 @@ call1MHzBusHook:
                 .text ";"                    ;57 semicolon
                 .text "]"                    ;58 right_square_bracket
                 .byte $7F                    ;59 delete
-                .byte $A3                    ;5a numpad_hash
-                .byte $AA                    ;5b numpad_multiply
-                .byte $AC                    ;5c numpad_comma
+                .byte "#"|$80                ;5a numpad_hash
+                .byte "*"|$80                ;5b numpad_multiply
+                .byte ","|$80                ;5c numpad_comma
 callSEIWKA:
                 jmp (SEIWKA)                 ;5d 5e 5f
                 .cerror *-keyTranslationTable!=80,'oops'
@@ -11412,9 +11513,9 @@ callSEIWKA:
                 .text "."                    ;67 stop
                 .text "/"                    ;68 divide
                 .byte $8B                    ;69 copy
-                .byte $B0                    ;6a numpad_0
-                .byte $B1                    ;6b numpad_1
-                .byte $B3                    ;6c numpad_3
+                .byte "0"|$80                ;6a numpad_0
+                .byte "1"|$80                ;6b numpad_1
+                .byte "3"|$80                ;6c numpad_3
                 .byte 0                      ;6d
                 .byte 0                      ;6e
                 .byte 0                      ;6f
@@ -11429,9 +11530,9 @@ callSEIWKA:
                 .byte $89                    ;77 f9
                 .byte $5C                    ;78 backslash
                 .byte $8D                    ;79 right
-                .byte $B4                    ;7a numpad_4
-                .byte $B5                    ;7b numpad_5
-                .byte $B2                    ;7c numpad_2
+                .byte "4"|$80                ;7a numpad_4
+                .byte "5"|$80                ;7b numpad_5
+                .byte "2"|$80                ;7c numpad_2
 LF8FF:
                 bit valueFF                  ; Set V
 callKEYV:                                    
@@ -11474,93 +11575,94 @@ osbyte7A:
 ;-------------------------------------------------------------------------
 
 scanKeyboard:
-                txa                          ; F916= 8A          .
-                bpl LF923                    ; F917= 10 0A       ..
-                jsr interrogateKeyboard                    ; F919= 20 80 F8     .x
+                txa
+                bpl LF923
+                jsr interrogateKeyboard
 enableKeyboardScanning:
                 lda #8|3                     ;set latch B3 - auto scan mode
                 sta systemVIA.orb            ;set auto scan mode
-                txa      
+                txa
                 rts
 
 LF923:
-                stx $02CB                    ; F923= 8E CB 02    .K.
-                lda #$FF                     ; F926= A9 FF       ).
-                sta $02CC                    ; F928= 8D CC 02    .L.
-                ldx #$0C                     ; F92B= A2 0C       ".
-                lda #$7F                     ; F92D= A9 7F       ).
-                sta systemVIA.ddra            ; F92F= 8D 43 FE    .C~
-                lda #$03                     ; F932= A9 03       ).
-                sta systemVIA.orb            ; F934= 8D 40 FE    .@~
-LF937:
-                lda #$0F                     ; F937= A9 0F       ).
-                sta systemVIA.oraNoHandshake            ; F939= 8D 4F FE    .O~
-                lda #$01                     ; F93C= A9 01       ).
-                sta systemVIA.ifr            ; F93E= 8D 4D FE    .M~
-                stx systemVIA.oraNoHandshake            ; F941= 8E 4F FE    .O~
-                bit systemVIA.ifr            ; F944= 2C 4D FE    ,M~
-                beq LF964                    ; F947= F0 1B       p.
-                txa                          ; F949= 8A          .
-LF94A:
-                clc                          ; F94A= 18          .
-                adc #$10                     ; F94B= 69 10       i.
-                bmi LF964                    ; F94D= 30 15       0.
-                sta systemVIA.oraNoHandshake            ; F94F= 8D 4F FE    .O~
-                bit systemVIA.iraNoHandshake            ; F952= 2C 4F FE    ,O~
-                bpl LF94A                    ; F955= 10 F3       .s
-                cmp $02CB                    ; F957= CD CB 02    MK.
-                bcc LF94A                    ; F95A= 90 EE       .n
-                cmp $02CC                    ; F95C= CD CC 02    ML.
-                bcs LF94A                    ; F95F= B0 E9       0i
-                sta $02CC                    ; F961= 8D CC 02    .L.
-LF964:
-                dex                          ; F964= CA          J
-                bpl LF937                    ; F965= 10 D0       .P
-                ldx $02CC                    ; F967= AE CC 02    .L.
-                bra enableKeyboardScanning                    ; F96A= 80 B0       .0
+                stx previousKeyPressedWhenReadingLastKey
+                lda #$FF
+                sta previousKeyPressedWhenReadingFirstKey
+                ldx #$0C
+                lda #$7F
+                sta systemVIA.ddra
+                lda #0|3            ;reset latch B3 - manual scan mode
+                sta systemVIA.orb
+loopKeyboardColumns:
+                lda #$0F
+                sta systemVIA.oraNoHandshake ;select a non-existent column
+                lda #$01
+                sta systemVIA.ifr            ;cancel keyboard interrupts
+                stx systemVIA.oraNoHandshake ;select column
+                bit systemVIA.ifr            ;any key in this column
+                                             ;pressed?
+                beq tryNextKeyboardColumn    ;taken if no key
+                txa                          ;A = first key in column
+loopKeyboardRows:
+                clc
+                adc #$10                     ;next row
+                bmi tryNextKeyboardColumn    ;taken if done
+                sta systemVIA.oraNoHandshake ;store key
+                bit systemVIA.iraNoHandshake ;pressed?
+                bpl loopKeyboardRows         ;taken if not
+                cmp previousKeyPressedWhenReadingLastKey
+                bcc loopKeyboardRows
+                cmp previousKeyPressedWhenReadingFirstKey
+                bcs loopKeyboardRows
+                sta previousKeyPressedWhenReadingFirstKey
+tryNextKeyboardColumn:
+                dex
+                bpl loopKeyboardColumns
+                ldx previousKeyPressedWhenReadingFirstKey
+                bra enableKeyboardScanning
 
-LF96C:
-                ldx #$0C                     ; F96C= A2 0C       ".
+scanKeyboardWithExclusion:
+                ldx #$0c
 LF96E:
-                jsr LF9A6                    ; F96E= 20 A6 F9     &y
-                lda #$7F                     ; F971= A9 7F       ).
-                sta systemVIA.ddra            ; F973= 8D 43 FE    .C~
-                lda #$03                     ; F976= A9 03       ).
-                sta systemVIA.orb            ; F978= 8D 40 FE    .@~
-                lda #$0F                     ; F97B= A9 0F       ).
-                sta systemVIA.oraNoHandshake            ; F97D= 8D 4F FE    .O~
-                lda #$01                     ; F980= A9 01       ).
-                sta systemVIA.ifr            ; F982= 8D 4D FE    .M~
-                stx systemVIA.oraNoHandshake            ; F985= 8E 4F FE    .O~
-                bit systemVIA.ifr            ; F988= 2C 4D FE    ,M~
-                beq LF9AD                    ; F98B= F0 20       p
-                txa                          ; F98D= 8A          .
+                jsr enableKeyboardScanningFlippingInterrupts
+                lda #$7F
+                sta systemVIA.ddra
+                lda #0|3
+                sta systemVIA.orb
+                lda #$0F
+                sta systemVIA.oraNoHandshake ;select non-existent column
+                lda #$01
+                sta systemVIA.ifr            ;cancel keyboard interrupts
+                stx systemVIA.oraNoHandshake
+                bit systemVIA.ifr
+                beq LF9AD
+                txa
 LF98E:
-                clc                          ; F98E= 18          .
-                adc #$10                     ; F98F= 69 10       i.
-                bmi LF9AD                    ; F991= 30 1A       0.
-                sta systemVIA.oraNoHandshake            ; F993= 8D 4F FE    .O~
-                bit systemVIA.iraNoHandshake            ; F996= 2C 4F FE    ,O~
-                bpl LF98E                    ; F999= 10 F3       .s
-                pha                          ; F99B= 48          H
+                clc
+                adc #$10
+                bmi LF9AD                    ;taken if done
+                sta systemVIA.oraNoHandshake ;test key
+                bit systemVIA.iraNoHandshake ;pressed?
+                bpl LF98E                    ;taken if not
+                pha                          ;save key number
 LF99C:
-                eor $0000,y                  ; F99C= 59 00 00    Y..
-                asl a                        ; F99F= 0A          .
-                cmp #$01                     ; F9A0= C9 01       I.
-                pla                          ; F9A2= 68          h
-                bcc LF98E                    ; F9A3= 90 E9       .i
-                tax                          ; F9A5= AA          *
-LF9A6:
-                jsr enableKeyboardScanning                    ; F9A6= 20 1C F9     .y
-                cli                          ; F9A9= 58          X
-                sei                          ; F9AA= 78          x
-                txa                          ; F9AB= 8A          .
-                rts                          ; F9AC= 60          `
+                eor $0000,y                  ;compare to value
+                asl a                        ;discard irrelevant bit 7
+                cmp #$01                     ;C set if different
+                pla                          ;restore key number
+                bcc LF98E                    ;same key found - keep going
+                tax
+enableKeyboardScanningFlippingInterrupts:
+                jsr enableKeyboardScanning
+                cli
+                sei
+                txa
+                rts
 
 LF9AD:
-                dex                          ; F9AD= CA          J
-                bpl LF96E                    ; F9AE= 10 BE       .>
-                bra LF9A6                    ; F9B0= 80 F4       .t
+                dex
+                bpl LF96E
+                bra enableKeyboardScanningFlippingInterrupts
 
 ;-------------------------------------------------------------------------
 ;

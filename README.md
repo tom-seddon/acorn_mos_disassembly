@@ -1,11 +1,13 @@
 Rebuildable, partially-commented version of Acorn's MOS 3.20 for the
 Master 128.
 
-The starting point was JGH's MOS 3.20 disassembly here:
+The starting point was JGH's MOS 3.20 disassembly here, providing
+comments for several sections:
 http://mdfs.net/Info/Comp/Acorn/Source/MOS.htm
 
-https://tobylobster.github.io/mos/ has proven very helpful for
-understanding the bits that haven't changed much since OS 1.20.
+https://tobylobster.github.io/mos/ has provided most comments and
+symbol names for the bits that haven't changed (or haven't changed
+much) since OS 1.20.
 
 **This is extremely WIP.** 
 

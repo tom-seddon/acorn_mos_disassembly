@@ -396,9 +396,12 @@ L82FE:
                 dex
                 bne L82FE
                 stz $F2                      ; &F2/3=>FS Info Blocks
-                lda #$DF
+                lda #>hazel.fsInfoBlocks
                 sta $F3
-                ldy #$27                     ; Y=>end of FS Info Blocks
+                ldy #<hazel.fsInfoBlocks+3*size(fsInfoBlock) ; Y=>end
+                                                             ; of FS
+                                                             ; Info
+                                                             ; Blocks
                 ldx #$25                     ; Ask ROMs for FS Info Blocks
                 jsr mos.makeROMServiceCall   ;
                 lda #$00                     ; Terminate FS Info blocks

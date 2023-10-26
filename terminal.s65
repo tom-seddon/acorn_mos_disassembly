@@ -350,7 +350,7 @@ L829D:
                 jsr readDefaults3                    ; 82A3= 20 AE 98     ..
                 bit #$04                     ; 82A6= 89 04       ..
                 php                          ; 82A8= 08          .
-                lda #$10                     ; 82A9= A9 10       ).
+                lda #ACCCON.ITU
                 trb ACCCON                    ; 82AB= 1C 34 FE    .4~
                 plp                          ; 82AE= 28          (
                 bne L82B4                    ; 82AF= D0 03       P.
@@ -359,7 +359,7 @@ L82B4:
                 jsr mos.LE375 ; If Tube hardware present, jump to Tube PreInit
                 bcs L82C6
                 lda ACCCON                    ; Toggle Internal/External Tube
-                eor #$10
+                eor #ACCCON.ITU
                 sta ACCCON
                 jsr mos.LE375        ; No Tube, skip past Tube PreInit
                 bcc L82D0
@@ -2359,7 +2359,7 @@ starMOVE:
 L90CE:
                 lda #$30                     ; &3000=start of shadow memory
                 sta hazel.moveBufferMSB
-                lda #$04
+                lda #ACCCON.X
                 tsb ACCCON
                 sta hazel.hasACCCONChanged      ; set 'ACCCON changed'
                 tya                          ; A=length of space in shadow memory

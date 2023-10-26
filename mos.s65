@@ -7872,7 +7872,7 @@ LE833:
                 sta $F4                      ; E855= 85 F4       .t
                 sta ROMSEL                   ; E857= 8D 30 FE    .0~
                 pla                          ; E85A= 68          h
-                and #$08                     ; E85B= 29 08       ).
+                and #ACCCON.Y
                 tsb ACCCON                    ; E85D= 0C 34 FE    .4~
                 bcs LE869                    ; E860= B0 07       0.
 LE862:
@@ -9330,13 +9330,13 @@ osbyte6B:                       ;ee9e
 ; OSBYTE &6C (108) - Select memory for direct access
 ; ==============================================
 osbyte6C:
-                ldy #$04                     ; Y=&04 to change RAM bit
+                ldy #ACCCON.X                     ; Y=&04 to change RAM bit
 LEEA4:
                 tya                          ; Clear RAM or 1MHz bit
                 trb ACCCON
                 txa                          ; If X=0, exit with normal RAM/1MHz selected
                 beq LEEB0
-                lda #$04                     ; BUG! This should be TYA
+                lda #ACCCON.X                 ; BUG! This should be TYA
                 tsb ACCCON                    ; Page in shadow RAM
 LEEB0:
                 rts                          ; X preserved, Y=&04 or &20

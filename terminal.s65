@@ -1,6 +1,5 @@
 ; -*- comment-column:45; -*-
 
-                .section terminal
 terminal: .block
                 jmp terminalLanguageEntryPoint ; Language entry point
                 jmp terminalServiceEntryPoint  ; Service entry point
@@ -11751,4 +11750,3 @@ chr127:
                 .byte %11111111
 
                 .endblock
-                .endsection terminal

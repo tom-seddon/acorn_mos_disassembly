@@ -37,6 +37,9 @@
 
                 .include "hardware.s65"
                 .include "mos_workspace.s65"
+                .include "terminal_workspace.s65"
+
+version=320
                 
 ; The number of sections will probably increase, as a longer term goal
 ; is to have a bit of flexibility here. Stuff that's got documented
@@ -60,31 +63,14 @@
 
 ;-------------------------------------------------------------------------
 
-; Not really MOS stuff. This is the Terminal ROM zero page workspace.
-
-oldINSV=$6f
-oldREMV=$71
-                .cerror oldREMV!=oldINSV+2,"oldREMV and oldINSV must be adjacent"
-                
-;-------------------------------------------------------------------------
-
-beword .macro value
-                .byte >\value
-                .byte <\value
-                .endm
-                
-;-------------------------------------------------------------------------
-
-zterm: .struct
-numRowsMinusOne=$39
-numColumns=$38
-numColumnsMinusOne=$37
-; TODO old INSV and oldREMV should probably go in here too!
-                .endstruct
-                
-;-------------------------------------------------------------------------
-                
+                .section terminal
                 .include "terminal.s65"
+                .endsection
+
+                .section mos
                 .include "mos.s65"
+                .endsection
+
+                .section ext
                 .include "ext.s65"
-                
+                .endsection

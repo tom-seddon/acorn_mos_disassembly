@@ -1,5 +1,4 @@
 ; -*- comment-column:45; -*-
-                .section ext
 
 ext: .block
 
@@ -907,4 +906,3 @@ rtsBFF4:
                 .byte $ff
 
                 .endblock
-                .endsection

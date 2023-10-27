@@ -4637,7 +4637,7 @@ L9E2C:
                 jsr mos.selectROMOrTAPEByOSBYTE
                 lda #$00                     ; 9E2F= A9 00       ).
                 tay                          ; 9E31= A8          (
-                jsr LA1F9                    ; 9E32= 20 F9 A1     y!
+                jsr osfindTapeOrROM
                 lda #$26                     ; 9E35= A9 26       )&
                 rts                          ; 9E37= 60          `
 
@@ -4790,7 +4790,7 @@ printNewLine:
 
 ; TAPE/ROM OSARGS handler
 ; =======================
-L9F29:
+osargsTapeOrROM:
                 cpy #$00                     ; Handle<>0 - read/write open file info
                 bne L9F3B
                 ora #$00                     ; A<>0 - read/write filing system info - exit
@@ -4875,7 +4875,7 @@ L9F80:
 
 ; TAPE/ROM FSC
 ; ============
-L9F8C:
+fscTapeOrROM:
                 cmp #$0C                     ; function<12 - exit unchanged
                 bcs L9F3A
                 stx $BC                      ; Index into dispatch table
@@ -5040,7 +5040,7 @@ LA088:
 
 ; CFS/RFS OSFILE
 ; ==============
-LA08C:
+osfileTapeOrROM:
                 pha
                 stx $C8                      ; C8/9=>control block
                 sty $C9
@@ -5261,7 +5261,7 @@ LA1F2:
 
 ; CFS/RFS OSFIND HANDLER
 ; ======================
-LA1F9:
+osfindTapeOrROM:
                 sta $BC                      ; A1F9= 85 BC       .<
                 phx                          ; A1FB= DA          Z
                 phy                          ; A1FC= 5A          Z
@@ -5399,7 +5399,7 @@ LA2BD:
 LA2E9:
                 rts                          ; A2E9= 60          `
 
-LA2EA:
+bputTapeOrROM:
                 phx                          ; A2EA= DA          Z
                 phy                          ; A2EB= 5A          Z
                 lda #$01                     ; A2EC= A9 01       ).
@@ -5455,7 +5455,7 @@ LA33D:
 LA343:
                 jsr doFollowingError                    ; A343= 20 ED AA     m*
                 .text $df,"EOF",0
-LA34B:
+bgetTapeOrROM:
                 sta $C4                      ; A34B= 85 C4       .D
                 phx                          ; A34D= DA          Z
                 phy                          ; A34E= 5A          Z
@@ -5475,7 +5475,7 @@ LA365:
 
 ; TAPE/ROM OSGBPB handler
 ; =======================
-LA36D:
+osgbpbTapeOrROM:
                 lsr a                        ; Odd numbered calls - change PTR - exit with A=changed, SEC
                 bcs LA376
                 beq LA376                    ; OSGBPB 0 - exit with A=unchanged, SEC
@@ -5559,7 +5559,7 @@ LA3D3:
                 beq LA3F6                    ; A3D6= F0 1E       p.
                 lda ($CC)                    ; A3D8= B2 CC       2L
                 tay                          ; A3DA= A8          (
-                jsr LA2EA                    ; A3DB= 20 EA A2     j"
+                jsr bputTapeOrROM
                 bcs LA3F6                    ; A3DE= B0 16       0.
                 plx                          ; A3E0= FA          z
                 phx                          ; A3E1= DA          Z
@@ -5603,7 +5603,7 @@ LA412:
                 bne LA41A                    ; A416= D0 02       P.
                 inc $C9                      ; A418= E6 C9       fI
 LA41A:
-                jsr LA34B                    ; A41A= 20 4B A3     K#
+                jsr bgetTapeOrROM
                 jsr LAACA                    ; A41D= 20 CA AA     J*
                 bra LA401                    ; A420= 80 DF       ._
 
@@ -9470,39 +9470,40 @@ LB8DE:
 
 ; Unused space
 ; ============
-                .byte $FF                    ; B8DF= FF          .
-                .byte $FF                    ; B8E0= FF          .
-                .byte $FF                    ; B8E1= FF          .
-                .byte $FF                    ; B8E2= FF          .
-                .byte $FF                    ; B8E3= FF          .
-                .byte $FF                    ; B8E4= FF          .
-                .byte $FF                    ; B8E5= FF          .
-                .byte $FF                    ; B8E6= FF          .
-                .byte $FF                    ; B8E7= FF          .
-                .byte $FF                    ; B8E8= FF          .
-                .byte $FF                    ; B8E9= FF          .
-                .byte $FF                    ; B8EA= FF          .
-                .byte $FF                    ; B8EB= FF          .
-                .byte $FF                    ; B8EC= FF          .
-                .byte $FF                    ; B8ED= FF          .
-                .byte $FF                    ; B8EE= FF          .
-                .byte $FF                    ; B8EF= FF          .
-                .byte $FF                    ; B8F0= FF          .
-                .byte $FF                    ; B8F1= FF          .
-                .byte $FF                    ; B8F2= FF          .
-                .byte $FF                    ; B8F3= FF          .
-                .byte $FF                    ; B8F4= FF          .
-                .byte $FF                    ; B8F5= FF          .
-                .byte $FF                    ; B8F6= FF          .
-                .byte $FF                    ; B8F7= FF          .
-                .byte $FF                    ; B8F8= FF          .
-                .byte $FF                    ; B8F9= FF          .
-                .byte $FF                    ; B8FA= FF          .
-                .byte $FF                    ; B8FB= FF          .
-                .byte $FF                    ; B8FC= FF          .
-                .byte $FF                    ; B8FD= FF          .
-                .byte $FF                    ; B8FE= FF          .
-                .byte $FF                    ; B8FF= FF          .
+                .align 256,$ff
+                ; .byte $FF                    ; B8DF= FF          .
+                ; .byte $FF                    ; B8E0= FF          .
+                ; .byte $FF                    ; B8E1= FF          .
+                ; .byte $FF                    ; B8E2= FF          .
+                ; .byte $FF                    ; B8E3= FF          .
+                ; .byte $FF                    ; B8E4= FF          .
+                ; .byte $FF                    ; B8E5= FF          .
+                ; .byte $FF                    ; B8E6= FF          .
+                ; .byte $FF                    ; B8E7= FF          .
+                ; .byte $FF                    ; B8E8= FF          .
+                ; .byte $FF                    ; B8E9= FF          .
+                ; .byte $FF                    ; B8EA= FF          .
+                ; .byte $FF                    ; B8EB= FF          .
+                ; .byte $FF                    ; B8EC= FF          .
+                ; .byte $FF                    ; B8ED= FF          .
+                ; .byte $FF                    ; B8EE= FF          .
+                ; .byte $FF                    ; B8EF= FF          .
+                ; .byte $FF                    ; B8F0= FF          .
+                ; .byte $FF                    ; B8F1= FF          .
+                ; .byte $FF                    ; B8F2= FF          .
+                ; .byte $FF                    ; B8F3= FF          .
+                ; .byte $FF                    ; B8F4= FF          .
+                ; .byte $FF                    ; B8F5= FF          .
+                ; .byte $FF                    ; B8F6= FF          .
+                ; .byte $FF                    ; B8F7= FF          .
+                ; .byte $FF                    ; B8F8= FF          .
+                ; .byte $FF                    ; B8F9= FF          .
+                ; .byte $FF                    ; B8FA= FF          .
+                ; .byte $FF                    ; B8FB= FF          .
+                ; .byte $FF                    ; B8FC= FF          .
+                ; .byte $FF                    ; B8FD= FF          .
+                ; .byte $FF                    ; B8FE= FF          .
+                ; .byte $FF                    ; B8FF= FF          .
 
 ; Default font
 ; ============

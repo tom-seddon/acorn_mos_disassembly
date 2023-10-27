@@ -6020,7 +6020,7 @@ plotMoveOrCopyRectangle:
                 .if version==320
                 jsr ext.plotMoveOrCopyRectangle
                 .else
-                .warn 'TODO: ext'
+                jsr ext_B3A6
                 .endif
                 bra LDFF1
 
@@ -6034,7 +6034,7 @@ plotEllipseOutline:
                 .if version==320
                 jsr ext.plotEllipseOutline
                 .else
-                .warn "TODO: ext"
+                jsr ext_AECC
                 .endif
 LDFF1:
                 jmp selectTerminalROMAndANDY
@@ -6049,14 +6049,16 @@ plotSolidEllipse:
                 .if version==320
                 jsr ext.plotSolidEllipse
                 .else
-                .warn "TODO: ext"
+                jsr ext_AF4F
                 .endif
                 bra LDFF1
 
 ;-------------------------------------------------------------------------
 
                 .align 256
-                ;.text 0,0
+                .if version==500
+                .fill 16,0
+                .endif
 startupMessages: .block
 acornMOS:
                 .text 13
@@ -6823,6 +6825,30 @@ testVDU5State:
 
 ;-------------------------------------------------------------------------
 
+                .if version==500
+LE2E7:
+                jsr withMOSROM
+                jmp callPrinterDriverWithPrinterBuffer
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==500
+LE2ED:
+                jsr withMOSROM
+                jmp LE8B9
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==500
+LE2F3:
+                jsr withMOSROM
+                jmp (VDUV)
+                .endif
+
+;-------------------------------------------------------------------------
+
 ; Default vector table
 ; ====================
 defaultVectorTable: .block
@@ -6988,12 +7014,17 @@ LE375:
 LE389:
                 phy
                 phx
+                .if version==320
                 jsr getROMInsertedFlagRTCAddressAndMask
                 sta $FC                      ;save mask
                 jsr selectTerminalROM
                 jsr terminal.readRTCByte     ;read inserted flag
                 tya                          ;A = byte read
                 and $FC                      ;do mask
+                .elsif version==500
+                jsr selectTerminalROM
+                jsr utils_873F
+                .endif
                 cmp #$01                     ;C set if ROM is inserted
                 plx
                 ply
@@ -7010,8 +7041,10 @@ LE389:
 scanROMs: .proc
                 txa               ;A = ROM of interest
                 tay               ;Y = ROM of interest
+                .if version==320
                 jsr LE389         ;select ROM and check insertion flag
                 bcc currentROMInvalid ;taken if ROM not actually inserted
+                .endif
                 jsr isROMValid
                 bcc currentROMInvalid        ;taken if ROM invalid
                 ldx $F4                      ;start from current ROM
@@ -7020,8 +7053,10 @@ nextOtherROM:
                 iny                          ;next other ROM
                 cpy #$10                     ;out of other ROMs?
                 bcs currentROMValid       ;taken if no more other ROMs
+                .if version==320
                 jsr LE389   ;select other ROM and check insertion flag
                 bcc nextOtherROM ;taken if other ROM not actually inserted
+                .endif
                 
                 ; Start address is $8000-Y, so that there's no need to
                 ; save Y.
@@ -7040,22 +7075,44 @@ compareLoop:
                 bne compareLoop
                 inc SEIWKA+1
                 lda SEIWKA+1
+                .if version==500
+                cpx #8
+                bcc +
+                adc #2
++
+                .endif
                 cmp #$84                  ;compare only the first 1 KB
                 bcc compareLoop
                 ; The first 1 KB of the current ROM matches the first
                 ; 1 KB of some higher-priority ROM, so the current ROM
                 ; is invalid.
+                .if version==500
+                lda #1
+                sta romInformationTable,x
+                .endif
 currentROMInvalid:
                 ldx $F4
                 bra nextROM
 
 currentROMValid:
+                .if version==500
+                txa
+                tay
+                jsr LE389
+                bcc nextROM
+                .endif
+                
                 lda $8006
                 sta romInformationTable,x 
                 and #$8F
                 bne nextROM       ;taken if any mandatory bits are set
 
                 ; A bogus ROM type means this ROM is the BASIC ROM.
+                .if version==500
+                bit basicROMNumber
+                bpl nextROM
+                .endif
+
                 stx basicROMNumber
 nextROM:
                 inx                          
@@ -7130,25 +7187,30 @@ LE431:
                 ldx hazel.currentFSROM
                 lda $028D                    ; Soft Break, use current filing system
                 beq LE454
-                jsr selectTerminalROM                    ; E449= 20 90 E5     .e
-LE44C:
-                phy                          ; E44C= 5A          Z
+                jsr selectTerminalROM
+                .if version==320
+                phy
                 jsr terminal.readDefaultROMs
                 and #$0F                     ;get default FS ROM
-                ply                          ; E452= 7A          z
-                tax                          ; E453= AA          *
+                ply
+                .elsif version==500
+                ldx #$33
+                jsr utils_8A64
+                .endif
+                
+                tax
 LE454:
-                bit $02A1,x                  ; E454= 3C A1 02    <!.
-                bpl LE478                    ; E457= 10 1F       ..
-                jsr selectROMX                    ; E459= 20 81 E5     .e
-                cpx #terminalROM                     ; E45C= E0 0F       `.
-                bne LE46C                    ; E45E= D0 0C       P.
+                bit romInformationTable,x
+                bpl LE478
+                jsr selectROMX
+                cpx #terminalROM
+                bne LE46C
                 jsr osbyte7A
-                inx                          ; E463= E8          h
-                beq LE47F                    ; E464= F0 19       p.
-                cpx #$63                     ; E466= E0 63       `c
-                beq LE47F                    ; E468= F0 15       p.
-                bra LE478                    ; E46A= 80 0C       ..
+                inx
+                beq LE47F
+                cpx #$63
+                beq LE47F
+                bra LE478
 
 LE46C:
                 lda #romServiceCallAutoBoot  ; Filing System selection
@@ -7180,9 +7242,14 @@ LE496:
 LE499:
                 sec
                 ror hazel.currentFS
+                .if version==320
                 lda #$00
                 tax
                 jsr selectROMOrTAPE                    ; E4A0= 20 C2 ED     Bm
+                .elsif version==500
+                ldx #$8d
+                jsr osbyte8C8D
+                .endif
 LE4A3:
                 lda #$05                     ;
                 ldx $0285                    ; *FX5,<current printer>
@@ -7196,7 +7263,12 @@ LE4A3:
                 beq LE509
 LE4BB:
                 jsr selectTerminalROM     ; Page in ROM 15 - UTILS ROM
+                .if version==320
                 jsr terminal.readDefaultLanguageROM        ; Read configured LANG
+                .elsif version==500
+                ldx #$41
+                jsr utils_8A64
+                .endif
                 tax
 LE4C2:
                 clc
@@ -7231,9 +7303,11 @@ LE4E1:
                 jsr OSNEWL
                 jsr OSNEWL
                 plp
+                .if version==320
                 lda #$01
                 bit tubePresence
                 bmi copyLanguageOverTube     ;taken if Tube is present
+                .endif
                 lda sidewaysROMType
                 and #%00001101
                 bne iCannotRunThisCodeError ;taken if low nybble isn't 0 (6502 BASIC) or 2 (other 6502 ROM)
@@ -7242,10 +7316,14 @@ LE4E1:
 
 LE509:
                 lda #$00
+                .if version==320
                 bit tubePresence
                 bpl startCommandLineUI
 copyLanguageOverTube:
                 jmp terminal.tubeHost.copyLanguage
+                .elsif version==500
+                bra startCommandLineUI
+                .endif
 
 ;-------------------------------------------------------------------------
 
@@ -7307,7 +7385,11 @@ defaultBRKHandler:
 
 startCommandLineUI:
                 jsr selectTerminalROM
+                .if version==320
                 jmp terminal.commandLineUI
+                .elsif version==500
+                jmp utils_8674
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -7459,59 +7541,64 @@ irq2EntryPoint:
 ;-------------------------------------------------------------------------
 
 irq1Handler:
-                lda ACIA+0                    ; E60F= AD 08 FE    -.~
-                bvs LE616                    ; E612= 70 02       p.
+                lda ACIA+0
+                .if version==500
+                and rs423InterruptMask
+                .endif
+                bvs LE616
                 bpl checkForSystemVIAInterrupt
 LE616:
-                ldx $EA                      ; E616= A6 EA       &j
-                dex                          ; E618= CA          J
-                bmi LE64E                    ; E619= 30 33       03
-                bvs rtsE64D                    ; E61B= 70 30       p0
-                jsr withTerminalROM          ; E61D= 20 84 F3     .s
-                jmp terminal.LA45D           ; E620= 4C 5D A4    L]$
+                ldx $EA
+                dex
+                bmi LE64E
+                bvs rtsE64D
+                jsr withTerminalROM
+                jmp terminal.LA45D
 
 LE623:
-                ldy ACIA+1                    ; E623= AC 09 FE    ,.~
-                rol a                        ; E626= 2A          *
-                asl a                        ; E627= 0A          .
+                ldy ACIA+1
+                rol a
+                asl a
 LE628:
-                tax                          ; E628= AA          *
-                tya                          ; E629= 98          .
-                ldy #$07                     ; E62A= A0 07        .
-                jmp eventEntryPoint                    ; E62C= 4C 28 EA    L(j
+                tax
+                tya
+                ldy #$07
+                jmp eventEntryPoint
 
 LE62F:
-                ldx #$02                     ; E62F= A2 02       ".
-                jsr osbyte91                    ; E631= 20 F4 E9     ti
-                bcc LE646                    ; E634= 90 10       ..
+                ldx #$02
+                jsr osbyte91
+                bcc LE646
                 lda printerDriverType
-                cmp #$02                     ; E639= C9 02       I.
-                bne LE5D4                    ; E63B= D0 97       P.
-                inx                          ; E63D= E8          h
-                jsr osbyte91                    ; E63E= 20 F4 E9     ti
-                ror $02D1                    ; E641= 6E D1 02    nQ.
-                bmi LE5D4                    ; E644= 30 8E       0.
+                cmp #$02
+                bne LE5D4
+                inx
+                jsr osbyte91
+                ror $02D1
+                bmi LE5D4
 LE646:
-                sta ACIA+1                    ; E646= 8D 09 FE    ..~
-                lda #$E7                     ; E649= A9 E7       )g
-                sta $EA                      ; E64B= 85 EA       .j
+                sta ACIA+1
+                lda #$E7
+                sta $EA
 rtsE64D:
-                rts                          ; E64D= 60          `
+                rts
 
 LE64E:
+                .if version==320
                 and rs423InterruptMask
-                lsr a                        ; E651= 4A          J
-                bcc LE65B                    ; E652= 90 07       ..
-                bvs LE65B                    ; E654= 70 05       p.
+                .endif
+                lsr a
+                bcc LE65B
+                bvs LE65B
                 ldy aciaControlRegister
-                bmi LE5E9                    ; E659= 30 8E       0.
+                bmi LE5E9
 LE65B:
-                lsr a                        ; E65B= 4A          J
-                ror a                        ; E65C= 6A          j
-                bcs LE623                    ; E65D= B0 C4       0D
-                bmi LE62F                    ; E65F= 30 CE       0N
-                bvs rtsE64D                    ; E661= 70 EA       pj
-                
+                lsr a
+                ror a
+                bcs LE623
+                bmi LE62F
+                bvs rtsE64D
+
 handleUnrecogisedInterrupt:
                 ldx #romServiceCallUnrecognisedInterrupt
                 jsr makeROMServiceCall
@@ -7641,17 +7728,23 @@ LE728:
                 sec
                 jsr LF8FF
 +
+                .if version==500
+                jsr handleDigitalJoystick
+                .endif
                 jsr pollPrinterDriver
                 ldy romPollingSemaphore
                 beq +
                 ldx #romServiceCallPollingInterrupt
                 jsr makeROMServiceCall
 +
+                .if version==320
                 bit HADC+0
                 bvs LE752
+                .endif
                 rts
 
 checkForSystemVIACB1Interrupt:
+                .if version==320
                 bit #VIA.irq.cb1
                 beq checkForSystemVIACA2Interrupt
 
@@ -7687,6 +7780,10 @@ acknowledgeSystemVIACB1Interrupt:
 staSystemVIAIFR:
                 sta systemVIA.ifr
                 rts
+                .elsif version==500
+initiateADCConversion:
+                rts
+                .endif
 
 checkForSystemVIACA2Interrupt:
                 lsr a                        ;C = CA2
@@ -7697,7 +7794,13 @@ checkForSystemVIACA2Interrupt:
                 clc                          ; E791= 18          .
                 jsr LF8FF                    ; E792= 20 FF F8     .x
                 lda #VIA.irq.ca2
+                .if version==320
                 bra staSystemVIAIFR
+                .elsif version==500
+staSystemVIAIFR:
+                sta systemVIA.ifr
+                rts
+                .endif                
 
 handleUnrecognisedInterruptE799:
                 jmp handleUnrecogisedInterrupt
@@ -7720,7 +7823,7 @@ osbyte11:
 ;
 printStartupMessage:
                 lda #>startupMessages
-                .cerror (<startupMessages)!=0,"startupMessages must be page-aligned" ;it's more flexible than this, but this'll do for now
+                ; .cerror (<startupMessages)!=0,"startupMessages must be page-aligned" ;it's more flexible than this, but this'll do for now
 
 ;-------------------------------------------------------------------------
 ;
@@ -7753,8 +7856,253 @@ printBRKMessage:
                 jsr OSASCI
                 tax       
                 bne printBRKMessage
+rtsE7B0:
                 rts       
 
+;-------------------------------------------------------------------------
+
+                .if version==500
+;-------------------------------------------------------------------------
+
+unk_E78B:       .byte 0
+                .byte $8D       ;
+                .byte $8F       ;
+                .byte $8E       ;
+                .byte $8C       ;
+                .byte $7F       ;
+                .byte $D
+                .byte $8B       ;
+                .byte $8B       ;
+unk_E794:       .byte $96
+                .byte $E6       ;
+                .byte $D6       ;
+                .byte $C6       ;
+                .byte $86       ;
+
+;-------------------------------------------------------------------------
+
+handleDigitalJoystick:.block
+                lda maximumADCChannel
+                beq rtsE7B0
+                bit adcConversionType
+                bvc loc_E7DE
+                lda adcResultLSBs
+                ldx #0
+
+loc_E7A8:
+                inx
+                asl a
+                bcs loc_E7AF
+                bne loc_E7A8
+                tax
+
+loc_E7AF:
+                ldy unk_E78B,x
+                cpy adcLastChannelRead
+                sty adcLastChannelRead
+                beq loc_E7C6
+                tya
+                beq loc_E7C6
+                jsr insertCharacterIntoKeyboardBuffer
+                lda keyboardAutoRepeatDelay
+                sta adcResultMSBs+3
+
+loc_E7C6:
+                lda adcResultMSBs+3
+                beq loc_E7DE
+                dec adcResultMSBs+3
+                bne loc_E7DE
+                lda keyboardAutoRepeatRate
+                sta adcResultMSBs+3
+                ldy adcLastChannelRead
+                beq loc_E7DE
+                jsr insertCharacterIntoKeyboardBuffer
+
+loc_E7DE:
+                bit adcConversionType
+                bpl loc_E7EA
+                ldy #$B6
+                ldx #$2C        ; Master Compact joystick call
+                jmp makeROMServiceCall
+
+;-------------------------------------------------------------------------
+
+loc_E7EA:
+                lda #$FF
+                ldx editKeysMode
+                cpx #3
+                bne loc_E807
+                inx
+
+loc_E7F4:
+                pha
+                phx
+                lda unk_E794,x
+                tax
+                sec
+                clv
+                jsr LED01
+                plx
+                pla
+                rol a
+                dex
+                bpl loc_E7F4
+                eor #$FF
+
+loc_E807:
+                and userVIA.irb
+                eor #$1F
+                lsr a
+                php
+                asl a
+                asl a
+                asl a
+                plp
+                rol a
+                tax
+                eor adcResultLSBs
+                bit adcConversionType
+                and #$F0
+                stx adcResultLSBs
+                bvs locret_E826
+                beq loc_E827
+                stz adcResultMSBs+3
+
+locret_E826:
+                rts
+
+;-------------------------------------------------------------------------
+
+loc_E827:
+                lda adcConversionType
+                beq loc_E832
+                cmp #8
+                bcc loc_E834
+                lda #4
+
+loc_E832:
+                eor #3
+
+loc_E834:
+                tay
+                dec a
+                tax
+                lda adcResultMSBs+3
+                stz adcResultMSBs+2
+
+loc_E83D:
+                dex
+                bmi loc_E846
+                asl a
+                rol adcResultMSBs+2
+                bra loc_E83D
+
+;-------------------------------------------------------------------------
+
+loc_E846:
+                sta adcResultMSBs+1
+                cpy adcResultMSBs+2
+                bcs loc_E854
+                sty adcResultMSBs+1
+                sty adcResultMSBs+2
+
+loc_E854:
+                lda adcConversionType
+                and #$20
+                beq loc_E86A
+                lda #$FF
+                sta adcResultLSBs+1
+                sta adcResultLSBs+3
+                lsr a
+                sta adcResultLSBs+2
+                sta adcResultMSBs
+
+loc_E86A:
+                ldx #9
+
+loc_E86C:
+                lda adcResultLSBs
+                bit unk_E8D5,x
+                beq loc_E8B2
+                lda unk_E8D5+1,x
+                asl a
+                tay
+                lda adcConversionType
+                and #$20        ; ' '
+                beq loc_E885
+                lda unk_E8D5+2,x
+                bra loc_E8AC
+
+;-------------------------------------------------------------------------
+
+loc_E885:
+                lda adcResultLSBs+1,y
+                bcs loc_E89C
+                adc adcResultMSBs+1
+                sta adcResultLSBs+1,y
+                lda adcResultLSBs+2,y
+                adc adcResultMSBs+2
+                bcc loc_E8AF
+                lda #$FF
+                bra loc_E8AC
+
+;-------------------------------------------------------------------------
+
+loc_E89C:
+                sbc adcResultMSBs+1
+                sta adcResultLSBs+1,y
+                lda adcResultLSBs+2,y
+                sbc adcResultMSBs+2
+                bcs loc_E8AF
+                lda #0
+
+loc_E8AC:
+                sta adcResultLSBs+1,y
+
+loc_E8AF:
+                sta adcResultLSBs+2,y
+
+loc_E8B2:
+                dex
+                dex
+                dex
+                bpl loc_E86C
+                inc adcResultMSBs+3
+                bne loc_E8BF
+                dec adcResultMSBs+3
+
+loc_E8BF:
+                ldx currentADCChannel
+                ldy #3
+                jsr eventEntryPoint
+                dec currentADCChannel
+                beq loc_E8CE
+                bpl locret_E8D4
+
+loc_E8CE:
+                lda maximumADCChannel
+                sta currentADCChannel
+
+locret_E8D4:
+                rts
+                .endblock
+
+;-------------------------------------------------------------------------
+
+unk_E8D5:       .byte $40; @
+                .byte 1
+                .byte $FF
+                .byte $20
+                .byte $81       ;
+                .byte 0
+                .byte $80       ;
+                .byte $80       ;
+                .byte 0
+                .byte $10
+                .byte 0
+                .byte $FF
+                .endif
+                
 ;-------------------------------------------------------------------------
 
 osbyte81Timed:
@@ -7811,9 +8159,13 @@ starLIBFS:
 ;-------------------------------------------------------------------------
 
 starX:
+                .if version==320
                 sta TUBE+8                   ; E7FD= 8D E8 FE    .h~
 LE800:
                 bra LE800                    ; E800= 80 FE       .~
+                .else
+                .warn 'starX...'
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -7986,7 +8338,7 @@ LE8FD:
                 ldy $EA
                 dey
                 bpl LE959
-                lsr $02D1
+                lsr printerDriverDormant
 clearRS423BusyAndSetRS423Active:
                 lsr rs423Busy
 setRS423Active:
@@ -8443,12 +8795,21 @@ osbyte99Done:
 
 ; A = 0 (edit keys)/1 (ascii keys)/2 (F keys)
 handleCursorKeysAndCopy:
+                .if version==320
                 ror a                        ;test edit keys mode bit 0
                 pla                          ;restore translated value
                 bcs clc_rts_EABD       ;taken if value was asciiKeys
+                .else
+                cmp #2
+                pla
+                bcc clc_rts_EABD
+                .endif
+                
 handleFunctionKey:
                 tya
+                .if version==320
                 and #$0F
+                .endif
                 pha
                 tya
                 lsr a
@@ -8459,10 +8820,33 @@ handleFunctionKey:
                 tay
                 lda input192To207Interpretation-8,y
                 lsr a
+                .if version==320
                 beq LEB32
                 pla
                 clc
                 adc input192To207Interpretation-8,y
+                .elif version==500
+                bne +
+                jmp LEC99
++
+                rol a
+                cmp #2
+                bne LEBF5
+LEBEA:
+                pla
+                sta softKeyExpansionPtr
+                lda #$ff
+                sta softKeyStringLength
+                inc a
+                bra clc_rts_EABD
+
+LEBF5:
+                pla
+                and #$0f
+                clc
+                adc input192To207Interpretation-8,y
+                .endif
+                
 clc_rts_EABD:
                 clc
                 rts
@@ -8474,18 +8858,48 @@ copyCharNotRecognised:
                 plx
 readFromInputBufferX:
                 jsr osbyte91          ;extract character from buffer X
+                .if version==320
                 bcs rtsEB28           ;taken if buffer empty
+                .elsif version==500
+                bcs LEC0D
+                tay
+                bne LEAC8
+                jsr osbyte91
+LEC0D:
+                .if version==320
+                bcs rtsEB31
+                .elsif version==500
+                bcs rtsEB28
+                .endif
+                tay
+                bne clc_rts_EABD
+                pha
+                ldy #8
+
+LEC15:
+                lda shiftCtrlSoftKeyInterpretation-8,y
+                cmp #2
+                beq LEBEA
+                dey
+                bne LEC15
+                pla
+                bra clc_rts_EABD
+                .endif
+
+LEAC8:
                 pha                   ;save character extracted
                 cpx #bufferRS423Input ;was it RS423 input buffer?
                 bne LEAD3             ;taken if not RS423 input buffer
                 jsr setRS423Active
                 sec
                 ldx #bufferRS423Input
+
 LEAD3:
                 pla                          ;restore char extracted
                 bcc LEADB                    ;taken if keyboard buffer
                 ldy rs423InputInterpretationStatus ;D.2-54
                 bne clc_rts_EB27             ;taken if default mode
+
 LEADB:
                 tay                          ;Y = char
                 bpl clc_rts_EB27             ;if normal char, all good
@@ -8516,6 +8930,14 @@ callNETV:
 readFromSoftKeyOrInputBufferA:
                 lda softKeyStringLength
                 beq readFromInputBufferX
+                .if version==500
+                inc a
+                bne LEC70
+                stz softKeyStringLength
+                lda softKeyExpansionPtr
+                bra clc_rts_EB27
+LEC70:
+                .endif
                 txa
                 and rs423InputInterpretationStatus
                 bne readFromInputBufferX
@@ -8537,16 +8959,39 @@ rtsEB28:
 readCopyChar:
                 phx
                 jsr handleCopyKeyThunk
+                .if version==320
                 beq copyCharNotRecognised
+                .elsif version==500
+                bne +
+                jmp copyCharNotRecognised
++
+                .endif
                 plx
                 clc
+rtsEB31:
                 rts
+
+                .if version==500
+LEC99:
+                pla
+                and #$0f
+                tay
+                bcs LECA2
+                jmp readFromInputBufferX
+
+LECA2:
+                sta currentSoftKey
+
+                .elsif version==320
 
 LEB32:
                 ply
                 bcc readFromInputBufferX
                 tya
                 sta currentSoftKey
+
+                .endif
+                
                 lda $F4
                 pha                           ;save old ROMSEL
                 jsr selectTerminalROMAndANDY2
@@ -8606,7 +9051,8 @@ handleCopyKeyThunk:
 ;
 ; N/Z set as per X
 ; 
-               
+
+                .if version==320
 osbyteAndOSWORDRoutineTable:
                 .word osbyte00 ;Display MOS version D.2-18
                 .word osbyte01 ;Write user flag D.2-18
@@ -8695,7 +9141,7 @@ osbyteAndOSWORDRoutineTable:
                 .word osbyteA5     ;Read output cursor position
                 .word osbyteA6  ;handle osbyte A6-FF
                 .word callUSERV ;*LINE - not part of the above table???
-
+                
 ;-------------------------------------------------------------------------
 ;
 ; OSWORD dispatch table. Must follow on from the OSBYTE table.
@@ -8731,42 +9177,56 @@ oswordRoutineTable:
                 .word osword0D ;Read current and previous graphics cursor positions
                 .word osword0E ;Read CMOS clock
                 .word osword0F ;Write CMOS clock
+                .endif
                 
 osbyte88: ;LEC37:
                 lda #$00
 
 callUSERV:
-                jmp (USERV)                  ; EC39= 6C 00 02    l..
+                jmp (USERV)
 
 osbyte7E:                       ;ec3c
-                ldx #$00                     ; EC3C= A2 00       ".
-                bit $FF                      ; EC3E= 24 FF       $.
-                bpl osbyte7C                    ; EC40= 10 14       ..
-                lda $0276                    ; EC42= AD 76 02    -v.
-                bne LEC54                    ; EC45= D0 0D       P.
-                cli                          ; EC47= 58          X
-                stz pagedModeCounter                    ; EC48= 9C 69 02    .i.
-                jsr withTerminalROM          ; EC4B= 20 84 F3     .s
-                jsr terminal.starEXEC        ; EC4E= 20 91 A5     .%
-                jsr LE947                    ; EC51= 20 47 E9     Gi
+                ldx #$00
+                bit $FF
+                bpl osbyte7C
+                lda escapeEffects
+                bne LEC54
+                cli
+                stz pagedModeCounter
+                jsr withTerminalROM
+                jsr terminal.starEXEC
+                jsr LE947
 LEC54:
-                ldx #$FF                     ; EC54= A2 FF       ".
+                ldx #$FF
 osbyte7C: ;EC56
-                clc                          ; EC56= 18          .
+                clc
 osbyte7D: ;EC57
-                ror $FF                      ; EC57= 66 FF       f.
-                bit $027A                    ; EC59= 2C 7A 02    ,z.
-                bpl LECD9                    ; EC5C= 10 7B       .{
+                .if version==320
+                ror $FF
+                bit $027A
+                bpl LECD9
                 jmp terminal.tubeHost.copyEscapeStatus
+                .elsif version==500
+                php
+                sei
+                php
+                asl escapeFlag
+                plp
+                ror escapeFlag
+                plp
+                bra LECD9
+                .endif
 
+                .if version==320
 osbyte89:
-                lda serialULARegister                    ; EC61= AD 82 02    -..
-                tay                          ; EC64= A8          (
-                rol a                        ; EC65= 2A          *
-                cpx #$01                     ; EC66= E0 01       `.
-                ror a                        ; EC68= 6A          j
-                bra LEC89                    ; EC69= 80 1E       ..
-
+                lda serialULARegister
+                tay
+                rol a
+                cpx #$01
+                ror a
+                bra LEC89
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; ;OSBYTE 8 (&08) Write RS423 transmit rate
@@ -8945,9 +9405,11 @@ osbyte0E:
 ; 20 milliseconds.
 ; 
 osbyte10:
+                .if version==320
                 beq +                        ;taken if X=0
                 jsr osbyte11
 +
+                .endif
                 lda maximumADCChannel
                 stx maximumADCChannel
                 tax
@@ -9032,16 +9494,28 @@ getRS423InputBufferFreeBytes:
 osbyte80:
                 bmi LED18
                 beq LED45
+                .if version==320
                 cpx #$05
                 bcs osbyte82                 ;return with X=$ff Y=$ff
                 ldy adcResultMSBs-1,x
                 lda adcResultLSBs-1,x
                 tax
+                .elsif version==500
+                inx
+                txa
+                and #1
+                asl a
+                tax
+                ldy adcResultLSBs+3-1,x
+                lda adcResultLSBs+2-1,x
+                tax
+                .endif
                 rts
 
 ;-------------------------------------------------------------------------
 
 LED45:
+                .if version==320
                 ; Put joystick buttons in bits 0/1.
                 lda systemVIA.irb
                 ror a
@@ -9053,6 +9527,10 @@ LED45:
                 ldy adcLastChannelRead
                 stx adcLastChannelRead
                 tax
+                .elsif version==500
+                ldy currentADCChannel
+                ldx adcResultLSBs
+                .endif
                 rts
 
 ;-------------------------------------------------------------------------
@@ -9312,7 +9790,7 @@ makeROMServiceCall: .proc                    ;ee72
                 ldx #$0F     ; Start at ROM 15, and always call ROM 15
                 bra callServiceEntry
 callServiceEntriesLoop:
-                bit $02A1,x     ;check if ROM X has a service entry
+                bit romInformationTable,x ;check if ROM X has a service entry
                 bpl nextROM       ;branch taken if no service entry
 callServiceEntry:
                 jsr selectROMX  ; Page in ROM X
@@ -9333,11 +9811,15 @@ done:
                 rts
                 .pend
 
+;-------------------------------------------------------------------------
+
 ; OSBYTE &6B (107) - Select memory for direct access
 ; ==============================================
 osbyte6B:                       ;ee9e
                 ldy #$20                     ; Y=&20 to change 1MHz bit
                 bra LEEA4
+
+;-------------------------------------------------------------------------
 
 ; OSBYTE &6C (108) - Select memory for direct access
 ; ==============================================
@@ -9353,7 +9835,94 @@ LEEA4:
 LEEB0:
                 rts                          ; X preserved, Y=&04 or &20
 
+;-------------------------------------------------------------------------
 
+osword06Macro: .macro
+                jsr getAddressFromOSWORDParameterBlock
+                lda (originalX),y
+                sta (SEIWKA)
+ret:
+                lda #$00
+                rts
+                .endmacro
+
+LEF1BMacro: .macro
+                lda $EB
+                bmi osword06.ret
+                lda spoolFileHandle
+                bne osword06.ret
+                lda #$08        
+                and $E2         
+                bne LEF2E       
+                lda #$88        
+                and $BB         
+LEF2E:
+                rts                          ; EF2E= 60          `
+                .endmacro
+
+;-------------------------------------------------------------------------
+
+                .if version==500
+osword06: .osword06Macro
+LEF1B: .LEF1BMacro
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==500
+oswordEntryPoint:
+                pha
+                php
+                sei
+                sta originalA
+                stx originalX
+                sty originalY
+                ldx #romServiceCallUnrecognisedOSWORD
+                cmp #$e0
+                bcs osbyteOrUSERV
+                cmp #$10
+                bcc LEF76
+                cmp #$44
+                bcs LEF71
+                cmp #$42
+                bcs LEF74
+                sec
+                
+LEF71:
+                jmp handleUnrecognisedOSBYTEOrOSWORD
+
+LEF74:
+                sbc #$34                     ; :(
+
+LEF76:
+                adc #$59                     ; :(
+                asl a
+                bra callOSBYTEOrOSWORDFromTable
+                .endif
+                
+;-------------------------------------------------------------------------
+
+                .if version==500
+osword0E:
+                cmp #3
+                bcs handleUnrecognisedOSBYTEOrOSWORD
+                jsr withTerminalROM
+                jmp utils_9878
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==500
+LEF85:
+                plp
+                pla
+                bit valueFF
+                rts
+                .endif
+                
+;-------------------------------------------------------------------------
+
+                
 ; OSBYTE
 ; ======
 osbyteEntryPoint:
@@ -9376,8 +9945,15 @@ osbyteA6ToFF:
 osbyteOrUSERV:      ;call OSBYTE A6+ routine if C=0; call USERV if C=1
                 lda #$A6
                 adc #$00
+                .if version==320
 osbyte6BToA5:
                 sbc #$50        ;map $6b-$a5 to $1b-$56
+                .elsif version==500
+osbyte6BToA5:
+                sbc #$24
+LEFA9:
+                sbc #$2A
+                .endif
 osbyteUseTable:
                 asl a           ;table is of words
                 sec
@@ -9393,10 +9969,19 @@ callOSBYTEOrOSWORDFromTable:
                 jsr callNETV
                 bvs LEEFA
 LEEE0:
+                .if version==500
+                lda $f4
+                pha
+                jsr selectTerminalROM
+                .endif
                 lda osbyteAndOSWORDRoutineTable+1,y
                 sta SEIWKB
                 lda osbyteAndOSWORDRoutineTable,y
                 sta SEIWKA
+                .if version==500
+                plx
+                jsr selectROMX
+                .endif
                 lda originalA
                 ldy originalY
                 bcs +
@@ -9421,6 +10006,12 @@ osbyte00To6A:
                 ldy #$00        ;Y=0 on entry for this lot
                 cmp #$1A        ;OSBYTE <=$19 is table-driven
                 bcc osbyteUseTable ;taken if OSBYTE $00-$19
+                .if version==500
+                cmp #$44
+                beq LEFA9
+                cmp #$45
+                beq LEFA9
+                .endif
                 bra handleUnrecognisedOSBYTEOrOSWORD       
 
 handleUnrecognisedOSWORD:
@@ -9429,46 +10020,46 @@ handleUnrecognisedOSWORD:
                 pla
 handleUnrecognisedOSBYTEOrOSWORD:
                 jsr makeROMServiceCall
-                bne +
+                .if version==320
+                bne LEF15
+                .else
+                bne LEF85
+                .endif
                 ldx originalX
                 bra LEEFA
-+
-                plp                          ; EF15= 28          (
-                pla                          ; EF16= 68          h
-                bit valueFF                    ; EF17= 2C 4E E3    ,Nc
-                rts                          ; EF1A= 60          `
+                .if version==320
+LEF15:
+                plp
+                pla
+                bit valueFF
+                rts
+                .endif
 
 ;-------------------------------------------------------------------------
 
-LEF1B:
-                lda $EB
-                bmi ldaim00_rts_EF60
-                lda spoolFileHandle
-                bne ldaim00_rts_EF60
-                lda #$08        
-                and $E2         
-                bne LEF2E       
-                lda #$88        
-                and $BB         
-LEF2E:
-                rts                          ; EF2E= 60          `
+                .if version==320
+LEF1B: .LEF1BMacro
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
 ; OSWORD 14 (&0E) Read CMOS clock [MasRef D.3-22]
-; 
+;
+                .if version==320
 osword0E:
                 cmp #$03                   ;only codes 0/1/2 are valid
                 bcs handleUnrecognisedOSWORD
                 jsr withTerminalROM
                 jmp terminal.osword0E
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; Entry point for OSWORD.
 ;
 ; D.3-3
-; 
+;
+                .if version==320
 oswordEntryPoint:
                 pha             ;save OSWORD request
                 php
@@ -9489,7 +10080,8 @@ oswordEntryPoint:
                 adc #(oswordRoutineTable-osbyteAndOSWORDRoutineTable)/2
                 asl a
                 bra callOSBYTEOrOSWORDFromTable
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; OSWORD 5 (&05) Read byte from I/O processor memory [MasRef D.3-9]
@@ -9503,14 +10095,11 @@ osword05:
 ;-------------------------------------------------------------------------
 ;
 ; OSWORD 6 (&06) Write byte to I/O processor memory [MasRef D.3-9]
-; 
-osword06:
-                jsr getAddressFromOSWORDParameterBlock
-                lda (originalX),y            ;read value to write
-                sta (SEIWKA)               ;write value to the address
-ldaim00_rts_EF60:
-                lda #$00
-                rts
+;
+
+                .if version==320
+osword06: .osword06Macro
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -9564,7 +10153,13 @@ osbyte00:                       ;ef6f
 ; do a BRK and print MOS version number.
                 
                 brk                          
-                .text $f7,"OS 3.20",0
+                .byte $f7
+                .if version==320
+                .text "OS 3.20"
+                .elsif version==500
+                .text "MOS 5.00"
+                .endif
+                .byte 0
 
 ;-------------------------------------------------------------------------
 ;
@@ -9991,9 +10586,18 @@ osbyteA0:
 ; 
 resetKeyRepeat:
                 jsr withTerminalROM
+                .if version==320
                 jsr terminal.getDefaultKeyboardAutoRepeatDelay
                 sty keyboardAutoRepeatDelay
                 jsr terminal.getDefaultKeyboardAutoRepeatRate
+                .elsif version==500
+                ldx #$0c
+                jsr utils_9DCA
+                sta keyboardAutoRepeatDelay
+                ldx #$0d
+                jsr utils_9DCA
+                tay
+                .endif
                 ldx keyboardAutoRepeatRate
                 sty keyboardAutoRepeatRate
                 rts
@@ -10208,19 +10812,19 @@ LF1F9:
 ; TAPE/ROM extended vector values
 ; -------------------------------
 LF1FA:
-                .word terminal.LA08C         ; FILEV
+                .word terminal.osfileTapeOrROM ; FILEV
                 .byte terminalROM
-                .word terminal.L9F29         ; ARGSV
+                .word terminal.osargsTapeOrROM ; ARGSV
                 .byte terminalROM
-                .word terminal.LA2EA         ; BPUTV
+                .word terminal.bputTapeOrROM ; BPUTV
                 .byte terminalROM
-                .word terminal.LA34B         ; BGETV
+                .word terminal.bgetTapeOrROM ; BGETV
                 .byte terminalROM
-                .word terminal.LA36D         ; GBPBV
+                .word terminal.osgbpbTapeOrROM ; GBPBV
                 .byte terminalROM
-                .word terminal.LA1F9         ; FINDV
+                .word terminal.osfindTapeOrROM ; FINDV
                 .byte terminalROM
-                .word terminal.L9F8C         ; FSCV
+                .word terminal.fscTapeOrROM  ; FSCV
                 .byte terminalROM
 
 ;-------------------------------------------------------------------------
@@ -10243,7 +10847,7 @@ osbyte6D:;f20f
 ; MasRef D.2-24
 ; 
 osbyte14:                       ;f21c
-                jsr withTerminalROM          ; F21C= 20 84 F3     .s
+                jsr withTerminalROM
                 jmp terminal.restoreFont32To126
 
 ;-------------------------------------------------------------------------
@@ -10251,22 +10855,26 @@ osbyte14:                       ;f21c
 ; OSBYTE 25 (&19) Restore a group of font definitions
 ;
 ; MasRef D.2-28
-; 
+;
 osbyte19:                       ;f222
-                jsr withTerminalROM          ; F222= 20 84 F3     .s
-                jmp terminal.osbyte19           ; F225= 4C A8 92    L(.
+                jsr withTerminalROM
+                jmp terminal.osbyte19
+
+;-------------------------------------------------------------------------
 
 ; OSBYTE &16 - Increment ROM polling semaphore
 ; ========================================
 osbyte16:                       ;f228
-                inc $0243                    ; F228= EE 43 02    nC.
-                rts                          ; F22B= 60          `
+                inc $0243
+                rts
+
+;-------------------------------------------------------------------------
 
 ; OSBYTE &17 - Decrement ROM polling semaphore
 osbyte17:                       ;f22c
 ; ========================================
-                dec $0243                    ; F22C= CE 43 02    NC.
-                rts                          ; F22F= 60          `
+                dec $0243
+                rts
 
 ; OSBYTE &76 - Set LEDs to keyboard state
 ; =======================================
@@ -10470,7 +11078,10 @@ LF30A:
 ;
 ; Modify character in A as if the SHIFT key is being pressed.
 ;
+
 implementShift:
+                .if version==320
+                
                 cmp #'0'
                 beq gotShiftedChar           ;taken if SHIFT+0 - no change
                 cmp #$40
@@ -10495,12 +11106,51 @@ shiftNumber:
 gotShiftedChar:
                 rts                          ; F335= 60          `
 
+                .elsif version==500
+
+                ldx #2
+                bvc LF3C5
+LF3C5:
+                cmp LF3E7-1,x
+                beq LF3E2
+                dex
+                bne LF3C5
+                bvc LF3E1
+                cmp #'!'
+                bcc LF3E1
+                cmp #'@'
+                bcc LF3DF
+                cmp #$7f
+                beq LF3E1
+                bcs LF3DF
+
+LF3DD:
+                eor #$30
+LF3DF:
+                eor #$10
+LF3E1:
+                rts
+
+LF3E2:
+                clv
+                lda LF3E9-1,x
+                rts
+
+LF3E7:
+                .byte '_','0'
+LF3E9:
+                .byte '`','@'
+                
+                .endif
+
 ;-------------------------------------------------------------------------
 ;
 ; See MasRef C.5-8
 ;
 ; 
 implementCTRLCodes:
+                .if version==320
+                
                 cmp #$7F                     ; F336= C9 7F       I.
                 beq gotCtrlChar
                 bcs flipBitsForShift         ;taken if CHR$>=128
@@ -10514,13 +11164,54 @@ implementCTRLCodes:
 gotCtrlChar:
                 rts                          ; F348= 60          `
 
+                .elsif version==500
+
+                phx
+                ldx #2
+LF3EE:
+                cmp LF40A-1,x
+                beq LF404
+                dex
+                bne LF3EE
+                plx
+                cmp #'?'
+                bcc LF403
+                cmp #$7f
+                beq LF403
+                bcs LF3DD
+                and #$1f
+LF403:
+                rts
+
+LF404:
+                clv
+                lda LF40C-1,x
+                plx
+                rts
+
+LF40A:
+                .text '0','@'
+LF40C:
+                .text 0,0
+
+                .endif
+
 ;-------------------------------------------------------------------------
 
 osbyte247EntryPoint:
                 lda breakVectorByte0
                 eor #$4C                     ; JMP abs
                 bne rtsF363
+                .if version==320
                 jmp breakVectorByte0
+                .elsif version==500
+                lda $f4
+                pha
+                jsr breakVectorByte0
+                pla
+                sta $f4
+                rts
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -10711,6 +11402,8 @@ starRunBOOT:
 
 ;-------------------------------------------------------------------------
 
+                .if version==320
+                
 ; Table to convert channel number to the bits required by the chip
 soundParameterTable:
                 .byte $e0,$c0,$a0,$80
@@ -11118,29 +11811,57 @@ LF6E0:
                 rts                          ; F6E3= 60          `
 
 LF6E4:
-;BEQ LF69D        :\ F6E4= F0 B7       p7
                 .byte $F0
                 .byte $B7
                 .byte $82                    ; F6E6= 82          .
                 .byte $4F                    ; F6E7= 4F          O
-;JSR LC8F3        :\ F6E8= 20 F3 C8     sH
                 .byte $20
                 .byte $F3
                 .byte $C8
-                ldy #$7B                     ; F6EB= A0 7B        {
+                .byte $A0
+                .byte $7B
                 .byte $57                    ; F6ED= 57          W
-                and $16,x                    ; F6EE= 35 16       5.
+                .byte $35
+                .byte $16
 LF6F0:
                 .byte $E7                    ; F6F0= E7          g
                 .byte $D7                    ; F6F1= D7          W
                 .byte $CB                    ; F6F2= CB          K
                 .byte $C3                    ; F6F3= C3          C
                 .byte $B7                    ; F6F4= B7          7
-                tax                          ; F6F5= AA          *
-                ldx #$9A                     ; F6F6= A2 9A       ".
-                sta ($8A)                    ; F6F8= 92 8A       ..
-                .byte $82                    ; F6FA= 82          .
-                ply                          ; F6FB= 7A          z
+                .byte $AA
+                .byte $A2
+                .byte $9a
+                .byte $92
+                .byte $8a
+                .byte $82
+                .byte $7a
+
+                .elsif version==500
+
+LF416:
+                lda $f4
+                pha
+                jsr selectTerminalROM
+                jsr utils_9F56
+                plx
+                jmp selectROMX
+
+LF55D:
+                phx
+                lda $f4
+                pha
+                jsr selectTerminalROM
+                jsr utils_A09D
+                plx
+                jsr selectROMX
+                plx
+                rts
+
+                .endif
+
+;-------------------------------------------------------------------------
+
 LF6FC:
                 lda #$FF                     ; F6FC= A9 FF       ).
                 sta $F5                      ; F6FE= 85 F5       .u
@@ -11290,7 +12011,11 @@ resetKeyboardStatusAndTimer:
                 sta keyboardStatusByte
                 stz autoRepeatCountdownTimer
 braRolloverChecks:
+                .if version==320
                 bra keyboardRolloverChecks
+                .elsif version==500
+                jmp keyboardRolloverChecks
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -11301,6 +12026,23 @@ getASCIICode:
                 ; -$80 to adjust for bit 7 set; -16 because
                 ; interesting keys start at 16
                 lda keyTranslationTable-$80-16,x
+                .if version==500
+                ldx editKeysMode
+                cpx #3
+                bne LF5E5
+                cmp #$8b
+                bcc LF5E5
+                cmp #$90
+                bcc braRolloverChecks
+LF5E5:
+                pha
+                cmp #27
+                bne LF5EF
+                lda #7
+                trb keyboardStatusByte
+LF5EF:
+                pla
+                .endif
                 beq handleTAB                ;taken if TAB
                 cmp #$9D                     ;was it key_numpad_return?
                 bne handleKey                ;taken if not
@@ -11312,14 +12054,48 @@ getASCIICode:
 
 handleTAB:
                 lda tabKeyCode
+                .if version==500
+LF5FD:
+                cmp #1
+                bne LF61F
+                lda keyboardStatusByte
+                and #$f8
+                sta keyboardStatusByte
+                ldx #1
+                bit #keyboardStatusByte.shiftPressed
+                beq LF610
+                inx
+LF610:
+                bit #keyboardStatusByte.ctrlPressed
+                beq LF616
+                inx
+                inx
+LF616:
+                txa
+                ora keyboardStatusByte
+                sta keyboardStatusByte
+                bra braRolloverChecks
+
+LF61F:
+                bit valueFF
+                cmp #$90
+                bcc handleKey
+                clv
+                .endif
 handleKey:
                 cmp #$A0                     ;numpad key?
                 bcc processModifiers         ;taken if not
 getNumpadASCIICode:
+                .if version==500
+                php
+                .endif
                 ; C=1 at this point
                 sbc #'0'+1      ;+1 to compensate for C=1 in the next
                                 ;addition
                 adc numericKeypadInterpretation ;form actual ASCII value
+                .if version==500
+                plp
+                .endif
                 eor #$80                     ;clear bit 7
                 ldx numericKeypadShiftEffect ;does SHIFT affect the
                                              ;keypad?
@@ -11331,8 +12107,15 @@ processModifiers:
                 bpl testShiftLock           ;taken if ctrl not pressed
                 ldx firstKeyPressedInternal
 localResetAutoRepeatAndContinue:
+                .if version==320
                 bne resetAutoRepeatAndContinue
                 jsr implementCTRLCodes
+                .else
+                beq +
+                jmp resetAutoRepeatAndContinue
++
+                jsr implementCTRLCodes
+                .endif
 testShiftLock:
                 rol SEIWKA                   ;b7 = shiftLockDisengaged
                 bmi testCapsLock             ;taken if shift lock off
@@ -11361,12 +12144,71 @@ testEscape:
                 ldx escapeKeyStatus
                 bne LF839
                 stz autoRepeatCountdownTimer
+
 LF839:
+                
+                .if version==320
+                
                 tay
                 jsr enableKeyboardScanningFlippingInterrupts
                 lda keyboardStatus
                 bne keyboardRolloverChecks
                 jsr insertCharacterIntoKeyboardBuffer
+
+                .elsif version==500
+
+                pha
+                lda keyboardStatusByte
+                and #7
+                tax
+                lda #7
+                trb keyboardStatusByte
+                pla
+                pha
+                dex
+                bne LF693
+                pla
+                bra LF6A8
+
+LF693:
+                dex
+                bne LF699
+                pla
+                bra LF6A8
+
+LF699:
+                dex
+                bne LF69F
+                pla
+                bra LF6A8
+
+LF69F:
+                dex
+                bne LF6A7
+                pla
+                ora #$80
+                bra LF6AD
+
+LF6A7:
+                pla
+LF6A8:
+                tay
+                bvc LF6AD
+                bne LF6B3
+LF6AD:
+                jsr LF82B
+                bcc LF6BB
+                tay
+
+LF6B3:
+                lda keyboardStatus
+                bne LF6BB
+                jsr insertCharacterIntoKeyboardBuffer
+LF6BB:
+                jsr enableKeyboardScanningFlippingInterrupts
+
+                .endif
+                
 keyboardRolloverChecks:
                 ldx firstKeyPressedInternal
                 beq LF852                    ;taken if 1 key down
@@ -11380,7 +12222,7 @@ LF852:
                 bmi LF862
                 lda lastKeyPressedInternal
                 sta firstKeyPressedInternal
-LF85D:
+updateLastKeyPressedInternal:
                 stx lastKeyPressedInternal
                 jsr resetAutoRepeatCounters
 LF862:
@@ -11394,7 +12236,7 @@ LF868:
                 ldy #firstKeyPressedInternal
                 jsr scanKeyboardWithExclusion
                 bmi LF862
-                bra LF85D
+                bra updateLastKeyPressedInternal
 
 resetAutoRepeatCounters:
                 ldx #$01
@@ -11676,6 +12518,182 @@ LF9AD:
                 bpl LF96E
                 bra enableKeyboardScanningFlippingInterrupts
 
+;-------------------------------------------------------------------------
+
+                .if version==500
+LF82B:
+                pha
+                ldx #0
+                clv
+                sec
+                jsr countBufferViaCNPV
+                tya
+                bne LF83A
+                cpx #2
+                bcc LF844
+LF83A:
+                ldy keyboardStatus
+                clc
+                bne LF844
+                jsr insertCharacterIntoKeyboardBuffer
+                sec
+LF844:
+                pla
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==500
+LF846: .block
+                jsr selectROMA
+LF849:
+                lda ($b0),y
+                sta ($b2),y
+                iny
+                bne LF85D
+                inc $b1
+                inc $b3
+                jsr selectTerminalROM
+                jsr utils_8D0F
+                jsr selectROMA
+LF85D:
+                cpy $2ef
+                bne LF849
+                lda 1,x
+                cmp $2f0
+                bne LF849
+                jmp selectTerminalROM
+                .endblock
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==500
+dummy_rom_header: .block
+                rts
+                .byte 0,0
+                rts
+                .byte 0,0
+                .byte 2
+                .byte copyright-dummy_rom_header
+                .byte $ff
+                .text "R"
+ram_or_rom_char:
+                .text "A"
+                .text "M"
+copyright:
+                .byte 0
+                .text "(C)"
+                .endblock
+
+LF87C:
+                jsr selectROMX
+                ldy #size(dummy_rom_header)
+LF881:
+                lda dummy_rom_header,y
+                sta $8000,y
+                dey
+                bpl LF881
+                bit $2ee
+                bvs LF894
+                lda #'O'
+                sta $8000+(dummy_rom_header.ram_or_rom_char-dummy_rom_header)
+LF894:
+                stx $8001
+                jmp selectTerminalROM
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==500
+LF89A:
+                jsr selectROMX
+                lda $8008
+                tay
+                eor #$ff
+                sei
+                sta $8008
+                cmp $8008
+                sty $8008
+                cli
+                beq LF8B1
+                clc
+LF8B1:
+                jmp selectTerminalROM
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==500
+LF8B4:
+                jsr selectROMX
+                ldy #$80
+                sty 1
+                stz 0
+                tay
+LF8BE:
+                sta (0),y
+                iny
+                bne LF8BE
+                inc 1
+                bit 1
+                bvc LF8BE
+                dex
+                cpx #4
+                bcs LF8B4
+                jmp selectTerminalROM
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==500
+LF8D1:
+                lda $2ee
+                cmp #$a0
+                bne LF8B1
+                ldy $2f1
+                tya
+                tax
+                jsr LE389
+                bcc LF8B1
+                lda $8006
+                sta romInformationTable,x
+                bra LF8B1
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==500
+LF8EA:
+                jsr withTerminalROM
+                jmp utils_8EDC
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==500
+LF8F0:
+                jsr withTerminalROM
+                jmp utils_8F8C
+                .endif
+                
+;-------------------------------------------------------------------------
+
+                .if version==500
+LF8F6:
+                jsr withTerminalROM
+                jmp utils_8BF2
+                .endif
+                
+;-------------------------------------------------------------------------
+
+                .if version==500
+LF8FC:
+                jsr withTerminalROM
+                jmp utils_8E2E
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; OSBPUT [AUG p339]
@@ -12282,70 +13300,150 @@ badCommandError:
 
 ;-------------------------------------------------------------------------
 
-                .byte $FF                    ; FBFB= FF          .
-                .byte $FF                    ; FBFC= FF          .
-                .byte $FF                    ; FBFD= FF          .
-                .byte $FF                    ; FBFE= FF          .
-                .byte $FF                    ; FBFF= FF          .
+                .align 256,$ff
+                ; .byte $FF                    ; FBFB= FF          .
+                ; .byte $FF                    ; FBFC= FF          .
+                ; .byte $FF                    ; FBFD= FF          .
+                ; .byte $FF                    ; FBFE= FF          .
+                ; .byte $FF                    ; FBFF= FF          .
 
 ;-------------------------------------------------------------------------
 ;
 ; Credits - normally hidden by the I/O region.
-; 
+;
+                .if version==320
                 .text "(C) 1984 Acorn Computers Ltd."
                 .text "Thanks are due to the following contributors to the BBC Computer (among others too numerous to mention):- "
+                .elsif version==500
+                .text "(C) 1986 Acorn Computers Ltd."
+                .text "Thanks are due to the following contributors to this Computer (among many others):- "
+                .endif
                 .text "David Allen,"
+                .if version==320
                 .text "Clive Angel,"
+                .endif
                 .text "David Bell,"
                 .text "Paul Bond,"
+                .if version==320
                 .text "Allen Boothroyd,"
+                .endif
                 .text "Julian Brown,"
                 .text "Tudor Brown,"
+                .if version==500
+                .text "Tim Caspell,"
+                .endif
                 .text "Brian Cockburn,"
+                .if version==500
+                .text "Barbara Cole,"
+                .endif
+                .if version==320
                 .text "Pete Cockerell,"
+                .endif
                 .text "Mark Colton,"
                 .text "Chris Curry,"
+                .if version==500
+                .text "Jim Day,"
+                .text "Tim Dobson,"
+                .endif
                 .text "Joe Dunn,"
+                .if version==320
                 .text "Paul Freakley,"
+                .endif
+                .if version==500
+                .text "Paul Fellows,"
+                .text "Alan Fournier,"
+                .endif
                 .text "Steve Furber,"
                 .text "Martyn Gilbert,"
                 .text "John Harrison,"
                 .text "Hermann Hauser,"
                 .text "Mike Hill,"
+                .if version==500
+                .text "Paul Holding,"
+                .endif
                 .text "John Horton,"
+                .if version==500
+                .text "Dave Ireland,"
+                .endif
+                .if version==320
                 .text "Neil Johnson,"
+                .endif
                 .text "Richard King,"
                 .text "David Kitson,"
+                .if version==500
+                .text "Andy Knight,"
+                .endif
                 .text "Julian Lomberg,"
                 .text "Rob Macmillan,"
+                .if version==500
+                .text "Tom McNamara,"
+                .endif
                 .text "Richard Manby,"
+                .if version==320
                 .text "Peter McKenna,"
                 .text "Andrew McKernan,"
                 .text "Mick Neil,"
                 .text "Ian Niblock,"
+                .endif
+                .if version==500
+                .text "David Morgan,"
+                .text "Richard Murphy,"
+                .endif
                 .text "Glen Nicholls,"
                 .text "Robert Nokes,"
+                .if version==500
+                .text "Jean Nunn,"
+                .endif
                 .text "Richard Page,"
+                .if version==320
                 .text "Steve Parsons,"
                 .text "Ed Phipps,"
+                .endif
                 .text "John Radcliffe,"
                 .text "Rick Rand,"
+                .if version==500
+                .text "Nick Reeves,"
+                .endif
                 .text "Brian Robertson,"
+                .if version==500
+                .text "Paul Rose,"
+                .endif
                 .text "Richard Russell,"
+                .if version==320
                 .text "Gordon Sage,"
                 .text "Terry Scotcher,"
+                .endif
+                .if version==500
+                .text "Robert Sack,"
+                .text "Roger Sale,"
+                .endif
                 .text "David Seal,"
+                .if version==500
+                .text "Phil Smith,"
+                .text "Tony Sumner,"
+                .endif
                 .text "Paul Swindell,"
                 .text "Jon Thackray,"
+                .if version==500
+                .text "Tony Thompson,"
+                .endif
                 .text "Hugo Tyson,"
+                .if version==320
                 .text "Adrian Warner,"
                 .text "Jess Wills,"
+                .endif
+                .if version==320
                 .text "Roger Wilson,"
                 .text "Graham Winterflood."
                 .text "   "
+                .endif
+                .if version==500
+                .text "Roger Wilson."
+                .endif
 
                 .endblock
 
+                
 ;-------------------------------------------------------------------------
 
 E_USERV: ; ff00

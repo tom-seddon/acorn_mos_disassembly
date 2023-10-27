@@ -14,6 +14,21 @@ tubeHostAddr=$400
 
 osargsBuffer=$a8                ;4-byte ZP buffer for use with OSARGS
 printMessageAddress=$b8
+
+                .virtual $bb
+tapeCurrentOptionsByte: .block
+                .endblock
+                .endvirtual
+
+                .virtual $f2
+fsStatusByte: .block
+inputFileOpen=$01
+outputFileOpen=$02
+catStatus=$08
+eofReached=$40
+eofWarningGiven=$80
+                .endblock
+                .endvirtual
                 
                 .virtual $e4
 stringInputOptions: .block
@@ -29,7 +44,7 @@ tapeCritical=$eb
 lastKeyPressedInternal=$ec
 firstKeyPressedInternal=$ed
 stringInputBufferAddress=$f2    ;word
-
+                
 ;-------------------------------------------------------------------------
 
 romServiceCallAbsoluteWorkspaceClaim=$01 ; memory used only when ROM is paged in

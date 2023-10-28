@@ -1,0 +1,48 @@
+                .include "hardware.s65"
+                .include "mos_workspace.s65"
+                .include "terminal_workspace.s65"
+
+version=510
+                
+*=$8000
+                .dsection utils
+                .cwarn *>$c000,'utils ROM is too large'
+                
+*=$c000
+                .dsection mos
+                ; there's no need for a size check here - 64tass gives
+                ; you an error if the code would go past the 64 K
+                ; barrier.
+
+;-------------------------------------------------------------------------
+
+ext_B3A6=$b3a6
+ext_AECC=$aecc
+ext_AF4F=$af4f
+utils_873F=$873f                  ;read EEPROM?
+utils_8A64=$8a64                  ;
+utils_8674=$8674 ;command line UI?
+osbyteAndOSWORDRoutineTable=$8fa8 ;*sigh*
+oswordRoutineTable=$8fa8          ;must follow on
+utils_9878=$9878                ;osword $0e entry point
+utils_9DCA=$9dca
+
+                ; temp
+soundParameterTable=1000
+utils_9F56=$9f56
+utils_A09D=$a09d
+utils_8D0F=$8d0f
+utils_8EDC=$8edc
+utils_8F8C=$8f8c
+utils_8BF2=$8bf2
+utils_8E2E=$8e2e
+                
+;-------------------------------------------------------------------------
+
+                .section utils
+                .include "terminal.s65"
+                .endsection
+
+                .section mos
+                .include "mos.s65"
+                .endsection

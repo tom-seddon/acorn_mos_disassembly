@@ -1336,9 +1336,9 @@ badCommandError88AC:
 ;-------------------------------------------------------------------------
 
 setDefaultHardDrive:
-                bne badCommandError88AC                    ; 88AF= D0 FB       P{
-                lda #$00                     ; 88B1= A9 00       ).
-                bra writeDefaultFloppyDrive                    ; 88B3= 80 04       ..
+                bne badCommandError88AC
+                lda #$00
+                bra writeDefaultFloppyDrive
 
 ;-------------------------------------------------------------------------
 
@@ -1352,9 +1352,9 @@ writeDefaultFloppyDrive:
 ;-------------------------------------------------------------------------
 
 setDefaultADFSLoadDir:
-                bne badCommandError88AC                    ; 88BD= D0 ED       Pm
+                bne badCommandError88AC
                 lda #$00                                   ;NODIR
-                bra writeDefaultADFSLoadDir                    ; 88C1= 80 04       ..
+                bra writeDefaultADFSLoadDir
 
 ;-------------------------------------------------------------------------
 
@@ -1460,10 +1460,10 @@ resetDefaultTVSettings:
 ; 
 L8934:
                 jsr mos.skipSpacesAndCheckForCRInStringInput
-                sty $E6                      
+                sty $E6
                 beq L8979                    ;taken if input ends with CR
-                ldx #$00                     ; 893B= A2 00       ".
-                bra L894A                    ; 893D= 80 0B       ..
+                ldx #$00
+                bra L894A
 
 L893F:
                 eor configureNames,x           ;matches configure setting name?
@@ -1471,8 +1471,8 @@ L893F:
                 bne L895C             ;taken if no match
                 iny
 L8947:
-                bcs L896C                    ; 8947= B0 23       0#
-                inx                          ; 8949= E8          h
+                bcs L896C
+                inx
 L894A:
                 lda (stringInputBufferAddress),y
                 jsr mos.isLetter
@@ -1484,41 +1484,41 @@ L8951:
                 cmp #'.'
                 beq L8960                    ;accept abbreviations
 L895C:
-                clc                          ; 895C= 18          .
-                ldy $E6                      ; 895D= A4 E6       $f
-                dey                          ; 895F= 88          .
+                clc
+                ldy $E6
+                dey
 L8960:
-                iny                          ; 8960= C8          H
-                dex                          ; 8961= CA          J
+                iny
+                dex
 L8962:
-                inx                          ; 8962= E8          h
-                lda configureNames,x                  ; 8963= BD 5C 87    =\.
-                beq L896E                    ; 8966= F0 06       p.
-                bpl L8962                    ; 8968= 10 F8       .x
-                bra L8947                    ; 896A= 80 DB       .[
+                inx
+                lda configureNames,x
+                beq L896E
+                bpl L8962
+                bra L8947
 
 L896C:
-                sec                          ; 896C= 38          8
-                rts                          ; 896D= 60          `
+                sec
+                rts
 
 L896E:
-                bcs L896C                    ; 896E= B0 FC       0|
+                bcs L896C
 rts8970:
-                rts                          ; 8970= 60          `
+                rts
 
 ;-------------------------------------------------------------------------
 
 parseNumberFromCommandLine:
-                jsr parseNumberFromString    ; 8971= 20 E6 85     f.
-                bcs rts8970                    ; 8974= B0 FA       0z
+                jsr parseNumberFromString
+                bcs rts8970
 badCommandError8976:
                 jmp mos.badCommandError
 
 ;-------------------------------------------------------------------------
 
 L8979:
-                ldx #$01                     ; 8979= A2 01       ".
-                bra L8951                    ; 897B= 80 D4       .T
+                ldx #$01
+                bra L8951
 
 ;-------------------------------------------------------------------------
 
@@ -2269,6 +2269,12 @@ printNo_:
                 .text "No ",0
                 rts                          ; 8EB8= 60          `
 
+;-------------------------------------------------------------------------
+
+                .if version>=500
+                .fill $9086-*
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; [MasRef G.5-8]
@@ -4797,8 +4803,9 @@ L9D71:
 ;-------------------------------------------------------------------------
 ;
 ; Terminal ROM service entry point.
-; 
+;
 terminalServiceEntryPoint:
+                .if version==320
                 cmp #romServiceCallTubeSystemPostInitialisation
                 bcc L9DCC        ;taken if definitely not Tube-related
                 bne handleTubeMainInitialisation
@@ -4895,7 +4902,15 @@ L9E13:
                 lda #$06                     ; 9E14= A9 06       ).
 L9E16:
                 rts                          ; 9E16= 60          `
-
+                .elsif version>=500
+                cpx #15
+                beq utilsInCorrectBank
+                rts
+utilsInCorrectBank:
+                bra L9E17
+LA243:
+                lda #0
+                .endif
 L9E17:
                 cmp #romServiceCallCloseAllOpenFiles
                 bne L9E38                    ; 9E19= D0 1D       P.
@@ -5227,9 +5242,11 @@ L9FF8:
 LA000:
                 bne LA00A                    ; A000= D0 08       P.
 LA002:
+                .if version==320
                 phy                          ; A002= 5A          Z
                 jsr LAAA4                    ; A003= 20 A4 AA     $*
                 ply                          ; A006= 7A          z
+                .endif
                 jsr LA6D2                    ; A007= 20 D2 A6     R&
 LA00A:
                 jsr LA8A1                    ; A00A= 20 A1 A8     !(
@@ -5352,8 +5369,10 @@ LA0BB:
                 beq LA085
                 jsr LA9F3
                 jsr LA822
+                .if version==320
                 lda #$00
                 jsr LAAA6
+                .endif
 LA0D3:
                 sec
                 ldx #$fd                     ;-3
@@ -5414,6 +5433,7 @@ LA129:
                 jmp (FSCV)
 
 LA12E:
+                .if version==320
                 bit tubePresence
                 bpl LA13C
                 lda $03C4
@@ -5421,6 +5441,8 @@ LA12E:
                 inc a
                 bne LA14C
 LA13C:
+                .endif
+                
                 ldx $03C2
                 ldy $03C3
                 lda #$A4
@@ -5428,11 +5450,13 @@ LA13C:
                 lda #$01
                 jmp ($03C2)
 
+                .if version==320
 LA14C:
                 ldx #$C2
                 ldy #$03
                 lda #$04
                 jmp LAAB0
+                .endif
 
 ; TAPE/ROM FSC 9 - *EX
 ; --------------------
@@ -5774,12 +5798,12 @@ LA378:
                 stx $CC
                 sty $CD
                 ldy #$01
-LA37F:
                 lda ($CC),y
                 sta $C8
                 iny
                 lda ($CC),y
                 sta $C9
+                .if version==320
                 iny
                 lda ($CC),y
                 iny
@@ -5795,26 +5819,32 @@ LA37F:
                 bne LA39E
                 iny
 LA39E:
+                
                 lda #$00
                 plp
                 php
                 adc #$00
                 jsr LAAB0
 LA3A7:
+                .endif
                 lda ($CC)
                 tay
                 lda #$01
                 plp
+                .if version==320
                 php
+                .endif
                 adc #$00
                 jsr LAA8D
                 bcs LA3C1
                 plp
+                .if version==320
                 pla
                 beq LA3BE
                 lda #$80
                 jsr tubeHost.entryPoint
 LA3BE:
+                .endif
                 jmp LAA81
 
 LA3C1:
@@ -5822,11 +5852,13 @@ LA3C1:
                 bcs LA401
                 bit $E2
                 bpl LA3D3
+                .if version==320
                 pla
                 beq LA3D0
                 lda #$80
                 jsr tubeHost.entryPoint
 LA3D0:
+                .endif
                 jmp LA343
 
 LA3D3:
@@ -5836,6 +5868,7 @@ LA3D3:
                 tay
                 jsr bputTapeOrROM
                 bcs LA3F6
+                .if version==320
                 plx
                 phx
                 beq LA3E9
@@ -5843,6 +5876,7 @@ LA3D3:
                 bra LA3F1
 
 LA3E9:
+                .endif
                 sta ($C8)
                 inc $C8
                 bne LA3F1
@@ -5852,6 +5886,7 @@ LA3F1:
                 bra LA3D3
 
 LA3F6:
+                .if version==320
                 pla
                 php
                 beq LA3FF
@@ -5859,6 +5894,7 @@ LA3F6:
                 jsr tubeHost.entryPoint
 LA3FF:
                 plp
+                .endif
                 rts
 
 LA401:
@@ -5866,13 +5902,15 @@ LA401:
                 beq LA3F6
                 lda ($CC)
                 tay
+                .if version==320
                 pla
                 pha
                 beq LA412
                 lda tube.data3
                 bra LA41A
-
 LA412:
+                .endif
+                
                 lda ($C8)
                 inc $C8
                 bne LA41A
@@ -5901,23 +5939,23 @@ LA433:
 ; *OPT 1 - set message level
 ; --------------------------
 LA436:
-                lda #$33                     ; A436= A9 33       )3
-                iny                          ; A438= C8          H
-                iny                          ; A439= C8          H
-                iny                          ; A43A= C8          H
-                bra LA43F                    ; A43B= 80 02       ..
+                lda #$33
+                iny
+                iny
+                iny
+                bra LA43F
 
 ; *OPT 2 - set error response level
 ; ---------------------------------
 LA43D:
-                lda #$CC                     ; A43D= A9 CC       )L
+                lda #$CC
 LA43F:
-                iny                          ; A43F= C8          H
-                and $E3                      ; A440= 25 E3       %c
+                iny
+                and $E3
 LA442:
-                ora LA456,y                  ; A442= 19 56 A4    .V$
-                sta $E3                      ; A445= 85 E3       .c
-                rts                          ; A447= 60          `
+                ora LA456,y
+                sta $E3
+                rts
 
 ; *OPT 3 - set interblock gap
 ; ---------------------------
@@ -5932,15 +5970,15 @@ LA44F:
                 rts
 
 LA453:
-                tay                          ; A453= A8          (
-                bra LA442                    ; A454= 80 EC       .l
+                tay
+                bra LA442
 
 LA456:
-                ; LDA ($00,x)                ; A456= A1 00       !.
-                ; EQUB $22                   ; A458= 22          "
-                ; ORA ($00),y                ; A459= 11 00       ..
-                ; DEY                        ; A45B= 88          .
-                ; CPY LC0C6                  ; A45C= CC C6 C0    LF@
+                ; LDA ($00,x)
+                ; EQUB $22
+                ; ORA ($00),y
+                ; DEY
+                ; CPY LC0C6
                 .byte $A1
                 .byte $00
                 .byte $22
@@ -5950,104 +5988,106 @@ LA456:
                 .byte $CC
 LA45D:
                 dec $C0
-                lda cfsRFSFSSwitch                    ; A45F= AD 47 02    -G.
-                beq LA46B                    ; A462= F0 07       p.
-                jsr mos.LF710                ; A464= 20 10 F7     .w
-                tay                          ; A467= A8          (
-                clc                          ; A468= 18          .
-                bra LA485                    ; A469= 80 1A       ..
+                lda cfsRFSFSSwitch
+                beq LA46B
+                jsr mos.LF710
+                tay
+                clc
+                bra LA485
 
 LA46B:
-                lda ACIA+0                    ; A46B= AD 08 FE    -.~
-                pha                          ; A46E= 48          H
-                and #$02                     ; A46F= 29 02       ).
-                beq LA47E                    ; A471= F0 0B       p.
-                ldy $CA                      ; A473= A4 CA       $J
-                beq LA47E                    ; A475= F0 07       p.
-                pla                          ; A477= 68          h
-                lda $BD                      ; A478= A5 BD       %=
-                sta ACIA+1                    ; A47A= 8D 09 FE    ..~
-                rts                          ; A47D= 60          `
+                lda ACIA+0
+                pha
+                and #$02
+                beq LA47E
+                ldy $CA
+                beq LA47E
+                pla
+                lda $BD
+                sta ACIA+1
+                rts
 
 LA47E:
-                ldy ACIA+1                    ; A47E= AC 09 FE    ,.~
-                pla                          ; A481= 68          h
-                lsr a                        ; A482= 4A          J
-                lsr a                        ; A483= 4A          J
-                lsr a                        ; A484= 4A          J
+                ldy ACIA+1
+                pla
+                lsr a
+                lsr a
+                lsr a
 LA485:
-                ldx $C2                      ; A485= A6 C2       &B
-                beq LA4F0                    ; A487= F0 67       pg
-                dex                          ; A489= CA          J
-                bne LA492                    ; A48A= D0 06       P.
-                bcc LA4F0                    ; A48C= 90 62       .b
-                ldy #$02                     ; A48E= A0 02        .
-                bra LA4EE                    ; A490= 80 5C       .\
+                ldx $C2
+                beq LA4F0
+                dex
+                bne LA492
+                bcc LA4F0
+                ldy #$02
+                bra LA4EE
 
 LA492:
-                dex                          ; A492= CA          J
-                bne LA4A8                    ; A493= D0 13       P.
-                bcs LA4F0                    ; A495= B0 59       0Y
-                tya                          ; A497= 98          .
-                jsr LAA44                    ; A498= 20 44 AA     D*
-                ldy #$03                     ; A49B= A0 03        .
-                cmp #$2A                     ; A49D= C9 2A       I*
-                beq LA4EE                    ; A49F= F0 4D       pM
-                jsr LAA1C                    ; A4A1= 20 1C AA     .*
-                ldy #$01                     ; A4A4= A0 01        .
-                bra LA4EE                    ; A4A6= 80 46       .F
+                dex
+                bne LA4A8
+                bcs LA4F0
+                tya
+                jsr LAA44
+                ldy #$03
+                cmp #$2A
+                beq LA4EE
+                jsr LAA1C
+                ldy #$01
+                bra LA4EE
 
 LA4A8:
-                dex                          ; A4A8= CA          J
-                bne LA4B5                    ; A4A9= D0 0A       P.
-                bcs LA4B0                    ; A4AB= B0 03       0.
-                sty $BD                      ; A4AD= 84 BD       .=
-                rts                          ; A4AF= 60          `
+                dex
+                bne LA4B5
+                bcs LA4B0
+                sty $BD
+                rts
 
 LA4B0:
-                lda #$80                     ; A4B0= A9 80       ).
-                sta $C0                      ; A4B2= 85 C0       .@
-                rts                          ; A4B4= 60          `
+                lda #$80
+                sta $C0
+                rts
 
 LA4B5:
-                dex                          ; A4B5= CA          J
-                bne LA4E1                    ; A4B6= D0 29       P)
-                bcs LA4E9                    ; A4B8= B0 2F       0/
-                tya                          ; A4BA= 98          .
-                jsr LA6A9                    ; A4BB= 20 A9 A6     )&
-                ldy $BC                      ; A4BE= A4 BC       $<
-                inc $BC                      ; A4C0= E6 BC       f<
-                bit $BD                      ; A4C2= 24 BD       $=
-                bmi LA4D3                    ; A4C4= 30 0D       0.
-                jsr LAABC                    ; A4C6= 20 BC AA     <*
-                beq LA4D0                    ; A4C9= F0 05       p.
-                stx tube.data3                   ; A4CB= 8E E5 FE    .e~
-                bra LA4D3                    ; A4CE= 80 03       ..
+                dex
+                bne LA4E1
+                bcs LA4E9
+                tya
+                jsr LA6A9
+                ldy $BC
+                inc $BC
+                bit $BD
+                bmi LA4D3
+                .if version==320
+                jsr LAABC
+                beq LA4D0
+                stx tube.data3
+                bra LA4D3
 
 LA4D0:
-                txa                          ; A4D0= 8A          .
-                sta ($B0),y                  ; A4D1= 91 B0       .0
+                txa
+                .endif
+                sta ($B0),y
 LA4D3:
-                iny                          ; A4D3= C8          H
-                cpy $03C8                    ; A4D4= CC C8 03    LH.
-                bne LA4F0                    ; A4D7= D0 17       P.
-                lda #$01                     ; A4D9= A9 01       ).
-                sta $BC                      ; A4DB= 85 BC       .<
-                ldy #$05                     ; A4DD= A0 05        .
-                bra LA4EE                    ; A4DF= 80 0D       ..
+                iny
+                cpy $03C8
+                bne LA4F0
+                lda #$01
+                sta $BC
+                ldy #$05
+                bra LA4EE
 
 LA4E1:
-                tya                          ; A4E1= 98          .
-                jsr LA6A9                    ; A4E2= 20 A9 A6     )&
-                dec $BC                      ; A4E5= C6 BC       F<
-                bpl LA4F0                    ; A4E7= 10 07       ..
+                tya
+                jsr LA6A9
+                dec $BC
+                bpl LA4F0
 LA4E9:
-                jsr resetACIA                    ; A4E9= 20 12 AA     .*
-                ldy #$00                     ; A4EC= A0 00        .
+                jsr resetACIA
+                ldy #$00
 LA4EE:
-                sty $C2                      ; A4EE= 84 C2       .B
+                sty $C2
 LA4F0:
-                rts                          ; A4F0= 60          `
+                rts
 
 ; TAPE/ROM FSC 1 - =EOF
 ; ---------------------
@@ -6396,12 +6436,13 @@ LA71E:
                 beq LA74F
                 jsr LAA46
 LA737:
+                .if version==320
                 jsr LAABC
                 beq LA741
                 lda tube.data3
                 bra LA743
-
 LA741:
+                .endif
                 lda ($B0),y
 LA743:
                 jsr LA6CD
@@ -6817,10 +6858,12 @@ LA9B6:
                 lda #$07
                 jsr OSWRCH
 LA9BB:
+                .if version==320
                 lda tubePresence
                 beq LA9C5
                 lda #$80
                 jsr tubeHost.entryPoint
+                .endif
 LA9C5:
                 ldx #$00
                 jsr LAA61
@@ -6962,7 +7005,11 @@ LAA68:
                 phy
                 jsr LAA8D
                 ply
+                .if version==320
                 bcs LAAC9                    ; Channel open, exit
+                .elsif version>=500
+                bcs LAA9F
+                .endif
                 cpy spoolFileHandle                    ; Not SPOOL handle
                 bne LAA79
                 stz spoolFileHandle                    ; Clear the SPOOL handle
@@ -6998,6 +7045,7 @@ LAAA0:
                 lda #$10
                 bra LAA2A
 
+                .if version==320
 LAAA4:
                 lda #$01
 LAAA6:
@@ -7025,7 +7073,8 @@ LAABC:
                 and #$80
 LAAC9:
                 rts
-
+                .endif
+                
 LAACA:
                 ldy #$05
 LAACC:
@@ -7087,6 +7136,7 @@ blockError:
 LAB2A:
                 jmp LA978
 
+                .if version==320
 ;-------------------------------------------------------------------------
 ;
 ; Tube host code
@@ -7764,6 +7814,8 @@ LAE0F:
                 .here
                 .bend
 
+;-------------------------------------------------------------------------
+                .endif
 ;-------------------------------------------------------------------------
 
 LAE19:

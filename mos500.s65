@@ -50,7 +50,7 @@ starSRREAD=$8d7f
 starSRROM=$8cad
 starSRSAVE=$8dca
 starSRWRITE=$8d7f
-utils_8A8F=$8a8f ;match input against command table
+utils_8A8F=$8a8f ;match input against command table. V=1 for 2-byte metadata, V=0 for 4-byte metadat
 fetchCommandTableByte=$8ace
 
 setProportional=1000

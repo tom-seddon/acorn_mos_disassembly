@@ -99,32 +99,25 @@ Type `make`.
 
 ## build output
 
-The output file is `build/mos320.rom`, which is 33.5 KBytes as
-follows:
+The main output file is `build/mos320.lst` - an assembler listing file
+that you can use for reference. The 64tass format is prety easy to
+read.
+
+The build process also outputs `build/3.20/all.new`, 33.5 KBytes of
+concatenated ROM pieces, in the following order:
 
 - 1.5 KB, "ext" ROM (end of sideways bank 14)
 - 16 KB, Terminal ROM (sideways bank 15)
 - 16 KB, MOS ROM ($c000)
 
-The build process prints SHA1 hashes for the output and for the
-original rom, so you can see if the output is the same. (The expected
-SHA1 for the original is `684b1ee65441609e1703ee2a3caf07043e40e1c0`.)
+The build process prints SHA1 hashes for the output file, and for the
+corresponding sections of original rom, so you can see if the output
+is the same. (The expected SHA1 for MOS 3.20 is
+`684b1ee65441609e1703ee2a3caf07043e40e1c0`.)
 
-I've found `vbindiff` helpful for figuring out discrepancies. If you
-have this installed, type `make diff` to run it, comparing the built
-MOS 3.20 with the original.
-
-## regarding the build output ##
-
-The build output isn't (yet?) terribly useful as-is. You do get an
-exact replica of the key 33.5 KB of the MOS ROM, but you still need
-the other 94.5 KB (ADFS, BASIC, DFS, Edit, View, ViewSheet), that's
-not dealt with here, if you want to create a full 128 KB MegaROM
-image.
-
-I don't currently plan on doing a full disassembly of the entire
-MegaROM, but I do plan to at least improve the build process so that
-the output is a bit-identical 128 KB MOS 3.20 MegaROM image.
+(I've found `vbindiff` helpful for figuring out discrepancies. If you
+have this installed, type `make diff320` to run it, comparing the
+built MOS 3.20 with the original.)
 
 # the other MOS 3.20 parts
 
@@ -155,3 +148,22 @@ There's 1.5 KB of MOS code at the end, which is included in this repo.
 ## ViewSheet
 
 Nobody appears to have disassembled ViewSheet.
+
+# the other MOS versions
+
+As well as MOS 3.20, at least the following other versions were
+released:
+
+- MOS 3.50 (128 KB) - Master 128
+- MOS 4.00 (64 KB) - Master ET
+- MOS 5.00 (64 KB) - Master Compact
+- MOS 5.10 (64 KB) - Master Compact
+
+I intend to attempt a disassembly of the MOS part of MOS 4.00, MOS
+5.00 and MOS 5.10, as all 3 look quite similar to MOS 3.20. I'm hoping
+this won't be an unmanageable amount of work.
+
+I'd like to do the sideways ROM parts as as well. They look quite
+different, but presumably they're actually related to some mix of the
+ext ROM and Terminal ROM parts of MOS 3.20.
+

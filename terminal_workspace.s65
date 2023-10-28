@@ -2,8 +2,8 @@
 
 ; Not really MOS stuff. This is the Terminal ROM zero page workspace.
 
-oldINSV=$6f
-oldREMV=$71
+oldINSV=$70
+oldREMV=$72
                 .cerror oldREMV!=oldINSV+2,"oldREMV and oldINSV must be adjacent"
                 
 ;-------------------------------------------------------------------------

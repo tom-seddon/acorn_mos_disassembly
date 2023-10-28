@@ -690,6 +690,10 @@ bufferEmptyFlags=$2ce
 bufferStartIndices=$2d7
 bufferEndIndices=$2e0
 
+tapeInputCurrentBlockSize=$2e9
+blockFlagOfCurrentlyResidentBlock=$2eb
+lastCharacterOfCurrentlyResidentBlock=$2ec
+
 ; Probably needs a better name :(
 ;
 ; Used by various file routines to store OSGBPB and OSFILE parameter

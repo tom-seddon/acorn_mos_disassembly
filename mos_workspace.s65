@@ -1400,6 +1400,12 @@ extROM=14
 ; Base page for VDU routines
 vduRoutinesPage=$c0
 
+                .if version==320
+cmosBytesOffset=RTC.ram
+                .elsif version>=500
+cmosBytesOffset=0
+                .endif
+                
 CMOSBytes: .struct
 econetStationNumber: .fill 1
 fileServerStationNumber: .fill 1

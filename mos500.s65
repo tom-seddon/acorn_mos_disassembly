@@ -19,7 +19,7 @@ version=500
 ext_B3A6=$b3a6
 ext_AECC=$aecc
 ext_AF4F=$af4f
-utils_873F=$873f                  ;read EEPROM?
+;utils_873F=$873f                  ;;read ROM unplugged status
 utils_8A64=$8a64                  ;
 utils_8674=$8674 ;command line UI?
 osbyteAndOSWORDRoutineTable=$8fa8 ;*sigh*
@@ -28,7 +28,6 @@ utils_9DCA=$9dca
 
                 ; temp
 oswordRoutineTable=$8fa8
-soundParameterTable=1000
 utils_9F56=$9f56
 utils_A09D=$a09d
 utils_8D0F=$8d0f
@@ -36,7 +35,32 @@ utils_8EDC=$8edc
 utils_8F8C=$8f8c
 utils_8BF2=$8bf2
 utils_8E2E=$8e2e
-                
+utils_9E58=$9e58
+utils_ADD7=$add7
+utils_AD9B=$ad9b
+readUsePrinterIgnoreChar=$8ba1
+utils_836D=$836d
+utils_9DE1=$9de1
+utils_9DF8=$9df8
+utils_9ECA=$9eca
+utils_9E99=$9e99
+starSRDATA=$8cad
+starSRLOAD=$8dca
+starSRREAD=$8d7f
+starSRROM=$8cad
+starSRSAVE=$8dca
+starSRWRITE=$8d7f
+utils_8A8F=$8a8f ;match input against command table
+fetchCommandTableByte=$8ace
+
+setProportional=1000
+printProportional=1000
+setSwitched=1000
+printSwitched=1000
+setStick=1000
+printStick=1000
+soundParameterTable=1000
+
 ;-------------------------------------------------------------------------
 
                 .section utils

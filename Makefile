@@ -22,7 +22,7 @@ all: $(BUILD)/320/all.orig $(BUILD)/500/all.orig $(BUILD)/510/all.orig
 	@sha1sum $(BUILD)/320/all.new
 
 	$(_V)$(MAKE) _build VERSION=500
-	$(_V)$(MAKE) _build VERSION=510
+#	$(_V)$(MAKE) _build VERSION=510
 
 .PHONY:_build
 _build:

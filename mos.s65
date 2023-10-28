@@ -7023,7 +7023,7 @@ LE389:
                 and $FC                      ;do mask
                 .elsif version>=500
                 jsr selectTerminalROM
-                jsr utils_873F
+                jsr terminal.L873F
                 .endif
                 cmp #$01                     ;C set if ROM is inserted
                 plx
@@ -8158,13 +8158,11 @@ starLIBFS:
 
 ;-------------------------------------------------------------------------
 
-starX:
                 .if version==320
+starX:
                 sta TUBE+8                   ; E7FD= 8D E8 FE    .h~
 LE800:
                 bra LE800                    ; E800= 80 FE       .~
-                .else
-                .warn 'starX...'
                 .endif
 
 ;-------------------------------------------------------------------------

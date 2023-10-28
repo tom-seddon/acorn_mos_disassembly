@@ -1,6 +1,9 @@
 ; -*- comment-column:45; -*-
 
 terminal: .block
+
+                .if version==320
+                
                 jmp terminalLanguageEntryPoint ; Language entry point
                 jmp terminalServiceEntryPoint  ; Service entry point
                 .byte $C2                    ; ROM type=SERV+LANG+6502
@@ -11,13 +14,36 @@ terminal: .block
 copyrightText:
                 .text "(C)1984 Acorn"
                 .byte 0
+
+                .elsif version>=500
+
+                ; Language entry point
+                brk                          
+                brk
+                brk
+
+                ; Service entry point
+                brk
+                brk
+                brk
+
+                .byte $82
+                .byte copyright-1-terminal
+                .byte 0
+                .text "UTILS",0
+copyright:
+                .text "(C)1986 Acorn",0
+
+                .endif
                 
 ; STARTUP
 ; =======
 reset:                          ;8020
                 lda #~ACCCON.D  ;display main RAM
-                trb ACCCON      
+                trb ACCCON
+                .if version==320
                 stz hazel.hasACCCONChanged
+                .endif
                 trb $0366
                 cld
                 ldx #$FF
@@ -25,16 +51,23 @@ reset:                          ;8020
                 stx userVIA.ddra ;port A all outputs
                 lda #%11001111
                 sta systemVIA.ddrb ;
+                .if version==320
                 ldy #RTC.a.dv32768Hz
                 ldx #RTC.a
                 jsr writeRTCByte
                 jsr finishRTCUpdate
+                .endif
                 lda #ACCCON.Y|ACCCON.X       ; page in HAZEL+shadow
                 tsb ACCCON
+                .if version>=500
+                stz hazel.hasACCCONChanged
+                jsr L8363
+                .endif
                 lda systemVIA.ier
                 asl a
                 pha
-                beq +       ; branch taken if power on
+                .if version==320
+                beq startClearRAM       ; branch taken if power on
                 lda breakAndESCAPEEffect                    ; read BREAK action flags
                                              ; (set by *FX200)
                 lsr a                        ; divide by 2 to get the
@@ -43,7 +76,13 @@ reset:                          ;8020
                 bne L8073                    ; branch taken if break
                                              ; action says don't clear
                                              ; RAM
-+
+                .elsif version>=500
+                bne L8073
+                ldx #7
+                jsr mos.LF8B4
+                tya
+                .endif                                             
+startClearRAM
                 tay             ;Y=0
 clearRAM:
                 tya             ;A=0
@@ -67,7 +106,17 @@ clearRAM:
                              ;previously set - i.e., that was the
                              ;first iteration, and we need to go back
                              ;to do main RAM
+                .if version>=500
+                lda $fe28
+                lda $fe2b
+                .endif
 L8073:
+                .if version>=500
+                lda breakAndESCAPEEffect
+                lsr a
+                dec a
+                beq startClearRAM
+                .endif
                 lda #<mos.emptyCommandLine
                 sta hazel.commandLinePointer+0
                 lda #>mos.emptyCommandLine
@@ -77,11 +126,13 @@ L8073:
                 trb ACCCON
                 lda #$0F                     ; 8084= 8D 8E 02    ...
                 sta numericKeypadShiftEffect
+                .if version==320
 -
                 dec a                        ; 8088= 8D 40 FE    .@~
                 sta systemVIA.orb
                 cmp #$09                     ; 808D= B0 F8       0x
                 bcs -
+                .endif
                 ldx #key_ctrl
                 jsr mos.interrogateKeyboard
                 cpx #$80        ;Z=0 C=1 if CTRL+BREAK
@@ -98,8 +149,14 @@ L8073:
                 inc lastBREAKType
 L80AD:
                 inc lastBREAKType
-                phy              
+                phy
+                .if version==320
                 jsr readDefaultMODE          ; Read configured MODE
+                .elsif version>=500
+                jsr utils_9E58
+                ldx #$4d
+                jsr utils_8A64
+                .endif
 L80B4:
                 ora #$08    ; Store in OSBYTE 255 with boot off (b3=1)
                 sta startupOptions
@@ -112,7 +169,7 @@ L80B9:
                 sty tvOffset
                 stx tvInterlace
 L80CB:
-                jsr readDefaults3                    ; 80CB= 20 AE 98     ..
+                jsr readDefaults3
                 and #CMOSBytes.defaults3.protectedScrollingMask
                 beq L80D4
                 lda #VDUVariables.cursorFlags.scrollProtect
@@ -124,6 +181,9 @@ L80D4:
                 bra initializePage2Loop
 
 L80DF:
+                .if version>=500
+                jsr utils_9E58
+                .endif
                 lda #$87             ; Clear MODE bits from OSBYTE 255
                 trb startupOptions
                 lda vduv.currentScreenMODE ; Get current screen MODE b0-b2
@@ -200,7 +260,12 @@ L813D:
                 pla               
                 sta noignoreState
 L8164:
+                .if version==320
                 jsr readDefaults1
+                .elsif version>=500
+                ldx #$0b
+                jsr utils_9DCA
+                .endif
                 ldx #keyboardStatusByte.shiftLockDisengaged
                 asl a                        
                 asl a                        ;N=defaultCapsLockMask
@@ -215,23 +280,70 @@ gotKeyboardStatusByte:
                 jsr mos.resetKeyRepeat
                 lda lastBREAKType
                 beq L8196
+                .if version==320
                 jsr readDefaultPrinterIgnoreChar
-                sta printerIgnoreChar;
+                .elsif version>=500
+                ldx #$0e
+                jsr utils_9DCA
+                .endif
+                sta printerIgnoreChar
+                .if version==320
                 jsr readDefaults2
                 lsr a                        ;C=tubeOn
                 lsr a                        ;C=usePrinterIgnoreChar
+                .elsif version==500
+                jsr readUsePrinterIgnoreChar
+                .endif
                 ror noignoreState
+                .if version==320
                 jsr readDefaultFX5Settings
+                .elsif version>=500
+                ldx #$75
+                jsr utils_8A64
+                .endif
                 sta printerDriverType
 L8196:
+                .if version==320
                 jsr readDefaultSerialDataFormat
+                .elsif version>=500
+                ldx #$19
+                jsr utils_8A64
+                .endif
                 asl a                        ;
                 asl a       ;shift into the control registerword field
                 ora #ACIA.control.rtsHighTXInterruptDisabled|ACIA.control.counterDivide64
                 sta aciaControlRegister
-                jsr resetACIAThenRewriteControlRegister                    ; 81A0= 20 D6 A9     V)
-                ldx #$01                     ; 81A3= A2 01       ".
-                lda #$7F                     ; 81A5= A9 7F       ).
+
+                .if version==320
+                jsr resetACIAThenRewriteControlRegister
+                ldx #$01
+                .elsif version>=500
+                ldx #$12
+                jsr utils_9DCA
+                sta adcConversionType
+                ldx #$ff
+L81B2:
+                jsr utils_ADD7
+                lda $fe08
+                bne L81C8
+                lda #$20
+                sta $fe08
+                lda $fe08
+                and #$f7
+                cmp #$82
+                beq L81CF
+L81C8:
+                cmp #8
+                beq L81CF
+                stz rs423InterruptMask
+L81CF:
+                dex
+                bne L81B2
+                jsr utils_AD9B
+                inx
+                .endif
+                
+                lda #$7F
 initializeVIAInterruptsLoop:
                 sta systemVIA.ifr,x          
                 sta userVIA.ifr,x            
@@ -250,6 +362,10 @@ initializeVIAInterruptsLoop:
 +
                 ldx #$80|VIA.irq.t1|VIA.irq.cb1|VIA.irq.ca1
                 stx systemVIA.ier
+                .if version>=500
+                ldx #$80|VIA.irq.cb1|VIA.irq.cb2
+                stx userVIA.ier
+                .endif
                 ldx #VIA.pcr.cb2InputNegativeActiveEdge|VIA.pcr.cb1NegativeActiveEdge|VIA.pcr.ca2InputPositiveEdge|VIA.pcr.ca1NegativeActiveEdge
                 stx systemVIA.pcr
                 lda #VIA.acr.t1Continuous|VIA.acr.t2Timer|VIA.acr.srDisabled|VIA.acr.pbLatchDisabled|VIA.acr.paLatchDisabled
@@ -257,24 +373,38 @@ initializeVIAInterruptsLoop:
                 lda #$0E
                 sta systemVIA.t1lL
                 sta userVIA.pcr              ;VIA.pcr.cb2InputNegativeActiveEdge|VIA.pcr.cb1NegativeActiveEdge|VIA.pcr.ca2HighOutput|VIA.pcr.ca1NegativeActiveEdge
+                .if version==320
                 sta HADC.latch               ;looks benign
+                .endif
                 lda #$27
                 sta systemVIA.t1lH
                 sta systemVIA.t1cH
+                .if version==320
                 ldx #$08
 L81DD:
                 dex
                 jsr mos.LF55D
                 cpx #$04
                 bne L81DD
-                jsr mos.osbyte7A             ;
-                stx $ED
+                .elsif version>=500
+                jsr utils_836D
+                .endif
+                jsr mos.osbyte7A             
+                stx firstKeyPressedInternal
                 ldx #$00
+                .if version>=500
+                stx userVIA.ddrb
+                .endif
                 jsr mos.purgeBuffer
                 lda serialULARegister
                 and #$7F
                 jsr mos.LEC89
+                .if version==320
                 jsr readDefaultSerialBaudRateIndex
+                .elsif version>=500
+                ldx #$7
+                jsr utils_8A64
+                .endif
                 pha
                 tax
                 jsr mos.osbyte08
@@ -301,11 +431,27 @@ romsScanned:
                 lda lastBREAKType
                 dec a
                 bne L8284                    ;taken if not power-on reset
-                lda $ED
+                .if version>=500
+                ldx #$ff
+                jsr utils_9ECA
+                bcs checkForResetKey
+                tya
+                and #$7f
+                cmp #$30
+                beq checkForResetKey
+                ldx #0
+                ldy #0
+                jsr utils_9E99
+                bra resetCMOSRAM
+                .endif
+checkForResetKey:
+                lda firstKeyPressedInternal
                 cmp #key_r
                 bne L8284                    ;taken if R not pressed
 
                 ; Reset CMOS RAM
+resetCMOSRAM
+                .if version==320
                 ldx #size(RTC.ram)-1
 resetCMOSRAMLoop:
                 phx                          
@@ -321,9 +467,37 @@ resetCMOSRAMLoop:
                 jsr writeCMOSByte
                 ldx #CMOSBytes.insertedROMs+1
                 jsr writeCMOSByte
+                .elsif version>=500
+L827E:
+                ldx #$13
+L8280:
+                phx
+                dex
+                jsr utils_9DE1
+                jsr utils_9DF8
+                plx
+                dex
+                bne L8280
+                ldx #$7f
+                jsr utils_9ECA
+                tya
+                and #$80
+                eor #$b0
+                tay
+                ldx #$ff
+                jsr utils_9E99
+                .endif
                 
                 jsr alwaysPrintFollowingMessage
-                .text 13,10,"CMOS RAM reset"
+                .if version>=500
+                .byte 22,7
+                .endif
+                .text 13,10
+                .if version==320
+                .text "CMOS RAM reset"
+                .elsif version>=500
+                .text "Options reset"
+                .endif
                 .text 13,10,"Press break to continue"
                 .text 13,10,0
                 
@@ -331,6 +505,8 @@ resetCMOSRAMLoop:
                 sta breakAndESCAPEEffect
 hang:
                 bra hang
+
+;-------------------------------------------------------------------------
 
 L8284:
                 jsr mos.selectHAZEL
@@ -343,6 +519,7 @@ L8284:
                 beq L829D
                 jsr mos.LEDD0
 L829D:
+                .if version==320
                 jsr readDefaults2
                 lsr a
                 bcc L82D0
@@ -368,6 +545,7 @@ L82C6:
                 bne L82D0                    ; Not claimed, step past
                 dec tubePresence ; Tube PreInit claimed, set TubeFlag to &FF, Tube present
 L82D0:
+                .endif
                 lda lastBREAKType ; Soft Break, don't ask about workspace
                 beq L82FC
                 ldy #$DC                     ; Start high workspace at &DC00 and work downwards
@@ -388,7 +566,7 @@ L82D0:
                 ldx #romServiceCallTopOfHAZELWorkspace ; Tell ROMs top of shared high workspace
                 jsr mos.makeROMServiceCall   ;
 L82FC:
-                ldx #3*size(fsInfoBlock)
+                ldx #size(defaultFsInfoBlocks)
 L82FE:
                 lda defaultFsInfoBlocks-1,x                ; Copy initial FS info blocks for CFS, TAPE, ROM
                 sta hazel.fsInfoBlocks-1,x
@@ -428,9 +606,32 @@ L8340:
                 sta spoolFileHandle
                 jmp mos.LE40E                ;
 
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L8363:
+                lda #$0f
+L8365:
+                dec a
+                sta $fe40
+                cmp #9
+                bcs L8365
+L836D:
+                ldx #8
+L836F:
+                dex
+                jsr mos.LF55D
+                cpx #4
+                bne L836F
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
 ; Default FS Info Blocks
 ; ======================
-defaultFsInfoBlocks:
+defaultFsInfoBlocks: .block
+                .if version==320
                 .text "CFS     "
                 .byte $01
                 .byte $02
@@ -439,10 +640,12 @@ defaultFsInfoBlocks:
                 .byte $01
                 .byte $02
                 .byte $01
+                .endif
                 .text "ROM     "
                 .byte $03
                 .byte $03
                 .byte $03
+                .endblock
 
 ;-------------------------------------------------------------------------
 ; 
@@ -495,13 +698,23 @@ mosCommandTable:
                 .mos_command "SHUT",mos.starSHUT,$00,$00 ;
                 .mos_command "SPOOL",starSPOOL,$80,$00   ; XY=>parameters
                 .mos_command "SPOOLON",starSPOOLON,$80,$00 ; XY=>parameters
+                .if version>=500
+                .mos_command "SRDATA",starSRDATA,$00,$a0
+                .mos_command "SRLOAD",starSRLOAD,$80,$60
+                .mos_command "SRREAD",starSRREAD,$00,$a0
+                .mos_command "SRROM",starSRROM,$00,$80
+                .mos_command "SRSAVE",starSRSAVE,$80,$20
+                .mos_command "SRWRITE",starSRWRITE,$00,$e0
+                .endif
                 .mos_command "STATUS",starSTATUS,$00,$FF  ;
                 .mos_command "TAPE",starCommandThroughOSBYTE,$00,$8C ; X,y=parameters, OSBYTE &8C
                 .mos_command "TV",starCommandThroughOSBYTE,$00,$90 ; X,y=parameters, OSBYTE &90
                 .mos_command "TIME",starTIME,$00,$00   ;
                 .mos_command "TYPE",starTYPE,$80,$00   ; XY=>parameters
                 .mos_command "UNPLUG",starUNPLUG,$00,$FF ;
+                .if version==320
                 .mos_command "X",mos.starX,$00,$00  ;
+                .endif
                 .mos_command "",mos.callFSCV,$00,$03 ; FSC &03
                 .byte $00
 
@@ -527,46 +740,55 @@ rts84FE:
 ; Prepare OSCLI command line
 ; ==========================
 oscli:
-                stx stringInputBufferAddress+0 ; 84FF= 86 F2       .r
-                sty stringInputBufferAddress+1 ; 8501= 84 F3       .s
+                stx stringInputBufferAddress+0
+                sty stringInputBufferAddress+1
                 lda hazel.currentFS
-                jsr mos.selectFS             ; 8506= 20 4D FB     M{
-                lda #fscStarCommand          ; 8509= A9 08       ).
-                jsr mos.callFSCV             ; 850B= 20 E5 F1     eq
-                ldy #$FF                     ; 850E= A0 FF        .
+                jsr mos.selectFS
+                lda #fscStarCommand
+                jsr mos.callFSCV
+                ldy #$FF
 L8510:
-                jsr mos.incAndSkipSpaces     ; 8510= 20 FE F2     ~r
-                beq rts84FE                    ; 8513= F0 E9       pi
-                cmp #'*'                     ; 8515= C9 2A       I*
-                beq L8510                    ; 8517= F0 F7       pw
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; 8519= 20 FF F2     .r
-                beq rts84FE                    ; 851C= F0 E0       p`
-                cmp #'|'                     ; 851E= C9 7C       I|
-                beq rts84FE                    ; 8520= F0 DC       p\
-                stz hazel.tempFSFlag      ; 8522= 9C C6 DF    .F_
-                cmp #'-'                  ; 8525= C9 2D       I-
-                bne L8535                    ; 8527= D0 0C       P.
-                jsr mos.parseFileNameFS      ; 8529= 20 A6 FA     &z
-                jsr mos.selectFS             ; 852C= 20 4D FB     M{
-                sec                          ; 852F= 38          8
-                ror hazel.tempFSFlag      ; 8530= 6E C6 DF    nF_
-                lda (stringInputBufferAddress),y ; 8533= B1 F2       1r
+                jsr mos.incAndSkipSpaces
+                beq rts84FE
+                cmp #'*'
+                beq L8510
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                beq rts84FE
+                cmp #'|'
+                beq rts84FE
+                stz hazel.tempFSFlag
+                cmp #'-'
+                bne L8535
+                jsr mos.parseFileNameFS
+                jsr mos.selectFS
+                sec
+                ror hazel.tempFSFlag
+                lda (stringInputBufferAddress),y
 L8535:
-                cmp #'/'                     ; 8535= C9 2F       I/
-                bne L8542                    ; 8537= D0 09       P.
-                iny                          ; 8539= C8          H
+                cmp #'/'
+                bne L8542
+                iny
                 jsr getStringInputBufferAddressWithYOffset
-                lda #fscStarSlash            ; 853D= A9 02       ).
-                jmp mos.callFSCV             ; 853F= 4C E5 F1    Leq
+                lda #fscStarSlash
+                jmp mos.callFSCV
 
 L8542:
+                .if version==320
                 sty $E6
+                .endif
                 lda #<mosCommandTable
                 sta oscliWorkspace.tablePtr+0
                 lda #>mosCommandTable
                 sta oscliWorkspace.tablePtr+1
+                .if version==320
                 bra L8558
+                .elsif version>=500
+                clv
+                jsr utils_8A8F
+                bcc passStarCommandThrough
+                .endif
 
+                .if version==320
 L854E:
                 eor (oscliWorkspace.tablePtr)
                 and #$DF
@@ -597,9 +819,10 @@ L856E:
                 jsr fetchCommandTableByte    
                 jsr fetchCommandTableByte    
                 bra L8558                    
-
+                
 L8582:
                 jsr fetchCommandTableByte
+                .endif
 L8585:
                 pha
                 jsr fetchCommandTableByte
@@ -614,6 +837,7 @@ L8592:
                 jsr L84EE                    
                 rti                          
 
+                .if version==320
 fetchCommandTableByte:
                 lda (oscliWorkspace.tablePtr)
                 pha                          
@@ -623,7 +847,8 @@ fetchCommandTableByte:
 +
                 pla                          
 rts85A5:
-                rts                          
+                rts
+                .endif
 
 ;-------------------------------------------------------------------------
 
@@ -632,8 +857,13 @@ rts85A5:
 starBASIC:
                 ldx basicROMNumber           ; Get BASIC ROM number
                 bmi passStarCommandThrough ; If no BASIC ROM, jump to pass to ROMs and filing system
+                .if version==320
                 sec                          ;
                 jmp mos.osbyte8E             ; Enter ROM as a language
+                .elsif version>=500
+                lda #$8e
+                jmp OSBYTE
+                .endif
 
 ;-------------------------------------------------------------------------
 
@@ -646,7 +876,11 @@ passStarCommandThrough:
                 ldy $E6
                 ldx #romServiceCallUnrecognisedCommand
                 jsr mos.osbyte8F    ; Service call 4 - Unknown command
+                .if version==320
                 beq rts85A5                    ; Claimed, return
+                .elsif version>=500
+                beq parseDone
+                .endif
 L85C0:
                 lda $E6
                 jsr getStringInputBufferAddressWithAOffset
@@ -858,22 +1092,48 @@ starROMS:
                 bne badCommandError869A
                 ldy #$0F
 printROMsLoop:
+                .if version==320
                 iny                          ;ensure Y!=0
                 jsr printFollowingMessage
                 .text "ROM ",0
                 tya                          ;A = ROM number+1
                 dec a                        ;A = ROM number
                 pha                          ;save ROM number
+                .elsif version>=500
+                tya
+                tax
+                phy
+                jsr mos.LF89A
+                bcs L86D2
+                jsr printFollowingMessage
+                .text "ROM ",0
+                bra L86DA
+L86D2:
+                jsr printFollowingMessage
+                .text "RAM ",0
+L86DA:
+                ply
+                tya
+                .endif
                 jsr printHexDigit            ;print ROM slot
                 jsr printSpace               
                 lda #<sidewaysROMName
                 sta $F6
                 lda #>sidewaysROMName
                 sta $F7
+                .if version==320
                 plx                          ;restore ROM number
+                .endif
                 jsr mos.isROMValidThenSelectTerminalROM
+                .if version==320
                 dey
+                .endif
                 bcc invalidROM
+                .if version>=500
+                lda romInformationTable,y
+                dec a
+                beq invalidROM
+                .endif
 printROMNameLoop:
                 jsr mos.osrdscEntryPoint     ;read name byte
                 cmp #' '
@@ -897,10 +1157,14 @@ printROMVersion:
                 jsr printSpaceThenPrintHexByte
 printInsertionStatus:
                 phy                          ; 86F5= 5A          Z
+                .if version==320
                 jsr mos.getROMInsertedFlagRTCAddressAndMask
                 sta starROMSWorkspace.insertedFlagMask
                 jsr readRTCByte
                 and starROMSWorkspace.insertedFlagMask
+                .elsif version>=500
+                jsr L873F
+                .endif
                 bne +
                 jsr alwaysPrintFollowingMessage
                 .text " unplugged",0
@@ -916,6 +1180,17 @@ invalidROM:
                 jsr OSWRCH                   
                 bra printInsertionStatus
 
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L873F:
+                jsr mos.getROMInsertedFlagRTCAddressAndMask
+                sta $b0
+                jsr readRTCByte
+                and $b0
+                rts
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; *INSERT [MasRef C.5-8]
@@ -1100,7 +1375,7 @@ setDefaultFDRIVE:
                 bcs badCommandError88AC
                 ldy #(~CMOSBytes.defaults1.defaultFDRIVEMask)&$ff
 writeDefaults1Bits:
-                ldx #CMOSBytes.defaults1+RTC.ram
+                ldx #CMOSBytes.defaults1+cmosBytesOffset
                 bra jmpWriteRTCBits892D                    ; 88DA= 80 51       .Q
 
 ;-------------------------------------------------------------------------
@@ -1172,7 +1447,7 @@ bcsBadCommandError8911:
 writeDefaultTVSettings:
                 ldy #~(CMOSBytes.defaults0.defaultTVMask<<CMOSBytes.defaults0.defaultTVShift|CMOSBytes.defaults0.defaultInterlaceMask)&$ff
 writeDefaults0Bits:
-                ldx #CMOSBytes.defaults0+RTC.ram
+                ldx #CMOSBytes.defaults0+cmosBytesOffset
 jmpWriteRTCBits892D:
                 jmp writeRTCBits
 
@@ -1301,7 +1576,7 @@ setDefaultKeyboardAutoRepeatRate:
                 txa                          
                 tay                          
                 .cerror CMOSBytes.keyboardAutoRepeatDelay+1!=CMOSBytes.keyboardAutoRepeatRate,"keyboard auto repeat settings CMOS bytes must be adjacent"
-                lda #CMOSBytes.keyboardAutoRepeatDelay+RTC.ram
+                lda #CMOSBytes.keyboardAutoRepeatDelay+cmosBytesOffset
                 adc #$00             ;pick appropriate byte based on C
                 tax                  ;X=RTC address
 jmpWriteRTCByte:
@@ -1317,7 +1592,7 @@ setDefaultPrinterIgnoreChar:
                 lda #$00                    
                 jsr writeDefaultUsePrinterIgnoreChar
                 ply                          
-                ldx #CMOSBytes.printerIgnoreChar+RTC.ram
+                ldx #CMOSBytes.printerIgnoreChar+cmosBytesOffset
                 bra jmpWriteRTCByte
 
 ;-------------------------------------------------------------------------
@@ -1333,7 +1608,7 @@ bcsBadCommandError:
                 ror a
                 ror a
 writeDefaults2Bits:
-                ldx #CMOSBytes.defaults2+RTC.ram
+                ldx #CMOSBytes.defaults2+cmosBytesOffset
 writeRTCBits:
                 sta $B1
                 sty $B2
@@ -1411,7 +1686,7 @@ setDefaultSerialDataFormat:
                 ror a                        ;%bc000000 a
                 ror a                        ;%abc00000 0
 writeDefaults3Bits:
-                ldx #CMOSBytes.defaults3+RTC.ram
+                ldx #CMOSBytes.defaults3+cmosBytesOffset
 jmpWriteRTCBits8A26:
                 bra writeRTCBits                    ; 8A26= 80 AE       ..
 
@@ -1473,7 +1748,7 @@ setDefaultLanguageROM:
                 asl a                        ; 8A58= 0A          .
                 ldy #~(15<<CMOSBytes.defaultROMs.languageShift)&$ff
 writeDefaultROM:
-                ldx #CMOSBytes.defaultROMs+RTC.ram
+                ldx #CMOSBytes.defaultROMs+cmosBytesOffset
                 bra jmpWriteRTCBits8A26                    ; 8A5D= 80 C7       .G
 
 ;-------------------------------------------------------------------------
@@ -1628,7 +1903,7 @@ printDefaultKeyboardRepeatRate:
 ; Y = default keyboard auto repeat delay
 ; 
 getDefaultKeyboardAutoRepeatDelay:
-                ldx #CMOSBytes.keyboardAutoRepeatDelay+RTC.ram
+                ldx #CMOSBytes.keyboardAutoRepeatDelay+cmosBytesOffset
                 jmp readRTCByte
 
 ;-------------------------------------------------------------------------
@@ -1640,7 +1915,7 @@ getDefaultKeyboardAutoRepeatDelay:
 ; Y = default keyboard auto repeat rate
 ; 
 getDefaultKeyboardAutoRepeatRate:
-                ldx #CMOSBytes.keyboardAutoRepeatRate+RTC.ram
+                ldx #CMOSBytes.keyboardAutoRepeatRate+cmosBytesOffset
                 jmp readRTCByte
 
 ;-------------------------------------------------------------------------
@@ -1892,7 +2167,7 @@ printSTATUSHelp:
 ;
 ; Y = *TV offset
 readDefaultTVSettings:
-                ldx #CMOSBytes.defaults0+RTC.ram
+                ldx #CMOSBytes.defaults0+cmosBytesOffset
                 jsr readRTCByte
                 phy
                 and #%11100000
@@ -1918,7 +2193,7 @@ readDefaultTVSettings:
 ; Read configured MODE
 ; --------------------
 readDefaultMODE:
-                ldx #CMOSBytes.defaults0+RTC.ram
+                ldx #CMOSBytes.defaults0+cmosBytesOffset
                 jsr readRTCByte
                 and #CMOSBytes.defaults0.defaultMODEMask|CMOSBytes.defaults0.defaultSHADOWMask
                 bit #CMOSBytes.defaults0.defaultSHADOWMask
@@ -1971,20 +2246,20 @@ readDefaultLanguageROM:
 ;
 ; 
 readDefaultROMs:
-                ldx #CMOSBytes.defaultROMs+RTC.ram;
+                ldx #CMOSBytes.defaultROMs+cmosBytesOffset;
                 bra jmpReadRTCByte
 
 ;-------------------------------------------------------------------------
 
 readDefaultPrinterIgnoreChar:
-                ldx #CMOSBytes.printerIgnoreChar+RTC.ram
+                ldx #CMOSBytes.printerIgnoreChar+cmosBytesOffset
 jmpReadRTCByte:
                 jmp readRTCByte
 
 ;-------------------------------------------------------------------------
 
 readDefaults1:
-                ldx #CMOSBytes.defaults1+RTC.ram
+                ldx #CMOSBytes.defaults1+cmosBytesOffset
                 bra jmpReadRTCByte
 
 ;-------------------------------------------------------------------------
@@ -3782,13 +4057,13 @@ storeNybbleString:
 ;-------------------------------------------------------------------------
 
 readDefaults2:
-                ldx #CMOSBytes.defaults2+RTC.ram
+                ldx #CMOSBytes.defaults2+cmosBytesOffset
                 bra readRTCByte
 
 ;-------------------------------------------------------------------------
 
 readDefaults3:
-                ldx #CMOSBytes.defaults3+RTC.ram
+                ldx #CMOSBytes.defaults3+cmosBytesOffset
                 bra readRTCByte
 
 ;-------------------------------------------------------------------------
@@ -6354,7 +6629,7 @@ LA8B1:
                 php
                 ldx #$FF
                 ldy #<fileError
-                .cerror (>fileError)!=(>dataError),"must be on same page"
+                .cwarn (>fileError)!=(>dataError),"must be on same page"
                 plp
                 bne LA8DA
 LA8C4:
@@ -6369,7 +6644,7 @@ LA8C4:
                 beq LA8E3
 LA8D8:
                 ldy #<blockError
-                .cerror (>blockError)!=(>dataError),"must be on same page"
+                .cwarn (>blockError)!=(>dataError),"must be on same page"
 LA8DA:
                 phy
                 phx
@@ -10469,6 +10744,8 @@ chr127:
                 .byte %11111111
                 .byte %11111111
                 .byte %11111111
+                
+                .if version==320
 
                 ; CHR$128
                 .byte %01100110
@@ -11749,5 +12026,5 @@ chr127:
                 .byte %11111111
                 .byte %11111111
                 .byte %11111111
-
+                .endif
                 .endblock

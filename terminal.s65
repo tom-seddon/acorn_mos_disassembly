@@ -7581,8 +7581,8 @@ LAE88:
                 bra LAE6A                    ; AE91= 80 D7       .W
 
 LAE93:
-                .word E_INSV
-                .word E_REMV
+                .word mos.E_INSV
+                .word mos.E_REMV
 LAE97:
                 .word LAED4
                 .byte terminalROM

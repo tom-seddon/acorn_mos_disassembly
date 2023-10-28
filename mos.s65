@@ -1574,11 +1574,11 @@ setStartupMODE:
 ;
 ;
 setMODE:
-                stz $028A                    ; C7BC= 9C 8A 02    ...
-                stz $028B                    ; C7BF= 9C 8B 02    ...
+                stz vduDriverMemory
+                stz displayMemory
                 tay                          ;Y=mode
                 bmi setShadowMODE
-                ldx $027F                    ;
+                ldx shadowRAMState
                 beq setShadowMODE
                 lda #STATE.isShadowMode
                 trb STATE
@@ -7162,15 +7162,15 @@ LE40E:
                 jsr osbyte247EntryPoint
                 ldx #romServiceCallInformReset
                 jsr makeROMServiceCall
-                ldy $0256                    ; Get Exec handle, skip past if closed
+                ldy execFileHandle ; Get Exec handle, skip past if closed
                 beq LE424
-                stz $0256                    ; Clear Exec handle
+                stz execFileHandle           ; Clear Exec handle
                 lda #$00                     ; Close Exec channel
                 jsr OSFIND
 LE424:
                 sec                          ;
                 ror hazel.currentFS
-                lda $028D                    ; Soft Break
+                lda lastBREAKType            ; Soft Break
                 beq LE431
                 sec                          ;
                 ror hazel.libFS
@@ -7181,11 +7181,11 @@ LE431:
                 lsr a
                 lsr a
                 lsr a
-                eor $028F                    ; Toggle with OSBYTE 255 boot status
+                eor startupOptions ; Toggle with OSBYTE 255 boot status
                 and #$08
                 tay
                 ldx hazel.currentFSROM
-                lda $028D                    ; Soft Break, use current filing system
+                lda lastBREAKType ; Soft Break, use current filing system
                 beq LE454
                 jsr selectTerminalROM
                 .if version==320
@@ -7215,25 +7215,25 @@ LE454:
 LE46C:
                 lda #romServiceCallAutoBoot  ; Filing System selection
                 jsr $8003
-                tax                          ; E471= AA          *
-                jsr selectTerminalROM                    ; E472= 20 90 E5     .e
-                txa                          ; E475= 8A          .
-                beq LE4A3                    ; E476= F0 2B       p+
+                tax
+                jsr selectTerminalROM
+                txa
+                beq LE4A3
 LE478:
                 ldx #romServiceCallAutoBoot
                 jsr makeROMServiceCall
-                beq LE4A3                    ; E47D= F0 24       p$
+                beq LE4A3
 LE47F:
-                tya                          ; E47F= 98          .
-                bne LE499                    ; E480= D0 17       P.
-                lda #$8D                     ; E482= A9 8D       ).
-                jsr osbyte8C8D                    ; E484= 20 9A ED     .m
-                ldx #<starRunBOOT                     ; E487= A2 08       ".
-                ldy #>starRunBOOT                     ; E489= A0 F4        t
-                dec $0267                    ; E48B= CE 67 02    Ng.
-                jsr OSCLI                   ; E48E= 20 F7 FF     w.
-                inc $0267                    ; E491= EE 67 02    ng.
-                bra LE4A3                    ; E494= 80 0D       ..
+                tya
+                bne LE499
+                lda #$8D
+                jsr osbyte8C8D
+                ldx #<starRunBOOT
+                ldy #>starRunBOOT
+                dec startupMessageSuppressionStatus
+                jsr OSCLI
+                inc startupMessageSuppressionStatus
+                bra LE4A3
 
 ;-------------------------------------------------------------------------
 
@@ -7252,11 +7252,11 @@ LE499:
                 .endif
 LE4A3:
                 lda #$05                     ;
-                ldx $0285                    ; *FX5,<current printer>
+                ldx printerDriverType        ; *FX5,<current printer>
                 jsr osbyteEntryPoint
-                lda $028D                    ; If not Soft Break, select default language
+                lda lastBREAKType ; If not Soft Break, select default language
                 bne LE4BB
-                ldx $028C                    ; Get current language ROM
+                ldx currentLanguageROM      ; Get current language ROM
                 cpx #$10                     ; <16, normal ROM number, use it
                 bcc LE4C2
                 cpx #$1F                     ; 16+UTILS ROM, re-enter Supervisor or Tube CLI
@@ -7493,30 +7493,30 @@ brkEntryPoint:
 ;-------------------------------------------------------------------------
 
 LE5D4:
-                sec                          ; E5D4= 38          8
-                ror $024F                    ; E5D5= 6E 4F 02    nO.
-                bit $0250                    ; E5D8= 2C 50 02    ,P.
-                bpl LE5E4                    ; E5DB= 10 07       ..
-                jsr getRS423InputBufferFreeBytes                    ; E5DD= 20 27 ED     'm
-                ldx #$00                     ; E5E0= A2 00       ".
-                bcs LE5E6                    ; E5E2= B0 02       0.
+                sec
+                ror rs423Busy
+                bit aciaControlRegister
+                bpl LE5E4
+                jsr getRS423InputBufferFreeBytes
+                ldx #$00
+                bcs LE5E6
 LE5E4:
-                ldx #$40                     ; E5E4= A2 40       "@
+                ldx #$40
 LE5E6:
-                jmp resetACIA                    ; E5E6= 4C 12 E9    L.i
+                jmp resetACIA
 
 LE5E9:
-                ldy ACIA+1                    ; E5E9= AC 09 FE    ,.~
-                and #$3A                     ; E5EC= 29 3A       ):
-                bne LE628                    ; E5EE= D0 38       P8
-                ldx $025C                    ; E5F0= AE 5C 02    .\.
-                bne LE5FE                    ; E5F3= D0 09       P.
-                inx                          ; E5F5= E8          h
-                jsr osbyte99                    ; E5F6= 20 80 EA     .j
-                jsr getRS423InputBufferFreeBytes                    ; E5F9= 20 27 ED     'm
-                bcc LE5E4                    ; E5FC= 90 E6       .f
+                ldy ACIA+1
+                and #$3A
+                bne LE628
+                ldx rs423Ignore
+                bne LE5FE
+                inx
+                jsr osbyte99
+                jsr getRS423InputBufferFreeBytes
+                bcc LE5E4
 LE5FE:
-                rts                          ; E5FE= 60          `
+                rts
 
 ;-------------------------------------------------------------------------
 
@@ -7574,7 +7574,7 @@ LE62F:
                 bne LE5D4
                 inx
                 jsr osbyte91
-                ror $02D1
+                ror bufferEmptyFlags+bufferPrinter
                 bmi LE5D4
 LE646:
                 sta ACIA+1
@@ -7711,13 +7711,13 @@ intervalTimerDone:
 LE715:
                 dec inkeyTimeoutCounter+0
 LE718:
-                bit $02CD
+                bit previousKeyPressedWhenReadingOSBYTE
                 bpl LE728
-                inc $02CD
+                inc previousKeyPressedWhenReadingOSBYTE
                 cli
                 jsr LF416                    ;update sound???
                 sei
-                dec $02CD
+                dec previousKeyPressedWhenReadingOSBYTE
 LE728:
                 bit valueFF                  ;V=1
                 jsr irq1Handler
@@ -8208,16 +8208,16 @@ oswrchEntryPoint:
                 phx                          ;S=[x; ch]
                 phy                          ;S=[y; x; ch]
                 pha                          ;S=[ch; y; x; ch]
-                bit $0260                    ; E826= 2C 60 02    ,`.
-                bpl LE833                    ; E829= 10 08       ..
-                tay                          ; E82B= A8          (
+                bit econetOutputInterpretationStatus
+                bpl LE833
+                tay
                 lda #netWriteCharacterAttempted
-                jsr callNETV                    ; E82E= 20 04 EB     .k
-                bcs LE8A5                    ; E831= B0 72       0r
+                jsr callNETV
+                bcs LE8A5
 LE833:
-                lda #$02                     ; E833= A9 02       ).
-                bit $027C                    ; E835= 2C 7C 02    ,|.
-                bne LE862                    ; E838= D0 28       P(
+                lda #$02
+                bit characterDestinationStatus
+                bne LE862
                 pla                          ;restore char to print
                 pha                          ;save it again
                 tax                          ;X=char to print
@@ -8225,112 +8225,112 @@ LE833:
                 pha                          ;S=[old ACCCON; ch; y; x; ch]
                 lda #ACCCON.Y
                 trb ACCCON                   ;MOS ROM at $c000
-                lda $F4                      
+                lda $F4
                 pha          ;S=[old ROMSEL; old ACCCON; ch; y; x; ch]
                 lda #$80|terminalROM
                 sta $F4
                 sta ROMSEL                   ;page in ANDY+Terminal
                 txa                          ;A=char to print
                 jsr outputToVDU
-                pla                          ; E854= 68          h
-                sta $F4                      ; E855= 85 F4       .t
-                sta ROMSEL                   ; E857= 8D 30 FE    .0~
-                pla                          ; E85A= 68          h
+                pla
+                sta $F4
+                sta ROMSEL
+                pla
                 and #ACCCON.Y
-                tsb ACCCON                    ; E85D= 0C 34 FE    .4~
-                bcs LE869                    ; E860= B0 07       0.
+                tsb ACCCON
+                bcs LE869
 LE862:
-                lda #$08                     ; E862= A9 08       ).
-                bit $027C                    ; E864= 2C 7C 02    ,|.
-                beq LE86E                    ; E867= F0 05       p.
+                lda #$08
+                bit characterDestinationStatus
+                beq LE86E
 LE869:
-                pla                          ; E869= 68          h
-                pha                          ; E86A= 48          H
-                jsr LE8AA                    ; E86B= 20 AA E8     *h
+                pla
+                pha
+                jsr LE8AA
 LE86E:
-                lda $027C                    ; E86E= AD 7C 02    -|.
-                ror a                        ; E871= 6A          j
-                bcc LE88F                    ; E872= 90 1B       ..
-                ldy $EA                      ; E874= A4 EA       $j
-                dey                          ; E876= 88          .
-                bpl LE88F                    ; E877= 10 16       ..
-                pla                          ; E879= 68          h
-                pha                          ; E87A= 48          H
-                php                          ; E87B= 08          .
-                sei                          ; E87C= 78          x
-                ldx #$02                     ; E87D= A2 02       ".
-                pha                          ; E87F= 48          H
-                jsr osbyte98                    ; E880= 20 EF E9     oi
-                bcc LE888                    ; E883= 90 03       ..
-                jsr clearRS423BusyAndSetRS423Active                    ; E885= 20 08 E9     .i
+                lda characterDestinationStatus
+                ror a
+                bcc LE88F
+                ldy $EA
+                dey
+                bpl LE88F
+                pla
+                pha
+                php
+                sei
+                ldx #$02
+                pha
+                jsr osbyte98
+                bcc LE888
+                jsr clearRS423BusyAndSetRS423Active
 LE888:
-                pla                          ; E888= 68          h
-                ldx #$02                     ; E889= A2 02       ".
-                jsr LE9A3                    ; E88B= 20 A3 E9     #i
-                plp                          ; E88E= 28          (
+                pla
+                ldx #$02
+                jsr LE9A3
+                plp
 LE88F:
-                lda #$10                     ; E88F= A9 10       ).
-                bit $027C                    ; E891= 2C 7C 02    ,|.
-                bne LE8A5                    ; E894= D0 0F       P.
-                ldy $0257                    ; E896= AC 57 02    ,W.
-                beq LE8A5                    ; E899= F0 0A       p.
-                pla                          ; E89B= 68          h
-                pha                          ; E89C= 48          H
-                sec                          ; E89D= 38          8
-                ror $EB                      ; E89E= 66 EB       fk
-                jsr OSBPUT                   ; E8A0= 20 D4 FF     T.
-                lsr $EB                      ; E8A3= 46 EB       Fk
+                lda #$10
+                bit characterDestinationStatus
+                bne LE8A5
+                ldy spoolFileHandle
+                beq LE8A5
+                pla
+                pha
+                sec
+                ror $EB
+                jsr OSBPUT
+                lsr $EB
 LE8A5:
-                pla                          ; E8A5= 68          h
-                ply                          ; E8A6= 7A          z
-                plx                          ; E8A7= FA          z
-                pla                          ; E8A8= 68          h
-                rts                          ; E8A9= 60          `
+                pla
+                ply
+                plx
+                pla
+                rts
 
 LE8AA:
-                bit $027C                    ; E8AA= 2C 7C 02    ,|.
-                bvs LE8D4                    ; E8AD= 70 25       p%
-                cmp $0286                    ; E8AF= CD 86 02    M..
-                bne LE8B9                    ; E8B2= D0 05       P.
-                bit $0246                    ; E8B4= 2C 46 02    ,F.
-                bpl LE8D4                    ; E8B7= 10 1B       ..
+                bit characterDestinationStatus
+                bvs LE8D4
+                cmp printerIgnoreChar
+                bne LE8B9
+                bit noignoreState
+                bpl LE8D4
 LE8B9:
-                php                          ; E8B9= 08          .
-                sei                          ; E8BA= 78          x
-                tax                          ; E8BB= AA          *
-                lda #$04                     ; E8BC= A9 04       ).
-                bit $027C                    ; E8BE= 2C 7C 02    ,|.
-                bne LE8D3                    ; E8C1= D0 10       P.
-                txa                          ; E8C3= 8A          .
-                ldx #$03                     ; E8C4= A2 03       ".
-                jsr LE9A3                    ; E8C6= 20 A3 E9     #i
-                bcs LE8D3                    ; E8C9= B0 08       0.
-                bit $02D1                    ; E8CB= 2C D1 02    ,Q.
-                bpl LE8D3                    ; E8CE= 10 03       ..
-                jsr LE8D5                    ; E8D0= 20 D5 E8     Uh
+                php
+                sei
+                tax
+                lda #$04
+                bit characterDestinationStatus
+                bne LE8D3
+                txa
+                ldx #$03
+                jsr LE9A3
+                bcs LE8D3
+                bit bufferEmptyFlags+bufferPrinter
+                bpl LE8D3
+                jsr LE8D5
 LE8D3:
-                plp                          ; E8D3= 28          (
+                plp
 LE8D4:
-                rts                          ; E8D4= 60          `
+                rts
 
 LE8D5:
-                lda $0285                    ; E8D5= AD 85 02    -..
-                beq LE959                    ; E8D8= F0 7F       p.
-                dec a                        ; E8DA= 3A          :
-                bne LE8FD                    ; E8DB= D0 20       P
-                jsr osbyte91                    ; E8DD= 20 F4 E9     ti
-                ror $02D1                    ; E8E0= 6E D1 02    nQ.
-                bmi rtsE928                    ; E8E3= 30 43       0C
-                ldy #$82                     ; E8E5= A0 82        .
-                sty userVIA.ier              ; E8E7= 8C 6E FE    .n~
-                sta userVIA.ora              ; E8EA= 8D 61 FE    .a~
-                lda userVIA.pcr              ; E8ED= AD 6C FE    -l~
-                and #$F1                     ; E8F0= 29 F1       )q
-                ora #$0C                     ; E8F2= 09 0C       ..
-                sta userVIA.pcr              ; E8F4= 8D 6C FE    .l~
-                ora #$0E                     ; E8F7= 09 0E       ..
-                sta userVIA.pcr              ; E8F9= 8D 6C FE    .l~
-                rts                          ; E8FC= 60          `
+                lda printerDriverType
+                beq LE959
+                dec a
+                bne LE8FD
+                jsr osbyte91
+                ror bufferEmptyFlags+bufferPrinter
+                bmi rtsE928
+                ldy #$82
+                sty userVIA.ier
+                sta userVIA.ora
+                lda userVIA.pcr
+                and #$F1
+                ora #$0C
+                sta userVIA.pcr
+                ora #$0E
+                sta userVIA.pcr
+                rts
 
 LE8FD:
                 dec a
@@ -8338,7 +8338,7 @@ LE8FD:
                 ldy $EA
                 dey
                 bpl LE959
-                lsr printerDriverDormant
+                lsr bufferEmptyFlags+bufferPrinter
 clearRS423BusyAndSetRS423Active:
                 lsr rs423Busy
 setRS423Active:
@@ -8383,14 +8383,14 @@ activatePrinterDriver:
 ; D.2-36]
 ;
 osbyte7B:
-                ror printerDriverDormant   ;C=1 on entry, so set bit 7
+                ror bufferEmptyFlags+bufferPrinter   ;C=1 on entry, so set bit 7
 rtsE932:
                 rts
 
 ;-------------------------------------------------------------------------
 
 pollPrinterDriver:
-                bit printerDriverDormant
+                bit bufferEmptyFlags+bufferPrinter
                 bmi rtsE932           ;taken if printer driver dormant
                 lda #printerDriverPoll
 callPrinterDriverWithPrinterBuffer:
@@ -8439,7 +8439,7 @@ LE95A:
                 jsr LF55D
 LE967:
                 sec
-                ror bufferEmptyFlags-1,x
+                ror bufferEmptyFlags,x
                 cpx #bufferFirstOutput
                 bcs LE975                    ;taken if output buffer
                 stz softKeyStringLength
@@ -9203,7 +9203,7 @@ osbyte7C: ;EC56
 osbyte7D: ;EC57
                 .if version==320
                 ror $FF
-                bit $027A
+                bit tubePresence
                 bpl LECD9
                 jmp terminal.tubeHost.copyEscapeStatus
                 .elsif version>=500
@@ -9290,38 +9290,38 @@ osbyte07:                                    ;ec6d
                 eor $FA                      ; EC80= 45 FA       Ez
                 ora $FB                      ; EC82= 05 FB       .{
                 ora #$40                     ; EC84= 09 40       .@
-                eor $025D                    ;mask in tape/serial flag set by OSBYTE 205ac
+                eor rs423Destination ;mask in tape/serial flag set by OSBYTE 205ac
 LEC89:
-                sta serialULARegister                    ; EC89= 8D 82 02    ...
-                sta SERPROC+0                    ; EC8C= 8D 10 FE    ..~
+                sta serialULARegister
+                sta SERPROC+0
 LEC8F:
-                tya                          ; EC8F= 98          .
+                tya
 LEC90:
-                tax                          ; EC90= AA          *
-                rts                          ; EC91= 60          `
+                tax
+                rts
 
 ; Y=0 on entry.
-                
+
 osbyte09:                       ;ec92
-                iny                          ; EC92= C8          H
-                clc                          ; EC93= 18          .
+                iny
+                clc
 osbyte0A:                                    ;ec94
-                lda $0252,y                  ; EC94= B9 52 02    9R.
-                pha                          ; EC97= 48          H
-                txa                          ; EC98= 8A          .
-                sta $0252,y                  ; EC99= 99 52 02    .R.
-                ply                          ; EC9C= 7A          z
-                lda $0251                    ; EC9D= AD 51 02    -Q.
-                bne LEC8F                    ; ECA0= D0 ED       Pm
-                stx $0251                    ; ECA2= 8E 51 02    .Q.
-                lda $0248                    ; ECA5= AD 48 02    -H.
-                php                          ; ECA8= 08          .
-                ror a                        ; ECA9= 6A          j
-                plp                          ; ECAA= 28          (
-                rol a                        ; ECAB= 2A          *
-                sta $0248                    ; ECAC= 8D 48 02    .H.
-                sta VCONTROL                 ; ECAF= 8D 20 FE    . ~
-                bra LEC8F                    ; ECB2= 80 DB       .[
+                lda firstFlashColourDuration,y
+                pha
+                txa
+                sta firstFlashColourDuration,y
+                ply
+                lda flashCounter
+                bne LEC8F
+                stx flashCounter
+                lda vcontrolRegister
+                php
+                ror a
+                plp
+                rol a
+                sta vcontrolRegister
+                sta VCONTROL
+                bra LEC8F
 
 ;-------------------------------------------------------------------------
 ;
@@ -9347,22 +9347,22 @@ osbyte02:                       ;ecb4
                 txa
                 and #$01
                 pha
-                lda $0250
+                lda aciaControlRegister
                 rol a
                 cpx #$01
                 ror a
-                cmp $0250
+                cmp aciaControlRegister
                 php
-                sta $0250
+                sta aciaControlRegister
                 sta ACIA+0
                 jsr setRS423Active
                 plp
                 beq LECD2
                 bit ACIA+1
 LECD2:
-                ldx $0241
+                ldx inputSource
                 pla
-                sta $0241
+                sta inputSource
 LECD9:
                 rts
 
@@ -9540,7 +9540,7 @@ LED45:
 ; D.2-31
 ;
 osbyte70:                       ;ed58
-                jsr LED70
+                jsr osbyte7071
                 asl a
                 beq clearACCCCONE
 LED5E:
@@ -9553,20 +9553,29 @@ LED64:
                 trb ACCCON
                 rts
 
+;-------------------------------------------------------------------------
+
 osbyte71:                       ;ed68
-                jsr LED70
+                jsr osbyte7071
                 bne LED5E
                 inc a
                 bra LED64
 
-LED70:
+;-------------------------------------------------------------------------
+;
+; Handle OSBYTE $70 or OSBYTE $71
+;
+; Entry: A=$70 or $71
+; 
+osbyte7071:
                 tay
                 txa
-                sta $021A,y
+                .cerror vduDriverMemory+1!=displayMemory
+                sta vduDriverMemory-$70,y
                 bne LED80
                 lda STATE
                 and #STATE.isShadowMode
-                beq LED83       ;
+                beq LED83
 LED7D:
                 lda #$01
                 rts
@@ -9576,6 +9585,8 @@ LED80:
                 bne LED7D
 LED83:
                 rts
+
+;-------------------------------------------------------------------------
 
 ; OSBYTE &6E (110), &6F (111)
 ; ===========================
@@ -9638,7 +9649,7 @@ tsbACCCON:
 selectROMOrTAPEByOSBYTE:
                 eor #$8C                     ;A=0 if tape, A=1 if ROM
 selectROMOrTAPE:
-                asl a           ; Set CFS/RFS swicth to 0=CFS or 2=RFS
+                asl a           ; Set CFS/RFS switch to 0=CFS or 2=RFS
                 sta cfsRFSFSSwitch
                 bne LEDCC                    ;taken if ROM
                 lda #$04                     ; CFS, clear b2 of status
@@ -9648,13 +9659,13 @@ LEDCC:
                 bra LEDD6
 
 LEDD0:
-                jsr LEE64                    ; EDD0= 20 64 EE     dn
-                jsr LF1EE                    ; EDD3= 20 EE F1     nq
+                jsr LEE64
+                jsr LF1EE
 LEDD6:
                 php                          ; Save baud flag in Carry
                 lda #$06                     ; Vectors about to change
                 jsr callFSCV
-                lda $0247                    ; Jump if RFS selected
+                lda cfsRFSFSSwitch           ; Jump if RFS selected
                 bne LEDEE
                 ldx #$06                     ; Prepare baud=6 for TAPE300
                 plp                          ; Skip past if TAPE300
@@ -10335,81 +10346,83 @@ copyTIMEValue:
 ; OSWORD 0 (&00) Read line from input stream to memory [MasRef D.3-6]
 ; 
 osword00:
-                ldy #$04                     ; F02F= A0 04        .
+                ldy #$04
 LF031:
-                lda (originalX),y                  ; F031= B1 F0       1p
-                sta $02B1,y                  ; F033= 99 B1 02    .1.
-                dey                          ; F036= 88          .
-                cpy #$02                     ; F037= C0 02       @.
-                bcs LF031                    ; F039= B0 F6       0v
-                lda ($F0),y                  ; F03B= B1 F0       1p
-                sta $E9                      ; F03D= 85 E9       .i
-                dey                          ; F03F= 88          .
-                stz pagedModeCounter                    ; F040= 9C 69 02    .i.
-                lda ($F0)                    ; F043= B2 F0       2p
-                sta $E8                      ; F045= 85 E8       .h
-                cli                          ; F047= 58          X
-                bra LF051                    ; F048= 80 07       ..
+                lda (originalX),y
+                .cerror osword0MaxLineLength+1!=osword0MinASCIICharacter
+                .cerror osword0MinASCIICharacter+1!=osword0MaxASCIICharacter
+                sta osword0MaxLineLength-2,y
+                dey
+                cpy #$02
+                bcs LF031
+                lda ($F0),y
+                sta $E9
+                dey
+                stz pagedModeCounter
+                lda ($F0)
+                sta $E8
+                cli
+                bra LF051
 
 LF04A:
-                lda #$07                     ; F04A= A9 07       ).
+                lda #$07
 LF04C:
-                dey                          ; F04C= 88          .
+                dey
 LF04D:
-                iny                          ; F04D= C8          H
+                iny
 LF04E:
-                jsr OSWRCH                   ; F04E= 20 EE FF     n.
+                jsr OSWRCH
 LF051:
-                jsr OSRDCH                   ; F051= 20 E0 FF     `.
-                bcs LF09F                    ; F054= B0 49       0I
-                tax                          ; F056= AA          *
-                lda $027C                    ; F057= AD 7C 02    -|.
-                ror a                        ; F05A= 6A          j
-                ror a                        ; F05B= 6A          j
-                txa                          ; F05C= 8A          .
-                bcs LF064                    ; F05D= B0 05       0.
-                ldx vduQueueNegativeLength                    ; F05F= AE 6A 02    .j.
-                bne LF04E                    ; F062= D0 EA       Pj
+                jsr OSRDCH
+                bcs LF09F
+                tax
+                lda characterDestinationStatus
+                ror a
+                ror a
+                txa
+                bcs LF064
+                ldx vduQueueNegativeLength
+                bne LF04E
 LF064:
-                cmp #$7F                     ; F064= C9 7F       I.
-                bne LF06F                    ; F066= D0 07       P.
-                cpy #$00                     ; F068= C0 00       @.
-                beq LF051                    ; F06A= F0 E5       pe
-                dey                          ; F06C= 88          .
-                bra LF04E                    ; F06D= 80 DF       ._
+                cmp #$7F
+                bne LF06F
+                cpy #$00
+                beq LF051
+                dey
+                bra LF04E
 
 LF06F:
-                cmp #$15                     ; F06F= C9 15       I.
-                bne LF080                    ; F071= D0 0D       P.
-                tya                          ; F073= 98          .
-                beq LF051                    ; F074= F0 DB       p[
-                lda #$7F                     ; F076= A9 7F       ).
+                cmp #$15
+                bne LF080
+                tya
+                beq LF051
+                lda #$7F
 LF078:
-                jsr OSWRCH                   ; F078= 20 EE FF     n.
-                dey                          ; F07B= 88          .
-                bne LF078                    ; F07C= D0 FA       Pz
-                bra LF051                    ; F07E= 80 D1       .Q
+                jsr OSWRCH
+                dey
+                bne LF078
+                bra LF051
 
 LF080:
-                sta ($E8),y                  ; F080= 91 E8       .h
-                cmp #$0D                     ; F082= C9 0D       I.
-                beq LF099                    ; F084= F0 13       p.
-                cpy $02B3                    ; F086= CC B3 02    L3.
-                bcs LF04A                    ; F089= B0 BF       0?
-                cmp $02B4                    ; F08B= CD B4 02    M4.
-                bcc LF04C                    ; F08E= 90 BC       .<
-                cmp $02B5                    ; F090= CD B5 02    M5.
-                beq LF04D                    ; F093= F0 B8       p8
-                bcc LF04D                    ; F095= 90 B6       .6
-                bra LF04C                    ; F097= 80 B3       .3
+                sta ($E8),y
+                cmp #$0D
+                beq LF099
+                cpy osword0MaxLineLength
+                bcs LF04A
+                cmp osword0MinASCIICharacter
+                bcc LF04C
+                cmp osword0MaxASCIICharacter
+                beq LF04D
+                bcc LF04D
+                bra LF04C
 
 LF099:
-                jsr OSNEWL                   ; F099= 20 E7 FF     g.
-                jsr callNETV                    ; F09C= 20 04 EB     .k
+                jsr OSNEWL
+                jsr callNETV
 LF09F:
-                lda $FF                      ; F09F= A5 FF       %.
-                rol a                        ; F0A1= 2A          *
-                rts                          ; F0A2= 60          `
+                lda $FF
+                rol a
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -10430,16 +10443,16 @@ osbyte03:
 ; OSBYTE 6 (&06) Write printer ignore character [MasRef D.2-21]
 ;
 osbyte06:                       ;f0b3
-                lsr $0246                    ; F0B3= 4E 46 02    NF.
-                bra osbyte01                    ; F0B6= 80 16       ..
+                lsr noignoreState
+                bra osbyte01
 
 ;-------------------------------------------------------------------------
 ;
 ; OSBYTE 114 (&72) Write usage of shadow memory [MasRef D.2-32]
 ;
 osbyte72:                       ;f0b8
-                lda #$1F                     ; F0B8= A9 1F       ).
-                bra LF0CC                    ; F0BA= 80 10       ..
+                lda #$1F
+                bra LF0CC
 
 ;-------------------------------------------------------------------------
 ;
@@ -10451,7 +10464,7 @@ waitForPrinterDriverDormant:
                 sei
                 bit $FF                      ;test for ESCAPE
                 bmi rtsF0EB                  ;taken if ESCAPE pressed
-                bit printerDriverDormant
+                bit bufferEmptyFlags+bufferPrinter
                 bpl waitForPrinterDriverDormant ;taken if printer driver active
                 jsr callPrinterDriver    ;call with A=printerDriverFX5
                 ldy #$00
@@ -10753,7 +10766,7 @@ LF1CC:
 osbyte85:
                 txa                          ; If MODE &80+n, return &8000
                 bmi LF1D8
-                ldx $027F                    ; If *SHADOW<>0, jump to return non-shadow address
+                ldx shadowRAMState ; If *SHADOW<>0, jump to return non-shadow address
                 bne LF1C3
 LF1D8:
                 lda #$80                     ; Return &8000
@@ -10867,7 +10880,7 @@ osbyte19:                       ;f222
 ; OSBYTE &16 - Increment ROM polling semaphore
 ; ========================================
 osbyte16:                       ;f228
-                inc $0243
+                inc romPollingSemaphore
                 rts
 
 ;-------------------------------------------------------------------------
@@ -10875,7 +10888,7 @@ osbyte16:                       ;f228
 ; OSBYTE &17 - Decrement ROM polling semaphore
 osbyte17:                       ;f22c
 ; ========================================
-                dec $0243
+                dec romPollingSemaphore
                 rts
 
 ; OSBYTE &76 - Set LEDs to keyboard state
@@ -10908,32 +10921,34 @@ LF24C:
                 bit $FF                      ; Test Escape and return
                 rts
 
+;-------------------------------------------------------------------------
+
 osbyte9A:
-                txa                          ; F24F= 8A          .
+                txa
 setVCONTROL:
-                php                          ; F250= 08          .
-                sei                          ; F251= 78          x
-                sta $0248                    ; F252= 8D 48 02    .H.
-                sta VCONTROL                 ; F255= 8D 20 FE    . ~
-                lda $0253                    ; F258= AD 53 02    -S.
-                sta $0251                    ; F25B= 8D 51 02    .Q.
-                plp                          ; F25E= 28          (
-                rts                          ; F25F= 60          `
+                php
+                sei
+                sta vcontrolRegister
+                sta VCONTROL
+                lda secondFlashColourDuration
+                sta flashCounter
+                plp
+                rts
 
 ;-------------------------------------------------------------------------
 ;
 ; OSBYTE 155 (&9B) Write to video ULA palette register and copy
 ;
 osbyte9B:
-                txa                          ; F260= 8A          .
+                txa
 writeVPALETTE:
-                eor #$07                     ; F261= 49 07       I.
-                php                          ; F263= 08          .
-                sei                          ; F264= 78          x
-                sta $0249                    ; F265= 8D 49 02    .I.
-                sta VPALETTE                 ; F268= 8D 21 FE    .!~
-                plp                          ; F26B= 28          (
-                rts                          ; F26C= 60          `
+                eor #$07
+                php
+                sei
+                sta vpaletteRegister
+                sta VPALETTE
+                plp
+                rts
 
 ;-------------------------------------------------------------------------
 
@@ -11413,174 +11428,174 @@ soundParameterTable:
 ;-------------------------------------------------------------------------
 
 LF413:
-                jmp LF520                    ; F413= 4C 20 F5    L u
+                jmp LF520
 
 ;-------------------------------------------------------------------------
 
 LF416:
-                ldx #$00                     ; F416= A2 00       ".
-                lda $0838                    ; F418= AD 38 08    -8.
-                bne LF421                    ; F41B= D0 04       P.
-                inx                          ; F41D= E8          h
-                dec $0838                    ; F41E= CE 38 08    N8.
+                ldx #$00
+                lda $0838
+                bne LF421
+                inx
+                dec $0838
 LF421:
-                stx $083B                    ; F421= 8E 3B 08    .;.
-                ldx #$08                     ; F424= A2 08       ".
+                stx $083B
+                ldx #$08
 LF426:
-                dex                          ; F426= CA          J
-                lda $0800,x                  ; F427= BD 00 08    =..
-                beq LF413                    ; F42A= F0 E7       pg
-                lda $02CE,x                  ; F42C= BD CE 02    =N.
-                bmi LF436                    ; F42F= 30 05       0.
-                lda $0818,x                  ; F431= BD 18 08    =..
-                bne LF43E                    ; F434= D0 08       P.
+                dex
+                lda $0800,x
+                beq LF413
+                lda bufferEmptyFlags,x
+                bmi LF436
+                lda $0818,x
+                bne LF43E
 LF436:
-                jsr LF528                    ; F436= 20 28 F5     (u
-                lda $0818,x                  ; F439= BD 18 08    =..
-                beq LF450                    ; F43C= F0 12       p.
+                jsr LF528
+                lda $0818,x
+                beq LF450
 LF43E:
-                inc a                        ; F43E= 1A          .
-                beq LF453                    ; F43F= F0 12       p.
-                dec $081C,x                  ; F441= DE 1C 08    ^..
-                bne LF453                    ; F444= D0 0D       P.
-                lda #$05                     ; F446= A9 05       ).
-                sta $081C,x                  ; F448= 9D 1C 08    ...
-                dec $0818,x                  ; F44B= DE 18 08    ^..
-                bne LF453                    ; F44E= D0 03       P.
+                inc a
+                beq LF453
+                dec $081C,x
+                bne LF453
+                lda #$05
+                sta $081C,x
+                dec $0818,x
+                bne LF453
 LF450:
-                jsr LF528                    ; F450= 20 28 F5     (u
+                jsr LF528
 LF453:
-                lda $0824,x                  ; F453= BD 24 08    =$.
-                beq LF45D                    ; F456= F0 05       p.
-                dec $0824,x                  ; F458= DE 24 08    ^$.
-                bne LF413                    ; F45B= D0 B6       P6
+                lda $0824,x
+                beq LF45D
+                dec $0824,x
+                bne LF413
 LF45D:
-                ldy $0820,x                  ; F45D= BC 20 08    < .
-                cpy #$FF                     ; F460= C0 FF       @.
-                beq LF413                    ; F462= F0 AF       p/
-                lda $08C0,y                  ; F464= B9 C0 08    9@.
-                and #$7F                     ; F467= 29 7F       ).
-                sta $0824,x                  ; F469= 9D 24 08    .$.
-                lda $0808,x                  ; F46C= BD 08 08    =..
-                cmp #$04                     ; F46F= C9 04       I.
-                beq LF4D0                    ; F471= F0 5D       p]
-                clc                          ; F473= 18          .
-                adc $0820,x                  ; F474= 7D 20 08    } .
-                tay                          ; F477= A8          (
-                lda $08CB,y                  ; F478= B9 CB 08    9K.
-                sec                          ; F47B= 38          8
-                sbc #$3F                     ; F47C= E9 3F       i?
-                sta $083A                    ; F47E= 8D 3A 08    .:.
-                lda $08C7,y                  ; F481= B9 C7 08    9G.
-                sta $0839                    ; F484= 8D 39 08    .9.
-                lda $0804,x                  ; F487= BD 04 08    =..
+                ldy $0820,x
+                cpy #$FF
+                beq LF413
+                lda $08C0,y
+                and #$7F
+                sta $0824,x
+                lda $0808,x
+                cmp #$04
+                beq LF4D0
+                clc
+                adc $0820,x
+                tay
+                lda $08CB,y
+                sec
+                sbc #$3F
+                sta $083A
+                lda $08C7,y
+                sta $0839
+                lda $0804,x
 LF48A:
-                pha                          ; F48A= 48          H
-                clc                          ; F48B= 18          .
-                adc $0839                    ; F48C= 6D 39 08    m9.
-                bvc LF498                    ; F48F= 50 07       P.
-                rol a                        ; F491= 2A          *
-                lda #$3F                     ; F492= A9 3F       )?
-                bcs LF498                    ; F494= B0 02       0.
-                eor #$FF                     ; F496= 49 FF       I.
+                pha
+                clc
+                adc $0839
+                bvc LF498
+                rol a
+                lda #$3F
+                bcs LF498
+                eor #$FF
 LF498:
-                sta $0804,x                  ; F498= 9D 04 08    ...
-                rol a                        ; F49B= 2A          *
-                eor $0804,x                  ; F49C= 5D 04 08    ]..
-                bpl LF4AA                    ; F49F= 10 09       ..
-                lda #$3F                     ; F4A1= A9 3F       )?
-                bcc LF4A7                    ; F4A3= 90 02       ..
-                eor #$FF                     ; F4A5= 49 FF       I.
+                sta $0804,x
+                rol a
+                eor $0804,x
+                bpl LF4AA
+                lda #$3F
+                bcc LF4A7
+                eor #$FF
 LF4A7:
-                sta $0804,x                  ; F4A7= 9D 04 08    ...
+                sta $0804,x
 LF4AA:
-                dec $0839                    ; F4AA= CE 39 08    N9.
-                lda $0804,x                  ; F4AD= BD 04 08    =..
-                sec                          ; F4B0= 38          8
-                sbc $083A                    ; F4B1= ED 3A 08    m:.
-                eor $0839                    ; F4B4= 4D 39 08    M9.
-                bmi LF4C2                    ; F4B7= 30 09       0.
-                lda $083A                    ; F4B9= AD 3A 08    -:.
-                sta $0804,x                  ; F4BC= 9D 04 08    ...
-                inc $0808,x                  ; F4BF= FE 08 08    ~..
+                dec $0839
+                lda $0804,x
+                sec
+                sbc $083A
+                eor $0839
+                bmi LF4C2
+                lda $083A
+                sta $0804,x
+                inc $0808,x
 LF4C2:
-                pla                          ; F4C2= 68          h
-                eor $0804,x                  ; F4C3= 5D 04 08    ]..
-                and #$F8                     ; F4C6= 29 F8       )x
-                beq LF4D0                    ; F4C8= F0 06       p.
-                lda $0804,x                  ; F4CA= BD 04 08    =..
-                jsr LF599                    ; F4CD= 20 99 F5     .u
+                pla
+                eor $0804,x
+                and #$F8
+                beq LF4D0
+                lda $0804,x
+                jsr LF599
 LF4D0:
-                lda $0810,x                  ; F4D0= BD 10 08    =..
-                cmp #$03                     ; F4D3= C9 03       I.
-                beq LF520                    ; F4D5= F0 49       pI
-                lda $0814,x                  ; F4D7= BD 14 08    =..
-                bne LF504                    ; F4DA= D0 28       P(
-                inc $0810,x                  ; F4DC= FE 10 08    ~..
-                lda $0810,x                  ; F4DF= BD 10 08    =..
-                cmp #$03                     ; F4E2= C9 03       I.
-                bne LF4F4                    ; F4E4= D0 0E       P.
-                ldy $0820,x                  ; F4E6= BC 20 08    < .
-                lda $08C0,y                  ; F4E9= B9 C0 08    9@.
-                bmi LF520                    ; F4EC= 30 32       02
-                stz $0830,x                  ; F4EE= 9E 30 08    .0.
-                stz $0810,x                  ; F4F1= 9E 10 08    ...
+                lda $0810,x
+                cmp #$03
+                beq LF520
+                lda $0814,x
+                bne LF504
+                inc $0810,x
+                lda $0810,x
+                cmp #$03
+                bne LF4F4
+                ldy $0820,x
+                lda $08C0,y
+                bmi LF520
+                stz $0830,x
+                stz $0810,x
 LF4F4:
-                lda $0810,x                  ; F4F4= BD 10 08    =..
-                clc                          ; F4F7= 18          .
-                adc $0820,x                  ; F4F8= 7D 20 08    } .
-                tay                          ; F4FB= A8          (
-                lda $08C4,y                  ; F4FC= B9 C4 08    9D.
-                sta $0814,x                  ; F4FF= 9D 14 08    ...
-                beq LF520                    ; F502= F0 1C       p.
+                lda $0810,x
+                clc
+                adc $0820,x
+                tay
+                lda $08C4,y
+                sta $0814,x
+                beq LF520
 LF504:
-                dec $0814,x                  ; F504= DE 14 08    ^..
-                lda $0820,x                  ; F507= BD 20 08    = .
-                clc                          ; F50A= 18          .
-                adc $0810,x                  ; F50B= 7D 10 08    }..
-                tay                          ; F50E= A8          (
-                lda $08C1,y                  ; F50F= B9 C1 08    9A.
-                clc                          ; F512= 18          .
-                adc $0830,x                  ; F513= 7D 30 08    }0.
-                sta $0830,x                  ; F516= 9D 30 08    .0.
-                clc                          ; F519= 18          .
-                adc $080C,x                  ; F51A= 7D 0C 08    }..
-                jsr LF5D5                    ; F51D= 20 D5 F5     Uu
+                dec $0814,x
+                lda $0820,x
+                clc
+                adc $0810,x
+                tay
+                lda $08C1,y
+                clc
+                adc $0830,x
+                sta $0830,x
+                clc
+                adc $080C,x
+                jsr LF5D5
 LF520:
-                cpx #$04                     ; F520= E0 04       `.
-                beq LF527                    ; F522= F0 03       p.
-                jmp LF426                    ; F524= 4C 26 F4    L&t
+                cpx #$04
+                beq LF527
+                jmp LF426
 
 LF527:
-                rts                          ; F527= 60          `
+                rts
 
 LF528:
-                lda $0808,x                  ; F528= BD 08 08    =..
-                cmp #$04                     ; F52B= C9 04       I.
-                beq LF534                    ; F52D= F0 05       p.
-                lda #$03                     ; F52F= A9 03       ).
-                sta $0808,x                  ; F531= 9D 08 08    ...
+                lda $0808,x
+                cmp #$04
+                beq LF534
+                lda #$03
+                sta $0808,x
 LF534:
-                lda $02CE,x                  ; F534= BD CE 02    =N.
-                beq LF54D                    ; F537= F0 14       p.
-                lda #$00                     ; F539= A9 00       ).
-                stz $02CE,x                  ; F53B= 9E CE 02    .N.
-                ldy #$04                     ; F53E= A0 04        .
+                lda bufferEmptyFlags,x
+                beq LF54D
+                lda #$00
+                stz bufferEmptyFlags,x
+                ldy #$04
 LF540:
-                sta $082B,y                  ; F540= 99 2B 08    .+.
-                dey                          ; F543= 88          .
-                bne LF540                    ; F544= D0 FA       Pz
-                stz $0818,x                  ; F546= 9E 18 08    ...
-                dey                          ; F549= 88          .
-                sty $0838                    ; F54A= 8C 38 08    .8.
+                sta $082B,y
+                dey
+                bne LF540
+                stz $0818,x
+                dey
+                sty $0838
 LF54D:
-                lda $0828,x                  ; F54D= BD 28 08    =(.
-                beq LF5B2                    ; F550= F0 60       p`
-                lda $083B                    ; F552= AD 3B 08    -;.
-                beq LF58B                    ; F555= F0 34       p4
-                stz $0828,x                  ; F557= 9E 28 08    .(.
+                lda $0828,x
+                beq LF5B2
+                lda $083B
+                beq LF58B
+                stz $0828,x
 LF55A:
-                jmp LF685                    ; F55A= 4C 85 F6    L.v
+                jmp LF685
 
 ;-------------------------------------------------------------------------
 
@@ -11588,7 +11603,7 @@ LF55D:
                 jsr LF592
                 tya
                 stz $0818,x
-                stz bufferEmptyFlags-1,x
+                stz bufferEmptyFlags,x
                 stz $0800,x
                 ldy #$03
 LF56C:
@@ -12243,7 +12258,7 @@ LF868:
 resetAutoRepeatCounters:
                 ldx #$01
                 stx autoRepeatCountdownTimer
-                ldx $0254
+                ldx keyboardAutoRepeatDelay
                 stx keyboardFirstAutoRepeatCount
                 rts
 
@@ -12401,9 +12416,9 @@ callKEYV:
 ; MasRef D.2-40
 ; 
 osbyte83:
-                ldy $0244                    ; F905= AC 44 02    ,D.
-                ldx #$00                     ; F908= A2 00       ".
-                rts                          ; F90A= 60          `
+                ldy oshwm
+                ldx #$00
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -12412,9 +12427,9 @@ osbyte83:
 ; MasRef D.2-33
 ;
 osbyte78:                          ;f90b
-                sty lastKeyPressedInternal                      ; F90B= 84 EC       .l
-                stx firstKeyPressedInternal                      ; F90D= 86 ED       .m
-                rts                          ; F90F= 60          `
+                sty lastKeyPressedInternal
+                stx firstKeyPressedInternal
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -12423,10 +12438,10 @@ osbyte78:                          ;f90b
 ; MasRef D.2-36
 ; 
 osbyte7A:
-                ldx #$10                     ; F910= A2 10       ".
-                clv                          ; F912= B8          8
-                sec                          ; F913= 38          8
-                bra callKEYV                    ; F914= 80 EC       .l
+                ldx #$10
+                clv
+                sec
+                bra callKEYV
 
 ;-------------------------------------------------------------------------
 

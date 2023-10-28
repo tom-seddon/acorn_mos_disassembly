@@ -35,7 +35,7 @@ reset:                          ;8020
                 asl a
                 pha
                 beq +       ; branch taken if power on
-                lda $0258                    ; read BREAK action flags
+                lda breakAndESCAPEEffect                    ; read BREAK action flags
                                              ; (set by *FX200)
                 lsr a                        ; divide by 2 to get the
                                              ; break action
@@ -76,7 +76,7 @@ L8073:
                                        ; RAM
                 trb ACCCON
                 lda #$0F                     ; 8084= 8D 8E 02    ...
-                sta $028E
+                sta numericKeypadShiftEffect
 -
                 dec a                        ; 8088= 8D 40 FE    .@~
                 sta systemVIA.orb
@@ -125,7 +125,7 @@ L80D4:
 
 L80DF:
                 lda #$87             ; Clear MODE bits from OSBYTE 255
-                trb $028F
+                trb startupOptions
                 lda vduv.currentScreenMODE ; Get current screen MODE b0-b2
                 and #$07
                 tsb startupOptions           ; Copy to OSBYTE 255
@@ -263,32 +263,32 @@ initializeVIAInterruptsLoop:
                 sta systemVIA.t1cH
                 ldx #$08
 L81DD:
-                dex                          ; 81DD= CA          J
-                jsr mos.LF55D                ; 81DE= 20 5D F5     ]u
-                cpx #$04                     ; 81E1= E0 04       `.
-                bne L81DD                    ; 81E3= D0 F8       Px
+                dex
+                jsr mos.LF55D
+                cpx #$04
+                bne L81DD
                 jsr mos.osbyte7A             ;
-                stx $ED                      ; 81E8= 86 ED       .m
-                ldx #$00                     ; 81EA= A2 00       ".
-                jsr mos.purgeBuffer       ; 81EC= 20 7D E9     }i
+                stx $ED
+                ldx #$00
+                jsr mos.purgeBuffer
                 lda serialULARegister
-                and #$7F                     ; 81F2= 29 7F       ).
-                jsr mos.LEC89                ; 81F4= 20 89 EC     .l
+                and #$7F
+                jsr mos.LEC89
                 jsr readDefaultSerialBaudRateIndex
-                pha                          ; 81FA= 48          H
-                tax                          ; 81FB= AA          *
-                jsr mos.osbyte08             ; 81FC= 20 6B EC     kl
-                plx                          ; 81FF= FA          z
-                lda #$07                     ; 8200= A9 07       ).
-                jsr mos.osbyte07             ; 8202= 20 6D EC     ml
-                jsr readDefaults3                    ; 8205= 20 AE 98     ..
-                bit #$02                     ; 8208= 89 02       ..
-                bne L8211                    ; 820A= D0 05       P.
-                lda #$F0                     ; 820C= A9 F0       )p
-                sta $0264                    ; 820E= 8D 64 02    .d.
+                pha
+                tax
+                jsr mos.osbyte08
+                plx
+                lda #$07
+                jsr mos.osbyte07
+                jsr readDefaults3
+                bit #$02
+                bne L8211
+                lda #$F0
+                sta bellSound
 L8211:
-                jsr mos.selectTerminalROM    ; 8211= 20 90 E5     .e
-                ldx $0284                    ; 8214= AE 84 02    ...
+                jsr mos.selectTerminalROM
+                ldx softKeyConsistencyFlag
                 beq scanROMs
                 jsr mos.osbyte12             ;
 scanROMs:
@@ -333,27 +333,27 @@ hang:
                 bra hang
 
 L8284:
-                jsr mos.selectHAZEL          ; 8284= 20 BA ED     :m
+                jsr mos.selectHAZEL
                 stz hazel.moveSrcHandle
                 stz hazel.moveDestHandle
-                ldy #$CA                     ; 828D= A0 CA        J
+                ldy #$CA
                 jsr mos.insertCharacterIntoKeyboardBuffer
-                jsr mos.osbyte247EntryPoint  ; 8292= 20 49 F3     Is
-                lda $028D                    ; 8295= AD 8D 02    -..
-                beq L829D                    ; 8298= F0 03       p.
-                jsr mos.LEDD0                ; 829A= 20 D0 ED     Pm
+                jsr mos.osbyte247EntryPoint
+                lda lastBREAKType
+                beq L829D
+                jsr mos.LEDD0
 L829D:
-                jsr readDefaults2                    ; 829D= 20 AA 98     *.
-                lsr a                        ; 82A0= 4A          J
-                bcc L82D0                    ; 82A1= 90 2D       .-
-                jsr readDefaults3                    ; 82A3= 20 AE 98     ..
-                bit #$04                     ; 82A6= 89 04       ..
-                php                          ; 82A8= 08          .
+                jsr readDefaults2
+                lsr a
+                bcc L82D0
+                jsr readDefaults3
+                bit #$04
+                php
                 lda #ACCCON.ITU
-                trb ACCCON                    ; 82AB= 1C 34 FE    .4~
-                plp                          ; 82AE= 28          (
-                bne L82B4                    ; 82AF= D0 03       P.
-                tsb ACCCON                    ; 82B1= 0C 34 FE    .4~
+                trb ACCCON
+                plp
+                bne L82B4
+                tsb ACCCON
 L82B4:
                 jsr mos.LE375 ; If Tube hardware present, jump to Tube PreInit
                 bcs L82C6
@@ -366,9 +366,9 @@ L82C6:
                 ldx #romServiceCallTubeMainInitialisation
                 jsr mos.makeROMServiceCall   ;
                 bne L82D0                    ; Not claimed, step past
-                dec $027A                    ; Tube PreInit claimed, set TubeFlag to &FF, Tube present
+                dec tubePresence ; Tube PreInit claimed, set TubeFlag to &FF, Tube present
 L82D0:
-                lda $028D                    ; Soft Break, don't ask about workspace
+                lda lastBREAKType ; Soft Break, don't ask about workspace
                 beq L82FC
                 ldy #$DC                     ; Start high workspace at &DC00 and work downwards
                 ldx #romServiceCallCountDynamicHAZELWorkspace ; Ask ROMs how much private high workspace required
@@ -383,7 +383,7 @@ L82D0:
                 jsr mos.makeROMServiceCall   ;
                 ldx #romServiceCallPrivateWorkspaceClaim ; Ask ROMs for private workspace
                 jsr mos.makeROMServiceCall   ;
-                sty $0244                    ; Set OSHWM - default PAGE
+                sty oshwm                    ; Set OSHWM - default PAGE
                 ply                          ; Get top of shared high workspace
                 ldx #romServiceCallTopOfHAZELWorkspace ; Tell ROMs top of shared high workspace
                 jsr mos.makeROMServiceCall   ;
@@ -406,17 +406,17 @@ L82FE:
                 lda #$00                     ; Terminate FS Info blocks
                 sta ($F2),y
 
-                lda $0257                    ; Save Spool handle and disable Spooling
+                lda spoolFileHandle ; Save Spool handle and disable Spooling
                 pha
-                stz $0257
+                stz spoolFileHandle
                 ldx #romServiceCallTubeSystemPostInitialisation
-                ldy $027A
+                ldy tubePresence
                 jsr mos.makeROMServiceCall   ; Tube PostInit
-                and $0267
+                and startupMessageSuppressionStatus
                 bpl L8340
                 ldy #((mos.startupMessages.acornMOS-mos.startupMessages)-1)&$ff
                 jsr mos.printStartupMessage
-                lda $028D                    ; Skip past if Soft Break
+                lda lastBREAKType            ; Skip past if Soft Break
                 beq L833B
                 ldy #((mos.startupMessages.beep-mos.startupMessages)-1)&$ff
                 jsr mos.printStartupMessage
@@ -425,7 +425,7 @@ L833B:
                 jsr mos.printStartupMessage
 L8340:
                 pla                          ; Restore Spool handle
-                sta $0257
+                sta spoolFileHandle
                 jmp mos.LE40E                ;
 
 ; Default FS Info Blocks
@@ -630,7 +630,7 @@ rts85A5:
 ; *BASIC
 ; ======
 starBASIC:
-                ldx $024B                    ; Get BASIC ROM number
+                ldx basicROMNumber           ; Get BASIC ROM number
                 bmi passStarCommandThrough ; If no BASIC ROM, jump to pass to ROMs and filing system
                 sec                          ;
                 jmp mos.osbyte8E             ; Enter ROM as a language
@@ -2298,18 +2298,18 @@ L906C:
 L9073:
                 php
                 phx
-                ldx #11
+                ldx #size(OSGBPBParameterBlock)-2
 L9077:
                 stz osfileParameterBlock+1,x
                 dex
                 bpl L9077
                 plx
-                stx osfileParameterBlock+5
+                stx osfileParameterBlock+OSGBPBParameterBlock.count+0
                 .cerror (<hazel.commandLine)!=0,"hazel.commandLine must be page aligned"
                 lda #>hazel.commandLine
-                sta osfileParameterBlock+2
-                dec $02F0
-                dec $02F1
+                sta osfileParameterBlock+OSGBPBParameterBlock.address+1
+                dec osfileParameterBlock+OSGBPBParameterBlock.address+2
+                dec osfileParameterBlock+OSGBPBParameterBlock.address+3
                 lda #gbppPutBytesCurrentPTR
                 ldx #<osfileParameterBlock
                 ldy #>osfileParameterBlock
@@ -2317,7 +2317,7 @@ L9077:
                 plp
                 bcc L9033
 L9098:
-                ldy $02ED
+                ldy osfileParameterBlock+0
                 jmp closeFile
 
 L909E:
@@ -2429,20 +2429,20 @@ L9134:
 L9137:
                 ldx #$07
 L9139:
-                stz $02EE,x                  ; Addr=0, Num=0
+                stz osfileParameterBlock+OSGBPBParameterBlock.address,x ; Addr=0, Num=0
                 stz hazel.moveOSGBPB+1,x
                 dex
                 bpl L9139
                 lda hazel.moveSrcHandle      ; Source handle
-                sta $02ED
+                sta osfileParameterBlock+OSGBPBParameterBlock.handle
                 lda hazel.moveBufferMSB      ; Buffer address
-                sta $02EF
+                sta osfileParameterBlock+OSGBPBParameterBlock.address+1
                 sta hazel.moveOSGBPB.addr+1
                 lda hazel.moveNumPages
-                sta $02F3
+                sta osfileParameterBlock+OSGBPBParameterBlock.count+1
                 sta hazel.moveOSGBPB.numBytes+1
-                dec $02F0                    ; Source addr=&FFFFxxxx
-                dec $02F1
+                dec osfileParameterBlock+OSGBPBParameterBlock.address+2 ; Source addr=&FFFFxxxx
+                dec osfileParameterBlock+OSGBPBParameterBlock.address+3
                 dec hazel.moveOSGBPB.addr+2
                 dec hazel.moveOSGBPB.addr+3
 
@@ -2453,18 +2453,18 @@ L9139:
 ; *do* *nothing* for &FFFFxxxx instead of select main memory as
 ; &FFFFxxxx implies.
 
-                ldx #$ED                     ; XY=>source OSGBPB block
-                ldy #$02
+                ldx #<osfileParameterBlock                     ; XY=>source OSGBPB block
+                ldy #>osfileParameterBlock
                 lda #$04                     ; Read data from source
                 jsr OSGBPB
                 php                          ; Jump if not at end of file
                 bcc L9183
 ; End of file, adjust destination buffer length for final part
                 lda #$00
-                sbc $02F2
+                sbc osfileParameterBlock+OSGBPBParameterBlock.count+0
                 sta hazel.moveOSGBPB.numBytes+0
                 lda hazel.moveOSGBPB.numBytes+1
-                sbc $02F3
+                sbc osfileParameterBlock+OSGBPBParameterBlock.count+1
                 sta hazel.moveOSGBPB.numBytes+1
 L9183:
                 lda hazel.moveDestHandle      ; Destination handle
@@ -2503,19 +2503,19 @@ L91BD:
                 cpy #$04
                 bcc L91B3
                 ply                          ; Point to first parameter
-                sty $02EE
+                sty osfileParameterBlock+OSFILEParameterBlock.fileName+1
                 plx
-                stx $02ED
-                ldx #$ED
-                ldy #$02
+                stx osfileParameterBlock+OSFILEParameterBlock.fileName+0
+                ldx #<osfileParameterBlock
+                ldy #>osfileParameterBlock
                 lda #$05                     ; Read info on source file
                 jsr OSFILE
                 lda hazel.moveDestName+0      ; Get address of dest filename
-                sta $02ED
+                sta osfileParameterBlock+OSFILEParameterBlock.fileName+0
                 lda hazel.moveDestName+1      ;  and put in control block
-                sta $02EE
+                sta osfileParameterBlock+OSFILEParameterBlock.fileName+1
                 lda #$F0                     ; Mask out 'public' access bits
-                trb $02FB
+                trb osfileParameterBlock+OSFILEParameterBlock.attributes+0
                 lda #$01                     ; Write info on dest file
                 jsr OSFILE
                 bra L91B5                    ; Jump to restore ACCCON and exit
@@ -2569,71 +2569,71 @@ printNonLeading0:
                 rts                          ;
 
 adcLineNumberBCDX:
-                lda #$00                     ; 922E= A9 00       ).
-                sed                          ; 9230= F8          x
-                adc hazel.lineNumberBCD,x    ; 9231= 7D C3 DF    }C_
-                sta hazel.lineNumberBCD,x    ; 9234= 9D C3 DF    .C_
-                cld                          ; 9237= D8          X
+                lda #$00
+                sed
+                adc hazel.lineNumberBCD,x
+                sta hazel.lineNumberBCD,x
+                cld
 rts9238:
-                rts                          ; 9238= 60          `
+                rts
 
 ;-------------------------------------------------------------------------
 
 L9239:
-                phx                          ; 9239= DA          Z
-                pha                          ; 923A= 48          H
-                ldx #$02                     ; 923B= A2 02       ".
+                phx
+                pha
+                ldx #$02
 L923D:
                 lda osfileParameterBlock+4,x
-                jsr printHexByte                    ; 9240= 20 6A A8     j(
-                dex                          ; 9243= CA          J
-                bpl L923D                    ; 9244= 10 F7       .w
-                bra L9254                    ; 9246= 80 0C       ..
+                jsr printHexByte
+                dex
+                bpl L923D
+                bra L9254
 
 ;-------------------------------------------------------------------------
 
 L9248:
-                phx                          ; 9248= DA          Z
-                pha                          ; 9249= 48          H
+                phx
+                pha
                 ldx #256-4
 L924C:
                 inc osfileParameterBlock+4-(256-4),x
-                bne L9254                    ; 924F= D0 03       P.
-                inx                          ; 9251= E8          h
-                bne L924C                    ; 9252= D0 F8       Px
+                bne L9254
+                inx
+                bne L924C
 L9254:
-                pla                          ; 9254= 68          h
-                plx                          ; 9255= FA          z
-                rts                          ; 9256= 60          `
+                pla
+                plx
+                rts
 
 L9257:
-                phy                          ; 9257= 5A          Z
-                phx                          ; 9258= DA          Z
+                phy
+                phx
 L9259:
-                cpx #$08                     ; 9259= E0 08       `.
-                beq L9267                    ; 925B= F0 0A       p.
-                jsr alwaysPrintFollowingMessage                    ; 925D= 20 58 A9     X)
+                cpx #$08
+                beq L9267
+                jsr alwaysPrintFollowingMessage
                 .text "   ",0
-                inx                          ; 9264= E8          h
-                bra L9259                    ; 9265= 80 F2       .r
+                inx
+                bra L9259
 
 L9267:
-                plx                          ; 9267= FA          z
-                jsr printSpace                    ; 9268= 20 0C 9F     ..
-                ldy #$00                     ; 926B= A0 00        .
+                plx
+                jsr printSpace
+                ldy #$00
 L926D:
-                lda $02F5,y                  ; 926D= B9 F5 02    9u.
-                jsr OSWRCH                   ; 9270= 20 EE FF     n.
-                iny                          ; 9273= C8          H
-                dex                          ; 9274= CA          J
-                bne L926D                    ; 9275= D0 F6       Pv
-                ply                          ; 9277= 7A          z
-                jmp OSNEWL                   ; 9278= 4C E7 FF    Lg.
+                lda osfileParameterBlock+8,y
+                jsr OSWRCH
+                iny
+                dex
+                bne L926D
+                ply
+                jmp OSNEWL
 
 ;-------------------------------------------------------------------------
 ;
 ; Restore entire font.
-; 
+;
 restoreFont32To255:
                 ldx #$07                     ;224 chars - 32-255
                 
@@ -2957,73 +2957,73 @@ badCommandError93E2:
 ;-------------------------------------------------------------------------
 
 starFX:
-                jsr parseNumberFromString    ; 93E5= 20 E6 85     f.
-                bcc badCommandError93E2                    ; 93E8= 90 F8       .x
-                txa                          ; 93EA= 8A          .
+                jsr parseNumberFromString
+                bcc badCommandError93E2
+                txa
 starCommandThroughOSBYTE:
-                php                          ; 93EB= 08          .
-                lsr hazel.tempFSFlag      ; 93EC= 4E C6 DF    NF_
-                plp                          ; 93EF= 28          (
-                pha                          ; 93F0= 48          H
-                stz $E5                      ; 93F1= 64 E5       de
-                stz $E4                      ; 93F3= 64 E4       dd
-                jsr mos.LF308                ; 93F5= 20 08 F3     .s
-                beq L9412                    ; 93F8= F0 18       p.
-                jsr parseNumberFromString    ; 93FA= 20 E6 85     f.
-                bcc badCommandError93E2                    ; 93FD= 90 E3       .c
-                stx $E5                      ; 93FF= 86 E5       .e
-                jsr mos.LF30A                ; 9401= 20 0A F3     .s
-                beq L9412                    ; 9404= F0 0C       p.
-                jsr parseNumberFromString    ; 9406= 20 E6 85     f.
-                bcc badCommandError93E2                    ; 9409= 90 D7       .W
-                stx $E4                      ; 940B= 86 E4       .d
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; 940D= 20 FF F2     .r
-                bne badCommandError93E2                    ; 9410= D0 D0       PP
+                php
+                lsr hazel.tempFSFlag
+                plp
+                pha
+                stz $E5
+                stz $E4
+                jsr mos.LF308
+                beq L9412
+                jsr parseNumberFromString
+                bcc badCommandError93E2
+                stx $E5
+                jsr mos.LF30A
+                beq L9412
+                jsr parseNumberFromString
+                bcc badCommandError93E2
+                stx $E4
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                bne badCommandError93E2
 L9412:
-                ldy $E4                      ; 9412= A4 E4       $d
-                ldx $E5                      ; 9414= A6 E5       &e
-                pla                          ; 9416= 68          h
-                asl hazel.tempFSFlag      ; 9417= 0E C6 DF    .F_
-                jsr OSBYTE                   ; 941A= 20 F4 FF     t.
-                bvs badCommandError93E2                    ; 941D= 70 C3       pC
+                ldy $E4
+                ldx $E5
+                pla
+                asl hazel.tempFSFlag
+                jsr OSBYTE
+                bvs badCommandError93E2
 L941F:
-                rts                          ; 941F= 60          `
+                rts
 
 ;-------------------------------------------------------------------------
 
 starSPOOLON:
-                sec                          ; 9420= 38          8
-                bra starSPOOL                    ; 9421= 80 10       ..
+                sec
+                bra starSPOOL
 
 L9423:
                 ldx #romServiceCallSpoolExecClosureWarning
-                jsr mos.makeROMServiceCall   ; 9425= 20 72 EE     rn
-                beq L941F                    ; 9428= F0 F5       pu
-                jsr LA58B                    ; 942A= 20 8B A5     .%
-                lda $0257                    ; 942D= AD 57 02    -W.
-                jsr LA56B                    ; 9430= 20 6B A5     k%
+                jsr mos.makeROMServiceCall
+                beq L941F
+                jsr LA58B
+                lda spoolFileHandle
+                jsr LA56B
 starSPOOL:
-                php                          ; 9433= 08          .
-                phy                          ; 9434= 5A          Z
-                ldy $0257                    ; 9435= AC 57 02    ,W.
-                sta $0257                    ; 9438= 8D 57 02    .W.
-                beq L9440                    ; 943B= F0 03       p.
-                jsr OSFIND                   ; 943D= 20 CE FF     N.
-L9440:
-                lsr hazel.tempFSFlag      ; 9440= 4E C6 DF    NF_
-                ply                          ; 9443= 7A          z
-                plp                          ; 9444= 28          (
-                beq L941F                    ; 9445= F0 D8       pX
-                lda #$80                     ; 9447= A9 80       ).
-                bcc L944D                    ; 9449= 90 02       ..
-                lda #$C0                     ; 944B= A9 C0       )@
-L944D:
-                asl hazel.tempFSFlag      ; 944D= 0E C6 DF    .F_
-                jsr OSFIND                   ; 9450= 20 CE FF     N.
-                tay                          ; 9453= A8          (
-                beq badCommandError93E2                    ; 9454= F0 8C       p.
+                php
+                phy
+                ldy spoolFileHandle
                 sta spoolFileHandle
-                tay                          ; 9459= A8          (
+                beq L9440
+                jsr OSFIND
+L9440:
+                lsr hazel.tempFSFlag
+                ply
+                plp
+                beq L941F
+                lda #$80
+                bcc L944D
+                lda #$C0
+L944D:
+                asl hazel.tempFSFlag
+                jsr OSFIND
+                tay
+                beq badCommandError93E2
+                sta spoolFileHandle
+                tay
 setPTRToEOF:
                 lda #argsFileGetEXT
                 jsr callOSARGSWithBuffer
@@ -3034,8 +3034,8 @@ callOSARGSWithBuffer:
                 jmp OSARGS
 
 starSHADOW:
-                lda #$72                     ; 9466= A9 72       )r
-                bra starCommandThroughOSBYTE                    ; 9468= 80 81       ..
+                lda #$72
+                bra starCommandThroughOSBYTE
 
 ;-------------------------------------------------------------------------
 ; 
@@ -4799,7 +4799,7 @@ osargsTapeOrROM:
 ; A=0, Y=0 - read current filing system
 ; -------------------------------------
                 lda #$03                     ; Prepare A=ROMFS
-                bit $0247                    ; If TAPE/ROM switch
+                bit cfsRFSFSSwitch                    ; If TAPE/ROM switch
                 bne L9F3A
                 and $C6                      ; Mask with speed to give A=2 or A=1
 
@@ -4892,7 +4892,7 @@ fscTapeOrROM:
 L9F9E:
                 ldx #$03                     ; 9F9E= A2 03       ".
                 ldy #$03                     ; 9FA0= A0 03        .
-                lda $0247                    ; 9FA2= AD 47 02    -G.
+                lda cfsRFSFSSwitch                    ; 9FA2= AD 47 02    -G.
                 bne L9F3A                    ; 9FA5= D0 93       P.
                 dey                          ; 9FA7= 88          .
                 ldx #$01                     ; 9FA8= A2 01       ".
@@ -4943,7 +4943,7 @@ L9FE3:
 L9FF1:
                 bcc L9FF8                    ; 9FF1= 90 05       ..
                 lda #$03                     ; 9FF3= A9 03       ).
-                sta $0258                    ; 9FF5= 8D 58 02    .X.
+                sta breakAndESCAPEEffect                    ; 9FF5= 8D 58 02    .X.
 L9FF8:
                 lda #$30                     ; 9FF8= A9 30       )0
                 and $BB                      ; 9FFA= 25 BB       %;
@@ -5191,7 +5191,7 @@ LA17B:
 
 LA17C:
                 pha                          ; A17C= 48          H
-                lda $0247                    ; A17D= AD 47 02    -G.
+                lda cfsRFSFSSwitch                    ; A17D= AD 47 02    -G.
                 beq LA18B                    ; A180= F0 09       p.
                 jsr mos.LF6FC                ; A182= 20 FC F6     |v
                 jsr mos.LF701                ; A185= 20 01 F7     .w
@@ -5209,7 +5209,7 @@ LA18B:
                 bra LA1B7                    ; A19F= 80 16       ..
 
 LA1A1:
-                lda $0247                    ; A1A1= AD 47 02    -G.
+                lda cfsRFSFSSwitch                    ; A1A1= AD 47 02    -G.
                 beq LA1DD                    ; A1A4= F0 37       p7
 LA1A6:
                 jsr mos.LF717                ; A1A6= 20 17 F7     .w
@@ -5221,7 +5221,7 @@ LA1B1:
                 jsr LAA35                    ; A1B1= 20 35 AA     5*
                 jsr LA678                    ; A1B4= 20 78 A6     x&
 LA1B7:
-                lda $0247                    ; A1B7= AD 47 02    -G.
+                lda cfsRFSFSSwitch                    ; A1B7= AD 47 02    -G.
                 beq LA1BE                    ; A1BA= F0 02       p.
                 bvc LA1DB                    ; A1BC= 50 1D       P.
 LA1BE:
@@ -5250,7 +5250,7 @@ LA1DD:
 LA1E4:
                 ldx #$00                     ; A1E4= A2 00       ".
                 jsr LA8C4                    ; A1E6= 20 C4 A8     D(
-                lda $0247                    ; A1E9= AD 47 02    -G.
+                lda cfsRFSFSSwitch                    ; A1E9= AD 47 02    -G.
                 beq LA1F2                    ; A1EC= F0 04       p.
                 bit $BB                      ; A1EE= 24 BB       $;
                 bvc LA1A6                    ; A1F0= 50 B4       P4
@@ -5269,7 +5269,7 @@ osfindTapeOrROM:
                 bne LA220                    ; A1FF= D0 1F       P.
                 tya                          ; A201= 98          .
                 bne LA212                    ; A202= D0 0E       P.
-                lda $0247                    ; A204= AD 47 02    -G.
+                lda cfsRFSFSSwitch                    ; A204= AD 47 02    -G.
                 bne LA20C                    ; A207= D0 03       P.
                 jsr LA29C                    ; A209= 20 9C A2     ."
 LA20C:
@@ -5318,7 +5318,7 @@ LA241:
                 tsb $E2                      ; A257= 04 E2       .b
 LA259:
                 lda #$01                     ; A259= A9 01       ).
-                ora $0247                    ; A25B= 0D 47 02    .G.
+                ora cfsRFSFSSwitch                    ; A25B= 0D 47 02    .G.
                 bne LA295                    ; A25E= D0 35       P5
 LA260:
                 txa                          ; A260= 8A          .
@@ -5675,7 +5675,7 @@ LA456:
                 .byte $CC
 LA45D:
                 dec $C0
-                lda $0247                    ; A45F= AD 47 02    -G.
+                lda cfsRFSFSSwitch                    ; A45F= AD 47 02    -G.
                 beq LA46B                    ; A462= F0 07       p.
                 jsr mos.LF710                ; A464= 20 10 F7     .w
                 tay                          ; A467= A8          (
@@ -5814,7 +5814,7 @@ LA506:
                 bne LA564                    ; A52F= D0 33       P3
                 stz $B4                      ; A531= 64 B4       d4
                 stz $B5                      ; A533= 64 B5       d5
-                lda $0247                    ; A535= AD 47 02    -G.
+                lda cfsRFSFSSwitch                    ; A535= AD 47 02    -G.
                 beq LA55B                    ; A538= F0 21       p!
                 bvs LA55B                    ; A53A= 70 1F       p.
                 jsr LA9CA                    ; A53C= 20 CA A9     J)
@@ -5876,13 +5876,13 @@ LA587:
                 rts                          ; A58A= 60          `
 
 LA58B:
-                lda $0256                    ; A58B= AD 56 02    -V.
+                lda execFileHandle                    ; A58B= AD 56 02    -V.
                 jsr LA56B                    ; A58E= 20 6B A5     k%
 starEXEC:
                 php                          ; A591= 08          .
                 phy                          ; A592= 5A          Z
-                ldy $0256                    ; A593= AC 56 02    ,V.
-                sta $0256                    ; A596= 8D 56 02    .V.
+                ldy execFileHandle                    ; A593= AC 56 02    ,V.
+                sta execFileHandle                    ; A596= 8D 56 02    .V.
                 beq LA59E                    ; A599= F0 03       p.
                 jsr OSFIND                   ; A59B= 20 CE FF     N.
 LA59E:
@@ -5892,7 +5892,7 @@ LA59E:
                 beq LA5AE                    ; A5A3= F0 09       p.
                 asl hazel.tempFSFlag      ; A5A5= 0E C6 DF    .F_
                 jsr openFileForReading                    ; A5A8= 20 45 A5     E%
-                sta $0256                    ; A5AB= 8D 56 02    .V.
+                sta execFileHandle                    ; A5AB= 8D 56 02    .V.
 LA5AE:
                 rts                          ; A5AE= 60          `
 
@@ -6005,7 +6005,7 @@ LA670:
                 txa                          ; A675= 8A          .
                 bne LA6CC                    ; A676= D0 54       PT
 LA678:
-                lda $0247                    ; A678= AD 47 02    -G.
+                lda cfsRFSFSSwitch                    ; A678= AD 47 02    -G.
                 beq LA62E                    ; A67B= F0 B1       p1
 LA67D:
                 jsr mos.LF710                ; A67D= 20 10 F7     .w
@@ -6022,7 +6022,7 @@ LA68D:
                 rts                          ; A693= 60          `
 
 LA694:
-                lda $0247                    ; A694= AD 47 02    -G.
+                lda cfsRFSFSSwitch                    ; A694= AD 47 02    -G.
                 beq LA6A6                    ; A697= F0 0D       p.
                 phx                          ; A699= DA          Z
                 phy                          ; A69A= 5A          Z
@@ -6214,7 +6214,7 @@ LA7CE:
                 iny                          ; A7D1= C8          H
                 bne LA7BF                    ; A7D2= D0 EB       Pk
 LA7D4:
-                lda $0247                    ; A7D4= AD 47 02    -G.
+                lda cfsRFSFSSwitch                    ; A7D4= AD 47 02    -G.
                 beq LA7DD                    ; A7D7= F0 04       p.
                 bit $BB                      ; A7D9= 24 BB       $;
                 bvc LA821                    ; A7DB= 50 44       PD
@@ -6258,7 +6258,7 @@ LA821:
                 rts                          ; A821= 60          `
 
 LA822:
-                lda $0247                    ; A822= AD 47 02    -G.
+                lda cfsRFSFSSwitch                    ; A822= AD 47 02    -G.
                 beq LA82D                    ; A825= F0 06       p.
                 jsr LA9CA                    ; A827= 20 CA A9     J)
                 jmp mos.badCommandError
@@ -6394,7 +6394,7 @@ LA8F3:
                 bit $EB                      ; A8F8= 24 EB       $k
                 bmi LA909                    ; A8FA= 30 0D       0.
                 txa                          ; A8FC= 8A          .
-                and $0247                    ; A8FD= 2D 47 02    -G.
+                and cfsRFSFSSwitch                    ; A8FD= 2D 47 02    -G.
 LA900:
                 bne LA909                    ; A900= D0 07       P.
                 txa                          ; A902= 8A          .
@@ -6478,84 +6478,84 @@ LA955:
                 jmp (printMessageAddress)
 
 alwaysPrintFollowingMessage:
-                ldy #$01                     ; A958= A0 01        .
-                bra printFollowingMessage    ; A95A= 80 CB       .K
+                ldy #$01
+                bra printFollowingMessage
 
 ;-------------------------------------------------------------------------
 
 LA95C:
-                ldx #$FF                     ; A95C= A2 FF       ".
+                ldx #$FF
 LA95E:
-                inx                          ; A95E= E8          h
-                lda $03D2,x                  ; A95F= BD D2 03    =R.
-                bne LA96B                    ; A962= D0 07       P.
-                txa                          ; A964= 8A          .
-                beq LA96A                    ; A965= F0 03       p.
-                lda $03B2,x                  ; A967= BD B2 03    =2.
+                inx
+                lda $03D2,x
+                bne LA96B
+                txa
+                beq LA96A
+                lda $03B2,x
 LA96A:
-                rts                          ; A96A= 60          `
+                rts
 
 LA96B:
-                jsr mos.isLetter             ; A96B= 20 71 EA     qj
-                eor $03B2,x                  ; A96E= 5D B2 03    ]2.
-                bcs LA975                    ; A971= B0 02       0.
-                and #$DF                     ; A973= 29 DF       )_
+                jsr mos.isLetter
+                eor $03B2,x
+                bcs LA975
+                and #$DF
 LA975:
-                beq LA95E                    ; A975= F0 E7       pg
+                beq LA95E
 LA977:
-                rts                          ; A977= 60          `
+                rts
 
 LA978:
-                lda $BA                      ; A978= A5 BA       %:
-                beq LA99D                    ; A97A= F0 21       p!
-                txa                          ; A97C= 8A          .
-                beq LA99D                    ; A97D= F0 1E       p.
-                lda #$22                     ; A97F= A9 22       )"
-                bit $BB                      ; A981= 24 BB       $;
-                beq LA99D                    ; A983= F0 18       p.
-                jsr resetACIA                    ; A985= 20 12 AA     .*
-                tay                          ; A988= A8          (
-                jsr printFollowingMessage    ; A989= 20 27 A9     ')
+                lda $BA
+                beq LA99D
+                txa
+                beq LA99D
+                lda #$22
+                bit $BB
+                beq LA99D
+                jsr resetACIA
+                tay
+                jsr printFollowingMessage
                 .byte $0D
                 .byte $07
                 .text "Rewind tape"
                 .byte $0D
                 .byte $0D
                 .byte $00
-                rts                          ; A99C= 60          `
+                rts
 
 LA99D:
-                jsr LA05D                    ; A99D= 20 5D A0     ]
+                jsr LA05D
 LA9A0:
-                lda $C2                      ; A9A0= A5 C2       %B
-                beq LA977                    ; A9A2= F0 D3       pS
-                jsr LA880                    ; A9A4= 20 80 A8     .(
-                lda $0247                    ; A9A7= AD 47 02    -G.
-                beq LA9A0                    ; A9AA= F0 F4       pt
-                jsr LA45D                    ; A9AC= 20 5D A4     ]$
-                bra LA9A0                    ; A9AF= 80 EF       .o
+                lda $C2
+                beq LA977
+                jsr LA880
+                lda cfsRFSFSSwitch
+                beq LA9A0
+                jsr LA45D
+                bra LA9A0
 
 LA9B1:
-                jsr mos.LEF1B                ; A9B1= 20 1B EF     .o
-                beq LA9BB                    ; A9B4= F0 05       p.
+                jsr mos.LEF1B
+                beq LA9BB
 LA9B6:
-                lda #$07                     ; A9B6= A9 07       ).
-                jsr OSWRCH                   ; A9B8= 20 EE FF     n.
+                lda #$07
+                jsr OSWRCH
 LA9BB:
-                lda $027A                    ; A9BB= AD 7A 02    -z.
-                beq LA9C5                    ; A9BE= F0 05       p.
-                lda #$80                     ; A9C0= A9 80       ).
-                jsr tubeHost.entryPoint                    ; A9C2= 20 06 04     ..
+                lda $027A
+                beq LA9C5
+                lda #$80
+                jsr tubeHost.entryPoint
 LA9C5:
-                ldx #$00                     ; A9C5= A2 00       ".
-                jsr LAA61                    ; A9C7= 20 61 AA     a*
+                ldx #$00
+                jsr LAA61
 LA9CA:
-                php                          ; A9CA= 08          .
-                sei                          ; A9CB= 78          x
-                lda serialULARegister                    ; A9CC= AD 82 02    -..
-                sta SERPROC+0                    ; A9CF= 8D 10 FE    ..~
-                stz $EA                      ; A9D2= 64 EA       dj
-                bra LA9D7                    ; A9D4= 80 01       ..
+                php
+                sei
+                lda serialULARegister
+                sta SERPROC+0
+                stz $EA
+                bra LA9D7
 
 ;-------------------------------------------------------------------------
 
@@ -6569,43 +6569,43 @@ LA9D7:
 ;-------------------------------------------------------------------------
 
 LA9E0:
-                plp                          ; A9E0= 28          (
-                bit $FF                      ; A9E1= 24 FF       $.
-                bpl LA9FD                    ; A9E3= 10 18       ..
-                rts                          ; A9E5= 60          `
+                plp
+                bit $FF
+                bpl LA9FD
+                rts
 
 LA9E6:
-                lda $E3                      ; A9E6= A5 E3       %c
-                asl a                        ; A9E8= 0A          .
-                asl a                        ; A9E9= 0A          .
-                asl a                        ; A9EA= 0A          .
-                asl a                        ; A9EB= 0A          .
-                sta $BB                      ; A9EC= 85 BB       .;
-                lda $03D1                    ; A9EE= AD D1 03    -Q.
-                bra LA9FB                    ; A9F1= 80 08       ..
+                lda $E3
+                asl a
+                asl a
+                asl a
+                asl a
+                sta $BB
+                lda $03D1
+                bra LA9FB
 
 LA9F3:
-                lda $E3                      ; A9F3= A5 E3       %c
-                and #$F0                     ; A9F5= 29 F0       )p
-                sta $BB                      ; A9F7= 85 BB       .;
-                lda #$06                     ; A9F9= A9 06       ).
+                lda $E3
+                and #$F0
+                sta $BB
+                lda #$06
 LA9FB:
-                sta $C7                      ; A9FB= 85 C7       .G
+                sta $C7
 LA9FD:
-                cli                          ; A9FD= 58          X
+                cli
 LA9FE:
-                php                          ; A9FE= 08          .
-                sei                          ; A9FF= 78          x
+                php
+                sei
 LAA00:
-                bit $024F                    ; AA00= 2C 4F 02    ,O.
-                bpl LA9E0                    ; AA03= 10 DB       .[
-                lda $EA                      ; AA05= A5 EA       %j
-                bmi LA9E0                    ; AA07= 30 D7       0W
-                lda #$01                     ; AA09= A9 01       ).
-                sta $EA                      ; AA0B= 85 EA       .j
-                jsr resetACIA                    ; AA0D= 20 12 AA     .*
-                plp                          ; AA10= 28          (
-                rts                          ; AA11= 60          `
+                bit $024F
+                bpl LA9E0
+                lda $EA
+                bmi LA9E0
+                lda #$01
+                sta $EA
+                jsr resetACIA
+                plp
+                rts
 
 ;-------------------------------------------------------------------------
 
@@ -6616,69 +6616,69 @@ resetACIA:
 ;-------------------------------------------------------------------------
 
 LAA16:
-                lda #$30                     ; AA16= A9 30       )0
-                sta $CA                      ; AA18= 85 CA       .J
-                bra LAA2F                    ; AA1A= 80 13       ..
+                lda #$30
+                sta $CA
+                bra LAA2F
 
 LAA1C:
-                lda #$05                     ; AA1C= A9 05       ).
-                sta SERPROC+0                    ; AA1E= 8D 10 FE    ..~
-                ldx #$FF                     ; AA21= A2 FF       ".
+                lda #$05
+                sta SERPROC+0
+                ldx #$FF
 LAA23:
-                dex                          ; AA23= CA          J
-                bne LAA23                    ; AA24= D0 FD       P}
-                stz $CA                      ; AA26= 64 CA       dJ
-                lda #$D0                     ; AA28= A9 D0       )P
+                dex
+                bne LAA23
+                stz $CA
+                lda #$D0
 LAA2A:
-                ldy #$85                     ; AA2A= A0 85        .
-                sty SERPROC+0                    ; AA2C= 8C 10 FE    ..~
+                ldy #$85
+                sty SERPROC+0
 LAA2F:
-                ora $C6                      ; AA2F= 05 C6       .F
+                ora $C6
 writeACIAControlRegister:
-                sta ACIA+0                    ; AA31= 8D 08 FE    ..~
-                rts                          ; AA34= 60          `
+                sta ACIA+0
+                rts
 
 ;-------------------------------------------------------------------------
 
 LAA35:
-                ldx $03C6                    ; AA35= AE C6 03    .F.
-                ldy $03C7                    ; AA38= AC C7 03    ,G.
-                inx                          ; AA3B= E8          h
-                stx $B4                      ; AA3C= 86 B4       .4
-                bne LAA41                    ; AA3E= D0 01       P.
-                iny                          ; AA40= C8          H
+                ldx $03C6
+                ldy $03C7
+                inx
+                stx $B4
+                bne LAA41
+                iny
 LAA41:
-                sty $B5                      ; AA41= 84 B5       .5
-                rts                          ; AA43= 60          `
+                sty $B5
+                rts
 
 LAA44:
-                stz $C0                      ; AA44= 64 C0       d@
+                stz $C0
 LAA46:
-                ldy #$00                     ; AA46= A0 00        .
-                stz $BE                      ; AA48= 64 BE       d>
-                stz $BF                      ; AA4A= 64 BF       d?
-                rts                          ; AA4C= 60          `
+                ldy #$00
+                stz $BE
+                stz $BF
+                rts
 
 LAA4D:
-                ldy #$FF                     ; AA4D= A0 FF        .
+                ldy #$FF
 LAA4F:
-                iny                          ; AA4F= C8          H
-                inx                          ; AA50= E8          h
-                lda $0300,x                  ; AA51= BD 00 03    =..
-                sta $03D2,y                  ; AA54= 99 D2 03    .R.
-                bne LAA4F                    ; AA57= D0 F6       Pv
-                rts                          ; AA59= 60          `
+                iny
+                inx
+                lda $0300,x
+                sta $03D2,y
+                bne LAA4F
+                rts
 
 LAA5A:
-                ldy #$00                     ; AA5A= A0 00        .
+                ldy #$00
 LAA5C:
-                cli                          ; AA5C= 58          X
-                ldx #$01                     ; AA5D= A2 01       ".
-                sty $C3                      ; AA5F= 84 C3       .C
+                cli
+                ldx #$01
+                sty $C3
 LAA61:
-                lda #$89                     ; AA61= A9 89       ).
-                ldy $C3                      ; AA63= A4 C3       $C
-                jmp OSBYTE                   ; AA65= 4C F4 FF    Lt.
+                lda #$89
+                ldy $C3
+                jmp OSBYTE
 
 ; Check if TAPE/ROM channel is open
 ; ---------------------------------
@@ -6688,14 +6688,14 @@ LAA68:
                 jsr LAA8D
                 ply
                 bcs LAAC9                    ; Channel open, exit
-                cpy $0257                    ; Not SPOOL handle
+                cpy spoolFileHandle                    ; Not SPOOL handle
                 bne LAA79
-                stz $0257                    ; Clear the SPOOL handle
+                stz spoolFileHandle                    ; Clear the SPOOL handle
                 bra LAA81
 LAA79:
-                cpy $0256                    ; Not EXEC handle
+                cpy execFileHandle                    ; Not EXEC handle
                 bne LAA81
-                stz $0256                    ; Clear the EXEC handle
+                stz execFileHandle                    ; Clear the EXEC handle
 LAA81:
                 jsr doFollowingError                    ; Generate error
                 .byte $DE
@@ -6705,7 +6705,7 @@ LAA81:
 LAA8D:
                 pha                          ; Toggle channel with CFS/RFS switch
                 tya
-                eor $0247
+                eor cfsRFSFSSwitch
                 tay                          ; If CFS=unchanged, if RFS 1/2/3->3/0/1
                 pla
                 and $E2                      ; Mask with open channels bitmask

@@ -264,7 +264,7 @@ attributes:
 saveEnd:
                 .fill 4
                 .endstruct
-                
+
 ;-------------------------------------------------------------------------
 
 bufferNumberKeyboard=0          ;
@@ -672,20 +672,21 @@ timer1=$297
 intervalTimer=$29c
 romInformationTable=$2a1
 inkeyTimeoutCounter=$2b1
+osword0MaxLineLength=$2b3
+osword0MinASCIICharacter=$2b4
+osword0MaxASCIICharacter=$2b5
 adcResultLSBs=$2b6
 adcResultMSBs=$2ba
-adcLastChannelRead=$2be
+adcLastChannelRead=$2be         ;Two names for the same thing!
+adcLastConvertedChannel=$2be    ;Two names for the same thing!
 eventEnabledFlags=$2bf
 currentSoftKey=$02c9
 keyboardFirstAutoRepeatCount=$02ca
 previousKeyPressedWhenReadingLastKey=$2cb
 previousKeyPressedWhenReadingFirstKey=$2cc
 previousKeyPressedWhenReadingOSBYTE=$2cd
-soundIsUpdatingFlag=$2ce
-bufferEmptyFlags=$2cf
-adcLastConvertedChannel=$2be
-printerDriverDormant=$2d1        ;bit 7 set if printer driver dormant,
-                                 ;clear if active
+; soundIsUpdatingFlag=$2ce
+bufferEmptyFlags=$2ce
 bufferStartIndices=$2d7
 bufferEndIndices=$2e0
 

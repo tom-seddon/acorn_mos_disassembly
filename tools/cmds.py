@@ -7,6 +7,7 @@ VERSIONS=[
     Version(ver="320",addr=0x8368),
     Version(ver="500",addr=0x8383),
     Version(ver="510",addr=0x83c0),
+    Version(ver="511",addr=0x83c0),
 ]
 
 Command=collections.namedtuple('Command','name addr x y')

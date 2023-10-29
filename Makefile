@@ -15,7 +15,7 @@ endif
 ##########################################################################
 
 .PHONY:all
-all: $(BUILD)/320/all.orig $(BUILD)/500/all.orig $(BUILD)/510/all.orig
+all: $(BUILD)/320/all.orig $(BUILD)/500/all.orig $(BUILD)/510/all.orig $(BUILD)/511/all.orig
 	$(_V)$(TASS) mos320.s65 -L$(BUILD)/mos320.lst --output-section mos -o$(BUILD)/320/mos.rom --output-section terminal -o $(BUILD)/320/terminal.rom --output-section ext -o $(BUILD)/320/ext.rom
 	$(_V)cat $(BUILD)/320/terminal.rom $(BUILD)/320/mos.rom $(BUILD)/320/ext.rom > $(BUILD)/320/all.new
 	@sha1sum $(BUILD)/320/all.orig
@@ -23,6 +23,7 @@ all: $(BUILD)/320/all.orig $(BUILD)/500/all.orig $(BUILD)/510/all.orig
 
 	$(_V)$(MAKE) _build VERSION=500
 	$(_V)$(MAKE) _build VERSION=510
+	$(_V)$(MAKE) _build VERSION=511
 
 .PHONY:_build
 _build:
@@ -78,6 +79,9 @@ $(BUILD)/500/all.orig: orig/500/mos.rom orig/500/utils.rom
 
 $(BUILD)/510/all.orig: orig/510/mos.rom orig/510/utils.rom
 	$(_V)$(MAKE) _orig VERSION=510
+
+$(BUILD)/511/all.orig: orig/511/mos.rom orig/511/utils.rom
+	$(_V)$(MAKE) _orig VERSION=511
 
 _orig:
 	$(_V)$(MKDIR) $(BUILD)/$(VERSION)

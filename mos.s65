@@ -5923,7 +5923,13 @@ handleCopyKey:
                 bit STATE
                 bvc ldaim00_rts_DF3E      ;taken if not cursor editing
                 bne ldaim00_rts_DF3E      ;taken if VDU5
+                .if version<511
                 jsr readCharacterAtTextCursor
+                .else
+                lda #$87
+                jsr OSBYTE
+                txa
+                .endif
                 beq rtsDF77              ;taken if char not recognised
                 pha                      ;save char recognised
                 jsr isCursorEditingPossible
@@ -6055,12 +6061,15 @@ plotSolidEllipse:
 
 ;-------------------------------------------------------------------------
 
-                .align 256
+                .align 16
 startupMessages: .block
-                .if version>=500
+                .if version>=500&&version<511
                 .fill 16,0
                 .endif
 acornMOS:
+                .if version>=511
+                .byte 0
+                .endif
                 .text 13
                 .text "Acorn MOS",0
 beep:
@@ -8871,13 +8880,14 @@ readFromInputBufferX:
                 bcs LEC0D
                 tay
                 bne LEAC8
+                .if version>=511
+                txa
+                and rs423InputInterpretationStatus
+                bne LEC29
+                .endif
                 jsr osbyte91
 LEC0D:
-                .if version==320
-                bcs rtsEB31
-                .elsif version>=500
                 bcs rtsEB28
-                .endif
                 tay
                 bne clc_rts_EABD
                 pha
@@ -8891,6 +8901,11 @@ LEC15:
                 bne LEC15
                 pla
                 bra clc_rts_EABD
+                .endif
+
+                .if version>=511
+LEC29:
+                tya
                 .endif
 
 LEAC8:
@@ -10056,6 +10071,8 @@ osbyte00:                       ;ef6f
                 .text "MOS 5.00"
                 .elsif version==510
                 .text "MOS 5.10"
+                .elsif version==511
+                .text "MOS 5.11i"
                 .endif
                 .byte 0
 
@@ -10757,6 +10774,12 @@ osbyte14:                       ;f21c
 ; MasRef D.2-28
 ;
 osbyte19:                       ;f222
+                .if version>=511
+                ldx #romServiceCallUnrecognisedOSBYTE
+                jsr makeROMServiceCall
+                beq LF2EB
+                ldx originalX
+                .endif
                 jsr withTerminalROM
                 jmp terminal.osbyte19
 
@@ -10766,6 +10789,7 @@ osbyte19:                       ;f222
 ; ========================================
 osbyte16:                       ;f228
                 inc romPollingSemaphore
+LF2EB:
                 rts
 
 ;-------------------------------------------------------------------------
@@ -11491,6 +11515,33 @@ braRolloverChecks:
                 .endif
 
 ;-------------------------------------------------------------------------
+
+                .if version>=511
+LF5E5_511:
+                bit keyboardTranslationTableAddress+1
+                bmi getASCIICode
+                phx
+                phx
+                ply
+                ldx #romServiceCall30
+                jsr makeROMServiceCall
+                bne LF607
+                plx
+                tya
+                ror a
+                ror a
+                bcc LF5FC
+                stz autoRepeatCountdownTimer
+LF5FC:
+                bmi braRolloverChecks
+                lda keyboardTranslationTableAddress+0
+                bit keyboardTranslationTableAddress+1
+                jmp LF6A7
+
+LF607:
+                plx
+                .endif
+;-------------------------------------------------------------------------
 ;
 ; Convert internal key number (with bit 7 set) to ASCII code, taking
 ; into account state of CTRL, SHIFT, CAPS LOCK and SHIFT LOCK.
@@ -11638,26 +11689,34 @@ LF839:
                 lda keyboardStatusByte
                 and #7
                 tax
+                .if version<511
                 lda #7
+                .endif
                 trb keyboardStatusByte
                 pla
                 pha
                 dex
+                .if version<511
                 bne LF693
                 pla
                 bra LF6A8
+                .endif
 
 LF693:
                 dex
+                .if version<511
                 bne LF699
                 pla
                 bra LF6A8
+                .endif
 
 LF699:
                 dex
+                .if version<511
                 bne LF69F
                 pla
                 bra LF6A8
+                .endif
 
 LF69F:
                 dex
@@ -12792,6 +12851,7 @@ badCommandError:
 ;
 ; Credits - normally hidden by the I/O region.
 ;
+
                 .if version==320
                 .text "(C) 1984 Acorn Computers Ltd."
                 .text "Thanks are due to the following contributors to the BBC Computer (among others too numerous to mention):- "
@@ -12921,7 +12981,7 @@ badCommandError:
                 .if version>=500
                 .text "Roger Wilson."
                 .endif
-
+                
 ;-------------------------------------------------------------------------
 
 E_USERV: ; ff00

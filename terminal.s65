@@ -486,7 +486,7 @@ checkForResetKey:
                 lda firstKeyPressedInternal
                 cmp #key_r
                 bne L8284
-                .elsif version==510
+                .elsif version>=510
 checkForResetKey:
                 lda firstKeyPressedInternal
                 cmp #key_delete
@@ -4827,8 +4827,12 @@ L9EFC:
                 .text "OS 3.20"
                 .elsif version==500
                 .text "MOS 5.00"
-                .elsif version>=510
+                .elsif version==510
                 .text "MOS 5.10"
+                .elsif version==511
+                .text "MOS 5.11i"
+                .else
+                .warn "unexpected version"
                 .endif
                 .text 13,0
                 ply

@@ -45,7 +45,7 @@ copyright:
 reset:                          ;8020
                 lda #~ACCCON.D  ;display main RAM
                 trb ACCCON
-                .if version==320
+                .if version<500
                 stz hazel.hasACCCONChanged
                 .endif
                 trb $0366
@@ -55,7 +55,7 @@ reset:                          ;8020
                 stx userVIA.ddra ;port A all outputs
                 lda #%11001111
                 sta systemVIA.ddrb ;
-                .if version==320
+                .if version<500
                 ldy #RTC.a.dv32768Hz
                 ldx #RTC.a
                 jsr writeRTCByte
@@ -70,7 +70,7 @@ reset:                          ;8020
                 lda systemVIA.ier
                 asl a
                 pha
-                .if version==320
+                .if version<500
                 beq startClearRAM       ; branch taken if power on
                 lda breakAndESCAPEEffect                    ; read BREAK action flags
                                              ; (set by *FX200)
@@ -130,7 +130,7 @@ L8073:
                 trb ACCCON
                 lda #$0F                     ; 8084= 8D 8E 02    ...
                 sta numericKeypadShiftEffect
-                .if version==320
+                .if version<500
 -
                 dec a                        ; 8088= 8D 40 FE    .@~
                 sta systemVIA.orb
@@ -154,7 +154,7 @@ L8073:
 L80AD:
                 inc lastBREAKType
                 phy
-                .if version==320
+                .if version<500
                 jsr readDefaultMODE          ; Read configured MODE
                 .elsif version>=500
                 jsr L9E58
@@ -169,7 +169,7 @@ L80B9:
                 and #CMOSBytes.defaults3.autoBootMask
                 lsr a         ; Reset OSBYTE 255 boot bit (b3) if BOOT
                 trb startupOptions
-                .if version==320
+                .if version<500
                 jsr readDefaultTVSettings
                 .elsif version>=500
                 jsr L8BD6
@@ -268,7 +268,7 @@ L813D:
                 pla               
                 sta noignoreState
 L8164:
-                .if version==320
+                .if version<500
                 jsr readDefaults1
                 .elsif version>=500
                 ldx #$0b
@@ -288,14 +288,14 @@ gotKeyboardStatusByte:
                 jsr mos.resetKeyRepeat
                 lda lastBREAKType
                 beq L8196
-                .if version==320
+                .if version<500
                 jsr readDefaultPrinterIgnoreChar
                 .elsif version>=500
                 ldx #$0e
                 jsr terminal.readRTCByte
                 .endif
                 sta printerIgnoreChar
-                .if version==320
+                .if version<500
                 jsr readDefaults2
                 lsr a                        ;C=tubeOn
                 lsr a                        ;C=usePrinterIgnoreChar
@@ -303,7 +303,7 @@ gotKeyboardStatusByte:
                 jsr readUsePrinterIgnoreChar
                 .endif
                 ror noignoreState
-                .if version==320
+                .if version<500
                 jsr readDefaultFX5Settings
                 .elsif version>=500
                 ldx #$75
@@ -311,7 +311,7 @@ gotKeyboardStatusByte:
                 .endif
                 sta printerDriverType
 L8196:
-                .if version==320
+                .if version<500
                 jsr readDefaultSerialDataFormat
                 .elsif version>=500
                 ldx #$19
@@ -322,7 +322,7 @@ L8196:
                 ora #ACIA.control.rtsHighTXInterruptDisabled|ACIA.control.counterDivide64
                 sta aciaControlRegister
 
-                .if version==320
+                .if version<500
                 jsr resetACIAThenRewriteControlRegister
                 ldx #$01
                 .elsif version>=500
@@ -381,13 +381,13 @@ initializeVIAInterruptsLoop:
                 lda #$0E
                 sta systemVIA.t1lL
                 sta userVIA.pcr              ;VIA.pcr.cb2InputNegativeActiveEdge|VIA.pcr.cb1NegativeActiveEdge|VIA.pcr.ca2HighOutput|VIA.pcr.ca1NegativeActiveEdge
-                .if version==320
+                .if version<500
                 sta HADC.latch               ;looks benign
                 .endif
                 lda #$27
                 sta systemVIA.t1lH
                 sta systemVIA.t1cH
-                .if version==320
+                .if version<500
                 ldx #$08
 L81DD:
                 dex
@@ -407,7 +407,7 @@ L81DD:
                 lda serialULARegister
                 and #$7F
                 jsr mos.LEC89
-                .if version==320
+                .if version<500
                 jsr readDefaultSerialBaudRateIndex
                 .elsif version>=500
                 ldx #$7
@@ -464,7 +464,7 @@ L8264:
                 .endif
                 
 
-                .if version==320
+                .if version<500
 checkForResetKey:
                 lda firstKeyPressedInternal
                 cmp #key_r
@@ -553,7 +553,7 @@ L8280:
                 .byte 22,7
                 .endif
                 .text 13,10
-                .if version==320
+                .if version<500
                 .text "CMOS RAM reset"
                 .elsif version>=500
                 .text "Options reset"
@@ -579,7 +579,7 @@ L8284:
                 beq L829D
                 jsr mos.LEDD0
 L829D:
-                .if version==320
+                .if version<500
                 jsr readDefaults2
                 lsr a
                 bcc L82D0
@@ -692,7 +692,7 @@ L836F:
 ; Default FS Info Blocks
 ; ======================
 defaultFsInfoBlocks: .block
-                .if version==320
+                .if version<500
                 .text "CFS     "
                 .byte $01
                 .byte $02
@@ -726,7 +726,7 @@ mosCommandTable:
                 .mos_command "BASIC",starBASIC,$00,$00  ;
                 .mos_command "BUILD",starBUILD,$80,$00  ; XY=>parameters
                 .mos_command "CLOSE",starCLOSE,$00,$FF  ;
-                .if version==320
+                .if version<500
                 .mos_command "CONFIGURE",starCONFIGURE,$00,$FF ;
                 .elsif version>=500
                 .mos_command "CONFIGURE",starCONFIGUREOrStarSTATUS,$00,$80 ;
@@ -749,7 +749,7 @@ mosCommandTable:
                 .mos_command "LIST",starLIST,$80,$00   ; XY=>parameters
                 .mos_command "LINE",mos.callUSERV,$00,$01 ;
                 .mos_command "LIBFS",mos.starLIBFS,$00,$00    ;
-                .if version==320
+                .if version<500
                 .mos_command "MOTOR",starCommandThroughOSBYTE,$00,$89 ; X,y=parameters, OSBYTE &89
                 .elsif version>=500
                 .mos_command "MOTOR",mos.rtsFFAA,$00,$89 ; X,y=
@@ -775,12 +775,12 @@ mosCommandTable:
                 .mos_command "SRSAVE",starSRLOADOrStarSRSAVE,$80,$20
                 .mos_command "SRWRITE",starSRREADOrStarSRWRITE,$00,$e0
                 .endif
-                .if version==320
+                .if version<500
                 .mos_command "STATUS",starSTATUS,$00,$FF  ;
                 .elsif version>=500
                 .mos_command "STATUS",starCONFIGUREOrStarSTATUS,$00,$c0
                 .endif
-                .if version==320
+                .if version<500
                 .mos_command "TAPE",starCommandThroughOSBYTE,$00,$8C ; X,y=parameters, OSBYTE &8C
                 .elsif version>=500
                 .mos_command "TAPE",mos.rtsFFAA,$00,$8C ; X,y=parameters, OSBYTE &8C
@@ -789,7 +789,7 @@ mosCommandTable:
                 .mos_command "TIME",starTIME,$00,$00   ;
                 .mos_command "TYPE",starTYPE,$80,$00   ; XY=>parameters
                 .mos_command "UNPLUG",starUNPLUG,$00,$FF ;
-                .if version==320
+                .if version<500
                 .mos_command "X",mos.starX,$00,$00  ;
                 .endif
                 .mos_command "",mos.callFSCV,$00,$03 ; FSC &03
@@ -850,14 +850,14 @@ L8535:
                 jmp mos.callFSCV
 
 L8542:
-                .if version==320
+                .if version<500
                 sty $E6
                 .endif
                 lda #<mosCommandTable
                 sta oscliWorkspace.tablePtr+0
                 lda #>mosCommandTable
                 sta oscliWorkspace.tablePtr+1
-                .if version==320
+                .if version<500
                 bra L8558
                 .elsif version>=500
                 clv
@@ -865,7 +865,7 @@ L8542:
                 bcc passStarCommandThrough
                 .endif
 
-                .if version==320
+                .if version<500
 L854E:
                 eor (oscliWorkspace.tablePtr)
                 and #$DF
@@ -914,7 +914,7 @@ L8592:
                 jsr L84EE                    
                 rti                          
 
-                .if version==320
+                .if version<500
 fetchCommandTableByte:
                 lda (oscliWorkspace.tablePtr)
                 pha                          
@@ -934,7 +934,7 @@ rts85A5:
 starBASIC:
                 ldx basicROMNumber           ; Get BASIC ROM number
                 bmi passStarCommandThrough ; If no BASIC ROM, jump to pass to ROMs and filing system
-                .if version==320
+                .if version<500
                 sec                          ;
                 jmp mos.osbyte8E             ; Enter ROM as a language
                 .elsif version>=500
@@ -953,7 +953,7 @@ passStarCommandThrough:
                 ldy $E6
                 ldx #romServiceCallUnrecognisedCommand
                 jsr mos.osbyte8F    ; Service call 4 - Unknown command
-                .if version==320
+                .if version<500
                 beq rts85A5                    ; Claimed, return
                 .elsif version>=500
                 beq parseDone
@@ -1169,7 +1169,7 @@ starROMS:
                 bne badCommandError869A
                 ldy #$0F
 printROMsLoop:
-                .if version==320
+                .if version<500
                 iny                          ;ensure Y!=0
                 jsr printFollowingMessage
                 .text "ROM ",0
@@ -1198,11 +1198,11 @@ L86DA:
                 sta $F6
                 lda #>sidewaysROMName
                 sta $F7
-                .if version==320
+                .if version<500
                 plx                          ;restore ROM number
                 .endif
                 jsr mos.isROMValidThenSelectTerminalROM
-                .if version==320
+                .if version<500
                 dey
                 .endif
                 bcc invalidROM
@@ -1234,7 +1234,7 @@ printROMVersion:
                 jsr printSpaceThenPrintHexByte
 printInsertionStatus:
                 phy                          ; 86F5= 5A          Z
-                .if version==320
+                .if version<500
                 jsr mos.getROMInsertedFlagRTCAddressAndMask
                 sta starROMSWorkspace.insertedFlagMask
                 jsr readRTCByte
@@ -1285,7 +1285,7 @@ starUNPLUG:
 starINSERTOrStarUNPLUG:
                 php
                 jsr mos.skipSpacesAndCheckForCRInStringInput
-                .if version==320
+                .if version<500
                 jsr parseSingle4BitNumberFromCommandLine
                 .elsif version>=500
                 jsr L8953
@@ -1329,7 +1329,7 @@ L8752:
 
 ;-------------------------------------------------------------------------
 
-                .if version==320
+                .if version<500
                 .include "configure320.s65"
                 .elif version>=500
                 .include "configure500.s65"
@@ -1352,7 +1352,7 @@ L907E:
 
 ;-------------------------------------------------------------------------
 
-                .if version==320
+                .if version<500
 ;-------------------------------------------------------------------------
 ;
 ; Read default *TV settings.
@@ -1733,7 +1733,7 @@ starBUILDOrAPPEND:
 L9033:
                 jsr printLineNumber
 L9036:
-                .if version==320
+                .if version<500
                 jsr readCommandLine
                 .elsif version>=500
                 lda #0
@@ -2197,7 +2197,7 @@ restoreFont32To126:
 osbyte19:
                 txa                          ;A=group identifier
                 beq restoreFont32To255   ;taken if group 0 - all chars
-                .if version==320
+                .if version<500
                 cmp #$08
                 bcs rts9238         ;taken if group >= 8 (not invalid)
                 .elsif version>=500
@@ -2962,7 +2962,7 @@ printEscapeChar:
 
 ;-------------------------------------------------------------------------
 
-                .if version==320
+                .if version<500
 ; Day string not matched
 ; ----------------------
 nextDayString:
@@ -3239,7 +3239,7 @@ osword0F:
 ; 
 
 osword0E:
-                .if version==320
+                .if version<500
                 pha                          ;save reason code
                 eor #$02                     ;
                 bne readClock
@@ -3312,7 +3312,7 @@ L98B2:
                 dey
                 bne -
 
-                .if version==320
+                .if version<500
                 bra maybeConvertToString ; (called from here, there's no maybe about it)
 
 readClock:
@@ -3459,7 +3459,7 @@ storeNybbleString:
 
 ;-------------------------------------------------------------------------
 
-                .if version==320
+                .if version<500
 readDefaults2:
                 ldx #CMOSBytes.defaults2+cmosBytesOffset
                 bra readRTCByte
@@ -3467,7 +3467,7 @@ readDefaults2:
 
 ;-------------------------------------------------------------------------
 
-                .if version==320
+                .if version<500
 readDefaults3:
                 ldx #CMOSBytes.defaults3+cmosBytesOffset
                 bra readRTCByte
@@ -3488,7 +3488,7 @@ readDefaults3:
 ;
 ; N,Z = set as per byte read
 ;
-                .if version==320
+                .if version<500
 readCMOSByte:
                 jsr getRTCAddressForCMOSByte
                 bcs rts98DB                  ;taken if invalid address
@@ -3530,7 +3530,7 @@ readCMOSByte=$9daa
 ;
 ; Y = value to write
 ;
-                .if version==320
+                .if version<500
 writeCMOSByte:
                 txa                          ; 98DC= 8A          .
                 beq rts98DB                    ; 98DD= F0 FC       p|
@@ -3564,7 +3564,7 @@ writeRTCByte:
 ;
 ; C=0 = valid address: X = register index
 ;
-                .if version==320
+                .if version<500
 getRTCAddressForCMOSByte:
                 cpx #size(RTC.ram)
                 bcs rts9905
@@ -3585,7 +3585,7 @@ rts9905:
 ;
 ; preserves: Y
 ;
-                .if version==320
+                .if version<500
 setRTCAddress:
                 lda #$02
                 sta systemVIA.orb            ;RTC AS=0 CS=0 DS=0 R=0
@@ -4494,7 +4494,7 @@ L9EC3:
 
 L9ECA:
                 jsr L9E32
-                .if version==320
+                .if version<500
                 lda #$0a
                 .elsif version>=500
                 lda #$a0
@@ -4599,7 +4599,7 @@ L9F4C:
 ; Utils/Terminal ROM service entry point.
 ;
 utilsServiceEntryPoint:
-                .if version==320
+                .if version<500
                 cmp #romServiceCallTubeSystemPostInitialisation
                 bcc L9DCC        ;taken if definitely not Tube-related
                 bne handleTubeMainInitialisation
@@ -4728,7 +4728,7 @@ L9E2C:
 
 L9E38:
                 cmp #romServiceCallHelp
-                .if version==320
+                .if version<500
                 bne L9E8F                    ; 9E3A= D0 53       PS
                 .elsif version>=500
                 bne LA304
@@ -4741,7 +4741,7 @@ L9E38:
                 jsr alwaysPrintFollowingMessage                    ; 9E46= 20 58 A9     X)
                 .text "  MOS",13
                 .text 13
-                .if version==320
+                .if version<500
                 .text "TERMINAL 1.20"
                 .elsif version==500
                 .text "UTILS 1.00"
@@ -4783,7 +4783,7 @@ L9E8B:
 LA304:
                 rts
 
-                .if version==320
+                .if version<500
 L9E8F:
                 jmp terminalServiceEntryPoint
                 .endif
@@ -4857,7 +4857,7 @@ L9EFC:
                 phy
                 jsr alwaysPrintFollowingMessage
                 .text 13
-                .if version==320
+                .if version<500
                 .text "OS 3.20"
                 .elsif version==500
                 .text "MOS 5.00"
@@ -5065,7 +5065,7 @@ L9FF8:
 LA000:
                 bne LA00A                    ; A000= D0 08       P.
 LA002:
-                .if version==320
+                .if version<500
                 phy                          ; A002= 5A          Z
                 jsr LAAA4                    ; A003= 20 A4 AA     $*
                 ply                          ; A006= 7A          z
@@ -5192,7 +5192,7 @@ LA0BB:
                 beq LA085
                 jsr LA9F3
                 jsr LA822
-                .if version==320
+                .if version<500
                 lda #$00
                 jsr LAAA6
                 .endif
@@ -5256,7 +5256,7 @@ LA129:
                 jmp (FSCV)
 
 LA12E:
-                .if version==320
+                .if version<500
                 bit tubePresence
                 bpl LA13C
                 lda $03C4
@@ -5273,7 +5273,7 @@ LA13C:
                 lda #$01
                 jmp ($03C2)
 
-                .if version==320
+                .if version<500
 LA14C:
                 ldx #$C2
                 ldy #$03
@@ -5626,7 +5626,7 @@ LA378:
                 iny
                 lda ($CC),y
                 sta $C9
-                .if version==320
+                .if version<500
                 iny
                 lda ($CC),y
                 iny
@@ -5653,7 +5653,7 @@ LA3A7:
                 lda ($CC)
                 tay
                 lda #$01
-                .if version==320
+                .if version<500
                 plp
                 .endif
                 php
@@ -5661,7 +5661,7 @@ LA3A7:
                 jsr LAA8D
                 bcs LA3C1
                 plp
-                .if version==320
+                .if version<500
                 pla
                 beq LA3BE
                 lda #$80
@@ -5675,7 +5675,7 @@ LA3C1:
                 bcs LA401
                 bit $E2
                 bpl LA3D3
-                .if version==320
+                .if version<500
                 pla
                 beq LA3D0
                 lda #$80
@@ -5691,7 +5691,7 @@ LA3D3:
                 tay
                 jsr bputTapeOrROM
                 bcs LA3F6
-                .if version==320
+                .if version<500
                 plx
                 phx
                 beq LA3E9
@@ -5709,7 +5709,7 @@ LA3F1:
                 bra LA3D3
 
 LA3F6:
-                .if version==320
+                .if version<500
                 pla
                 php
                 beq LA3FF
@@ -5725,7 +5725,7 @@ LA401:
                 beq LA3F6
                 lda ($CC)
                 tay
-                .if version==320
+                .if version<500
                 pla
                 pha
                 beq LA412
@@ -5880,7 +5880,7 @@ LA4B5:
                 inc $BC
                 bit $BD
                 bmi LA4D3
-                .if version==320
+                .if version<500
                 jsr LAABC
                 beq LA4D0
                 stx tube.data3
@@ -6141,7 +6141,7 @@ LA670:
                 jsr LAA44
                 sty $C2
                 txa
-                .if version==320
+                .if version<500
                 bne LA6CC
                 .elsif version>=500
                 bne rtsAAC1
@@ -6177,7 +6177,7 @@ LA694:
 LA6A6:
                 jsr LA778
 LA6A9:
-                .if version==320
+                .if version<500
                 php
                 pha
                 sec
@@ -6266,7 +6266,7 @@ LA71E:
                 beq LA74F
                 jsr LAA46
 LA737:
-                .if version==320
+                .if version<500
                 jsr LAABC
                 beq LA741
                 lda tube.data3
@@ -6298,13 +6298,13 @@ LA76E:
                 rts
 
 LA76F:
-                .if version==320
+                .if version<500
                 lda $BF
                 .elsif version>=500
                 lda #0
                 .endif
                 jsr LA776
-                .if version==320
+                .if version<500
                 lda $BE
                 .elsif version>=500
                 lda #0
@@ -6696,7 +6696,7 @@ LA9B6:
                 lda #$07
                 jsr OSWRCH
 LA9BB:
-                .if version==320
+                .if version<500
                 lda tubePresence
                 beq LA9C5
                 lda #$80
@@ -6843,7 +6843,7 @@ LAA68:
                 phy
                 jsr LAA8D
                 ply
-                .if version==320
+                .if version<500
                 bcs LAAC9                    ; Channel open, exit
                 .elsif version>=500
                 bcs LAA9F
@@ -6883,7 +6883,7 @@ LAAA0:
                 lda #$10
                 bra LAA2A
 
-                .if version==320
+                .if version<500
 LAAA4:
                 lda #$01
 LAAA6:
@@ -6974,7 +6974,7 @@ blockError:
 LAB2A:
                 jmp LA978
 
-                .if version==320
+                .if version<500
 ;-------------------------------------------------------------------------
 ;
 ; Tube host code
@@ -7655,7 +7655,7 @@ LAE0F:
 ;-------------------------------------------------------------------------
                 .endif
 
-                .if version==320
+                .if version<500
 ;-------------------------------------------------------------------------
 
 terminalServiceEntryPoint:
@@ -9636,7 +9636,7 @@ LB8DE:
                 rts                          ; B8DE= 60          `
                 .endif
 
-                .if version>=500
+                .if version>=400
                 .include "ext.s65"
                 .endif
 

@@ -5,6 +5,7 @@ Version=collections.namedtuple('Version','ver addr')
 
 VERSIONS=[
     Version(ver="320",addr=0x8368),
+    Version(ver="400",addr=0x8349),
     Version(ver="500",addr=0x8383),
     Version(ver="510",addr=0x83c0),
     Version(ver="511",addr=0x83c0),
@@ -40,7 +41,8 @@ def main():
             else:
                 c=commands[name][version.ver]
                 line+='|'
-                line+='$%04x $%02x $%02x'%(c.addr,c.x,c.y)
+                #line+='$%04x $%02x $%02x'%(c.addr,c.x,c.y)
+                line+='$%04x'%c.addr
         print(line)
 
 if __name__=='__main__': main()

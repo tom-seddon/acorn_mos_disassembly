@@ -195,7 +195,7 @@ outputCharToPrinter:
                 bcc rtsC035 ;taken if printer disabled - VDU 1 then a no-op
                 txa                          ;restore char to print
                 clc
-                .if version==320
+                .if version<500
                 jmp LE8B9
                 .elsif version>=500
                 jmp LE2ED
@@ -311,7 +311,7 @@ vdu2EntryPoint:
 vdu3EntryPoint:
                 pha                          ;
                 jsr reinstateCursorEditing
-                .if version==320
+                .if version<500
                 jsr callPrinterDriverWithPrinterBuffer
                 .elsif version>=500
                 jsr LE2E7
@@ -1339,7 +1339,7 @@ callVDUVForPLOT:
 ; Call VDUV.
 ; 
 callVDUV:
-                .if version==320
+                .if version<500
                 jmp (VDUV)
                 .elsif version>=500
                 jmp LE2F3
@@ -6918,7 +6918,7 @@ defaultMOSVariables:
                 .byte $00                    ;vpaletteRegister
                 .byte $00                    ;romActiveAtLastBRK
                 .byte $FF                    ;basicROMNumber
-                .if version==320
+                .if version<500
                 .byte $04                    ;currentADCChannel
                 .byte $04                    ;maximumADCChannel
                 .elsif version>=500
@@ -7031,7 +7031,7 @@ LE375:
 LE389:
                 phy
                 phx
-                .if version==320
+                .if version<500
                 jsr getROMInsertedFlagRTCAddressAndMask
                 sta $FC                      ;save mask
                 jsr selectTerminalROM
@@ -7058,7 +7058,7 @@ LE389:
 scanROMs: .proc
                 txa               ;A = ROM of interest
                 tay               ;Y = ROM of interest
-                .if version==320
+                .if version<500
                 jsr LE389         ;select ROM and check insertion flag
                 bcc currentROMInvalid ;taken if ROM not actually inserted
                 .endif
@@ -7070,7 +7070,7 @@ nextOtherROM:
                 iny                          ;next other ROM
                 cpy #$10                     ;out of other ROMs?
                 bcs currentROMValid       ;taken if no more other ROMs
-                .if version==320
+                .if version<500
                 jsr LE389   ;select other ROM and check insertion flag
                 bcc nextOtherROM ;taken if other ROM not actually inserted
                 .endif
@@ -7205,7 +7205,7 @@ LE431:
                 lda lastBREAKType ; Soft Break, use current filing system
                 beq LE454
                 jsr selectTerminalROM
-                .if version==320
+                .if version<500
                 phy
                 jsr terminal.readDefaultROMs
                 and #$0F                     ;get default FS ROM
@@ -7259,7 +7259,7 @@ LE496:
 LE499:
                 sec
                 ror hazel.currentFS
-                .if version==320
+                .if version<500
                 lda #$00
                 tax
                 jsr selectROMOrTAPE                    ; E4A0= 20 C2 ED     Bm
@@ -7280,7 +7280,7 @@ LE4A3:
                 beq LE509
 LE4BB:
                 jsr selectTerminalROM     ; Page in ROM 15 - UTILS ROM
-                .if version==320
+                .if version<500
                 jsr terminal.readDefaultLanguageROM        ; Read configured LANG
                 .elsif version>=500
                 ldx #$41
@@ -7320,7 +7320,7 @@ LE4E1:
                 jsr OSNEWL
                 jsr OSNEWL
                 plp
-                .if version==320
+                .if version<500
                 lda #$01
                 bit tubePresence
                 bmi copyLanguageOverTube     ;taken if Tube is present
@@ -7333,7 +7333,7 @@ LE4E1:
 
 LE509:
                 lda #$00
-                .if version==320
+                .if version<500
                 bit tubePresence
                 bpl startCommandLineUI
 copyLanguageOverTube:
@@ -7597,7 +7597,7 @@ rtsE64D:
                 rts
 
 LE64E:
-                .if version==320
+                .if version<500
                 and rs423InterruptMask
                 .endif
                 lsr a
@@ -7681,7 +7681,7 @@ checkForUserVIAInterrupt:
 
 checkForSystemVIAT1Interrupt:
                 bit #VIA.irq.t1
-                .if version==320
+                .if version<500
                 beq checkForSystemVIACB1Interrupt
                 .elsif version>=500
                 beq checkForSystemVIACA2Interrupt
@@ -7754,14 +7754,14 @@ LE728:
                 ldx #romServiceCallPollingInterrupt
                 jsr makeROMServiceCall
 +
-                .if version==320
+                .if version<500
                 bit HADC+0
                 bvs LE752
                 .endif
                 rts
 
 checkForSystemVIACB1Interrupt:
-                .if version==320
+                .if version<500
                 bit #VIA.irq.cb1
                 beq checkForSystemVIACA2Interrupt
 
@@ -7811,7 +7811,7 @@ checkForSystemVIACA2Interrupt:
                 clc                          ; E791= 18          .
                 jsr LF8FF                    ; E792= 20 FF F8     .x
                 lda #VIA.irq.ca2
-                .if version==320
+                .if version<500
                 bra staSystemVIAIFR
                 .elsif version>=500
 staSystemVIAIFR:
@@ -7827,7 +7827,7 @@ handleUnrecognisedInterruptE799:
 ; OSBYTE 17 (&11) Write next ADC channel to be sampled [MasRef D.2-25]
 ; 
 osbyte11:
-                .if version==320
+                .if version<500
                 sty adcLastConvertedChannel
                 .elsif version>=500
                 sty currentADCChannel
@@ -8179,7 +8179,7 @@ starLIBFS:
 
 ;-------------------------------------------------------------------------
 
-                .if version==320
+                .if version<500
 starX:
                 sta TUBE+8                   ; E7FD= 8D E8 FE    .h~
 LE800:
@@ -8814,7 +8814,7 @@ osbyte99Done:
 
 ; A = 0 (edit keys)/1 (ascii keys)/2 (F keys)
 handleCursorKeysAndCopy:
-                .if version==320
+                .if version<500
                 ror a                        ;test edit keys mode bit 0
                 pla                          ;restore translated value
                 bcs clc_rts_EABD       ;taken if value was asciiKeys
@@ -8826,7 +8826,7 @@ handleCursorKeysAndCopy:
                 
 handleFunctionKey:
                 tya
-                .if version==320
+                .if version<500
                 and #$0F
                 .endif
                 pha
@@ -8839,7 +8839,7 @@ handleFunctionKey:
                 tay
                 lda input192To207Interpretation-8,y
                 lsr a
-                .if version==320
+                .if version<500
                 beq LEB32
                 pla
                 clc
@@ -8877,7 +8877,7 @@ copyCharNotRecognised:
                 plx
 readFromInputBufferX:
                 jsr osbyte91          ;extract character from buffer X
-                .if version==320
+                .if version<500
                 bcs rtsEB28           ;taken if buffer empty
                 .elsif version>=500
                 bcs LEC0D
@@ -8984,7 +8984,7 @@ rtsEB28:
 readCopyChar:
                 phx
                 jsr handleCopyKeyThunk
-                .if version==320
+                .if version<500
                 beq copyCharNotRecognised
                 .elsif version>=500
                 bne +
@@ -9007,7 +9007,7 @@ LEC99:
 LECA2:
                 sta currentSoftKey
 
-                .elsif version==320
+                .elsif version<500
 
 LEB32:
                 ply
@@ -9056,7 +9056,7 @@ handleCopyKeyThunk:
 
 ;-------------------------------------------------------------------------
 
-                .if version==320
+                .if version<500
                 .include "osbyte_osword_table.s65"
                 .endif
 
@@ -9084,7 +9084,7 @@ LEC54:
 osbyte7C: ;EC56
                 clc
 osbyte7D: ;EC57
-                .if version==320
+                .if version<500
                 ror $FF
                 bit tubePresence
                 bpl LECD9
@@ -9100,7 +9100,7 @@ osbyte7D: ;EC57
                 bra LECD9
                 .endif
 
-                .if version==320
+                .if version<500
 osbyte89:
                 lda serialULARegister
                 tay
@@ -9288,7 +9288,7 @@ osbyte0E:
 ; 20 milliseconds.
 ; 
 osbyte10:
-                .if version==320
+                .if version<500
                 beq +                        ;taken if X=0
                 jsr osbyte11
 +
@@ -9339,7 +9339,7 @@ osbyte82:
                 rts
 
 LED14:
-                .if version==320
+                .if version<500
                 ldx #$FD
                 .elsif version==500||version==510
                 ldx #$f5
@@ -9383,7 +9383,7 @@ getRS423InputBufferFreeBytes:
 osbyte80:
                 bmi LED18
                 beq LED45
-                .if version==320
+                .if version<500
                 cpx #$05
                 bcs osbyte82                 ;return with X=$ff Y=$ff
                 ldy adcResultMSBs-1,x
@@ -9404,7 +9404,7 @@ osbyte80:
 ;-------------------------------------------------------------------------
 
 LED45:
-                .if version==320
+                .if version<500
                 ; Put joystick buttons in bits 0/1.
                 lda systemVIA.irb
                 ror a
@@ -9796,7 +9796,7 @@ LEF71:
                 jmp handleUnrecognisedOSBYTEOrOSWORD
 
 LEF74:
-                .if version==320
+                .if version<500
                 sbc #$34                     ; :(
                 .elsif version>=500
                 sbc #$33
@@ -9813,7 +9813,7 @@ LEF76:
                 .if version>=500
 osword0E:
                 cmp #3
-                .if version==320
+                .if version<500
                 bcs handleUnrecognisedOSBYTEOrOSWORD
                 .elif version>=500
                 bcs handleUnrecognisedOSWORD
@@ -9857,7 +9857,7 @@ osbyteA6ToFF:
 osbyteOrUSERV:      ;call OSBYTE A6+ routine if C=0; call USERV if C=1
                 lda #$A6
                 adc #$00
-                .if version==320
+                .if version<500
 osbyte6BToA5:
                 sbc #$50        ;map $6b-$a5 to $1b-$56
                 .elsif version>=500
@@ -9932,14 +9932,14 @@ handleUnrecognisedOSWORD:
                 pla
 handleUnrecognisedOSBYTEOrOSWORD:
                 jsr makeROMServiceCall
-                .if version==320
+                .if version<500
                 bne LEF15
                 .else
                 bne LEF85
                 .endif
                 ldx originalX
                 bra LEEFA
-                .if version==320
+                .if version<500
 LEF15:
                 plp
                 pla
@@ -9949,7 +9949,7 @@ LEF15:
 
 ;-------------------------------------------------------------------------
 
-                .if version==320
+                .if version<500
 LEF1B: .LEF1BMacro
                 .endif
 
@@ -9957,7 +9957,7 @@ LEF1B: .LEF1BMacro
 ;
 ; OSWORD 14 (&0E) Read CMOS clock [MasRef D.3-22]
 ;
-                .if version==320
+                .if version<500
 osword0E:
                 cmp #$03                   ;only codes 0/1/2 are valid
                 bcs handleUnrecognisedOSWORD
@@ -9971,7 +9971,7 @@ osword0E:
 ;
 ; D.3-3
 ;
-                .if version==320
+                .if version<500
 oswordEntryPoint:
                 pha             ;save OSWORD request
                 php
@@ -10009,7 +10009,7 @@ osword05:
 ; OSWORD 6 (&06) Write byte to I/O processor memory [MasRef D.3-9]
 ;
 
-                .if version==320
+                .if version<500
 osword06: .osword06Macro
                 .endif
 
@@ -10038,7 +10038,7 @@ getAddressFromOSWORDParameterBlock:
                 sta SEIWKA+1
                 ldy #$04
 ldxim03_rts:
-                .if version==320
+                .if version<500
                 ldx #$03
                 .elsif version>=500
                 ldx #$05
@@ -10070,7 +10070,7 @@ osbyte00:                       ;ef6f
                 
                 brk                          
                 .byte $f7
-                .if version==320
+                .if version<500
                 .text "OS 3.20"
                 .elsif version==500
                 .text "MOS 5.00"
@@ -10508,7 +10508,7 @@ osbyteA0:
 ; 
 resetKeyRepeat:
                 jsr withTerminalROM
-                .if version==320
+                .if version<500
                 jsr terminal.getDefaultKeyboardAutoRepeatDelay
                 sty keyboardAutoRepeatDelay
                 jsr terminal.getDefaultKeyboardAutoRepeatRate
@@ -11011,7 +11011,7 @@ LF30A:
 ;
 
 implementShift:
-                .if version==320
+                .if version<500
                 
                 cmp #'0'
                 beq gotShiftedChar           ;taken if SHIFT+0 - no change
@@ -11080,7 +11080,7 @@ LF3E9:
 ;
 ; 
 implementCTRLCodes:
-                .if version==320
+                .if version<500
                 
                 cmp #$7F                     ; F336= C9 7F       I.
                 beq gotCtrlChar
@@ -11133,7 +11133,7 @@ osbyte247EntryPoint:
                 lda breakVectorByte0
                 eor #$4C                     ; JMP abs
                 bne rtsF363
-                .if version==320
+                .if version<500
                 jmp breakVectorByte0
                 .elsif version>=500
                 lda $f4
@@ -11333,7 +11333,7 @@ starRunBOOT:
 
 ;-------------------------------------------------------------------------
 
-                .if version==320
+                .if version<500
                 .include "sound_stuff.s65"
                 .endif
 
@@ -11517,7 +11517,7 @@ resetKeyboardStatusAndTimer:
                 sta keyboardStatusByte
                 stz autoRepeatCountdownTimer
 braRolloverChecks:
-                .if version==320
+                .if version<500
                 bra keyboardRolloverChecks
                 .elsif version>=500
                 jmp keyboardRolloverChecks
@@ -11582,7 +11582,7 @@ LF5EF:
                 .endif
                 beq handleTAB                ;taken if TAB
                 cmp #$9D                     ;was it key_numpad_return?
-                .if version==320
+                .if version<500
                 bne handleKey                ;taken if not
                 .elsif version>=500
                 bne LF5FD
@@ -11648,7 +11648,7 @@ processModifiers:
                 bpl testShiftLock           ;taken if ctrl not pressed
                 ldx firstKeyPressedInternal
 localResetAutoRepeatAndContinue:
-                .if version==320
+                .if version<500
                 bne resetAutoRepeatAndContinue
                 jsr implementCTRLCodes
                 .else
@@ -11688,7 +11688,7 @@ testEscape:
 
 LF839:
                 
-                .if version==320
+                .if version<500
                 
                 tay
                 jsr enableKeyboardScanningFlippingInterrupts
@@ -11880,7 +11880,7 @@ LF8BF:
                 .text "y"                    ;44 y
                 .text "j"                    ;45 j
                 .text "k"                    ;46 k
-                .if version==320
+                .if version<500
                 .text "@"                    ;47 at
                 .elsif version>=500
                 .byte 1                      ;47 special
@@ -12865,7 +12865,7 @@ badCommandError:
 ; Credits - normally hidden by the I/O region.
 ;
 
-                .if version==320
+                .if version<500
                 .text "(C) 1984 Acorn Computers Ltd."
                 .text "Thanks are due to the following contributors to the BBC Computer (among others too numerous to mention):- "
                 .elsif version>=500
@@ -12873,12 +12873,12 @@ badCommandError:
                 .text "Thanks are due to the following contributors to this Computer (among many others):- "
                 .endif
                 .text "David Allen,"
-                .if version==320
+                .if version<500
                 .text "Clive Angel,"
                 .endif
                 .text "David Bell,"
                 .text "Paul Bond,"
-                .if version==320
+                .if version<500
                 .text "Allen Boothroyd,"
                 .endif
                 .text "Julian Brown,"
@@ -12890,7 +12890,7 @@ badCommandError:
                 .if version>=500
                 .text "Barbara Cole,"
                 .endif
-                .if version==320
+                .if version<500
                 .text "Pete Cockerell,"
                 .endif
                 .text "Mark Colton,"
@@ -12900,7 +12900,7 @@ badCommandError:
                 .text "Tim Dobson,"
                 .endif
                 .text "Joe Dunn,"
-                .if version==320
+                .if version<500
                 .text "Paul Freakley,"
                 .endif
                 .if version>=500
@@ -12919,7 +12919,7 @@ badCommandError:
                 .if version>=500
                 .text "Dave Ireland,"
                 .endif
-                .if version==320
+                .if version<500
                 .text "Neil Johnson,"
                 .endif
                 .text "Richard King,"
@@ -12933,7 +12933,7 @@ badCommandError:
                 .text "Tom McNamara,"
                 .endif
                 .text "Richard Manby,"
-                .if version==320
+                .if version<500
                 .text "Peter McKenna,"
                 .text "Andrew McKernan,"
                 .text "Mick Neil,"
@@ -12949,7 +12949,7 @@ badCommandError:
                 .text "Jean Nunn,"
                 .endif
                 .text "Richard Page,"
-                .if version==320
+                .if version<500
                 .text "Steve Parsons,"
                 .text "Ed Phipps,"
                 .endif
@@ -12963,7 +12963,7 @@ badCommandError:
                 .text "Paul Rose,"
                 .endif
                 .text "Richard Russell,"
-                .if version==320
+                .if version<500
                 .text "Gordon Sage,"
                 .text "Terry Scotcher,"
                 .endif
@@ -12982,11 +12982,11 @@ badCommandError:
                 .text "Tony Thompson,"
                 .endif
                 .text "Hugo Tyson,"
-                .if version==320
+                .if version<500
                 .text "Adrian Warner,"
                 .text "Jess Wills,"
                 .endif
-                .if version==320
+                .if version<500
                 .text "Roger Wilson,"
                 .text "Graham Winterflood."
                 .text "   "

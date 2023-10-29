@@ -15,7 +15,7 @@ endif
 ##########################################################################
 
 .PHONY:all
-all: $(BUILD)/320/all.orig $(BUILD)/500/all.orig $(BUILD)/510/all.orig $(BUILD)/511/all.orig
+all: $(BUILD)/320/all.orig $(BUILD)/400/all.orig $(BUILD)/500/all.orig $(BUILD)/510/all.orig $(BUILD)/511/all.orig
 	$(_V)$(TASS) mos320.s65 -L$(BUILD)/mos320.lst --output-section mos -o$(BUILD)/320/mos.rom --output-section terminal -o $(BUILD)/320/terminal.rom --output-section ext -o $(BUILD)/320/ext.rom
 	$(_V)cat $(BUILD)/320/terminal.rom $(BUILD)/320/mos.rom $(BUILD)/320/ext.rom > $(BUILD)/320/all.new
 	@sha1sum $(BUILD)/320/all.orig
@@ -24,6 +24,7 @@ all: $(BUILD)/320/all.orig $(BUILD)/500/all.orig $(BUILD)/510/all.orig $(BUILD)/
 	$(_V)$(MAKE) _build VERSION=500
 	$(_V)$(MAKE) _build VERSION=510
 	$(_V)$(MAKE) _build VERSION=511
+#	$(_V)$(MAKE) _build VERSION=400
 
 .PHONY:_build
 _build:
@@ -49,6 +50,10 @@ clean:
 .PHONY:diff320
 diff320:
 	$(MAKE) _diff VERSION=320
+
+.PHONY:diff400
+diff400:
+	$(MAKE) _diff VERSION=400
 
 .PHONY:diff500
 diff500:
@@ -77,6 +82,9 @@ $(BUILD)/320/all.orig: orig/MOS320.rom
 
 ##########################################################################
 ##########################################################################
+
+$(BUILD)/400/all.orig: orig/400/mos.rom orig/400/utils.rom
+	$(_V)$(MAKE) _orig VERSION=400
 
 $(BUILD)/500/all.orig: orig/500/mos.rom orig/500/utils.rom
 	$(_V)$(MAKE) _orig VERSION=500

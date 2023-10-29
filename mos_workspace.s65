@@ -1400,14 +1400,14 @@ terminalROM=15
 ; ROM number containing the extXXXX entry points
                 .if version==320
 extROM=14
-                .elsif version>=500
+                .elsif version>=400
 extROM=15
                 .endif
 
 ; Base page for VDU routines
 vduRoutinesPage=$c0
 
-                .if version==320
+                .if version<500
 cmosBytesOffset=RTC.ram
                 .elsif version>=500
 cmosBytesOffset=0

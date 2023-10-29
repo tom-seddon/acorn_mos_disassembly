@@ -6061,15 +6061,18 @@ plotSolidEllipse:
 
 ;-------------------------------------------------------------------------
 
+; Pretty sure I have the logic for this all wrong...
+
                 .align 16
 startupMessages: .block
-                .if version>=500&&version<511
+                .if version==500||version==510
                 .fill 16,0
                 .endif
-acornMOS:
+
                 .if version>=511
                 .byte 0
                 .endif
+acornMOS:
                 .text 13
                 .text "Acorn MOS",0
 beep:

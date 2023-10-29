@@ -650,14 +650,17 @@ L82FE:
                 jsr mos.makeROMServiceCall   ; Tube PostInit
                 and startupMessageSuppressionStatus
                 bpl L8340
-                ldy #((mos.startupMessages.acornMOS-mos.startupMessages)-1)&$ff
+
+                ; use +$ff rather than -1 to avoid 64tass warning.
+                ; Only the LSB is used.
+                ldy #((mos.startupMessages.acornMOS-(mos.startupMessages&$ff00))+$ff)&$ff
                 jsr mos.printStartupMessage
                 lda lastBREAKType            ; Skip past if Soft Break
                 beq L833B
-                ldy #((mos.startupMessages.beep-mos.startupMessages)-1)&$ff
+                ldy #((mos.startupMessages.beep-(mos.startupMessages&$ff00))-1)&$ff
                 jsr mos.printStartupMessage
 L833B:
-                ldy #((mos.startupMessages.twoNewlines-mos.startupMessages)-1)&$ff
+                ldy #((mos.startupMessages.twoNewlines-(mos.startupMessages&$ff00))-1)&$ff
                 jsr mos.printStartupMessage
 L8340:
                 pla                          ; Restore Spool handle

@@ -29,8 +29,10 @@ copyrightText:
                 .byte copyright-1-terminal
                 .if version==500
                 .byte 0
-                .elsif version>=510
+                .elsif version==510
                 .byte 1
+                .elsif version==511
+                .byte $10
                 .endif
                 .text "UTILS",0
 copyright:
@@ -449,7 +451,11 @@ L8264:
                 bcs checkForResetKey
                 tya
                 and #$7f
+                .if version<511
                 cmp #$30
+                .else
+                cmp #$32
+                .endif
                 beq checkForResetKey
                 ldx #0
                 ldy #0
@@ -502,7 +508,11 @@ L82A9:
                 jsr writeCMOSByte
                 plx
                 dex
+                .if version<511
                 cpx #$13
+                .else
+                cpx #$14
+                .endif
                 bcs L82A9
                 bra resetCMOSRAM
 L82B7:
@@ -511,7 +521,11 @@ L82B7:
                 .endif
                 .if version>=500
 resetCMOSRAM:                                ;82bb in MOS 5.10
+                .if version<511
                 ldx #$13
+                .else
+                ldx #$14
+                .endif
 L8280:
                 phx
                 dex
@@ -524,7 +538,11 @@ L8280:
                 jsr L9ECA
                 tya
                 and #$80
+                .if version<511
                 eor #$b0
+                .else
+                eor #$b2
+                .endif
                 tay
                 ldx #$ff
                 jsr L9E99
@@ -4235,7 +4253,11 @@ readRTCByte:
                 bcc L9DDB
 L9DD0:
                 ldy #0
+                .if version<511
                 cpx #$13
+                .else
+                cpx #$14
+                .endif
                 bcs L9DDE
                 ldy L9DE4,x
                 bra L9DDE
@@ -4264,7 +4286,11 @@ L9DE4:
                 .byte $FF
                 .byte 0
                 .byte 0
+                .if version>=511
+                .byte $f9
+                .else
                 .byte $F7
+                .endif
                 .byte $E3
                 .byte $20
                 .byte 8
@@ -4273,6 +4299,9 @@ L9DE4:
                 .byte $80
                 .byte 0
                 .byte 3
+                .if version>=511
+                .byte 4
+                .endif
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -4713,8 +4742,10 @@ L9E38:
                 .text "TERMINAL 1.20"
                 .elsif version==500
                 .text "UTILS 1.00"
-                .elsif version>=510
+                .elsif version==510
                 .text "UTILS 1.10"
+                .elsif version==511
+                .text "UTILS 1.10C"
                 .endif
                 .byte 13
                 .text 0

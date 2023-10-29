@@ -9338,8 +9338,10 @@ osbyte82:
 LED14:
                 .if version==320
                 ldx #$FD
-                .elsif version>=500
+                .elsif version==500||version==510
                 ldx #$f5
+                .elsif version==511
+                ldx #$f4
                 .endif
                 bra LECFD
 
@@ -11489,7 +11491,11 @@ checkForKeyAutoRepeat:
                 cpx #$80|key_shift_lock
                 beq shiftLockPressed
                 cpx #$80|key_caps_lock
+                .if version>=511
+                bne LF5E5_511
+                .else
                 bne getASCIICode
+                .endif
 capsLockPressed:
                 ora #keyboardStatusByte.shiftEnabled|keyboardStatusByte.shiftLockDisengaged
                 bit SEIWKA                   ;test SHIFT status
@@ -11536,7 +11542,11 @@ LF5FC:
                 bmi braRolloverChecks
                 lda keyboardTranslationTableAddress+0
                 bit keyboardTranslationTableAddress+1
+                .if version>=511
+                jmp LF6A8
+                .else
                 jmp LF6A7
+                .endif
 
 LF607:
                 plx

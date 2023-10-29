@@ -58,6 +58,10 @@ diff500:
 diff510:
 	$(MAKE) _diff VERSION=510
 
+.PHONY:diff511
+diff511:
+	$(MAKE) _diff VERSION=511
+
 .PHONY:_diff
 _diff: all
 	vbindiff $(BUILD)/$(VERSION)/all.orig $(BUILD)/$(VERSION)/all.new

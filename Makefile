@@ -18,8 +18,7 @@ endif
 all: $(BUILD)/320/all.orig $(BUILD)/400/all.orig $(BUILD)/500/all.orig $(BUILD)/510/all.orig $(BUILD)/511/all.orig
 	$(_V)$(TASS) mos320.s65 -L$(BUILD)/mos320.lst --output-section mos -o$(BUILD)/320/mos.rom --output-section terminal -o $(BUILD)/320/terminal.rom --output-section ext -o $(BUILD)/320/ext.rom
 	$(_V)cat $(BUILD)/320/terminal.rom $(BUILD)/320/mos.rom $(BUILD)/320/ext.rom > $(BUILD)/320/all.new
-	@sha1sum $(BUILD)/320/all.orig
-	@sha1sum $(BUILD)/320/all.new
+	$(_V)$(MAKE) _check_identical VERSION=320
 
 	$(_V)$(MAKE) _build VERSION=500
 	$(_V)$(MAKE) _build VERSION=510
@@ -30,8 +29,13 @@ all: $(BUILD)/320/all.orig $(BUILD)/400/all.orig $(BUILD)/500/all.orig $(BUILD)/
 _build:
 	$(_V)$(TASS) mos$(VERSION).s65 -L$(BUILD)/mos$(VERSION).lst --output-section mos -o $(BUILD)/$(VERSION)/mos.rom --output-section utils -o $(BUILD)/$(VERSION)/utils.rom
 	$(_V)cat $(BUILD)/$(VERSION)/utils.rom $(BUILD)/$(VERSION)/mos.rom > $(BUILD)/$(VERSION)/all.new
-	@sha1sum $(BUILD)/$(VERSION)/all.orig
-	@sha1sum $(BUILD)/$(VERSION)/all.new
+	$(_V)$(MAKE) _check_identical VERSION=$(VERSION)
+
+.PHONY:_check_identical
+_check_identical: ORIG:=$(BUILD)/$(VERSION)/all.orig
+_check_identical: NEW:=$(BUILD)/$(VERSION)/all.new
+_check_identical:
+	@cmp --quiet $(ORIG) $(NEW) || ( sha1sum $(BUILD)/$(VERSION)/all.orig && sha1sum $(BUILD)/$(VERSION)/all.new )
 
 .PHONY:_test
 _test:

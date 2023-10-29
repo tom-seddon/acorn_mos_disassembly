@@ -81,8 +81,8 @@ LBA52:
                 dey
 LAF06:
                 dex
-                stx vduv.workspace._44
-                sty vduv.workspace._45
+                stx vduv.workspace._34
+                sty vduv.workspace._35
                 txa
                 cmp vduv.workspace._3A
                 tya

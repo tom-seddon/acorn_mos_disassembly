@@ -87,7 +87,11 @@ osbyteAndOSWORDRoutineTable:
                 .endif
                 .word mos.osbyte8A ;Insert character code into buffer
                 .word mos.osbyte8B ;Write Filing System options
+                .if version==320
                 .word mos.osbyte8C8D ;Select Cassette Filing System
+                .elsif version>=500
+                .word mos.osbyteUnused
+                .endif
                 .word mos.osbyte8C8D ;Select ROM Filing System
                 .word mos.osbyte8E   ;Enter language ROM
                 .word mos.osbyte8F   ;Issue paged ROM service request

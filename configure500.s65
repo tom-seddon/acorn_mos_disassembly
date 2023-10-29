@@ -100,14 +100,13 @@ L8853:
                 .byte $BE
                 .byte $BE       ;
                 .byte $C5       ;
-                .byte $A
-                .byte $69       ; i
-                .byte $80       ;
-                .byte 8
 
 ;-------------------------------------------------------------------------
 
-starCONFIGURE:
+starCONFIGUREOrStarSTATUS:
+                asl a
+                adc #$80
+                php
                 lda #<configureTable
                 sta $B0
                 lda #>configureTable

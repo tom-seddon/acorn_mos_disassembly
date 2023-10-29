@@ -57,7 +57,7 @@ printSwitched=1000
 setStick=1000
 printStick=1000
 ;soundParameterTable=1000
-starSTATUS=1000
+;starSTATUS=1000
 
 L9527=$9527                     ;bad address BRK
 ;readRTCByte=$9dca

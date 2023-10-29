@@ -163,7 +163,11 @@ L80B9:
                 and #CMOSBytes.defaults3.autoBootMask
                 lsr a         ; Reset OSBYTE 255 boot bit (b3) if BOOT
                 trb startupOptions
+                .if version==320
                 jsr readDefaultTVSettings
+                .elsif version>=500
+                jsr L8BD6
+                .endif
                 sty tvOffset
                 stx tvInterlace
 L80CB:
@@ -573,10 +577,8 @@ L82FE:
                 stz $F2                      ; &F2/3=>FS Info Blocks
                 lda #>hazel.fsInfoBlocks
                 sta $F3
-                ldy #<hazel.fsInfoBlocks+3*size(fsInfoBlock) ; Y=>end
-                                                             ; of FS
-                                                             ; Info
-                                                             ; Blocks
+                ; Y=>end of FS Info Blocks
+                ldy #<hazel.fsInfoBlocks+size(defaultFsInfoBlocks)
                 ldx #$25                     ; Ask ROMs for FS Info Blocks
                 jsr mos.makeROMServiceCall   ;
                 lda #$00                     ; Terminate FS Info blocks
@@ -663,7 +665,11 @@ mosCommandTable:
                 .mos_command "BASIC",starBASIC,$00,$00  ;
                 .mos_command "BUILD",starBUILD,$80,$00  ; XY=>parameters
                 .mos_command "CLOSE",starCLOSE,$00,$FF  ;
+                .if version==320
                 .mos_command "CONFIGURE",starCONFIGURE,$00,$FF ;
+                .elsif version>=500
+                .mos_command "CONFIGURE",starCONFIGUREOrStarSTATUS,$00,$80 ;
+                .endif
                 .mos_command "CODE",starCommandThroughOSBYTE,$00,$88 ; X,y=parameters, OSBYTE &88
                 .mos_command "CREATE",starCommandThroughOSFILE,$80,$07 ; XY=>parameters, OSFILE &07
                 .mos_command "DUMP",starDUMP,$80,$00   ; XY=>parameters
@@ -682,7 +688,11 @@ mosCommandTable:
                 .mos_command "LIST",starLIST,$80,$00   ; XY=>parameters
                 .mos_command "LINE",mos.callUSERV,$00,$01 ;
                 .mos_command "LIBFS",mos.starLIBFS,$00,$00    ;
+                .if version==320
                 .mos_command "MOTOR",starCommandThroughOSBYTE,$00,$89 ; X,y=parameters, OSBYTE &89
+                .elsif version>=500
+                .mos_command "MOTOR",mos.rtsFFAA,$00,$89 ; X,y=
+                .endif
                 .mos_command "MOVE",starMOVE,$80,$00  ; XY=>parameters
                 .mos_command "OPT",starCommandThroughOSBYTE,$80,$8B ; X,y=parameters, OSBYTE &8B
                 .mos_command "PRINT",starPRINT,$80,$00 ; XY=>parameters
@@ -704,8 +714,16 @@ mosCommandTable:
                 .mos_command "SRSAVE",starSRLOADOrStarSRSAVE,$80,$20
                 .mos_command "SRWRITE",starSRREADOrStarSRWRITE,$00,$e0
                 .endif
+                .if version==320
                 .mos_command "STATUS",starSTATUS,$00,$FF  ;
+                .elsif version>=500
+                .mos_command "STATUS",starCONFIGUREOrStarSTATUS,$00,$c0
+                .endif
+                .if version==320
                 .mos_command "TAPE",starCommandThroughOSBYTE,$00,$8C ; X,y=parameters, OSBYTE &8C
+                .elsif version>=500
+                .mos_command "TAPE",mos.rtsFFAA,$00,$8C ; X,y=parameters, OSBYTE &8C
+                .endif
                 .mos_command "TV",starCommandThroughOSBYTE,$00,$90 ; X,y=parameters, OSBYTE &90
                 .mos_command "TIME",starTIME,$00,$00   ;
                 .mos_command "TYPE",starTYPE,$80,$00   ; XY=>parameters
@@ -1103,11 +1121,11 @@ printROMsLoop:
                 phy
                 jsr mos.LF89A
                 bcs L86D2
-                jsr printFollowingMessage
+                jsr alwaysPrintFollowingMessage
                 .text "ROM ",0
                 bra L86DA
 L86D2:
-                jsr printFollowingMessage
+                jsr alwaysPrintFollowingMessage
                 .text "RAM ",0
 L86DA:
                 ply
@@ -1206,7 +1224,11 @@ starUNPLUG:
 starINSERTOrStarUNPLUG:
                 php
                 jsr mos.skipSpacesAndCheckForCRInStringInput
+                .if version==320
                 jsr parseSingle4BitNumberFromCommandLine
+                .elsif version>=500
+                jsr L8953
+                .endif
                 tay                          ;Y=ROM number
                 jsr mos.getROMInsertedFlagRTCAddressAndMask
                 pha
@@ -2119,7 +2141,7 @@ osbyte19:
                 bcs rts9238         ;taken if group >= 8 (not invalid)
                 .elsif version>=500
                 cmp #$10
-                bcs rts9238
+                bcs rts94A4
                 and #7
                 beq restoreFont32To255
                 .endif
@@ -2145,6 +2167,7 @@ clearOSFILEParameterBlockDWORD:
                 stz osfileParameterBlock+1,x
                 stz osfileParameterBlock+2,x
                 stz osfileParameterBlock+3,x
+rts94A4:
                 rts
 
 ;-------------------------------------------------------------------------
@@ -3022,9 +3045,9 @@ monthStrings: .block
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-L986B:
-                .byte $12
+L986C:
                 .byte $99
+                .byte $12
                 .byte $31
                 .byte $06
                 .byte $23
@@ -3074,7 +3097,7 @@ osword0E:
 L9899:
                 ldx #7
 L989B:
-                lda L986B,x
+                lda L986C-1,x
                 sta (originalX),y
                 dey
                 dex
@@ -4292,7 +4315,11 @@ L9EC3:
 
 L9ECA:
                 jsr L9E32
+                .if version==320
                 lda #$0a
+                .elsif version>=500
+                lda #$a0
+                .endif
                 jsr L9F23
                 txa
                 jsr L9F23
@@ -4454,9 +4481,10 @@ L9DCC:
                 beq utilsInCorrectBank
                 rts
 utilsInCorrectBank:
-                bra L9E17
+                bra LA245
 L9DCA:
-                lda #$00                
+                lda #$00
+LA245:           
                 .endif
                 cmp #romServiceCallInitialiseFilingSystem
                 bne L9DEA
@@ -5436,10 +5464,10 @@ LA3A7:
                 lda ($CC)
                 tay
                 lda #$01
-                plp
                 .if version==320
-                php
+                plp
                 .endif
+                php
                 adc #$00
                 jsr LAA8D
                 bcs LA3C1
@@ -5924,7 +5952,11 @@ LA670:
                 jsr LAA44
                 sty $C2
                 txa
+                .if version==320
                 bne LA6CC
+                .elsif version>=500
+                bne rtsAAC1
+                .endif
 LA678:
                 lda cfsRFSFSSwitch
                 beq LA62E
@@ -6001,6 +6033,7 @@ LA6D4:
                 ldx #$04
 LA6E6:
                 stx $C2
+rtsAAC1:
                 rts
 
 LA6E9:                                       ;AAC2 in MOS 5.00
@@ -6076,9 +6109,17 @@ LA76E:
                 rts
 
 LA76F:
+                .if version==320
                 lda $BF
+                .elsif version>=500
+                lda #0
+                .endif
                 jsr LA776
+                .if version==320
                 lda $BE
+                .elsif version>=500
+                lda #0
+                .endif
 LA776:
                 sta $BD
 LA778:
@@ -6282,7 +6323,7 @@ LA8B1:
                 plp
                 bne LA8DA
 LA8C4:
-                ldy #$04
+                ldy #<dataError
                 lda $C1
                 bne LA8DA
                 lda $03C6

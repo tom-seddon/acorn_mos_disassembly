@@ -6056,10 +6056,10 @@ plotSolidEllipse:
 ;-------------------------------------------------------------------------
 
                 .align 256
+startupMessages: .block
                 .if version>=500
                 .fill 16,0
                 .endif
-startupMessages: .block
 acornMOS:
                 .text 13
                 .text "Acorn MOS",0

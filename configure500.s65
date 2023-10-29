@@ -1,6 +1,10 @@
 configureTable: .text "."
                 .byte $89
+                .if version<510
                 .byte $BC       ;
+                .else
+                .byte $f9
+                .endif
                 .text "Baud"
                 .byte $D0       ;
                 .byte $D2       ;
@@ -27,7 +31,11 @@ configureTable: .text "."
                 .byte $80       ;
                 .text "Ignore"
                 .byte $89       ;
+                .if version<510
                 .byte $12
+                .else
+                .byte $4f
+                .endif
                 .text "Lang"
                 .byte $D8       ;
                 .byte $84       ;
@@ -75,7 +83,11 @@ configureTable: .text "."
                 .byte $E8
                 .text "TV"
                 .byte $89
+                .if version<510
                 .byte $64; d
+                .else
+                .byte $a1
+                .endif
                 .byte 0
                 .byte 8
                 .byte $51; Q

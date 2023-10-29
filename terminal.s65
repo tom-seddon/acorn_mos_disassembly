@@ -27,7 +27,11 @@ copyrightText:
 
                 .byte $82
                 .byte copyright-1-terminal
+                .if version==500
                 .byte 0
+                .elsif version>=510
+                .byte 1
+                .endif
                 .text "UTILS",0
 copyright:
                 .text "(C)1986 Acorn",0
@@ -293,7 +297,7 @@ gotKeyboardStatusByte:
                 jsr readDefaults2
                 lsr a                        ;C=tubeOn
                 lsr a                        ;C=usePrinterIgnoreChar
-                .elsif version==500
+                .elsif version>=500
                 jsr readUsePrinterIgnoreChar
                 .endif
                 ror noignoreState
@@ -432,7 +436,13 @@ romsScanned:
                 jsr mos.setStartupMODE
                 lda lastBREAKType
                 dec a
+                .if version>=510
+                beq L8264
+                jmp L8284
+L8264:
+                .else
                 bne L8284                    ;taken if not power-on reset
+                .endif
                 .if version>=500
                 ldx #$ff
                 jsr L9ECA
@@ -446,14 +456,16 @@ romsScanned:
                 jsr L9E99
                 bra resetCMOSRAM
                 .endif
+                
+
+                .if version==320
 checkForResetKey:
                 lda firstKeyPressedInternal
                 cmp #key_r
                 bne L8284                    ;taken if R not pressed
-
+                
                 ; Reset CMOS RAM
-resetCMOSRAM
-                .if version==320
+resetCMOSRAM:
                 ldx #size(RTC.ram)-1
 resetCMOSRAMLoop:
                 phx                          
@@ -469,8 +481,36 @@ resetCMOSRAMLoop:
                 jsr writeCMOSByte
                 ldx #CMOSBytes.insertedROMs+1
                 jsr writeCMOSByte
-                .elsif version>=500
-L827E:
+                .elsif version==500
+checkForResetKey:
+                lda firstKeyPressedInternal
+                cmp #key_r
+                bne L8284
+                .elsif version==510
+checkForResetKey:
+                lda firstKeyPressedInternal
+                cmp #key_delete
+                bne L82B7
+                jsr alwaysPrintFollowingMessage
+                .byte 22,7
+                .byte 13,10
+                .text "Clearing options...please wait",0
+                ldx #$ff
+L82A9:
+                phx
+                ldy #0
+                jsr writeCMOSByte
+                plx
+                dex
+                cpx #$13
+                bcs L82A9
+                bra resetCMOSRAM
+L82B7:
+                cmp #key_r
+                bne L8284
+                .endif
+                .if version>=500
+resetCMOSRAM:                                ;82bb in MOS 5.10
                 ldx #$13
 L8280:
                 phx
@@ -2302,11 +2342,24 @@ callOSFILEWithOSFILEParameterBlock:
 starREMOVE:
                 stx osfileParameterBlock+OSFILEParameterBlock.fileName+0
                 sty osfileParameterBlock+OSFILEParameterBlock.fileName+1
+                .if version>=510
+                stx stringInputBufferAddress+0
+                sty stringInputBufferAddress+1
+                ldy #$ff
+L9596:
+                iny
+                lda (stringInputBufferAddress),y
+                cmp #'!'
+                bcs L9596
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                bne badCommandError93E2
+                .endif
                 lda #fileDelete
                 pha
                 bra callOSFILEWithOSFILEParameterBlock
 
 ;-------------------------------------------------------------------------
+                .if version<510
 ;
 ; *CLOSE [MasRef G.5-3]
 ; 
@@ -2316,8 +2369,9 @@ starCLOSE:
                 lda #$00                     
                 tay                          
                 jmp (FINDV)                  ;OSFIND A=0 Y=0
-
+                .endif
 ;-------------------------------------------------------------------------
+                .if version<510
 ;
 ; *IGNORE [MasRef C.5-7]
 ; 
@@ -2326,13 +2380,11 @@ starIGNORE:
                 sec
                 ror noignoreState
                 rts
-
-;-------------------------------------------------------------------------
-
+                
 L938E:
-                lda #$06                     ; 938E= A9 06       ).
-                bra starCommandThroughOSBYTE                    ; 9390= 80 59       .Y
-
+                lda #$06
+                bra starCommandThroughOSBYTE
+                .endif
 ;-------------------------------------------------------------------------
 
 finishStarSAVE:
@@ -2416,6 +2468,7 @@ starCommandThroughOSBYTE:
                 bcc badCommandError93E2
                 stx $E4
                 jsr mos.skipSpacesAndCheckForCRInStringInput
+L9625:
                 bne badCommandError93E2
 L9412:
                 ldy $E4
@@ -2432,6 +2485,17 @@ L941F:
 starSPOOLON:
                 sec
                 bra starSPOOL
+
+;-------------------------------------------------------------------------
+
+                .if version>=510
+starSHADOW:
+                lda #$72
+L963A:
+                bra starCommandThroughOSBYTE
+                .endif
+                
+;-------------------------------------------------------------------------
 
 L9423:
                 ldx #romServiceCallSpoolExecClosureWarning
@@ -2471,20 +2535,80 @@ callOSARGSWithBuffer:
                 ldx #osargsBuffer
                 jmp OSARGS
 
+;-------------------------------------------------------------------------
+
+                .if version<510
 starSHADOW:
                 lda #$72
                 bra starCommandThroughOSBYTE
+                .endif
 
+;-------------------------------------------------------------------------
+
+                .if version>=510
+starCLOSE:
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                bne L9625
+                lda #$00                     
+                tay                          
+                jmp (FINDV)                  ;OSFIND A=0 Y=0
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=510
+starIGNORE:
+                bne L938E
+                sec
+                ror noignoreState
+                rts
+                
+L938E:
+                lda #$06
+                bra L963A
+                .endif
+                
 ;-------------------------------------------------------------------------
 ; 
 starDELETE:
-                jsr starREMOVE                    ; 946A= 20 71 93     q.
-                tay                          ; 946D= A8          (
-                bne L941F                    ; 946E= D0 AF       P/
-                jmp notFoundError                    ; 9470= 4C 4D A5    LM%
+                jsr starREMOVE
+                tay
+                bne L941F
+                jmp notFoundError
 
 ;-------------------------------------------------------------------------
 
+                .if version>=510
+starSHOW:
+                lda (stringInputBufferAddress),y
+                eor #13
+                bne L96BF
+                tax
+L96A5:
+                jsr alwaysPrintFollowingMessage
+                .text "Key ",0
+
+                phx
+                txa
+                jsr printHexDigit
+                jsr printSpace
+                jsr printKeyDefinition
+                plx
+                inx
+                cpx #$10
+                bcc L96A5
+L96BE:
+                rts
+
+L96BF:
+                jsr parseSoftKeyNumberFromCommandLine
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                bne badKeyError
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version<510
 parseSoftKeyNumberFromCommandLine:
                 jsr parseNumberFromString
                 bcc badKeyError
@@ -2495,15 +2619,21 @@ badKeyError:
                 .byte $FB
                 .text "Bad key"
                 .byte 0
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
 ; [MasRef C.5-11]
-; 
-starSHOW: .proc
+;
+
+                .if version<510
+starSHOW:
                 jsr parseSoftKeyNumberFromCommandLine
                 jsr mos.skipSpacesAndCheckForCRInStringInput
                 bne badKeyError
+                .else
+printKeyDefinition:
+                .endif
                 lda #'"'
                 jsr OSWRCH
                 lda $F4
@@ -2513,10 +2643,15 @@ starSHOW: .proc
                 sta stringInputBufferAddress+0
                 lda andy.softKeys.stringMSBs,x
                 sta stringInputBufferAddress+1
+                .if version<510
                 ldy $E6
+                .else
+                txa
+                tay
+                .endif
                 jsr mos.getSoftKeyStringLength
                 tay                          ;Y = string length
-                beq done                    ;done if length=0
+                beq starSHOWDone                    ;done if length=0
 -
                 lda (stringInputBufferAddress)
                 jsr printGSREADChar
@@ -2526,14 +2661,28 @@ starSHOW: .proc
 +
                 dey
                 bne -
-done
+starSHOWDone:
                 pla     
                 jsr mos.selectROMA
                 lda #'"'
                 jsr OSWRCH        
                 jmp OSNEWL        
-                .endproc
 
+;-------------------------------------------------------------------------
+
+                .if version>=510
+parseSoftKeyNumberFromCommandLine:
+                jsr parseNumberFromString
+                bcc badKeyError
+                cpx #softKeyCount
+                bcc L96BE
+badKeyError:
+                jsr doFollowingError
+                .byte $FB
+                .text "Bad key"
+                .byte 0
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; [MasRef C.5-8]
@@ -4562,8 +4711,10 @@ L9E38:
                 .text 13
                 .if version==320
                 .text "TERMINAL 1.20"
-                .elsif version>=500
+                .elsif version==500
                 .text "UTILS 1.00"
+                .elsif version>=510
+                .text "UTILS 1.10"
                 .endif
                 .byte 13
                 .text 0
@@ -4674,8 +4825,10 @@ L9EFC:
                 .text 13
                 .if version==320
                 .text "OS 3.20"
-                .elsif version>=500
+                .elsif version==500
                 .text "MOS 5.00"
+                .elsif version>=510
+                .text "MOS 5.10"
                 .endif
                 .text 13,0
                 ply

@@ -1341,7 +1341,7 @@ callVDUVForPLOT:
 callVDUV:
                 .if version==320
                 jmp (VDUV)
-                .elsif version==500
+                .elsif version>=500
                 jmp LE2F3
                 .endif
 
@@ -9469,7 +9469,11 @@ osbyteUnused:                   ;ed84
 
 osbyteA1:
                 jsr withTerminalROM
+                .if version<510
                 jmp terminal.readCMOSByte
+                .else
+                jmp terminal.L9DAA
+                .endif
 
 osbyteA2:
                 jsr withTerminalROM

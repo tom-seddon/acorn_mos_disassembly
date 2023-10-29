@@ -11312,7 +11312,7 @@ LF416:
                 lda $f4
                 pha
                 jsr selectTerminalROM
-                jsr utils_9F56
+                jsr terminal.LF416
                 plx
                 jmp selectROMX
 
@@ -11321,7 +11321,7 @@ LF55D:
                 lda $f4
                 pha
                 jsr selectTerminalROM
-                jsr utils_A09D
+                jsr terminal.LF55D
                 plx
                 jsr selectROMX
                 plx
@@ -12032,7 +12032,7 @@ LF849:
                 inc $b1
                 inc $b3
                 jsr selectTerminalROM
-                jsr utils_8D0F
+                jsr terminal.L8D0F
                 jsr selectROMA
 LF85D:
                 cpy $2ef
@@ -12144,7 +12144,7 @@ LF8D1:
                 .if version>=500
 LF8EA:
                 jsr withTerminalROM
-                jmp utils_8EDC
+                jmp terminal.L8EDC
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -12152,7 +12152,7 @@ LF8EA:
                 .if version>=500
 LF8F0:
                 jsr withTerminalROM
-                jmp utils_8F8C
+                jmp terminal.L8F8C
                 .endif
                 
 ;-------------------------------------------------------------------------
@@ -12160,7 +12160,7 @@ LF8F0:
                 .if version>=500
 LF8F6:
                 jsr withTerminalROM
-                jmp utils_8BF2
+                jmp terminal.L8BF2
                 .endif
                 
 ;-------------------------------------------------------------------------
@@ -12168,7 +12168,7 @@ LF8F6:
                 .if version>=500
 LF8FC:
                 jsr withTerminalROM
-                jmp utils_8E2E
+                jmp terminal.L8E2E
                 .endif
                 
 ;-------------------------------------------------------------------------

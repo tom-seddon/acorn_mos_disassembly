@@ -16,27 +16,6 @@ version=500
 
 ;-------------------------------------------------------------------------
 
-                ; temp
-oswordRoutineTable=$8fa8
-utils_9F56=$9f56
-utils_A09D=$a09d
-utils_8D0F=$8d0f
-utils_8EDC=$8edc
-utils_8F8C=$8f8c
-utils_8BF2=$8bf2
-utils_8E2E=$8e2e
-utils_9E58=$9e58
-utils_ADD7=$add7
-utils_AD9B=$ad9b
-utils_836D=$836d
-utils_9DE1=$9de1
-utils_9DF8=$9df8
-utils_9ECA=$9eca
-utils_9E99=$9e99
-
-L9527=$9527                     ;bad address BRK
-LA060=$a060
-
 ; Is there a better way of doing this?
 osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
 ext=terminal.ext

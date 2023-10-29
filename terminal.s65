@@ -151,7 +151,7 @@ L80AD:
                 .if version==320
                 jsr readDefaultMODE          ; Read configured MODE
                 .elsif version>=500
-                jsr utils_9E58
+                jsr L9E58
                 ldx #$4d
                 jsr L8A64
                 .endif
@@ -184,7 +184,7 @@ L80D4:
 
 L80DF:
                 .if version>=500
-                jsr utils_9E58
+                jsr L9E58
                 .endif
                 lda #$87             ; Clear MODE bits from OSBYTE 255
                 trb startupOptions
@@ -325,7 +325,7 @@ L8196:
                 sta adcConversionType
                 ldx #$ff
 L81B2:
-                jsr utils_ADD7
+                jsr resetACIA
                 lda $fe08
                 bne L81C8
                 lda #$20
@@ -341,7 +341,7 @@ L81C8:
 L81CF:
                 dex
                 bne L81B2
-                jsr utils_AD9B
+                jsr resetACIAThenRewriteControlRegister
                 inx
                 .endif
                 
@@ -389,7 +389,7 @@ L81DD:
                 cpx #$04
                 bne L81DD
                 .elsif version>=500
-                jsr utils_836D
+                jsr L836D
                 .endif
                 jsr mos.osbyte7A             
                 stx firstKeyPressedInternal
@@ -435,7 +435,7 @@ romsScanned:
                 bne L8284                    ;taken if not power-on reset
                 .if version>=500
                 ldx #$ff
-                jsr utils_9ECA
+                jsr L9ECA
                 bcs checkForResetKey
                 tya
                 and #$7f
@@ -443,7 +443,7 @@ romsScanned:
                 beq checkForResetKey
                 ldx #0
                 ldy #0
-                jsr utils_9E99
+                jsr L9E99
                 bra resetCMOSRAM
                 .endif
 checkForResetKey:
@@ -475,19 +475,19 @@ L827E:
 L8280:
                 phx
                 dex
-                jsr utils_9DE1
-                jsr utils_9DF8
+                jsr L9DE1
+                jsr writeCMOSByte
                 plx
                 dex
                 bne L8280
                 ldx #$7f
-                jsr utils_9ECA
+                jsr L9ECA
                 tya
                 and #$80
                 eor #$b0
                 tay
                 ldx #$ff
-                jsr utils_9E99
+                jsr L9E99
                 .endif
                 
                 jsr alwaysPrintFollowingMessage
@@ -1283,7 +1283,7 @@ readDefaultTVSettings:
 L907E:
                 phx
                 phy
-                jsr utils_9ECA
+                jsr L9ECA
                 ply
                 plx
                 rts
@@ -4067,10 +4067,10 @@ L9DAA:
                 ldy #0
                 bcs L9DE0
                 ldx #$7f
-                jsr utils_9ECA
+                jsr L9ECA
                 phy
                 ldx #$ff
-                jsr utils_9ECA
+                jsr L9ECA
                 tya
                 tsx
                 eor $101,x
@@ -4092,7 +4092,7 @@ L9DD0:
                 bra L9DDE
 
 L9DDB:
-                jsr utils_9ECA
+                jsr L9ECA
 L9DDE:
                 tya
 L9DDF:
@@ -4146,7 +4146,7 @@ writeCMOSByte:
 writeRTCByte:
                 phx
                 phy
-                jsr utils_9E99
+                jsr L9E99
                 ply
                 plx
                 rts

@@ -4379,23 +4379,10 @@ L9F4C:
                 rts
                 .endif
 
-; ;-------------------------------------------------------------------------
-
-;                 .if version>=500
-; soundParameterTable:
-;                 .byte $e0,$c0,$a0,$80
-;                 .endif
-
-; ;-------------------------------------------------------------------------
-
-;                 .if version>=500
-; L9F53:
-;                 jmp LA060
-;                 .endif
-
 ;-------------------------------------------------------------------------
 
                 .if version>=500
+                .include "sound_stuff.s65"
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -4403,10 +4390,6 @@ L9F4C:
                 .if version>=500
                 .endif
 
-;-------------------------------------------------------------------------
-.if version>=500
-                .endif
-                
 ;-------------------------------------------------------------------------
 ;
 ; Terminal ROM service entry point.
@@ -4468,6 +4451,15 @@ L9DCA:
                 lda #$00                     ; Claim call and return
 
 L9DCC:
+                .elsif version>=500
+                cpx #15
+                beq utilsInCorrectBank
+                rts
+utilsInCorrectBank:
+                bra L9E17
+L9DCA:
+                lda #$00                
+                .endif
                 cmp #romServiceCallInitialiseFilingSystem
                 bne L9DEA
                 cpy #$04                     ; Exit if not TAPE/ROM
@@ -4509,15 +4501,6 @@ L9E13:
                 lda #$06                     ; 9E14= A9 06       ).
 L9E16:
                 rts                          ; 9E16= 60          `
-                .elsif version>=500
-                cpx #15
-                beq utilsInCorrectBank
-                rts
-utilsInCorrectBank:
-                bra L9E17
-LA243:
-                lda #0
-                .endif
 L9E17:
                 cmp #romServiceCallCloseAllOpenFiles
                 bne L9E38                    ; 9E19= D0 1D       P.
@@ -4540,7 +4523,11 @@ L9E2C:
 
 L9E38:
                 cmp #romServiceCallHelp
+                .if version==320
                 bne L9E8F                    ; 9E3A= D0 53       PS
+                .elsif version>=500
+                bne LA304
+                .endif
                 phy                          ; 9E3C= 5A          Z
                 lda ($F2),y                  ; 9E3D= B1 F2       1r
                 cmp #$0D                     ; 9E3F= C9 0D       I.
@@ -4549,7 +4536,12 @@ L9E38:
                 jsr alwaysPrintFollowingMessage                    ; 9E46= 20 58 A9     X)
                 .text "  MOS",13
                 .text 13
-                .text "TERMINAL 1.20",13
+                .if version==320
+                .text "TERMINAL 1.20"
+                .elsif version>=500
+                .text "UTILS 1.00"
+                .endif
+                .byte 13
                 .text 0
                 bra L9E8B
 L9E61:
@@ -4579,10 +4571,13 @@ L9E7B:
 L9E8B:
                 ply
                 lda #romServiceCallHelp
+LA304:
                 rts
 
+                .if version==320
 L9E8F:
                 jmp LAE19                    ; 9E8F= 4C 19 AE    L..
+                .endif
 
 mosHelpSubject: .text "SOM"
 
@@ -4652,7 +4647,13 @@ L9EF4:
 L9EFC:
                 phy
                 jsr alwaysPrintFollowingMessage
-                .text 13,"OS 3.20",13,0
+                .text 13
+                .if version==320
+                .text "OS 3.20"
+                .elsif version>=500
+                .text "MOS 5.00"
+                .endif
+                .text 13,0
                 ply
                 rts
 

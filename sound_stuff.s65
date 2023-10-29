@@ -1,0 +1,432 @@
+; Table to convert channel number to the bits required by the chip
+soundParameterTable:
+                .byte $e0,$c0,$a0,$80
+
+;-------------------------------------------------------------------------
+
+LF413:
+                jmp LF520
+
+;-------------------------------------------------------------------------
+
+LF416:
+                ldx #$00
+                lda $0838
+                bne LF421
+                inx
+                dec $0838
+LF421:
+                stx $083B
+                ldx #$08
+LF426:
+                dex
+                lda $0800,x
+                beq LF413
+                lda bufferEmptyFlags,x
+                bmi LF436
+                lda $0818,x
+                bne LF43E
+LF436:
+                jsr LF528
+                lda $0818,x
+                beq LF450
+LF43E:
+                inc a
+                beq LF453
+                dec $081C,x
+                bne LF453
+                lda #$05
+                sta $081C,x
+                dec $0818,x
+                bne LF453
+LF450:
+                jsr LF528
+LF453:
+                lda $0824,x
+                beq LF45D
+                dec $0824,x
+                bne LF413
+LF45D:
+                ldy $0820,x
+                cpy #$FF
+                beq LF413
+                lda $08C0,y
+                and #$7F
+                sta $0824,x
+                lda $0808,x
+                cmp #$04
+                beq LF4D0
+                clc
+                adc $0820,x
+                tay
+                lda $08CB,y
+                sec
+                sbc #$3F
+                sta $083A
+                lda $08C7,y
+                sta $0839
+                lda $0804,x
+LF48A:
+                pha
+                clc
+                adc $0839
+                bvc LF498
+                rol a
+                lda #$3F
+                bcs LF498
+                eor #$FF
+LF498:
+                sta $0804,x
+                rol a
+                eor $0804,x
+                bpl LF4AA
+                lda #$3F
+                bcc LF4A7
+                eor #$FF
+LF4A7:
+                sta $0804,x
+LF4AA:
+                dec $0839
+                lda $0804,x
+                sec
+                sbc $083A
+                eor $0839
+                bmi LF4C2
+                lda $083A
+                sta $0804,x
+                inc $0808,x
+LF4C2:
+                pla
+                eor $0804,x
+                and #$F8
+                beq LF4D0
+                lda $0804,x
+                jsr LF599
+LF4D0:
+                lda $0810,x
+                cmp #$03
+                beq LF520
+                lda $0814,x
+                bne LF504
+                inc $0810,x
+                lda $0810,x
+                cmp #$03
+                bne LF4F4
+                ldy $0820,x
+                lda $08C0,y
+                bmi LF520
+                stz $0830,x
+                stz $0810,x
+LF4F4:
+                lda $0810,x
+                clc
+                adc $0820,x
+                tay
+                lda $08C4,y
+                sta $0814,x
+                beq LF520
+LF504:
+                dec $0814,x
+                lda $0820,x
+                clc
+                adc $0810,x
+                tay
+                lda $08C1,y
+                clc
+                adc $0830,x
+                sta $0830,x
+                clc
+                adc $080C,x
+                jsr LF5D5
+LF520:
+                cpx #$04
+                beq LF527
+                jmp LF426
+
+LF527:
+                rts
+
+LF528:
+                lda $0808,x
+                cmp #$04
+                beq LF534
+                lda #$03
+                sta $0808,x
+LF534:
+                lda bufferEmptyFlags,x
+                beq LF54D
+                lda #$00
+                stz bufferEmptyFlags,x
+                ldy #$04
+LF540:
+                sta $082B,y
+                dey
+                bne LF540
+                stz $0818,x
+                dey
+                sty $0838
+LF54D:
+                lda $0828,x
+                beq LF5B2
+                lda $083B
+                beq LF58B
+                stz $0828,x
+LF55A:
+                jmp LF685
+
+;-------------------------------------------------------------------------
+
+LF55D:
+                jsr LF592
+                tya
+                stz $0818,x
+                stz bufferEmptyFlags,x
+                stz $0800,x
+                ldy #$03
+LF56C:
+                sta $082C,y
+                dey
+                bpl LF56C
+                sty $0838
+                bra LF5DA
+
+;-------------------------------------------------------------------------
+
+LF577:
+                php                          ; F577= 08          .
+                sei                          ; F578= 78          x
+                lda $0808,x                  ; F579= BD 08 08    =..
+                cmp #$04                     ; F57C= C9 04       I.
+                bne LF58A                    ; F57E= D0 0A       P.
+                jsr mos.osbyte98                    ; F580= 20 EF E9     oi
+                bcc LF58A                    ; F583= 90 05       ..
+                lda #$00                     ; F585= A9 00       ).
+                stz $0800,x                  ; F587= 9E 00 08    ...
+LF58A:
+                plp                          ; F58A= 28          (
+LF58B:
+                ldy $0820,x                  ; F58B= BC 20 08    < .
+                cpy #$FF                     ; F58E= C0 FF       @.
+                bne LF604                    ; F590= D0 72       Pr
+LF592:
+                lda #$04                     ; F592= A9 04       ).
+                sta $0808,x                  ; F594= 9D 08 08    ...
+                lda #$C0                     ; F597= A9 C0       )@
+LF599:
+                sta $0804,x                  ; F599= 9D 04 08    ...
+                ldy soundSuppressionStatus
+                beq LF5A3                    ; F59F= F0 02       p.
+                lda #$C0                     ; F5A1= A9 C0       )@
+LF5A3:
+                sec                          ; F5A3= 38          8
+                sbc #$40                     ; F5A4= E9 40       i@
+                lsr a                        ; F5A6= 4A          J
+                lsr a                        ; F5A7= 4A          J
+                lsr a                        ; F5A8= 4A          J
+                eor #$0F                     ; F5A9= 49 0F       I.
+                ora soundParameterTable-bufferNumberSound0,x
+                ora #$10                     ; F5AE= 09 10       ..
+                bra LF5E6                    ; F5B0= 80 34       .4
+
+LF5B2:
+                jsr mos.osbyte98                    ; F5B2= 20 EF E9     oi
+                bcs LF577                    ; F5B5= B0 C0       0@
+                and #$03                     ; F5B7= 29 03       ).
+                beq LF55A                    ; F5B9= F0 9F       p.
+                lda $0838                    ; F5BB= AD 38 08    -8.
+                beq LF58B                    ; F5BE= F0 CB       pK
+                inc $0828,x                  ; F5C0= FE 28 08    ~(.
+                tay                          ; F5C3= A8          (
+                bpl LF5D0                    ; F5C4= 10 0A       ..
+                jsr mos.osbyte98                    ; F5C6= 20 EF E9     oi
+                and #$03                     ; F5C9= 29 03       ).
+                sta $0838                    ; F5CB= 8D 38 08    .8.
+                bra LF58B                    ; F5CE= 80 BB       .;
+
+LF5D0:
+                dec $0838                    ; F5D0= CE 38 08    N8.
+                bra LF58B                    ; F5D3= 80 B6       .6
+
+LF5D5:
+                cmp $082C,x                  ; F5D5= DD 2C 08    ],.
+                beq LF604                    ; F5D8= F0 2A       p*
+LF5DA:
+                sta $082C,x                  ; F5DA= 9D 2C 08    .,.
+                cpx #$04                     ; F5DD= E0 04       `.
+                bne LF605                    ; F5DF= D0 24       P$
+                and #$0F                     ; F5E1= 29 0F       ).
+                ora soundParameterTable-bufferNumberSound0,x                  ; F5E3= 1D 0B F4    ..t
+LF5E6:
+                php                          ; F5E6= 08          .
+LF5E7:
+                sei                          ; F5E7= 78          x
+                ldy #$FF                     ; F5E8= A0 FF        .
+                sty systemVIA.ddra            ; F5EA= 8C 43 FE    .C~
+                sta systemVIA.oraNoHandshake            ; F5ED= 8D 4F FE    .O~
+                iny                          ; F5F0= C8          H
+                sty systemVIA.orb            ; F5F1= 8C 40 FE    .@~
+                ldy #$02                     ; F5F4= A0 02        .
+LF5F6:
+                dey                          ; F5F6= 88          .
+                bne LF5F6                    ; F5F7= D0 FD       P}
+                ldy #$08                     ; F5F9= A0 08        .
+                sty systemVIA.orb            ; F5FB= 8C 40 FE    .@~
+                ldy #$04                     ; F5FE= A0 04        .
+LF600:
+                dey                          ; F600= 88          .
+                bne LF600                    ; F601= D0 FD       P}
+                plp                          ; F603= 28          (
+LF604:
+                rts                          ; F604= 60          `
+
+LF605:
+                pha                          ; F605= 48          H
+                and #$03                     ; F606= 29 03       ).
+                sta $083C                    ; F608= 8D 3C 08    .<.
+                stz $083D                    ; F60B= 9C 3D 08    .=.
+                pla                          ; F60E= 68          h
+                lsr a                        ; F60F= 4A          J
+                lsr a                        ; F610= 4A          J
+LF611:
+                cmp #$0C                     ; F611= C9 0C       I.
+                bcc LF61C                    ; F613= 90 07       ..
+                inc $083D                    ; F615= EE 3D 08    n=.
+                sbc #$0C                     ; F618= E9 0C       i.
+                bne LF611                    ; F61A= D0 F5       Pu
+LF61C:
+                tay                          ; F61C= A8          (
+                lda $083D                    ; F61D= AD 3D 08    -=.
+                pha                          ; F620= 48          H
+                lda LF6E4,y                  ; F621= B9 E4 F6    9dv
+                sta $083D                    ; F624= 8D 3D 08    .=.
+                lda LF6F0,y                  ; F627= B9 F0 F6    9pv
+                pha                          ; F62A= 48          H
+                and #$03                     ; F62B= 29 03       ).
+                sta $083E                    ; F62D= 8D 3E 08    .>.
+                pla                          ; F630= 68          h
+                lsr a                        ; F631= 4A          J
+                lsr a                        ; F632= 4A          J
+                lsr a                        ; F633= 4A          J
+                lsr a                        ; F634= 4A          J
+                sta $083F                    ; F635= 8D 3F 08    .?.
+                lda $083D                    ; F638= AD 3D 08    -=.
+                ldy $083C                    ; F63B= AC 3C 08    ,<.
+                beq LF64C                    ; F63E= F0 0C       p.
+LF640:
+                sec                          ; F640= 38          8
+                sbc $083F                    ; F641= ED 3F 08    m?.
+                bcs LF649                    ; F644= B0 03       0.
+                dec $083E                    ; F646= CE 3E 08    N>.
+LF649:
+                dey                          ; F649= 88          .
+                bne LF640                    ; F64A= D0 F4       Pt
+LF64C:
+                sta $083D                    ; F64C= 8D 3D 08    .=.
+                pla                          ; F64F= 68          h
+                tay                          ; F650= A8          (
+                beq LF65C                    ; F651= F0 09       p.
+LF653:
+                lsr $083E                    ; F653= 4E 3E 08    N>.
+                ror $083D                    ; F656= 6E 3D 08    n=.
+                dey                          ; F659= 88          .
+                bne LF653                    ; F65A= D0 F7       Pw
+LF65C:
+                lda $083D                    ; F65C= AD 3D 08    -=.
+                clc                          ; F65F= 18          .
+                adc mos.LE165,x                  ; F660= 7D 65 E1    }ea
+                sta $083D                    ; F663= 8D 3D 08    .=.
+                bcc LF66B                    ; F666= 90 03       ..
+                inc $083E                    ; F668= EE 3E 08    n>.
+LF66B:
+                and #$0F                     ; F66B= 29 0F       ).
+                ora soundParameterTable-bufferNumberSound0,x                  ; F66D= 1D 0B F4    ..t
+                php                          ; F670= 08          .
+                sei                          ; F671= 78          x
+                jsr LF5E6                    ; F672= 20 E6 F5     fu
+                lda $083D                    ; F675= AD 3D 08    -=.
+                lsr $083E                    ; F678= 4E 3E 08    N>.
+                ror a                        ; F67B= 6A          j
+                lsr $083E                    ; F67C= 4E 3E 08    N>.
+                ror a                        ; F67F= 6A          j
+                lsr a                        ; F680= 4A          J
+                lsr a                        ; F681= 4A          J
+                jmp LF5E7                    ; F682= 4C E7 F5    Lgu
+
+LF685:
+                php                          ; F685= 08          .
+                sei                          ; F686= 78          x
+                jsr mos.osbyte91                    ; F687= 20 F4 E9     ti
+                pha                          ; F68A= 48          H
+                and #$04                     ; F68B= 29 04       ).
+                beq LF6A2                    ; F68D= F0 13       p.
+                pla                          ; F68F= 68          h
+                ldy $0820,x                  ; F690= BC 20 08    < .
+                iny                          ; F693= C8          H
+                bne LF699                    ; F694= D0 03       P.
+                jsr LF592                    ; F696= 20 92 F5     .u
+LF699:
+                jsr mos.osbyte91                    ; F699= 20 F4 E9     ti
+                jsr mos.osbyte91                    ; F69C= 20 F4 E9     ti
+                plp                          ; F69F= 28          (
+                bra LF6E0                    ; F6A0= 80 3E       .>
+
+LF6A2:
+                pla                          ; F6A2= 68          h
+                and #$F8                     ; F6A3= 29 F8       )x
+                asl a                        ; F6A5= 0A          .
+                bcc LF6B3                    ; F6A6= 90 0B       ..
+                eor #$FF                     ; F6A8= 49 FF       I.
+                lsr a                        ; F6AA= 4A          J
+                sec                          ; F6AB= 38          8
+                sbc #$40                     ; F6AC= E9 40       i@
+                jsr LF599                    ; F6AE= 20 99 F5     .u
+                lda #$FF                     ; F6B1= A9 FF       ).
+LF6B3:
+                sta $0820,x                  ; F6B3= 9D 20 08    . .
+                lda #$05                     ; F6B6= A9 05       ).
+                sta $081C,x                  ; F6B8= 9D 1C 08    ...
+                lda #$01                     ; F6BB= A9 01       ).
+                sta $0824,x                  ; F6BD= 9D 24 08    .$.
+                stz $0814,x                  ; F6C0= 9E 14 08    ...
+                stz $0808,x                  ; F6C3= 9E 08 08    ...
+                stz $0830,x                  ; F6C6= 9E 30 08    .0.
+                lda #$FF                     ; F6C9= A9 FF       ).
+                sta $0810,x                  ; F6CB= 9D 10 08    ...
+                jsr mos.osbyte91                    ; F6CE= 20 F4 E9     ti
+                sta $080C,x                  ; F6D1= 9D 0C 08    ...
+                jsr mos.osbyte91                    ; F6D4= 20 F4 E9     ti
+                plp                          ; F6D7= 28          (
+                pha                          ; F6D8= 48          H
+                lda $080C,x                  ; F6D9= BD 0C 08    =..
+                jsr LF5D5                    ; F6DC= 20 D5 F5     Uu
+                pla                          ; F6DF= 68          h
+LF6E0:
+                sta $0818,x                  ; F6E0= 9D 18 08    ...
+                rts                          ; F6E3= 60          `
+
+LF6E4:
+                .byte $F0
+                .byte $B7
+                .byte $82                    ; F6E6= 82          .
+                .byte $4F                    ; F6E7= 4F          O
+                .byte $20
+                .byte $F3
+                .byte $C8
+                .byte $A0
+                .byte $7B
+                .byte $57                    ; F6ED= 57          W
+                .byte $35
+                .byte $16
+LF6F0:
+                .byte $E7                    ; F6F0= E7          g
+                .byte $D7                    ; F6F1= D7          W
+                .byte $CB                    ; F6F2= CB          K
+                .byte $C3                    ; F6F3= C3          C
+                .byte $B7                    ; F6F4= B7          7
+                .byte $AA
+                .byte $A2
+                .byte $9a
+                .byte $92
+                .byte $8a
+                .byte $82
+                .byte $7a

@@ -153,7 +153,7 @@ L80AD:
                 .elsif version>=500
                 jsr utils_9E58
                 ldx #$4d
-                jsr utils_8A64
+                jsr L8A64
                 .endif
 L80B4:
                 ora #$08    ; Store in OSBYTE 255 with boot off (b3=1)
@@ -266,7 +266,7 @@ L8164:
                 jsr readDefaults1
                 .elsif version>=500
                 ldx #$0b
-                jsr utils_9DCA
+                jsr terminal.readRTCByte
                 .endif
                 ldx #keyboardStatusByte.shiftLockDisengaged
                 asl a                        
@@ -286,7 +286,7 @@ gotKeyboardStatusByte:
                 jsr readDefaultPrinterIgnoreChar
                 .elsif version>=500
                 ldx #$0e
-                jsr utils_9DCA
+                jsr terminal.readRTCByte
                 .endif
                 sta printerIgnoreChar
                 .if version==320
@@ -301,7 +301,7 @@ gotKeyboardStatusByte:
                 jsr readDefaultFX5Settings
                 .elsif version>=500
                 ldx #$75
-                jsr utils_8A64
+                jsr L8A64
                 .endif
                 sta printerDriverType
 L8196:
@@ -309,7 +309,7 @@ L8196:
                 jsr readDefaultSerialDataFormat
                 .elsif version>=500
                 ldx #$19
-                jsr utils_8A64
+                jsr L8A64
                 .endif
                 asl a                        ;
                 asl a       ;shift into the control registerword field
@@ -321,7 +321,7 @@ L8196:
                 ldx #$01
                 .elsif version>=500
                 ldx #$12
-                jsr utils_9DCA
+                jsr readRTCByte
                 sta adcConversionType
                 ldx #$ff
 L81B2:
@@ -405,7 +405,7 @@ L81DD:
                 jsr readDefaultSerialBaudRateIndex
                 .elsif version>=500
                 ldx #$7
-                jsr utils_8A64
+                jsr L8A64
                 .endif
                 pha
                 tax

@@ -6029,11 +6029,7 @@ isCursorEditingPossible:
 plotMoveOrCopyRectangle:
                 ldx #$80|extROM   ; select VIEW+ANDY
                 jsr selectROMX
-                .if version==320
                 jsr ext.plotMoveOrCopyRectangle
-                .else
-                jsr ext_B3A6
-                .endif
                 bra LDFF1
 
 ;-------------------------------------------------------------------------
@@ -6043,11 +6039,7 @@ plotMoveOrCopyRectangle:
 plotEllipseOutline:
                 ldx #$80|extROM
                 jsr selectROMX
-                .if version==320
                 jsr ext.plotEllipseOutline
-                .else
-                jsr ext_AECC
-                .endif
 LDFF1:
                 jmp selectTerminalROMAndANDY
 
@@ -6058,11 +6050,7 @@ LDFF1:
 plotSolidEllipse:
                 ldx #$80|extROM
                 jsr selectROMX
-                .if version==320
                 jsr ext.plotSolidEllipse
-                .else
-                jsr ext_AF4F
-                .endif
                 bra LDFF1
 
 ;-------------------------------------------------------------------------
@@ -7212,7 +7200,7 @@ LE431:
                 ply
                 .elsif version>=500
                 ldx #$33
-                jsr utils_8A64
+                jsr terminal.L8A64
                 .endif
                 
                 tax
@@ -7284,7 +7272,7 @@ LE4BB:
                 jsr terminal.readDefaultLanguageROM        ; Read configured LANG
                 .elsif version>=500
                 ldx #$41
-                jsr utils_8A64
+                jsr terminal.L8A64
                 .endif
                 tax
 LE4C2:
@@ -7402,11 +7390,7 @@ defaultBRKHandler:
 
 startCommandLineUI:
                 jsr selectTerminalROM
-                .if version==320
                 jmp terminal.commandLineUI
-                .elsif version>=500
-                jmp utils_8674
-                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -9811,7 +9795,7 @@ osword0E:
                 bcs handleUnrecognisedOSWORD
                 .endif
                 jsr withTerminalROM
-                jmp utils_9878
+                jmp terminal.osword0E
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -10504,10 +10488,10 @@ resetKeyRepeat:
                 jsr terminal.getDefaultKeyboardAutoRepeatRate
                 .elsif version>=500
                 ldx #$0c
-                jsr utils_9DCA
+                jsr terminal.readRTCByte
                 sta keyboardAutoRepeatDelay
                 ldx #$0d
-                jsr utils_9DCA
+                jsr terminal.readRTCByte
                 tay
                 .endif
                 ldx keyboardAutoRepeatRate

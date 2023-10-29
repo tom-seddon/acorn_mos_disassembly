@@ -16,15 +16,6 @@ version=500
 
 ;-------------------------------------------------------------------------
 
-ext_B3A6=$b3a6
-ext_AECC=$aecc
-ext_AF4F=$af4f
-;utils_873F=$873f                  ;;read ROM unplugged status
-utils_8A64=$8a64                  ;
-utils_8674=$8674 ;command line UI?
-utils_9878=$9878                ;osword $0e entry point
-utils_9DCA=$9dca
-
                 ; temp
 oswordRoutineTable=$8fa8
 utils_9F56=$9f56
@@ -37,34 +28,18 @@ utils_8E2E=$8e2e
 utils_9E58=$9e58
 utils_ADD7=$add7
 utils_AD9B=$ad9b
-;readUsePrinterIgnoreChar=$8ba1
 utils_836D=$836d
 utils_9DE1=$9de1
 utils_9DF8=$9df8
 utils_9ECA=$9eca
 utils_9E99=$9e99
-;starSRLOAD=$8dca
-;starSRREAD=$8d7f
-;starSRSAVE=$8dca
-;starSRWRITE=$8d7f
-;utils_8A8F=$8a8f ;match input against command table. V=1 for 2-byte metadata, V=0 for 4-byte metadat
-;fetchCommandTableByte=$8ace
-
-setProportional=1000
-printProportional=1000
-setSwitched=1000
-printSwitched=1000
-setStick=1000
-printStick=1000
-;soundParameterTable=1000
-;starSTATUS=1000
 
 L9527=$9527                     ;bad address BRK
-;readRTCByte=$9dca
 LA060=$a060
 
 ; Is there a better way of doing this?
 osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
+ext=terminal.ext
                 
 ;-------------------------------------------------------------------------
 

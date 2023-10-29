@@ -195,7 +195,11 @@ outputCharToPrinter:
                 bcc rtsC035 ;taken if printer disabled - VDU 1 then a no-op
                 txa                          ;restore char to print
                 clc
+                .if version==320
                 jmp LE8B9
+                .elsif version>=500
+                jmp LE2ED
+                .endif
 
 LC053:
                 jsr stopCursorEditing                    ; C053= 20 FA C0     z@
@@ -307,7 +311,11 @@ vdu2EntryPoint:
 vdu3EntryPoint:
                 pha                          ;
                 jsr reinstateCursorEditing
+                .if version==320
                 jsr callPrinterDriverWithPrinterBuffer
+                .elsif version>=500
+                jsr LE2E7
+                .endif
                 lda #STATE.isPrinterEnabled  ;
                 tsb STATE                      ; C0F3= 04 D0       .P
                 pla                          ; C0F5= 68          h
@@ -1331,7 +1339,11 @@ callVDUVForPLOT:
 ; Call VDUV.
 ; 
 callVDUV:
-                jmp (VDUV)                  ; C6A7= 6C 26 02    l&.
+                .if version==320
+                jmp (VDUV)
+                .elsif version==500
+                jmp LE2F3
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -6906,8 +6918,13 @@ defaultMOSVariables:
                 .byte $00                    ;vpaletteRegister
                 .byte $00                    ;romActiveAtLastBRK
                 .byte $FF                    ;basicROMNumber
+                .if version==320
                 .byte $04                    ;currentADCChannel
                 .byte $04                    ;maximumADCChannel
+                .elsif version>=500
+                .byte $02                    ;currentADCChannel
+                .byte $02                    ;maximumADCChannel
+                .endif
                 .byte $00                    ;adcConversionType
                 .byte $FF                    ;rs423Busy
                 .byte $42                    ;aciaControlRegister
@@ -7247,7 +7264,7 @@ LE499:
                 tax
                 jsr selectROMOrTAPE                    ; E4A0= 20 C2 ED     Bm
                 .elsif version>=500
-                ldx #$8d
+                lda #$8d
                 jsr osbyte8C8D
                 .endif
 LE4A3:
@@ -7668,7 +7685,11 @@ checkForUserVIAInterrupt:
 
 checkForSystemVIAT1Interrupt:
                 bit #VIA.irq.t1
+                .if version==320
                 beq checkForSystemVIACB1Interrupt
+                .elsif version>=500
+                beq checkForSystemVIACA2Interrupt
+                .endif
 
                 ; Handle T1 interrupt - 100 Hz timer.
                 
@@ -7810,7 +7831,11 @@ handleUnrecognisedInterruptE799:
 ; OSBYTE 17 (&11) Write next ADC channel to be sampled [MasRef D.2-25]
 ; 
 osbyte11:
+                .if version==320
                 sty adcLastConvertedChannel
+                .elsif version>=500
+                sty currentADCChannel
+                .endif
                 bra initiateADCConversion
 
 ;-------------------------------------------------------------------------
@@ -8526,7 +8551,7 @@ osbyte77:                       ;e9b5
 getROMInsertedFlagRTCAddressAndMask:
                 lda #$00                     
                 sec                          
-                ldx #CMOSBytes.insertedROMs+0+RTC.ram
+                ldx #CMOSBytes.insertedROMs+0+cmosBytesOffset
 -
                 rol a                        
                 bne +
@@ -9312,7 +9337,11 @@ osbyte82:
                 rts
 
 LED14:
+                .if version==320
                 ldx #$FD
+                .elsif version>=500
+                ldx #$f5
+                .endif
                 bra LECFD
 
 LED18:
@@ -9759,7 +9788,11 @@ LEF71:
                 jmp handleUnrecognisedOSBYTEOrOSWORD
 
 LEF74:
+                .if version==320
                 sbc #$34                     ; :(
+                .elsif version>=500
+                sbc #$33
+                .endif
 
 LEF76:
                 adc #$59                     ; :(
@@ -9772,7 +9805,11 @@ LEF76:
                 .if version>=500
 osword0E:
                 cmp #3
+                .if version==320
                 bcs handleUnrecognisedOSBYTEOrOSWORD
+                .elif version>=500
+                bcs handleUnrecognisedOSWORD
+                .endif
                 jsr withTerminalROM
                 jmp utils_9878
                 .endif
@@ -9988,13 +10025,17 @@ osword06: .osword06Macro
 ; 
 getAddressFromOSWORDParameterBlock:
                 sta SEIWKA
-                iny                          ; EF65= C8          H
-                lda (originalX),y                  ; EF66= B1 F0       1p
+                iny
+                lda (originalX),y
                 sta SEIWKA+1
-                ldy #$04                     ; EF6A= A0 04        .
+                ldy #$04
 ldxim03_rts:
-                ldx #$03                     ; EF6C= A2 03       ".
-                rts                          ; EF6E= 60          `
+                .if version==320
+                ldx #$03
+                .elsif version>=500
+                ldx #$05
+                .endif
+                rts
                 
 ;-------------------------------------------------------------------------
 ; 
@@ -11489,7 +11530,11 @@ LF5EF:
                 .endif
                 beq handleTAB                ;taken if TAB
                 cmp #$9D                     ;was it key_numpad_return?
+                .if version==320
                 bne handleKey                ;taken if not
+                .elsif version>=500
+                bne LF5FD
+                .endif
                 
                 ;Transform $9d into $8d, aka 13|$80. ($8d is already
                 ; used in the table for right arrow.)
@@ -11775,7 +11820,11 @@ LF8BF:
                 .text "y"                    ;44 y
                 .text "j"                    ;45 j
                 .text "k"                    ;46 k
+                .if version==320
                 .text "@"                    ;47 at
+                .elsif version>=500
+                .byte 1                      ;47 special
+                .endif
                 .text ":"                    ;48 colon
                 .byte $0D                    ;49 return
                 .byte "/"|$80                ;4a numpad_divide
@@ -12033,7 +12082,7 @@ copyright:
 
 LF87C:
                 jsr selectROMX
-                ldy #size(dummy_rom_header)
+                ldy #size(dummy_rom_header)-1
 LF881:
                 lda dummy_rom_header,y
                 sta $8000,y

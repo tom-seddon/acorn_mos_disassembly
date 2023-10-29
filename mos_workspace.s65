@@ -1397,7 +1397,11 @@ terminalHELPWorkspace: .dstruct TerminalHELPWorkspace
 terminalROM=15
 
 ; ROM number containing the extXXXX entry points
+                .if version==320
 extROM=14
+                .elsif version>=500
+extROM=15
+                .endif
 
 ; Base page for VDU routines
 vduRoutinesPage=$c0

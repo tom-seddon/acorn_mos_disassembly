@@ -3378,8 +3378,6 @@ writeRTCByte:
                 sta systemVIA.orb            ;RTC AS=0 CS=1 DS=0 R=1
                 sty systemVIA.oraNoHandshake ;store value
                 bra deselectRTC
-                .elsif version>=500
-writeCMOSByte=$9fd8
                 .endif
                 
 ;-------------------------------------------------------------------------
@@ -4138,7 +4136,7 @@ L9DF7:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-L9DF8:
+writeCMOSByte:
                 txa
                 and #$7f
                 beq L9DF7

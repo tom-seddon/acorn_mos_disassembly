@@ -7885,56 +7885,56 @@ handleDigitalJoystick:.block
                 lda maximumADCChannel
                 beq rtsE7B0
                 bit adcConversionType
-                bvc loc_E7DE
+                bvc LE7DE
                 lda adcResultLSBs
                 ldx #0
 
-loc_E7A8:
+LE7A8:
                 inx
                 asl a
-                bcs loc_E7AF
-                bne loc_E7A8
+                bcs LE7AF
+                bne LE7A8
                 tax
 
-loc_E7AF:
+LE7AF:
                 ldy unk_E78B,x
                 cpy adcLastChannelRead
                 sty adcLastChannelRead
-                beq loc_E7C6
+                beq LE7C6
                 tya
-                beq loc_E7C6
+                beq LE7C6
                 jsr insertCharacterIntoKeyboardBuffer
                 lda keyboardAutoRepeatDelay
                 sta adcResultMSBs+3
 
-loc_E7C6:
+LE7C6:
                 lda adcResultMSBs+3
-                beq loc_E7DE
+                beq LE7DE
                 dec adcResultMSBs+3
-                bne loc_E7DE
+                bne LE7DE
                 lda keyboardAutoRepeatRate
                 sta adcResultMSBs+3
                 ldy adcLastChannelRead
-                beq loc_E7DE
+                beq LE7DE
                 jsr insertCharacterIntoKeyboardBuffer
 
-loc_E7DE:
+LE7DE:
                 bit adcConversionType
-                bpl loc_E7EA
+                bpl LE7EA
                 ldy #$B6
                 ldx #$2C        ; Master Compact joystick call
                 jmp makeROMServiceCall
 
 ;-------------------------------------------------------------------------
 
-loc_E7EA:
+LE7EA:
                 lda #$FF
                 ldx editKeysMode
                 cpx #3
-                bne loc_E807
+                bne LE807
                 inx
 
-loc_E7F4:
+LE7F4:
                 pha
                 phx
                 lda unk_E794,x
@@ -7946,10 +7946,10 @@ loc_E7F4:
                 pla
                 rol a
                 dex
-                bpl loc_E7F4
+                bpl LE7F4
                 eor #$FF
 
-loc_E807:
+LE807:
                 and userVIA.irb
                 eor #$1F
                 lsr a
@@ -7965,7 +7965,7 @@ loc_E807:
                 and #$F0
                 stx adcResultLSBs
                 bvs locret_E826
-                beq loc_E827
+                beq LE827
                 stz adcResultMSBs+3
 
 locret_E826:
@@ -7973,43 +7973,43 @@ locret_E826:
 
 ;-------------------------------------------------------------------------
 
-loc_E827:
+LE827:
                 lda adcConversionType
-                beq loc_E832
+                beq LE832
                 cmp #8
-                bcc loc_E834
+                bcc LE834
                 lda #4
 
-loc_E832:
+LE832:
                 eor #3
 
-loc_E834:
+LE834:
                 tay
                 dec a
                 tax
                 lda adcResultMSBs+3
                 stz adcResultMSBs+2
 
-loc_E83D:
+LE83D:
                 dex
-                bmi loc_E846
+                bmi LE846
                 asl a
                 rol adcResultMSBs+2
-                bra loc_E83D
+                bra LE83D
 
 ;-------------------------------------------------------------------------
 
-loc_E846:
+LE846:
                 sta adcResultMSBs+1
                 cpy adcResultMSBs+2
-                bcs loc_E854
+                bcs LE854
                 sty adcResultMSBs+1
                 sty adcResultMSBs+2
 
-loc_E854:
+LE854:
                 lda adcConversionType
                 and #$20
-                beq loc_E86A
+                beq LE86A
                 lda #$FF
                 sta adcResultLSBs+1
                 sta adcResultLSBs+3
@@ -8017,69 +8017,69 @@ loc_E854:
                 sta adcResultLSBs+2
                 sta adcResultMSBs
 
-loc_E86A:
+LE86A:
                 ldx #9
 
-loc_E86C:
+LE86C:
                 lda adcResultLSBs
                 bit unk_E8D5,x
-                beq loc_E8B2
+                beq LE8B2
                 lda unk_E8D5+1,x
                 asl a
                 tay
                 lda adcConversionType
                 and #$20        ; ' '
-                beq loc_E885
+                beq LE885
                 lda unk_E8D5+2,x
-                bra loc_E8AC
+                bra LE8AC
 
 ;-------------------------------------------------------------------------
 
-loc_E885:
+LE885:
                 lda adcResultLSBs+1,y
-                bcs loc_E89C
+                bcs LE89C
                 adc adcResultMSBs+1
                 sta adcResultLSBs+1,y
                 lda adcResultLSBs+2,y
                 adc adcResultMSBs+2
-                bcc loc_E8AF
+                bcc LE8AF
                 lda #$FF
-                bra loc_E8AC
+                bra LE8AC
 
 ;-------------------------------------------------------------------------
 
-loc_E89C:
+LE89C:
                 sbc adcResultMSBs+1
                 sta adcResultLSBs+1,y
                 lda adcResultLSBs+2,y
                 sbc adcResultMSBs+2
-                bcs loc_E8AF
+                bcs LE8AF
                 lda #0
 
-loc_E8AC:
+LE8AC:
                 sta adcResultLSBs+1,y
 
-loc_E8AF:
+LE8AF:
                 sta adcResultLSBs+2,y
 
-loc_E8B2:
+LE8B2:
                 dex
                 dex
                 dex
-                bpl loc_E86C
+                bpl LE86C
                 inc adcResultMSBs+3
-                bne loc_E8BF
+                bne LE8BF
                 dec adcResultMSBs+3
 
-loc_E8BF:
+LE8BF:
                 ldx currentADCChannel
                 ldy #3
                 jsr eventEntryPoint
                 dec currentADCChannel
-                beq loc_E8CE
+                beq LE8CE
                 bpl locret_E8D4
 
-loc_E8CE:
+LE8CE:
                 lda maximumADCChannel
                 sta currentADCChannel
 

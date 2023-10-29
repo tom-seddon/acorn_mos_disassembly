@@ -1,16 +1,28 @@
 _:=[]
 _..=[(".",printCONFIGUREHelp,printSTATUSHelp)]
+                .if version<400
 _..=[("BAUD",setDefaultSerialBaudRateIndex,printDefaultSerialBaudRateIndex)]
+                .endif
 _..=[("BOOT",setDefaultAutoBoot,printDefaultAutoBoot)]
 _..=[("CAPS",setDefaultsCapsLock,printDefaultCaps)]
+                .if version<400
 _..=[("DATA",setDefaultSerialDataFormat,printDefaultSerialDataFormat)]
+                .endif
 _..=[("DELAY",setDefaultKeyboardAutoRepeatDelay,printDefaultKeyboardAutoRepeatDelay)]
+                .if version<400
 _..=[("DIR",setDefaultADFSLoadDir,printDefaultADFSLoadDir)]
+                .endif
 _..=[("EXTUBE",setDefaultExtTube,printDefaultExtTube)]
+                .if version<400
 _..=[("FDRIVE",setDefaultFDRIVE,printDefaultFDRIVE)]
+                .endif
 _..=[("FILE",setDefaultFSROM,printDefaultFSROM)]
+                .if version<400
 _..=[("FLOPPY",setDefaultFloppyDrive,printDefaultFloppyDrive)]
+                .endif
+                .if version<400
 _..=[("HARD",setDefaultHardDrive,printDefaultFloppyDrive)]
+                .endif
 _..=[("IGNORE",setDefaultPrinterIgnoreChar,printDefaultPrinterIgnoreChar)]
 _..=[("INTUBE",setDefaultIntTube,printDefaultExtTube)]
 _..=[("LANG",setDefaultLanguageROM,printDefaultLanguageROM)]
@@ -18,7 +30,9 @@ _..=[("LOUD",setDefaultLoud,printDefaultLoud)]
 _..=[("MODE",setDefaultMODE,printDefaultMODE)]
 _..=[("NOBOOT",setDefaultNoAutoBoot,printDefaultAutoBoot)]
 _..=[("NOCAPS",setDefaultNoLock,printDefaultCaps)]
+                .if version<400
 _..=[("NODIR",setDefaultADFSNoLoadDir,printDefaultADFSLoadDir)]
+                .endif
 _..=[("NOSCROLL",setDefaultNoProtectedScrolling,printDefaultProtectedScrolling)]
 _..=[("NOTUBE",setDefaultTubeOff,printDefaultTubeOn)]
 _..=[("PRINT",setDefaultFX5Settings,printDefaultFX5Settings)]
@@ -30,6 +44,7 @@ _..=[("TUBE",setDefaultTubeOn,printDefaultTubeOn)]
 _..=[("TV",setDefaultTVSettings,printDefaultTVSettings)]
 configureData=_
 
+                .if version<400
 configureNames:
                 .for i=0,i<len(configureData),i+=1
                 .text configureData[i][0]
@@ -42,6 +57,15 @@ configureRoutines:
                 .beword configureData[i][1]-1
                 .beword configureData[i][2]-1
                 .next
+                .else
+configureTable:
+                .for i=0,i<len(configureData),i+=1
+                .text configureData[i][0]
+                .beword configureData[i][1]-1
+                .beword configureData[i][1]-1
+                .next
+                .byte 0
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -58,11 +82,17 @@ L8881:
                 rts                          ; 8888= 60          `
 
 callSetRoutine:
+                .if version<400
                 tax
                 lda configureRoutines+0-$80,x ;set routine MSB
                 pha
                 lda configureRoutines+1-$80,x ;set routine LSB
                 pha
+                .else
+                pha
+                lda configureTable+1,x
+                pha
+                .endif
 L8892:
                 jmp mos.skipSpacesAndCheckForCRInStringInput
 
@@ -73,11 +103,18 @@ starSTATUS:
                 bra L8881
 
 L889E:
+                .if version<400
                 tax
                 lda configureRoutines+2-$80,x ;print routine MSB
                 pha
                 lda configureRoutines+3-$80,x ;print routine LSB
                 pha
+                .else
+                lda configureTable+2,x
+                pha
+                lda configureTable+3,x
+                pha
+                .endif
                 jsr mos.skipSpacesAndCheckForCRInStringInput
                 beq L8892
 badCommandError88AC:
@@ -85,38 +122,47 @@ badCommandError88AC:
 
 ;-------------------------------------------------------------------------
 
+                .if version<400
 setDefaultHardDrive:
                 bne badCommandError88AC
                 lda #$00
                 bra writeDefaultFloppyDrive
+                .endif
 
 ;-------------------------------------------------------------------------
 
+                .if version<400
 setDefaultFloppyDrive:
                 bne badCommandError88AC
                 lda #CMOSBytes.defaults1.defaultFloppyDrive
 writeDefaultFloppyDrive:
                 ldy #~(CMOSBytes.defaults1.defaultFloppyDrive)&$ff
                 bra writeDefaults1Bits
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 
+                .if version<400
 setDefaultADFSLoadDir:
                 bne badCommandError88AC
                 lda #$00                                   ;NODIR
                 bra writeDefaultADFSLoadDir
+                .endif
 
 ;-------------------------------------------------------------------------
 
+                .if version<400
 setDefaultADFSNoLoadDir:
                 bne badCommandError88AC
                 lda #CMOSBytes.defaults1.defaultADFSLoadDirMask
 writeDefaultADFSLoadDir:
                 ldy #(~CMOSBytes.defaults1.defaultADFSLoadDirMask)&$ff
                 bra writeDefaults1Bits
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 
+                .if version<400
 setDefaultFDRIVE:
                 jsr parseNumberFromCommandLine
                 jsr ensureCommandLineTailEmpty
@@ -126,8 +172,9 @@ setDefaultFDRIVE:
                 ldy #(~CMOSBytes.defaults1.defaultFDRIVEMask)&$ff
 writeDefaults1Bits:
                 ldx #CMOSBytes.defaults1+cmosBytesOffset
-                bra jmpWriteRTCBits892D                    ; 88DA= 80 51       .Q
-
+                bra jmpWriteRTCBits892D
+                .endif
+                
 ;-------------------------------------------------------------------------
 
 setDefaultNoLock:
@@ -149,7 +196,13 @@ setDefaultsCapsLock:
                 lda #CMOSBytes.defaults1.defaultCapsLockMask
 setDefaultLock:
                 ldy #~(CMOSBytes.defaults1.defaultCapsLockMask|CMOSBytes.defaults1.defaultNoLockMask|CMOSBytes.defaults1.defaultShiftLockMask)&$ff
-                bra writeDefaults1Bits              
+                .if version<400
+                bra writeDefaults1Bits
+                .else
+writeDefaults1Bits:
+                ldx #CMOSBytes.defaults1+cmosBytesOffset
+                bra jmpWriteRTCBits892D
+                .endif                
 
 ;-------------------------------------------------------------------------
 
@@ -217,7 +270,11 @@ L8934:
                 bra L894A
 
 L893F:
+                .if version==400
+                eor configureTable,x
+                .else
                 eor configureNames,x           ;matches configure setting name?
+                .endif
                 and #$DF              ;case-insensitive
                 bne L895C             ;taken if no match
                 iny
@@ -229,7 +286,11 @@ L894A:
                 jsr mos.isLetter
                 bcc L893F                    ;taken if letter
 L8951:
+                .if version==400
+                lda configureTable,x
+                .else
                 lda configureNames,x
+                .endif
                 bmi L896C           ;taken if info byte - i.e., name matches
                 lda ($F2),y
                 cmp #'.'
@@ -240,15 +301,29 @@ L895C:
                 dey
 L8960:
                 iny
+                .if version==400
+                inx
+                inx
+                .else
                 dex
+                .endif
 L8962:
                 inx
+                .if version==400
+                lda configureTable-3,x
+                .else
                 lda configureNames,x
+                .endif
                 beq L896E
                 bpl L8962
                 bra L8947
 
 L896C:
+                .if version==400
+                dex
+                dex
+                dex
+                .endif
                 sec
                 rts
 
@@ -388,6 +463,7 @@ setDefaultTubeOn:
 
 ;-------------------------------------------------------------------------
 
+                .if version<400
 setDefaultSerialBaudRateIndex:
                 jsr parseSingleNumberFromCommandLine
                 bne +
@@ -400,7 +476,8 @@ setDefaultSerialBaudRateIndex:
                 asl a
                 asl a                        ;shift value into place
                 bra writeDefaults2Bits
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 
 writeDefaultUsePrinterIgnoreCharTrue:
@@ -423,10 +500,18 @@ setDefaultLoud:
                 lda #CMOSBytes.defaults3.loudMask
 writeDefaultLoud:
                 ldy #~(CMOSBytes.defaults3.loudMask)&$ff
+                .if version<400
                 bra writeDefaults3Bits
+                .else
+writeDefaults3Bits:
+                ldx #CMOSBytes.defaults3+cmosBytesOffset
+jmpWriteRTCBits8A26:
+                bra writeRTCBits
+                .endif
 
 ;-------------------------------------------------------------------------
 
+                .if version<400
 setDefaultSerialDataFormat:
                 jsr parseSingleNumberFromCommandLine
                 cmp #$08
@@ -439,7 +524,8 @@ setDefaultSerialDataFormat:
 writeDefaults3Bits:
                 ldx #CMOSBytes.defaults3+cmosBytesOffset
 jmpWriteRTCBits8A26:
-                bra writeRTCBits                    ; 8A26= 80 AE       ..
+                bra writeRTCBits
+                .endif
 
 ;-------------------------------------------------------------------------
 
@@ -702,25 +788,32 @@ printDefaultFX5Settings:
 
 ;-------------------------------------------------------------------------
 
+                .if version<400
 printDefaultSerialBaudRateIndex:
                 jsr readDefaultSerialBaudRateIndex
                 bra printDecimalByteThenNewLine
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 
+                .if version<400
 printDefaultSerialDataFormat:
                 jsr readDefaultSerialDataFormat
                 bra printDecimalByteThenNewLine
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 
+                .if version<400
 printDefaultFDRIVE:
                 jsr readDefaults1
                 and #CMOSBytes.defaults1.defaultFDRIVEMask
                 bra printDecimalByteThenNewLine
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 
+                .if version<400
 printDefaultFloppyDrive:
                 jsr readDefaults1
                 asl a                        ;C=1=floppy, C=0=hard
@@ -733,9 +826,11 @@ printDefaultFloppyDrive:
                 jsr alwaysPrintFollowingMessage
                 .text "Floppy",13,0
                 rts
+                .endif
 
 ;-------------------------------------------------------------------------
 
+                .if version<400
 printDefaultADFSLoadDir:
                 jsr readDefaults1            
                 asl a                        ;C=defaultFloppyDrive
@@ -746,7 +841,8 @@ printDefaultADFSLoadDir:
                 jsr alwaysPrintFollowingMessage
                 .text "Directory",13,0
                 rts
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ;
@@ -797,17 +893,29 @@ printCONFIGUREHelp:
                 phy
                 jsr alwaysPrintFollowingMessage
                 .text "Configuration options:",13
+                .if version<400
                 .text "Baud     <D>",13
+                .endif
                 .text "Boot",13
                 .text "Caps",13
+                .if version<400
                 .text "Data     <D>",13
+                .endif
                 .text "Delay    <D>",13
+                .if version<400
                 .text "Dir",13
+                .endif
                 .text "ExTube",13
+                .if version<400
                 .text "FDrive   <D>",13
+                .endif
                 .text "File     <D>",13
+                .if version<400
                 .text "Floppy",13
+                .endif
+                .if version<400
                 .text "Hard",13
+                .endif
                 .text "Ignore   [<D>]",13
                 .text "InTube",13
                 .text "Lang     <D>",13
@@ -815,7 +923,9 @@ printCONFIGUREHelp:
                 .text "Mode     <D>",13
                 .text "NoBoot",13
                 .text "NoCaps",13
+                .if version<400
                 .text "NoDir",13
+                .endif
                 .text "NoScroll",13
                 .text "NoTube",13
                 .text "Print    <D>",13
@@ -843,37 +953,49 @@ printCONFIGUREHelp:
 printSTATUSHelp:
                 jsr ensureCommandLineTailEmpty                    
                 phy
-                
+
                 jsr alwaysPrintFollowingMessage
                 .text "Configuration status:",13
+                .if version<400
                 .text "Baud     ",0
                 jsr printDefaultSerialBaudRateIndex
+                .else
+                .byte 0
+                .endif
                 
                 jsr printDefaultAutoBoot
                 
                 jsr printDefaultCaps
-                
+
+                .if version<400
                 jsr alwaysPrintFollowingMessage                    
                 .text "Data     ",0
                 jsr printDefaultSerialDataFormat
+                .endif
                 
                 jsr alwaysPrintFollowingMessage                    
                 .text "Delay    ",0
                 jsr printDefaultKeyboardAutoRepeatDelay
-                
+
+                .if version<400
                 jsr printDefaultADFSLoadDir
+                .endif
                 
                 jsr printDefaultExtTube
-                
+
+                .if version<400
                 jsr alwaysPrintFollowingMessage                    
                 .text "FDrive   ",0
                 jsr printDefaultFDRIVE
+                .endif
                 
                 jsr alwaysPrintFollowingMessage                    
                 .text "File     ",0
                 jsr printDefaultFSROM
-                
+
+                .if version<400
                 jsr printDefaultFloppyDrive
+                .endif
                 
                 jsr printDefaultPrinterIgnoreChar2
                 

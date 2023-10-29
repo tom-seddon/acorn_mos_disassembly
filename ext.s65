@@ -4,7 +4,7 @@ ext: .block
 
 plotEllipseOutline:
                 jsr     LBB2F
-                .if version==320
+                .if version<500
                 bra     LBA08
                 .elsif version>=500
                 jmp LBA08
@@ -18,13 +18,13 @@ LBA08:
                 ldy     #VDUVariables.workspace._3C
                 jsr     mos.sortVDUVariableWords
                 ldx     #VDUVariables.workspace._38
-                .if version==320
+                .if version<500
                 lda     vduv+1,x
                 .elsif version>=500
                 lda vduv.workspace._39
                 .endif
                 sta     vduv.workspace._43
-                .if version==320
+                .if version<500
                 lda     vduv+0,x
                 tax
                 .elsif version>=500
@@ -44,7 +44,7 @@ LBA27:
                 lda     vduv.workspace._43
                 sbc     vduv+1,y
                 bmi     LBA1B
-                .if version==320
+                .if version<500
                 ldx     #VDUVariables.workspace._36
                 ldy     #VDUVariables.workspace._3E
                 jsr     mos.sortVDUVariableWords
@@ -954,6 +954,8 @@ LBFE6:
 rtsBFF4:
                 rts
 
+                .if version!=400
+; Hmm. What even is this???
                 .byte $ff
                 .byte $ff
                 .byte $ff
@@ -965,5 +967,6 @@ rtsBFF4:
                 .byte $ff
                 .byte $ff
                 .byte $ff
+                .endif
 
                 .endblock

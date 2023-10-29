@@ -1444,6 +1444,7 @@ readDefaultMODE:
 ;-------------------------------------------------------------------------
 ;
 ;
+                .if version!=400
 readDefaultSerialBaudRateIndex:
                 jsr readDefaults2
                 and #CMOSBytes.defaults2.serialBaudRateIndexMask<<CMOSBytes.defaults2.serialBaudRateIndexShift
@@ -1451,6 +1452,7 @@ readDefaultSerialBaudRateIndex:
                 lsr a
                 inc a
                 rts
+                .endif
 
 ;-------------------------------------------------------------------------
 
@@ -1466,10 +1468,12 @@ getTop3Bits:
 
 ;-------------------------------------------------------------------------
 ;
-; 
+;
+                .if version!=400
 readDefaultSerialDataFormat:
                 jsr readDefaults3
                 bra getTop3Bits
+                .endif
 
 ;-------------------------------------------------------------------------
 
@@ -4634,7 +4638,8 @@ L9F4C:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version==400
+                .include "ext.s65"
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -9679,7 +9684,7 @@ LB8DE:
                 rts                          ; B8DE= 60          `
                 .endif
 
-                .if version>=400
+                .if version>=500
                 .include "ext.s65"
                 .endif
 

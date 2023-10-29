@@ -12900,6 +12900,9 @@ badCommandError:
                 .text "Tim Dobson,"
                 .endif
                 .text "Joe Dunn,"
+                .if version==400
+                .text "Wendy Frazer,"
+                .endif
                 .if version<500
                 .text "Paul Freakley,"
                 .endif
@@ -12911,11 +12914,16 @@ badCommandError:
                 .text "Martyn Gilbert,"
                 .text "John Harrison,"
                 .text "Hermann Hauser,"
+                .if version!=400
                 .text "Mike Hill,"
+                .endif
                 .if version>=500
                 .text "Paul Holding,"
                 .endif
                 .text "John Horton,"
+                .if version==400
+                .text "Richard Hughes,"
+                .endif
                 .if version>=500
                 .text "Dave Ireland,"
                 .endif
@@ -12936,7 +12944,11 @@ badCommandError:
                 .if version<500
                 .text "Peter McKenna,"
                 .text "Andrew McKernan,"
+                .if version==400
+                .text "Mick Neal,"
+                .else
                 .text "Mick Neil,"
+                .endif
                 .text "Ian Niblock,"
                 .endif
                 .if version>=500
@@ -12949,13 +12961,15 @@ badCommandError:
                 .text "Jean Nunn,"
                 .endif
                 .text "Richard Page,"
-                .if version<500
+                .if version<400
                 .text "Steve Parsons,"
+                .endif
+                .if version<=400
                 .text "Ed Phipps,"
                 .endif
                 .text "John Radcliffe,"
                 .text "Rick Rand,"
-                .if version>=500
+                .if version>=400
                 .text "Nick Reeves,"
                 .endif
                 .text "Brian Robertson,"
@@ -12976,7 +12990,9 @@ badCommandError:
                 .text "Phil Smith,"
                 .text "Tony Sumner,"
                 .endif
+                .if version!=400
                 .text "Paul Swindell,"
+                .endif
                 .text "Jon Thackray,"
                 .if version>=500
                 .text "Tony Thompson,"
@@ -12984,15 +13000,24 @@ badCommandError:
                 .text "Hugo Tyson,"
                 .if version<500
                 .text "Adrian Warner,"
+                .if version==400
+                .text "Jes Wills,"
+                .else
                 .text "Jess Wills,"
+                .endif
                 .endif
                 .if version<500
                 .text "Roger Wilson,"
                 .text "Graham Winterflood."
-                .text "   "
+                ;.text "   "
                 .endif
                 .if version>=500
                 .text "Roger Wilson."
+                .endif
+                .if version!=400
+                .align 256,' '
+                .else
+                .align 256
                 .endif
                 
 ;-------------------------------------------------------------------------

@@ -1759,7 +1759,7 @@ setStringInputBufferToCommandLine:
 
 ;-------------------------------------------------------------------------
 
-                .if version==500
+                .if version>=500
 starBuildOrAPPENDOSWORD0Parameters:
                 .word hazel.commandLine      ;address
                 .byte $f0                    ;max # chars

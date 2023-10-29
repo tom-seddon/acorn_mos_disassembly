@@ -1,0 +1,762 @@
+;-------------------------------------------------------------------------
+
+unk_8BE8:
+                .if version>=500
+                .byte 1
+                .endif
+                .byte 9
+                .byte $A
+                .byte $B
+                .byte $C
+                .byte 2
+                .byte 3
+                .byte 4
+                .byte 5
+                .byte 6
+
+;-------------------------------------------------------------------------
+
+L8BF2:
+                .if version==400
+                lda ($f0)
+                and #$c0
+                sta osfileParameterBlock+1
+                .endif
+                ldy #9
+
+L8BF4:
+                lda ($F0),y
+                ldx unk_8BE8,y
+                sta osfileParameterBlock,x
+                dey
+                .if version==400
+                bne L8BF4
+                .else
+                bpl L8BF4
+                iny
+                .endif
+
+L8C00:
+                lda $B0,y
+                pha
+                iny
+                cpy #4
+                bcc L8C00
+                jsr L8DB7
+                ldy #3
+
+L8C0E:
+                pla
+                sta $B0,y
+                dey
+                bpl L8C0E
+                rts
+
+;-------------------------------------------------------------------------
+
+L8C16:
+                bit osfileParameterBlock+1
+                bvc L8C4B
+                ldy #4
+                lda osfileParameterBlock+5
+                ldx osfileParameterBlock+6
+
+L8C23:
+                cpx #$3F
+                bcc L8C3D
+                bne L8C2D
+                cmp #$F0
+                bcc L8C3D
+
+L8C2D:
+                sbc #$F0
+                pha
+                txa
+                sbc #$3F
+                tax
+                pla
+                iny
+                cpy #8
+                bcc L8C23
+                jmp badAddressError
+
+;-------------------------------------------------------------------------
+
+L8C3D:
+                adc #$10
+                sta osfileParameterBlock+5
+                txa
+                adc #$80
+                sta osfileParameterBlock+6
+                sty osfileParameterBlock+4
+
+L8C4B:
+                lda osfileParameterBlock+4
+                cmp #$10
+                bcc L8C5B
+                cmp #$14
+                bcs L8C74
+                eor #$14
+                sta osfileParameterBlock+4
+
+L8C5B:
+                tax
+                jsr mos.LF89A
+                bcs L8C68
+                bit osfileParameterBlock+1
+                bpl L8C74
+                bvs L8C74
+
+L8C68:
+                jsr L8F84
+                ldx osfileParameterBlock+4
+                eor osfileParameterBlock+1
+                and #$40
+                rts
+
+;-------------------------------------------------------------------------
+
+L8C74:
+                jsr doFollowingError
+
+;-------------------------------------------------------------------------
+
+                .byte $80
+                .text "Bad id"
+                .byte 0
+
+;-------------------------------------------------------------------------
+
+L8C7F:       
+                jsr readHexDigit
+                bit mos.valueFF
+                bcs L8C94
+                and #$DF
+                cmp #$5B
+                bcs L8CAA
+                cmp #'W'
+                bcc L8CAA
+                sbc #'S'
+                iny
+
+L8C94:
+                cmp #1
+                bne L8CA1
+                dey
+                jsr parseNumberFromString
+                txa
+                cmp #$10
+                bcs L8C74
+
+L8CA1:
+                sta osfileParameterBlock+4
+                lda #$40
+                trb osfileParameterBlock+1
+                clv
+
+L8CAA:
+                jmp mos.skipSpacesAndCheckForCRInStringInput
+                
+
+;-------------------------------------------------------------------------
+
+starSRDATAOrStarSRROM:
+                pha
+                jsr L8C7F
+                bvs L8CD6
+                bne L8CD6
+                pla
+                .if version==400
+                jsr L8A88
+                .else
+                asl a
+                sta osfileParameterBlock+1
+                .endif
+                jsr L8C4B
+                bcs L8C74
+                bne L8CC7
+                ora romInformationTable,x
+                beq L8CD0
+                rts
+
+;-------------------------------------------------------------------------
+
+L8CC7:
+                lda hazel.dfde
+                eor L8F4C,x
+                sta hazel.dfde
+
+L8CD0:
+                jsr L8F4A
+                jmp mos.LF87C
+
+;-------------------------------------------------------------------------
+
+L8CD6:
+                jmp mos.badCommandError
+
+;-------------------------------------------------------------------------
+
+L8CD9:       
+                jsr L8CEA
+                bcs locret_8CE9
+                jsr mos.LF846
+                sty osfileParameterBlock+5
+                lda 1,x
+                sta osfileParameterBlock+6
+
+locret_8CE9:
+                rts
+                
+
+;-------------------------------------------------------------------------
+
+L8CEA:       
+                ldx #$B0
+                bit osfileParameterBlock+1
+                bpl L8CF3
+                ldx #$B2
+
+L8CF3:
+                stz 0,x
+                ldy osfileParameterBlock+5
+                tya
+                clc
+                adc osfileParameterBlock+2
+                sta osfileParameterBlock+2
+                lda osfileParameterBlock+6
+                sta 1,x
+                adc osfileParameterBlock+3
+                sta osfileParameterBlock+3
+                sec
+                jsr L8F62
+                
+
+;-------------------------------------------------------------------------
+
+L8D0F:
+
+                cpy osfileParameterBlock+2
+                bne L8D1C
+                lda 1,x
+                cmp osfileParameterBlock+3
+                bne L8D1C
+                rts
+
+;-------------------------------------------------------------------------
+
+L8D1C:
+                bit osfileParameterBlock+1
+                bvc L8D53
+                lda 1,x
+                cmp #$C0
+                bcc L8D53
+                lda #$80
+                sta 1,x
+                inc osfileParameterBlock+4
+                lda osfileParameterBlock+4
+                cmp #8
+                bcs L8D63
+                phx
+                jsr L8C4B
+                bne L8D63
+                plx
+                ldy #$10
+                lda osfileParameterBlock+2
+                sec
+                sbc #$F0
+                sta osfileParameterBlock+2
+                lda osfileParameterBlock+3
+                sbc #$3F
+                sta osfileParameterBlock+3
+                clc
+                jsr L8F62
+
+L8D53:
+                lda osfileParameterBlock+4
+                clc
+
+locret_8D57:
+                rts
+
+;-------------------------------------------------------------------------
+
+L8D58:
+                jsr parseHexAddressFromCommandLine
+
+L8D5B:
+                lda osfileParameterBlock+2,x
+                ora osfileParameterBlock+3,x
+                beq locret_8D57
+
+L8D63:
+                jmp badAddressError
+
+;-------------------------------------------------------------------------
+
+L8D66:
+                .if version!=400
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                and #$DF
+                cmp #'I'
+                bne L8D7C
+                iny
+                lda osfileParameterBlock+1
+                cmp #$80
+                bne L8DB4
+                ora #$20
+                sta osfileParameterBlock+1
+
+L8D7C:
+                jmp mos.skipSpacesAndCheckForCRInStringInput
+                .endif
+
+;-------------------------------------------------------------------------
+
+starSRREADOrStarSRWRITE:
+                .if version==400
+                jsr L8A88
+                .else
+                asl a
+                sta osfileParameterBlock+1
+                .endif
+                ldx #9
+                jsr parseHexAddressFromCommandLine
+                jsr L8F54
+                ldx #2
+                jsr parseHexAddressFromCommandLine
+                bvs L8DA2
+                ldx #$FC
+
+L8D94:
+                lda osfileParameterBlock+2-$FC,x
+                sbc osfileParameterBlock+9-$FC,x
+                sta osfileParameterBlock+2-$FC,x
+                inx
+                bne L8D94
+                bcc L8D63
+
+L8DA2:
+                ldx #2
+                jsr L8D5B
+                ldx #5
+                jsr L8D58
+                jsr L8C7F
+                .if version>=500
+                jsr L8D66
+                .endif
+                beq L8DB7
+
+L8DB4:
+                jmp mos.badCommandError
+
+;-------------------------------------------------------------------------
+
+L8DB7:       
+
+                php
+                jsr L8C16
+                beq L8DC0
+                jsr L8C74
+
+L8DC0:
+                jsr L8F40
+                .if version==400
+                lda osfileParameterBlock+10
+                and osfileParameterBlock+11
+                inc a
+                and tubePresence
+                bne L8952
+                .endif
+                jsr L8CD9
+                plp
+                .if version==400
+                rts
+                .else
+                jmp mos.LF8D1
+                .endif
+
+                .if version==400
+L8952:
+                lda #$c8
+                jsr $0406
+                bcc L8952
+                lda #0
+                bit osfileParameterBlock+1
+                bmi L8961
+                inc a
+L8961:
+                ldx #$f6
+                ldy #$02
+                jsr $0406
+                jsr L8CEA
+                bcs L8970
+                jsr mos.LF7D1
+L8970:
+                lda #$88
+                jsr $0406
+                plp
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+starSRLOADOrStarSRSAVE:
+                .if version==400
+                jsr L8A88
+                .else
+                asl a
+                sta osfileParameterBlock+1
+                .endif
+                lsr hazel.tempFSFlag
+                stx stringInputBufferAddress
+                sty stringInputBufferAddress+1
+                stx osfileParameterBlock+2
+                sty osfileParameterBlock+3
+                ldy #0
+                jsr mos.gsinitForFilenameParsing
+
+L8DE0:
+                jsr mos.gsreadEntryPoint
+                bcc L8DE0
+                ldx #5
+                jsr L8D58
+                bit osfileParameterBlock+1
+                bmi L8E0D
+                jsr L8F54
+                ldx #7
+                jsr L8D58
+                bvs L8E0D
+                sec
+                ldx #$FE
+
+L8DFC:
+                lda osfileParameterBlock+7-$FE,x
+                sbc osfileParameterBlock+5-$FE,x
+                sta osfileParameterBlock+7-$FE,x
+                inx
+                bne L8DFC
+                bcs L8E0D
+                jmp L8D63
+
+;-------------------------------------------------------------------------
+
+L8E0D:
+                jsr L8C7F
+                stz osfileParameterBlock+$B
+                ldx #0
+                .if version>=500
+                jsr L8D66
+                .endif
+                and #$DF
+                cmp #'Q'
+                bne L8E20
+                dex
+                iny
+
+L8E20:
+                stx osfileParameterBlock+$C
+                ldx ACCCON
+                jsr L8D66
+                beq L8E41
+                jmp L8DB4
+
+;-------------------------------------------------------------------------
+
+L8E2E:
+                ldx ACCCON
+                jsr mos.selectHAZEL
+                stz hazel.tempFSFlag
+                ldy #$B
+
+L8E39:
+                lda ($F0),y
+                sta osfileParameterBlock+1,y
+                dey
+                bpl L8E39
+                .if version==400
+                lda #$3f
+                trb osfileParameterBlock+1
+                .endif
+
+L8E41:
+                php
+                phx
+                jsr L8C16
+                beq L8E4B
+                jmp L8C74
+
+;-------------------------------------------------------------------------
+
+L8E4B:
+                lda osfileParameterBlock+$C
+                bmi L8E5B
+                ora osfileParameterBlock+$B
+                bne L8E72
+                lda #2
+                ldy #$DD
+                bra L8E66
+
+;-------------------------------------------------------------------------
+
+L8E5B:
+                jsr mos.osbyte84
+                tya
+                sec
+                sbc oshwm
+                ldy oshwm
+
+L8E66:
+                stz osfileParameterBlock+9
+                sty osfileParameterBlock+$A
+                stz osfileParameterBlock+$B
+                sta osfileParameterBlock+$C
+
+L8E72:
+                bit osfileParameterBlock+1
+                bpl L8EAF
+                lda #$40
+                jsr L8F1B
+
+L8E7C:
+                sec
+                jsr L8EED
+                lda #4
+                jsr L8F14_500
+                php
+                bcc L8E96
+                ldx #$FE
+
+L8E8A:
+                lda osfileParameterBlock+2-$FE,x
+
+L8E8D:
+                sbc hazel.moveOSGBPB+OSGBPBParameterBlock.count+0-$fe,x
+                sta osfileParameterBlock+2-$FE,x
+                inx
+                bne L8E8A
+
+L8E96:
+                jsr L8CD9
+                plp
+                bcc L8E7C
+
+L8E9C:
+                ldy hazel.moveSrcHandle
+                stz hazel.moveSrcHandle
+                lda #0
+                jsr OSFIND
+                pla
+                sta ACCCON
+                plp
+                .if version==400
+                rts
+                .else
+                jmp mos.LF8D1
+                .endif
+
+;-------------------------------------------------------------------------
+
+L8EAF:
+                lda #$80
+                jsr L8F1B
+
+L8EB4:
+                sec
+                ldx #$FE
+
+L8EB7:
+                lda osfileParameterBlock+7-$FE,x
+                sta ($B0-$FE)&$ffff,x
+                sbc osfileParameterBlock+$B-$FE,x
+                sta osfileParameterBlock+7-$FE,x
+                inx
+                bne L8EB7
+                ora osfileParameterBlock+7
+                php
+                jsr L8EED
+                jsr L8CD9
+                lda #2
+                jsr L8F14_500
+                plp
+                bcc L8E9C
+                beq L8E9C
+                bra L8EB4
+
+;-------------------------------------------------------------------------
+
+                .if version==400
+L8A88:
+                asl a
+                sta osfileParameterBlock+1
+                rts
+                .endif
+                
+;-------------------------------------------------------------------------
+
+L8EDC:
+                lda #0
+                ldx #7
+
+L8EE0:
+                pha
+                jsr mos.LF89A
+                pla
+                rol a
+                dex
+                cpx #4
+                bcs L8EE0
+                tax
+                rts
+
+;-------------------------------------------------------------------------
+
+L8EED:       
+                lda hazel.moveSrcHandle
+                sta hazel.moveOSGBPB+0
+                ldx #1
+
+L8EF5:
+                lda osfileParameterBlock+9,x
+                sta $DFC8,x
+                lda osfileParameterBlock+$B,x
+                bcs L8F02
+                lda $B0,x
+
+L8F02:
+                sta $DFCC,x
+                sta osfileParameterBlock+2,x
+                lda #$FF
+                sta $DFCA,x
+                stz $DFCE,x
+                dex
+                bpl L8EF5
+                rts
+                
+
+;-------------------------------------------------------------------------
+
+L8F14_500:       
+                ldx #<hazel.moveOSGBPB
+                ldy #>hazel.moveOSGBPB
+                jmp OSGBPB
+                
+
+;-------------------------------------------------------------------------
+
+L8F1B:       
+                asl hazel.tempFSFlag
+                ldx osfileParameterBlock+2
+                ldy osfileParameterBlock+3
+                jsr OSFIND
+                tax
+                bne L8F3D
+                jsr doFollowingError
+
+;-------------------------------------------------------------------------
+
+                .byte $D6
+                .text "File not found"
+                .byte 0
+
+;-------------------------------------------------------------------------
+
+L8F3D:
+                sta hazel.moveSrcHandle
+                
+
+;-------------------------------------------------------------------------
+
+L8F40:       
+                ldx osfileParameterBlock+4
+                bit osfileParameterBlock+1
+                bpl locret_8F4F
+                bvs locret_8F4F
+
+L8F4A:
+                lda #2
+
+L8F4C:
+                sta romInformationTable,x
+
+locret_8F4F:
+                rts
+                
+
+;-------------------------------------------------------------------------
+
+unk_8F50:       .byte 1
+                .byte 2
+                .byte 4
+                .byte 8
+
+;-------------------------------------------------------------------------
+
+L8F54:       
+                clv
+                lda (stringInputBufferAddress),y
+                cmp #'+'
+                bne locret_8F61
+                bit mos.valueFF
+                jsr mos.incAndSkipSpaces
+
+locret_8F61:
+                rts
+                
+
+;-------------------------------------------------------------------------
+
+L8F62:       
+                phx
+                txa
+                eor #2
+                tax
+                bcc L8F73
+                lda osfileParameterBlock+9
+                sta 0,x
+                lda osfileParameterBlock+$A
+                sta 1,x
+
+L8F73:
+                sty osfileParameterBlock
+                lda 0,x
+                sec
+                sbc osfileParameterBlock
+                sta 0,x
+                bcs L8F82
+                dec 1,x
+
+L8F82:
+                plx
+                rts
+                
+
+;-------------------------------------------------------------------------
+
+L8F84:       
+                cpx #4
+                bcc L8FA4
+                cpx #8
+                bcs L8FA4
+
+L8F8C:
+                ldy ACCCON
+                jsr mos.selectHAZEL
+                lda unk_8F50-4,x
+                ldx hazel.dfde
+                and hazel.dfde
+                beq L8F9F
+                lda #$40
+
+L8F9F:
+                sty ACCCON
+                clc
+                rts
+
+;-------------------------------------------------------------------------
+
+L8FA4:
+                sec
+                lda #0
+                rts
+                

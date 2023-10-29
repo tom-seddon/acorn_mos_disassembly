@@ -24,6 +24,12 @@ LEBC5=$ebc5
 LE5D4=$e5d4
 LE5E9=$e5e9
 L88AA=$88aa
+starMOTOR=$967f
+;starSRDATAOrStarSRROM=$8901
+;starSRLOADOrStarSRSAVE=$8977
+;starSRREADOrStarSRWRITE=$8901
+starTAPE=$9400
+;L8A88=$8a88
                 
 ;-------------------------------------------------------------------------
 

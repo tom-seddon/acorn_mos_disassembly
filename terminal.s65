@@ -81,11 +81,13 @@ reset:                          ;8020
                 .if version>=500
                 stz hazel.hasACCCONChanged
                 jsr L8363
+                .elsif version>=400
+                jsr L836D
                 .endif
                 lda systemVIA.ier
                 asl a
                 pha
-                .if version<500
+                .if version<400
                 beq startClearRAM       ; branch taken if power on
                 lda breakAndESCAPEEffect                    ; read BREAK action flags
                                              ; (set by *FX200)
@@ -95,11 +97,15 @@ reset:                          ;8020
                 bne L8073                    ; branch taken if break
                                              ; action says don't clear
                                              ; RAM
-                .elsif version>=500
+                .elsif version>=400
                 bne L8073
                 ldx #7
                 jsr mos.LF8B4
+                .if version==400
+                lda #0
+                .else
                 tya
+                .endif
                 .endif                                             
 startClearRAM
                 tay             ;Y=0
@@ -125,12 +131,12 @@ clearRAM:
                              ;previously set - i.e., that was the
                              ;first iteration, and we need to go back
                              ;to do main RAM
-                .if version>=500
+                .if version>=400
                 lda $fe28
                 lda $fe2b
                 .endif
 L8073:
-                .if version>=500
+                .if version>=400
                 lda breakAndESCAPEEffect
                 lsr a
                 dec a
@@ -244,8 +250,10 @@ initializeZeroPageLoop:
                 lda lastBREAKType
                 bne L813D                    ;taken if not soft BREAK
 
+                .if version!=400
                 lda noignoreState
                 pha
+                .endif
                 lda basicROMNumber
                 pha
                 lda oshwm
@@ -280,8 +288,10 @@ L813D:
                 sta oshwm
                 pla               
                 sta basicROMNumber
+                .if version!=400
                 pla               
                 sta noignoreState
+                .endif
 L8164:
                 .if version<500
                 jsr readDefaults1
@@ -326,6 +336,7 @@ gotKeyboardStatusByte:
                 .endif
                 sta printerDriverType
 L8196:
+                .if version!=400
                 .if version<500
                 jsr readDefaultSerialDataFormat
                 .elsif version>=500
@@ -365,6 +376,9 @@ L81CF:
                 jsr resetACIAThenRewriteControlRegister
                 inx
                 .endif
+                .else
+                ldx #1
+                .endif
                 
                 lda #$7F
 initializeVIAInterruptsLoop:
@@ -396,20 +410,20 @@ initializeVIAInterruptsLoop:
                 lda #$0E
                 sta systemVIA.t1lL
                 sta userVIA.pcr              ;VIA.pcr.cb2InputNegativeActiveEdge|VIA.pcr.cb1NegativeActiveEdge|VIA.pcr.ca2HighOutput|VIA.pcr.ca1NegativeActiveEdge
-                .if version<500
+                .if version<400
                 sta HADC.latch               ;looks benign
                 .endif
                 lda #$27
                 sta systemVIA.t1lH
                 sta systemVIA.t1cH
-                .if version<500
+                .if version<400
                 ldx #$08
 L81DD:
                 dex
                 jsr mos.LF55D
                 cpx #$04
                 bne L81DD
-                .elsif version>=500
+                .elsif version>=400
                 jsr L836D
                 .endif
                 jsr mos.osbyte7A             
@@ -419,6 +433,7 @@ L81DD:
                 stx userVIA.ddrb
                 .endif
                 jsr mos.purgeBuffer
+                .if version!=400
                 lda serialULARegister
                 and #$7F
                 jsr mos.LEC89
@@ -434,6 +449,7 @@ L81DD:
                 plx
                 lda #$07
                 jsr mos.osbyte07
+                .endif
                 jsr readDefaults3
                 bit #$02
                 bne L8211
@@ -692,6 +708,8 @@ L8365:
                 sta $fe40
                 cmp #9
                 bcs L8365
+                .endif
+                .if version>=400
 L836D:
                 ldx #8
 L836F:
@@ -736,7 +754,9 @@ mos_command .macro name,routine,byte1,byte2
                 
 mosCommandTable:
                 .mos_command "CAT",mos.callFSCV,$80,$05 ; XY=>parameters, FSC &05
+                .if version!=400
                 .mos_command "ADFS",passStarCommandThrough,$00,$00   ;
+                .endif
                 .mos_command "APPEND",starAPPEND,$80,$00 ; XY=>parameters
                 .mos_command "BASIC",starBASIC,$00,$00  ;
                 .mos_command "BUILD",starBUILD,$80,$00  ; XY=>parameters
@@ -764,8 +784,10 @@ mosCommandTable:
                 .mos_command "LIST",starLIST,$80,$00   ; XY=>parameters
                 .mos_command "LINE",mos.callUSERV,$00,$01 ;
                 .mos_command "LIBFS",mos.starLIBFS,$00,$00    ;
-                .if version<500
+                .if version<400
                 .mos_command "MOTOR",starCommandThroughOSBYTE,$00,$89 ; X,y=parameters, OSBYTE &89
+                .elsif version==400
+                .mos_command "motor",starMOTOR,$00,$89
                 .elsif version>=500
                 .mos_command "MOTOR",mos.rtsFFAA,$00,$89 ; X,y=
                 .endif
@@ -782,7 +804,7 @@ mosCommandTable:
                 .mos_command "SHUT",mos.starSHUT,$00,$00 ;
                 .mos_command "SPOOL",starSPOOL,$80,$00   ; XY=>parameters
                 .mos_command "SPOOLON",starSPOOLON,$80,$00 ; XY=>parameters
-                .if version>=500
+                .if version>=400
                 .mos_command "SRDATA",starSRDATAOrStarSRROM,$00,$a0
                 .mos_command "SRLOAD",starSRLOADOrStarSRSAVE,$80,$60
                 .mos_command "SRREAD",starSRREADOrStarSRWRITE,$00,$a0
@@ -795,8 +817,10 @@ mosCommandTable:
                 .elsif version>=500
                 .mos_command "STATUS",starCONFIGUREOrStarSTATUS,$00,$c0
                 .endif
-                .if version<500
+                .if version<400
                 .mos_command "TAPE",starCommandThroughOSBYTE,$00,$8C ; X,y=parameters, OSBYTE &8C
+                .elsif version==400
+                .mos_command "tape",starTAPE,$00,$8c
                 .elsif version>=500
                 .mos_command "TAPE",mos.rtsFFAA,$00,$8C ; X,y=parameters, OSBYTE &8C
                 .endif
@@ -1184,14 +1208,14 @@ starROMS:
                 bne badCommandError869A
                 ldy #$0F
 printROMsLoop:
-                .if version<500
+                .if version<400
                 iny                          ;ensure Y!=0
                 jsr printFollowingMessage
                 .text "ROM ",0
                 tya                          ;A = ROM number+1
                 dec a                        ;A = ROM number
                 pha                          ;save ROM number
-                .elsif version>=500
+                .elsif version>=400
                 tya
                 tax
                 phy
@@ -1213,11 +1237,11 @@ L86DA:
                 sta $F6
                 lda #>sidewaysROMName
                 sta $F7
-                .if version<500
+                .if version<400
                 plx                          ;restore ROM number
                 .endif
                 jsr mos.isROMValidThenSelectTerminalROM
-                .if version<500
+                .if version<400
                 dey
                 .endif
                 bcc invalidROM
@@ -1344,10 +1368,14 @@ L8752:
 
 ;-------------------------------------------------------------------------
 
-                .if version<500
+                .if version<400
                 .include "configure320.s65"
-                .elif version>=500
+                .elsif version<500
+                .include "sram_utils.s65"
+                .include "configure320.s65"
+                .elsif version>=500
                 .include "configure500.s65"
+                .include "sram_utils.s65"
                 .include "osbyte_osword_table.s65"
 parseSingle4BitNumberFromCommandLine:
 readDefaultTVSettings:

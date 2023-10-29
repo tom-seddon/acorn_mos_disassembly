@@ -15,6 +15,21 @@ copyrightText:
                 .text "(C)1984 Acorn"
                 .byte 0
 
+                .elsif version==400
+
+                brk
+                brk
+                brk
+                jmp utilsServiceEntryPoint
+                .byte $82
+                .byte copyrightText-1-terminal
+                .byte $00
+                .text "MOS"
+                .byte 0
+copyrightText:
+                .text "(C)1984 Acorn"
+                .byte 0
+
                 .elsif version>=500
 
                 ; Language entry point
@@ -9640,6 +9655,11 @@ LB8DE:
                 .include "ext.s65"
                 .endif
 
+                .if version==400
+chr127:
+LB900=$b900
+                .else
+                
 ; Unused space
 ; ============
                 .fill $b900-*,$ff
@@ -11888,4 +11908,5 @@ chr127:
                 .byte %11111111
                 .byte %11111111
                 .byte %11111111
+                .endif
                 .endblock

@@ -19,6 +19,11 @@ version=400
 ; Is there a better way of doing this?
 ;osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
 ext=terminal.ext
+
+LEBC5=$ebc5
+LE5D4=$e5d4
+LE5E9=$e5e9
+L88AA=$88aa
                 
 ;-------------------------------------------------------------------------
 

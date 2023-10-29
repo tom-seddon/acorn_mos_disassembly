@@ -1691,58 +1691,64 @@ LC88E:
                 bcc LC895                    ; Ctrl not pressed, exit loop
                 bmi LC88B                    ; Shift pressed, loop back
 LC895:
-                lda STATE                      ; C895= A5 D0       %P
+                lda STATE
                 eor #STATE.isPagedScrolling
                 and #STATE.isCursorEditing|STATE.isPagedScrolling|STATE.isScrollingDisabled;
                 bne LC8D6
                 jsr LC8D7
                 lda vduv.textCursorXPosition,y
                 cmp vduv.textWindowLeft,x
-                bne LC8D3                    ; C8A6= D0 2B       P+
-                sec                          ; C8A8= 38          8
-                iny                          ; C8A9= C8          H
-                dey                          ; C8AA= 88          .
-                bne LC8B5                    ; C8AB= D0 08       P.
+                bne LC8D3
+                .if version==400
+                cpy #0
+                .else
+                sec
+                iny
+                dey
+                .endif
+                bne LC8B5
                 lda vduv.textWindowRight
                 sbc vduv.textWindowLeft
-                bra LC8BB                    ; C8B3= 80 06       ..
+                bra LC8BB
 
 LC8B5:
                 lda vduv.textWindowBottom
                 sbc vduv.textWindowTop
 LC8BB:
-                pha                          ; C8BB= 48          H
-                lsr a                        ; C8BC= 4A          J
-                lsr a                        ; C8BD= 4A          J
+                pha
+                lsr a
+                lsr a
                 sta ZTEMP+0
-                sec                          ; C8C0= 38          8
-                pla                          ; C8C1= 68          h
+                sec
+                pla
                 sbc ZTEMP+0
-                cmp pagedModeCounter                    ; C8C4= CD 69 02    Mi.
-                bcs LC8D3                    ; C8C7= B0 0A       0.
+                cmp pagedModeCounter
+                bcs LC8D3
 LC8C9:
-                jsr osbyte76                    ; C8C9= 20 30 F2     0r
-                sec                          ; C8CC= 38          8
-                bpl LC8C9                    ; C8CD= 10 FA       .z
+                jsr osbyte76
+                sec
+                bpl LC8C9
 
 LC8CF:
-                stz pagedModeCounter                    ; Clear paged mode counter
-                nop                          ; C8D2= EA          j
+                stz pagedModeCounter        ; Clear paged mode counter
+                .if version!=400
+                nop
+                .endif
 LC8D3:
-                inc pagedModeCounter                    ; C8D3= EE 69 02    ni.
+                inc pagedModeCounter
 LC8D6:
-                rts                          ; C8D6= 60          `
+                rts
 
 LC8D7:
                 lda vduv.cursorFlags
                 and #vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal
                 lsr a                        ;xvh
-                tax                          ; C8DD= AA          *
-                lda LE204,x                  ; C8DE= BD 04 E2    =.b
-                tax                          ; C8E1= AA          *
-                and #$01                     ; C8E2= 29 01       ).
-                tay                          ; C8E4= A8          (
-                rts                          ; C8E5= 60          `
+                tax
+                lda LE204,x
+                tax
+                and #$01
+                tay
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -6031,34 +6037,47 @@ isCursorEditingPossible:
 ;-------------------------------------------------------------------------
 ;
 ; 184–191 = Move/copy rectangle [MasRef E.3-31]
-; 
+;
+                .if version!=400
 plotMoveOrCopyRectangle:
                 ldx #$80|extROM   ; select VIEW+ANDY
                 jsr selectROMX
                 jsr ext.plotMoveOrCopyRectangle
                 bra LDFF1
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; 192–199 = Plot ellipse outline [MasRef E.3-32]
-; 
+;
+                .if version!=400
 plotEllipseOutline:
                 ldx #$80|extROM
                 jsr selectROMX
                 jsr ext.plotEllipseOutline
 LDFF1:
                 jmp selectTerminalROMAndANDY
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; 200–207 = Plot solid ellipse [MasRef E.3-32]
-; 
+;
+                .if version!=400
 plotSolidEllipse:
                 ldx #$80|extROM
                 jsr selectROMX
                 jsr ext.plotSolidEllipse
                 bra LDFF1
+                .endif
 
+                .if version==400
+plotMoveOrCopyRectangle:
+plotEllipseOutline:
+plotSolidEllipse:
+                .align 256
+                .endif
+                
 ;-------------------------------------------------------------------------
 
 ; Pretty sure I have the logic for this all wrong...
@@ -6074,11 +6093,18 @@ startupMessages: .block
                 .endif
 acornMOS:
                 .text 13
-                .text "Acorn MOS",0
+                .text "Acorn MOS"
+                .if version==400
+                .text " "
+                .endif
+                .byte 0
 beep:
                 .byte 7
-                .byte 0,0,0,0   ;space for "xxK"
-
+                .byte 0
+                .if version!=400
+                .byte 0,0,0   ;space for "xxK"
+                .endif
+                
 twoNewlines:
                 .byte 8
                 .byte $0D
@@ -6837,7 +6863,7 @@ testVDU5State:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version>=400
 LE2E7:
                 jsr withMOSROM
                 jmp callPrinterDriverWithPrinterBuffer
@@ -6845,7 +6871,7 @@ LE2E7:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version>=400
 LE2ED:
                 jsr withMOSROM
                 jmp LE8B9
@@ -6853,7 +6879,7 @@ LE2ED:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version>=400
 LE2F3:
                 jsr withMOSROM
                 jmp (VDUV)
@@ -7259,10 +7285,12 @@ LE496:
 LE499:
                 sec
                 ror hazel.currentFS
-                .if version<500
+                .if version<400
                 lda #$00
                 tax
-                jsr selectROMOrTAPE                    ; E4A0= 20 C2 ED     Bm
+                jsr selectROMOrTAPE
+                .elsif version<500
+                jsr LEBC5
                 .elsif version>=500
                 lda #$8d
                 jsr osbyte8C8D
@@ -7505,6 +7533,7 @@ brkEntryPoint:
 
 ;-------------------------------------------------------------------------
 
+                .if version!=400
 LE5D4:
                 sec
                 ror rs423Busy
@@ -7530,6 +7559,7 @@ LE5E9:
                 bcc LE5E4
 LE5FE:
                 rts
+                .endif
 
 ;-------------------------------------------------------------------------
 
@@ -7538,7 +7568,9 @@ irq1EntryPoint:
                 pha
                 phx
                 phy
+                .if version!=400
                 clv
+                .endif
                 jsr irq1Handler
                 ply
                 plx
@@ -7553,6 +7585,10 @@ irq2EntryPoint:
 
 ;-------------------------------------------------------------------------
 
+                .if version==400
+rtsE64D:
+                rts
+                .else
 irq1Handler:
                 lda ACIA+0
                 .if version>=500
@@ -7611,6 +7647,9 @@ LE65B:
                 bcs LE623
                 bmi LE62F
                 bvs rtsE64D
+                .endif
+
+;-------------------------------------------------------------------------
 
 handleUnrecogisedInterrupt:
                 ldx #romServiceCallUnrecognisedInterrupt
@@ -7627,9 +7666,17 @@ handleUnrecogisedInterrupt:
 
 ;-------------------------------------------------------------------------
 
+                .if version==400
+irq1Handler:
+                .else
 checkForSystemVIAInterrupt:
+                .endif
                 lda systemVIA.ifr            ; E672= AD 4D FE    -M~
+                .if version==400
+                bpl handleUnrecogisedInterrupt
+                .else
                 bpl checkForUserVIAInterrupt
+                .endif
                 and systemVIAInterruptMask
                 and systemVIA.ier
                 bit #VIA.irq.ca1
@@ -7638,10 +7685,12 @@ checkForSystemVIAInterrupt:
                 ; Handle CA1 interrupt - CRTC vsync.
                 
                 dec cfsTimeoutCounter
+                .if version!=400
                 lda $EA                      ; E684= A5 EA       %j
                 bpl +
                 inc $EA                      ; E688= E6 EA       fj
 +
+                .endif
                 lda flashCounter
                 beq flashDone                    ;taken if no flash
                 dec flashCounter             ;count down
@@ -7660,8 +7709,14 @@ flashDone:
                 ldy #eventStartOfVerticalSync
                 jsr eventEntryPoint
                 lda #VIA.irq.ca1
+                .if version==400
+                nop
+                nop;bra staSystemVIAIFR
+                .else
                 jmp staSystemVIAIFR          ;acknowledge CA1
+                .endif
 
+                .if version!=400
 checkForUserVIAInterrupt:
                 lda userVIA.ifr
                 bpl handleUnrecogisedInterrupt
@@ -7678,12 +7733,13 @@ checkForUserVIAInterrupt:
                 sta userVIA.ier              ;inhibit CA1
                 ldx #bufferPrinter
                 jmp LE8D5
+                .endif
 
 checkForSystemVIAT1Interrupt:
                 bit #VIA.irq.t1
-                .if version<500
+                .if version<400
                 beq checkForSystemVIACB1Interrupt
-                .elsif version>=500
+                .else
                 beq checkForSystemVIACA2Interrupt
                 .endif
 
@@ -7737,7 +7793,9 @@ LE718:
                 dec previousKeyPressedWhenReadingOSBYTE
 LE728:
                 bit valueFF                  ;V=1
+                .if version!=400
                 jsr irq1Handler
+                .endif
                 lda lastKeyPressedInternal
                 ora firstKeyPressedInternal
                 and keyboardSemaphore
@@ -7750,16 +7808,25 @@ LE728:
                 .endif
                 jsr pollPrinterDriver
                 ldy romPollingSemaphore
-                beq +
+                .if version==400
+                beq rtsE6B6
+                .else
+                beq LE748
+                .endif
                 ldx #romServiceCallPollingInterrupt
+                .if version==400
+                jmp makeROMServiceCall
+                .else
                 jsr makeROMServiceCall
-+
+LE748:
                 .if version<500
                 bit HADC+0
                 bvs LE752
                 .endif
                 rts
+                .endif
 
+                .if version!=400
 checkForSystemVIACB1Interrupt:
                 .if version<500
                 bit #VIA.irq.cb1
@@ -7801,6 +7868,7 @@ staSystemVIAIFR:
 initiateADCConversion:
                 rts
                 .endif
+                .endif
 
 checkForSystemVIACA2Interrupt:
                 lsr a                        ;C = CA2
@@ -7811,11 +7879,12 @@ checkForSystemVIACA2Interrupt:
                 clc                          ; E791= 18          .
                 jsr LF8FF                    ; E792= 20 FF F8     .x
                 lda #VIA.irq.ca2
-                .if version<500
+                .if version<400
                 bra staSystemVIAIFR
-                .elsif version>=500
+                .else
 staSystemVIAIFR:
                 sta systemVIA.ifr
+rtsE6B6:
                 rts
                 .endif                
 
@@ -7825,14 +7894,16 @@ handleUnrecognisedInterruptE799:
 ;-------------------------------------------------------------------------
 ;
 ; OSBYTE 17 (&11) Write next ADC channel to be sampled [MasRef D.2-25]
-; 
+;
 osbyte11:
+                .if version!=400
                 .if version<500
                 sty adcLastConvertedChannel
                 .elsif version>=500
                 sty currentADCChannel
                 .endif
                 bra initiateADCConversion
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -8156,8 +8227,10 @@ osrdchLoop:
                 lda #27                      ;ASCII for ESCAPE
                 bcs osrdchDone               ;exit with C=1 if ESCAPE
                                              ;pressed
+                .if version!=400
                 ldx inputSource
-                jsr readFromEconetOrSoftKeyOrInputBufferA                    ;handle Econet/soft key stuff???
+                .endif
+                jsr readFromEconetOrSoftKeyOrInputBufferA ;handle Econet/soft key stuff???
                 bcc osrdchDone
                 bit readCharacterTimedFlag
                 bpl osrdchLoop     ;taken if no timeout - keep looping
@@ -8267,6 +8340,7 @@ LE869:
                 pha
                 jsr LE8AA
 LE86E:
+                .if version!=400
                 lda characterDestinationStatus
                 ror a
                 bcc LE88F
@@ -8288,6 +8362,8 @@ LE888:
                 jsr LE9A3
                 plp
 LE88F:
+                .endif
+                
                 lda #$10
                 bit characterDestinationStatus
                 bne LE8A5
@@ -8332,8 +8408,9 @@ LE8D3:
 LE8D4:
                 rts
 
-LE8D5:
+LE8D5:                                       ;E7CA in MOS 4.00
                 lda printerDriverType
+                .if version!=400
                 beq LE959
                 dec a
                 bne LE8FD
@@ -8385,6 +8462,17 @@ writeACIAControlRegister:
                 plp
 rtsE928:
                 rts
+
+                .else
+
+                cmp #printerDriverTypeUser
+                bcc LE959
+
+writeACIAControlRegister:
+osbyte9C:
+setRS423Active:
+                
+                .endif
 
 ;-------------------------------------------------------------------------
 
@@ -8791,9 +8879,11 @@ isLetter: .proc                 ;EA71
 insertCharacterIntoKeyboardBuffer:
                 ldx #$00                     
 osbyte99:
+                .if version!=400
                 txa                          ;X=1 if RS423, 0 if keyboard
                 and rs423InputInterpretationStatus ;A=0 if RS423 simulates keyboard, 1=default
                 bne osbyte8A ;taken if default - don't treat RS423 as keyboard
+                .endif
                 tya          ;A=char
                 eor escapeCharacter
                 ora escapeKeyStatus
@@ -8911,6 +9001,7 @@ LEC29:
                 tya
                 .endif
 
+                .if version!=400
 LEAC8:
                 pha                   ;save character extracted
                 cpx #bufferRS423Input ;was it RS423 input buffer?
@@ -8924,7 +9015,8 @@ LEAD3:
                 bcc LEADB                    ;taken if keyboard buffer
                 ldy rs423InputInterpretationStatus ;D.2-54
                 bne clc_rts_EB27             ;taken if default mode
-
+                .endif
+                
 LEADB:
                 tay                          ;Y = char
                 bpl clc_rts_EB27             ;if normal char, all good
@@ -8946,6 +9038,9 @@ LEADB:
                 jsr handleCursorKeyThunk     ;handle cursor key
                 plx
 readFromEconetOrSoftKeyOrInputBufferA:
+                .if version==400
+                ldx #0
+                .endif
                 bit econetInputInterpretationStatus
                 bpl readFromSoftKeyOrInputBufferA
                 lda #netReadCharacterAttempted
@@ -8963,9 +9058,11 @@ readFromSoftKeyOrInputBufferA:
                 bra clc_rts_EB27
 LEC70:
                 .endif
+                .if version!=400
                 txa
                 and rs423InputInterpretationStatus
                 bne readFromInputBufferX
+                .endif
                 lda $F4
                 pha
                 jsr selectTerminalROMAndANDY2
@@ -9100,7 +9197,9 @@ osbyte7D: ;EC57
                 bra LECD9
                 .endif
 
-                .if version<500
+;-------------------------------------------------------------------------
+
+                .if version<400
 osbyte89:
                 lda serialULARegister
                 tay
@@ -9131,10 +9230,12 @@ osbyte89:
 ;                 
 ; On exit : X=Y=<old serial ACIA control register contents>
 
+                .if version!=400
 osbyte08:
                 lda #$38
                 ; fall through to OSBYTE &07
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; OSBYTE 7 (&07) Write RS423 receive rate
@@ -9156,6 +9257,7 @@ osbyte08:
 ;                 
 ; On exit : X=Y=<old serial ACIA control register contents>
 
+                .if version!=400
 osbyte07:                                    ;ec6d
                 eor #$3F                     ;if OSBYTE 8,
                                              ;A=%00000111, mask for
@@ -9182,6 +9284,16 @@ LEC8F:
 LEC90:
                 tax
                 rts
+                .endif
+
+                .if version==400
+osbyte08:
+osbyte07:
+LEC89:
+LEC90:
+                .endif
+
+;-------------------------------------------------------------------------
 
 ; Y=0 on entry.
 
@@ -9225,7 +9337,7 @@ osbyte0A:                                    ;ec94
 ;           Y is undefined
 ;
 ; D.2-18
-                
+                .if version!=400                
 osbyte02:                       ;ecb4
                 txa
                 and #$01
@@ -9248,6 +9360,7 @@ LECD2:
                 sta inputSource
 LECD9:
                 rts
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -9275,7 +9388,17 @@ osbyte0E:
                 bcs LEC90
                 ldy eventEnabledFlags,x
                 sta eventEnabledFlags,x
+                .if version!=400
                 bra LEC8F
+                .else
+LEC8F:
+LEB21:
+                tya
+LEB22:
+                tax
+LECD9:
+                rts
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -9286,7 +9409,8 @@ osbyte0E:
 ; call enables the number of channels to be changed so that if, for
 ; example, only two channels are required, each will be updated every
 ; 20 milliseconds.
-; 
+;
+                .if version!=400
 osbyte10:
                 .if version<500
                 beq +                        ;taken if X=0
@@ -9297,6 +9421,7 @@ osbyte10:
                 stx maximumADCChannel
                 tax
                 rts
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -9332,15 +9457,17 @@ LED01:
 osbyte82:
                 ldx #$FF
                 ldy #$FF
-                bcs +                        ;if OSBYTE $82, done
+                bcs LEB13                    ;if OSBYTE $82, done
                 inx
                 iny
-+
+LEB13:
                 rts
 
 LED14:
-                .if version<500
+                .if version==320
                 ldx #$FD
+                .elsif version==400
+                ldx #$f7
                 .elsif version==500||version==510
                 ldx #$f5
                 .elsif version==511
@@ -9349,6 +9476,9 @@ LED14:
                 bra LECFD
 
 LED18:
+                .if version==400
+                bpl LEB13
+                .endif
                 txa
                 eor #$FF
                 tax
@@ -9368,6 +9498,7 @@ callCNPV:
 
 ;-------------------------------------------------------------------------
 
+                .if version!=400
 getRS423InputBufferFreeBytes:
                 sec
                 ldx #bufferRS423Input
@@ -9377,9 +9508,11 @@ getRS423InputBufferFreeBytes:
                 cpx rs423InputBufferMinimumSpace ;compare to min space
 +
                 rts
+                .endif
 
 ;-------------------------------------------------------------------------
 
+                .if version!=400
 osbyte80:
                 bmi LED18
                 beq LED45
@@ -9400,9 +9533,11 @@ osbyte80:
                 tax
                 .endif
                 rts
+                .endif
 
 ;-------------------------------------------------------------------------
 
+                .if version!=400
 LED45:
                 .if version<500
                 ; Put joystick buttons in bits 0/1.
@@ -9421,7 +9556,8 @@ LED45:
                 ldx adcResultLSBs
                 .endif
                 rts
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; OSBYTE $70
@@ -9483,8 +9619,10 @@ LED83:
 osbyteUnused:                   ;ed84
                 ldx #romServiceCallUnrecognisedOSBYTE
                 jsr makeROMServiceCall
-                ldx $F0
+                ldx originalX
+                .if version!=400
                 eor #$00
+                .endif
                 rts
 
 osbyteA1:
@@ -9528,6 +9666,14 @@ tsbACCCON:
                 rts
 
 ;-------------------------------------------------------------------------
+
+                .if version==400
+LEBBF:
+                jsr LEE64
+                jsr LF1EE
+                .endif
+                
+;-------------------------------------------------------------------------
 ; 
 ; Select ROM or TAPE.
 ;
@@ -9540,6 +9686,19 @@ tsbACCCON:
 ; A = FS to select
 ; 
 selectROMOrTAPEByOSBYTE:
+                .if version==400
+
+LEDD0:
+                lda #2
+                sta cfsRFSFSSwitch
+
+                lda #6
+                jsr callFSCV
+
+                stz $ce
+                
+                .else
+                
                 eor #$8C                     ;A=0 if tape, A=1 if ROM
 selectROMOrTAPE:
                 asl a           ; Set CFS/RFS switch to 0=CFS or 2=RFS
@@ -9572,6 +9731,8 @@ LEDEB:
 LEDEE:
                 stz $CE                      ; Clear byte (unused on BBC)
                 plp
+                .endif
+                
                 ldx #defaultVectorTable.fsVectors.end-defaultVectorTable.fsVectors ; Prepare to set 7 vectors
 LEDF3:
                 lda defaultVectorTable.fsVectors-1,x ; Set filing
@@ -9766,7 +9927,7 @@ LEF2E:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version>=400
 osword06: .osword06Macro
 LEF1B: .LEF1BMacro
                 .endif
@@ -9810,7 +9971,7 @@ LEF76:
                 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version>=400
 osword0E:
                 cmp #3
                 .if version<500
@@ -9857,10 +10018,10 @@ osbyteA6ToFF:
 osbyteOrUSERV:      ;call OSBYTE A6+ routine if C=0; call USERV if C=1
                 lda #$A6
                 adc #$00
-                .if version<500
+                .if version<400
 osbyte6BToA5:
                 sbc #$50        ;map $6b-$a5 to $1b-$56
-                .elsif version>=500
+                .elsif version>=400
 osbyte6BToA5:
                 sbc #$24
 LEFA9:
@@ -9918,7 +10079,7 @@ osbyte00To6A:
                 ldy #$00        ;Y=0 on entry for this lot
                 cmp #$1A        ;OSBYTE <=$19 is table-driven
                 bcc osbyteUseTable ;taken if OSBYTE $00-$19
-                .if version>=500
+                .if version>=400
                 cmp #$44
                 beq LEFA9
                 cmp #$45
@@ -9949,7 +10110,7 @@ LEF15:
 
 ;-------------------------------------------------------------------------
 
-                .if version<500
+                .if version<400
 LEF1B: .LEF1BMacro
                 .endif
 
@@ -9957,7 +10118,7 @@ LEF1B: .LEF1BMacro
 ;
 ; OSWORD 14 (&0E) Read CMOS clock [MasRef D.3-22]
 ;
-                .if version<500
+                .if version<400
 osword0E:
                 cmp #$03                   ;only codes 0/1/2 are valid
                 bcs handleUnrecognisedOSWORD
@@ -9983,6 +10144,8 @@ oswordEntryPoint:
                 cmp #$E0
                 bcs osbyteOrUSERV ;taken if OSWORD $E0 or higher -
                                   ;these go via USERV
+
+                .if version<400
                 cmp #16
                 bcs handleUnrecognisedOSBYTEOrOSWORD ;taken if unknown OSWORD
 
@@ -9992,6 +10155,25 @@ oswordEntryPoint:
                 adc #(oswordRoutineTable-osbyteAndOSWORDRoutineTable)/2
                 asl a
                 bra callOSBYTEOrOSWORDFromTable
+                
+                .else
+
+                cmp #16
+                bcs LED4D
+                cmp #$44
+                bcs handleUnrecognisedOSBYTEOrOSWORD
+                cmp #$42
+                bcs LED4B
+                sec
+                bra handleUnrecognisedOSBYTEOrOSWORD
+
+LED4B:
+                sbc #$33
+LED4D:
+                adc #$59
+                asl a
+                bra callOSBYTEOrOSWORDFromTable
+                .endif
                 .endif
                 
 ;-------------------------------------------------------------------------
@@ -10009,7 +10191,7 @@ osword05:
 ; OSWORD 6 (&06) Write byte to I/O processor memory [MasRef D.3-9]
 ;
 
-                .if version<500
+                .if version<400
 osword06: .osword06Macro
                 .endif
 
@@ -10070,8 +10252,10 @@ osbyte00:                       ;ef6f
                 
                 brk                          
                 .byte $f7
-                .if version<500
+                .if version==320
                 .text "OS 3.20"
+                .elsif version==400
+                .text "MOS 4.00"
                 .elsif version==500
                 .text "MOS 5.00"
                 .elsif version==510
@@ -10466,7 +10650,7 @@ rtsF0EB:
 ;       100 =  9600 baud
 ;       000 = 19200 baud
 ;
-                
+                .if version!=400                
 serialBaudRatesTable:
                 .byte %01100100;$64
                 .byte %01111111;$7f
@@ -10477,7 +10661,8 @@ serialBaudRatesTable:
                 .byte %01010010;$52
                 .byte %01100100;$64
                 .byte %01000000;$40
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; OSBYTE 19 (&13) Wait for vertical sync [MasRef D.2-26]
@@ -12073,6 +12258,80 @@ LF9AD:
 
 ;-------------------------------------------------------------------------
 
+                .if version==400
+LF7A1:
+                jsr selectROMA
+LF7A4:
+                lda ($b0),y
+                sta ($b2),y
+                jsr LF7F0
+                bne LF7A4
+                lda 1,x
+                cmp osfileParameterBlock+2
+                bne LF7A4
+                jmp selectTerminalROM
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==400
+LF7B7:
+                jsr selectROMA
+LF7BA:
+                lda tube.data3
+                sta ($b2),y
+                jsr LF800
+                jsr LF7F0
+                bne LF7BA
+                lda 1,x
+                cmp osfileParameterBlock+2
+                bne LF7BA
+                jmp selectTerminalROM
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==400
+LF7D1:
+                bit osfileParameterBlock+1
+                bmi LF7B7
+                jsr selectROMA
+LF7D9:
+                lda ($b0),y
+                sta tube.data3
+                jsr LF800
+                jsr LF8F0
+                bne LF7D9
+                lda 1,x
+                cmp osfileParameterBlock+2
+                bne LF7D9
+                jmp selectTerminalROM
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==400
+LF7F0:
+                iny
+                bne LF800
+                inc $b1
+                inc $b3
+                jsr selectTerminalROM
+                jsr L88AA
+                jsr selectROMA
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==400
+LF800:
+                cpy osfileParameterBlock+2
+LF803:
+                rts
+                .endif
+                
+;-------------------------------------------------------------------------
+
                 .if version>=500
 LF82B:
                 pha
@@ -12122,9 +12381,12 @@ LF85D:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version>=400
 dummy_rom_header: .block
+                ; overlaps with preceding routine in MOS 4.00
+                .if version!=400
                 rts
+                .endif
                 .byte 0,0
                 rts
                 .byte 0,0
@@ -12159,7 +12421,7 @@ LF894:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version>=400
 LF89A:
                 jsr selectROMX
                 lda $8008
@@ -12178,13 +12440,21 @@ LF8B1:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version>=400
 LF8B4:
                 jsr selectROMX
+                .if version==400
+                lda #$80
+                sta 1
+                stz 0
+                lda #0
+                tay
+                .else
                 ldy #$80
                 sty 1
                 stz 0
                 tay
+                .endif
 LF8BE:
                 sta (0),y
                 iny
@@ -12202,7 +12472,7 @@ LF8BE:
 
                 .if version>=500
 LF8D1:
-                lda $2ee
+                lda $02ee
                 cmp #$a0
                 bne LF8B1
                 ldy $2f1
@@ -12217,34 +12487,50 @@ LF8D1:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version>=400
 LF8EA:
                 jsr withTerminalROM
+                .if version==400
+                jmp $ffff
+                .else
                 jmp terminal.L8EDC
                 .endif
+                .endif
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version>=400
 LF8F0:
                 jsr withTerminalROM
+                .if version==400
+                jmp $ffff
+                .else
                 jmp terminal.L8F8C
                 .endif
-                
-;-------------------------------------------------------------------------
-
-                .if version>=500
-LF8F6:
-                jsr withTerminalROM
-                jmp terminal.L8BF2
                 .endif
                 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
-LF8FC:
+                .if version>=400
+osword10:
                 jsr withTerminalROM
+                .if version==400
+                jmp $ffff
+                .else
+                jmp terminal.L8BF2
+                .endif
+                .endif
+                
+;-------------------------------------------------------------------------
+
+                .if version>=400
+osword11:
+                jsr withTerminalROM
+                .if version==400
+                jmp $ffff
+                .else
                 jmp terminal.L8E2E
+                .endif
                 .endif
                 
 ;-------------------------------------------------------------------------
@@ -12853,12 +13139,7 @@ badCommandError:
 
 ;-------------------------------------------------------------------------
 
-                .align 256,$ff
-                ; .byte $FF                    ; FBFB= FF          .
-                ; .byte $FF                    ; FBFC= FF          .
-                ; .byte $FF                    ; FBFD= FF          .
-                ; .byte $FF                    ; FBFE= FF          .
-                ; .byte $FF                    ; FBFF= FF          .
+                .fill $fc00-*,$ff
 
 ;-------------------------------------------------------------------------
 ;

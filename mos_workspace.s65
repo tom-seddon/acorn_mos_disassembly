@@ -882,6 +882,8 @@ oldACCCON:                      ;dfdc
                 .fill 1
 hasACCCONChanged:                ;dfdd
                 .fill 1
+dfde:
+                .fill 1
                 .bend
                 .endv
 

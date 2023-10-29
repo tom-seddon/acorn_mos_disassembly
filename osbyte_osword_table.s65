@@ -1,0 +1,157 @@
+; OSBYTE Dispatch Table
+; =====================
+
+; TODO structure probably the same as
+; https://tobylobster.github.io/mos/mos/S-s15.html#SP1...
+
+; entry:
+;
+; A = OSBYTE A
+;
+; X = OSBYTE X
+;
+; Y = OSBYTE Y
+;
+; ?originalA, ?originalX, ?originalY = OSBYTE arguments
+;
+; C=1
+;
+; N/Z set as per X
+; 
+
+osbyteAndOSWORDRoutineTable:
+                .word mos.osbyte00 ;Display MOS version D.2-18
+                .word mos.osbyte01 ;Write user flag D.2-18
+                .word mos.osbyte02 ;Specify input stream D.2-18
+                .word mos.osbyte03 ;Specify output stream D.2-19
+                .word mos.osbyte04 ;Enable/disable cursor editing
+                .word mos.osbyte05 ;Write printer driver type D.2-20
+                .word mos.osbyte06 ;Write printer ignore character D.2-21
+                .word mos.osbyte07 ;Write RS423 receive rate D.2-21
+                .word mos.osbyte08 ;Write RS423 transmit rate D.2-22
+                .word mos.osbyte09 ;Write duration of first colour D.2-22
+                .word mos.osbyte0A ;Write duration of second colour D.2-22
+                .word mos.osbyte0B ;Write keyboard auto-repeat delay D.2-22
+                .word mos.osbyte0C ;Write keyboard auto-repeat rate D.2-23
+                .word mos.osbyte0D ;Disable event D.2-23
+                .word mos.osbyte0E ;Enable event D.2-24
+                .word mos.osbyte0F ;Flush buffer D.2-24
+                .word mos.osbyte10 ;Write number of ADC channels D.2-25
+                .word mos.osbyte11 ;Write next ADC channel to be sampled D.2-25
+                .word mos.osbyte12 ;Reset soft keys D.2-26
+                .word mos.osbyte13 ;Wait for vertical sync D.2-26
+                .word mos.osbyte14 ;Restore default font definitions D.2-26
+                .word mos.osbyte15 ;Flush selected buffer D.2-27
+                .word mos.osbyte16 ;Increment ROM polling semaphore D.2-27
+                .word mos.osbyte17 ;Decrement ROM polling semaphore D.2-27
+                .word mos.osbyteUnused ; Reserved
+                .word mos.osbyte19 ;Restore a group of font definitions D.2-28
+                .if version>=500
+                .word mos.LF8EA
+                .word mos.LF8F0
+                .endif
+                .word mos.osbyte6B ;Write 1MHz bus selection status D.2-29
+                .word mos.osbyte6C ;Write usage of main/shadow memory D.2-30
+                .word mos.osbyte6D ;Make temporary Filing System permanent D.2-30
+                .word mos.osbyteUnused ;Unused
+                .word mos.osbyteUnused ;Unused
+                .word mos.osbyte70 ;Select main/shadow memory for VDU access D.2-31
+                .word mos.osbyte71 ;Select main/shadow memory for display D.2-31
+                .word mos.osbyte72 ;Write usage of shadow memory D.2-31
+                .word mos.rtsFFAA  ;Unused
+                .word mos.rtsFFAA  ;Unused
+                .word mos.osbyte75 ;Read VDU status D.2-32
+                .word mos.osbyte76 ;Reflect keyboard status in keyboard LEDs D.2-33
+                .word mos.osbyte77 ;Close all *SPOOL/*SPOOLON or *EXEC files D.2-33
+                .word mos.osbyte78 ;Write keys pressed information D.2-33
+                .word mos.callKEYV ;Keyboard scan D.2-33
+                .word mos.osbyte7A ;Keyboard scan from 16 decimal
+                .word mos.osbyte7B ;Inform MOS of printer driver going dormant
+                .word mos.osbyte7C ;Clear escape condition
+                .word mos.osbyte7D ;Set escape condition
+                .word mos.osbyte7E ;Acknowledge escape condition
+                .word mos.osbyte7F ;Check for end of file on an opened file
+                .word mos.osbyte80 ;Read ADC channel or get buffer status
+                .word mos.osbyte81 ;Read key with time limit
+                .word mos.osbyte82 ;Read machine high order address
+                .word mos.osbyte83 ;Read Operating System High Water Mark (OSHWM)
+                .word mos.osbyte84 ;Read top of user RAM
+                .word mos.osbyte85 ;Read top of user RAM for given mode
+                .word mos.osbyte86 ;Read text cursor position
+                .word mos.osbyte87 ;Read screen mode and character at text cursor position
+                .word mos.osbyte88 ;Execute user code
+                .if version==320
+                .word mos.osbyte89 ;Switch cassette motor relay
+                .elsif version>=500
+                .word mos.osbyteUnused
+                .endif
+                .word mos.osbyte8A ;Insert character code into buffer
+                .word mos.osbyte8B ;Write Filing System options
+                .word mos.osbyte8C8D ;Select Cassette Filing System
+                .word mos.osbyte8C8D ;Select ROM Filing System
+                .word mos.osbyte8E   ;Enter language ROM
+                .word mos.osbyte8F   ;Issue paged ROM service request
+                .word mos.osbyte90 ;Set vertical screen shift and interlace option
+                .word mos.osbyte91 ;Get character from buffer
+                .word mos.osbyte92 ;Read from FRED (&FC00 – &FCFF)
+                .word mos.osbyte93 ;Write to FRED (&FC00 – &FCFF)
+                .word mos.osbyte94 ;Read from JIM (&FD00 - &FDFF)
+                .word mos.osbyte95 ;Write to JIM (&FD00 - &FDFF)
+                .word mos.osbyte96 ;Read from SHEILA (&FE00 - &FEFF)
+                .word mos.osbyte97 ;Write to SHEILA (&FE00 - &FEFF)
+                .word mos.osbyte98 ;Examine buffer status
+                .word mos.osbyte99 ;Insert character code into buffer checking for escape
+                .word mos.osbyte9A ;Write video ULA control register
+                .word mos.osbyte9B ;Write to video ULA palette register and copy
+                .word mos.osbyte9C ;Read/write serial ACIA control register and copy
+                .word mos.osbyte9D ;Write byte across Tube
+                .word mos.osbyteUnused ;reserved for the speech system
+                .word mos.osbyteUnused ;reserved for the speech system
+                .word mos.osbyteA0     ;Read VDU variable value
+                .word mos.osbyteA1     ;Read CMOS RAM
+                .word mos.osbyteA2     ;Write CMOS RAM
+                .word mos.osbyteUnused ;reserved for applications software
+                .word mos.osbyteA4     ;Check processor type
+                .word mos.osbyteA5     ;Read output cursor position
+                .word mos.osbyteA6  ;handle osbyte A6-FF
+                .word mos.callUSERV ;*LINE - not part of the above table???
+                
+;-------------------------------------------------------------------------
+;
+; OSWORD dispatch table. Must follow on from the OSBYTE table.
+;
+; entry:
+;
+; A = 0th byte of parameter block
+;
+; X = OSWORD X
+;
+; Y = 0
+;
+; ?originalA, ?originalX, ?originalY = OSWORD arguments
+;
+; C=1
+;
+; N/Z set as per X
+; 
+oswordRoutineTable:
+                .word mos.osword00  ;Read line from input stream to memory
+                .word mos.osword01  ;Read system clock
+                .word mos.osword02  ;Write system clock
+                .word mos.osword03  ;Read interval timer
+                .word mos.osword04  ;Write interval timer
+                .word mos.osword05  ;Read byte from I/O processor memory
+                .word mos.osword06  ;Write byte to I/O processor memory
+                .word mos.osword07  ;Generate a sound
+                .word mos.osword08  ;Define a sound envelope
+                .word mos.osword09  ;Read pixel logical colour
+                .word mos.osword0A  ;Read a character definition
+                .word mos.osword0B  ;Read the palette
+                .word mos.osword0C  ;Write the palette
+                .word mos.osword0D ;Read current and previous graphics cursor positions
+                .word mos.osword0E ;Read CMOS clock
+                .word mos.osword0F ;Write CMOS clock
+                .if version>=500
+                .word mos.LF8F6
+                .word mos.LF8FC
+                .endif

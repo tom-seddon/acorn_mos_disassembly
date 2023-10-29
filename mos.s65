@@ -11276,7 +11276,6 @@ starRunBOOT:
 ;-------------------------------------------------------------------------
 
                 .if version==320
-                
 ; Table to convert channel number to the bits required by the chip
 soundParameterTable:
                 .byte $e0,$c0,$a0,$80

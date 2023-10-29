@@ -699,12 +699,12 @@ mosCommandTable:
                 .mos_command "SPOOL",starSPOOL,$80,$00   ; XY=>parameters
                 .mos_command "SPOOLON",starSPOOLON,$80,$00 ; XY=>parameters
                 .if version>=500
-                .mos_command "SRDATA",starSRDATA,$00,$a0
-                .mos_command "SRLOAD",starSRLOAD,$80,$60
-                .mos_command "SRREAD",starSRREAD,$00,$a0
-                .mos_command "SRROM",starSRROM,$00,$80
-                .mos_command "SRSAVE",starSRSAVE,$80,$20
-                .mos_command "SRWRITE",starSRWRITE,$00,$e0
+                .mos_command "SRDATA",starSRDATAOrStarSRROM,$00,$a0
+                .mos_command "SRLOAD",starSRLOADOrStarSRSAVE,$80,$60
+                .mos_command "SRREAD",starSRREADOrStarSRWRITE,$00,$a0
+                .mos_command "SRROM",starSRDATAOrStarSRROM,$00,$80
+                .mos_command "SRSAVE",starSRLOADOrStarSRSAVE,$80,$20
+                .mos_command "SRWRITE",starSRREADOrStarSRWRITE,$00,$e0
                 .endif
                 .mos_command "STATUS",starSTATUS,$00,$FF  ;
                 .mos_command "TAPE",starCommandThroughOSBYTE,$00,$8C ; X,y=parameters, OSBYTE &8C
@@ -4036,6 +4036,375 @@ readDefaults2:
 readDefaults3:
                 ldx #$10
                 bra readRTCByte
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9DAA:
+                cpx #$ff
+                bne readRTCByte
+                jsr L907E
+                ldy #0
+                bcs L9DE0
+                ldx #$7f
+                jsr utils_9ECA
+                phy
+                ldx #$ff
+                jsr utils_9ECA
+                tya
+                tsx
+                eor $101,x
+                ora #$7f
+                tay
+                bra L9DDF
+                .endif
+
+                .if version>=500
+readRTCByte:
+                phx
+                jsr L907E
+                bcc L9DDB
+L9DD0:
+                ldy #0
+                cpx #$13
+                bcs L9DDE
+                ldy L9DE4,x
+                bra L9DDE
+
+L9DDB:
+                jsr utils_9ECA
+L9DDE:
+                tya
+L9DDF:
+                plx
+L9DE0:
+                rts
+
+L9DE1:
+                phx
+                bra L9DD0
+
+L9DE4:
+                .byte 0  
+                .byte $FE
+                .byte 0
+                .byte $EB
+                .byte 0
+                .byte $ED
+                .byte $FF
+                .byte $FF
+                .byte 0
+                .byte 0
+                .byte $F7
+                .byte $E3
+                .byte $20
+                .byte 8
+                .byte $A
+                .byte $2C
+                .byte $80
+                .byte 0
+                .byte 3
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9DF7:
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9DF8:
+                txa
+                and #$7f
+                beq L9DF7
+                ora #$80
+                inc a
+                beq L9DF7
+writeRTCByte:
+                phx
+                phy
+                jsr utils_9E99
+                ply
+                plx
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9E0A:
+                php
+                sei
+                jsr L9E27
+                jsr L9E80
+                jsr L9E1A
+                jsr L9E27
+                plp
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9E1A:
+                pha
+                lda systemVIA.irb
+                and #$df
+                ora #$20
+                sta systemVIA.orb
+                pla
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9E27:
+                pha
+                lda systemVIA.irb
+                and #$df
+                sta systemVIA.orb
+                pla
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9E32:
+                php
+                sei
+                lda systemVIA.ddrb
+                ora #$30
+                sta systemVIA.ddrb
+                jsr L9E27
+                jsr L9E82
+                jsr L9E1A
+                jsr L9E4D
+                jsr L9E27
+                plp
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9E4D:
+                pha
+                lda systemVIA.irb
+                and #$ef
+                sta systemVIA.orb
+                pla
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9E58:
+                jsr L9E32
+                lda #0
+                jsr L9F23
+                lda #6
+                jsr L9F23
+L9E65:
+                php
+                sei
+                jsr L9E27
+                jsr L9E4D
+                jsr L9E1A
+                jsr L9E82
+                jsr L9E27
+                lda systemVIA.ddrb
+                and #$cf
+                sta systemVIA.ddrb
+                plp
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9E80:
+                bcc L9E4D
+L9E82:
+                pha
+                lda systemVIA.irb
+                ora #$10
+                sta systemVIA.orb
+                pla
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9E8D:
+                php
+                sei
+                sec
+                rol a
+L9E91:
+                jsr L9E0A
+                asl a
+                bne L9E91
+                plp
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9E99:
+                phx
+                phy
+                jsr L9ECA
+                bcs L9EA7
+                tya
+                tsx
+                eor $101,x
+                cmp #1
+L9EA7:
+                ply
+                plx
+                bcs L9EAC_500
+                rts
+
+L9EAC_500:
+                jsr L9E32
+                lda #$a0
+                jsr L9F23
+                txa
+                jsr L9F23
+                tya
+                jsr L9F23
+                jsr L9E65
+                ldy #$a0
+                ldx #0
+L9EC3:
+                dex
+                bne L9EC3
+                dey
+                bne L9EC3
+                rts
+
+L9ECA:
+                jsr L9E32
+                lda #$0a
+                jsr L9F23
+                txa
+                jsr L9F23
+                bcs L9F0E_500
+                jsr L9E32
+                lda #$a1
+                jsr L9F23
+                bcs L9F0E_500
+                jsr L9E27
+                lda systemVIA.ddrb
+                pha
+                and #$ef
+                sta systemVIA.ddrb
+                lda #1
+L9EF0:
+                pha
+                jsr L9E1A
+                nop
+                nop
+                lda systemVIA.irb
+                and #$10
+                cmp #1
+                jsr L9E27
+                pla
+                rol a
+                bcc L9EF0
+                tay
+                pla
+                sta systemVIA.ddrb
+                sec
+                jsr L9E0A
+                clc
+L9F0E_500:
+                jmp L9E65
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9F11:
+                jsr L9E32
+                lda #$a0
+                jsr L9F23
+                txa
+                jsr L9F23
+                php
+                jsr L9E65
+                plp
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L9F23:
+                php
+                sei
+                jsr L9E8D
+                jsr L9E27
+                lda systemVIA.ddrb
+                pha
+                and #$ef
+                sta systemVIA.ddrb
+                jsr L9E1A
+                nop
+                nop
+                lda systemVIA.irb
+                and #$10
+                cmp #1
+                jsr L9E27
+                pla
+                sta systemVIA.ddrb
+                bcs L9F4C
+                plp
+                clc
+L9F4B:
+                rts
+
+L9F4C:
+                plp
+                sec
+                rts
+                .endif
+
+; ;-------------------------------------------------------------------------
+
+;                 .if version>=500
+; soundParameterTable:
+;                 .byte $e0,$c0,$a0,$80
+;                 .endif
+
+; ;-------------------------------------------------------------------------
+
+;                 .if version>=500
+; L9F53:
+;                 jmp LA060
+;                 .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+                .endif
+
+;-------------------------------------------------------------------------
+.if version>=500
                 .endif
                 
 ;-------------------------------------------------------------------------

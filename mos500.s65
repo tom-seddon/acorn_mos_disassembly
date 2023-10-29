@@ -22,7 +22,6 @@ ext_AF4F=$af4f
 ;utils_873F=$873f                  ;;read ROM unplugged status
 utils_8A64=$8a64                  ;
 utils_8674=$8674 ;command line UI?
-osbyteAndOSWORDRoutineTable=$8fa8 ;*sigh*
 utils_9878=$9878                ;osword $0e entry point
 utils_9DCA=$9dca
 
@@ -44,12 +43,10 @@ utils_9DE1=$9de1
 utils_9DF8=$9df8
 utils_9ECA=$9eca
 utils_9E99=$9e99
-starSRDATA=$8cad
-starSRLOAD=$8dca
-starSRREAD=$8d7f
-starSRROM=$8cad
-starSRSAVE=$8dca
-starSRWRITE=$8d7f
+;starSRLOAD=$8dca
+;starSRREAD=$8d7f
+;starSRSAVE=$8dca
+;starSRWRITE=$8d7f
 ;utils_8A8F=$8a8f ;match input against command table. V=1 for 2-byte metadata, V=0 for 4-byte metadat
 ;fetchCommandTableByte=$8ace
 
@@ -63,9 +60,11 @@ soundParameterTable=1000
 starSTATUS=1000
 
 L9527=$9527                     ;bad address BRK
-L9E02=$9e02
-readRTCByte=$9dca
-writeRTCByte=L9E02
+;readRTCByte=$9dca
+LA060=$a060
+
+; Is there a better way of doing this?
+osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
                 
 ;-------------------------------------------------------------------------
 

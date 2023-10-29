@@ -4,7 +4,11 @@ ext: .block
 
 plotEllipseOutline:
                 jsr     LBB2F
+                .if version==320
                 bra     LBA08
+                .elsif version>=500
+                jmp LBA08
+                .endif
 
 LBA05:
                 jsr     LBBE9
@@ -14,10 +18,18 @@ LBA08:
                 ldy     #VDUVariables.workspace._3C
                 jsr     mos.sortVDUVariableWords
                 ldx     #VDUVariables.workspace._38
+                .if version==320
                 lda     vduv+1,x
+                .elsif version>=500
+                lda vduv.workspace._39
+                .endif
                 sta     vduv.workspace._43
+                .if version==320
                 lda     vduv+0,x
                 tax
+                .elsif version>=500
+                ldx vduv.workspace._38
+                .endif
 
 LBA1B:
                 stx     vduv.workspace._42
@@ -32,6 +44,7 @@ LBA27:
                 lda     vduv.workspace._43
                 sbc     vduv+1,y
                 bmi     LBA1B
+                .if version==320
                 ldx     #VDUVariables.workspace._36
                 ldy     #VDUVariables.workspace._3E
                 jsr     mos.sortVDUVariableWords
@@ -59,6 +72,54 @@ LBA52:
                 lda     vduv.workspace._2F
                 bpl     LBA05
                 bra     LBA7B
+
+                .elsif version>=500
+
+                ldy vduv.workspace._43
+                txa
+                bne LAF06
+                dey
+LAF06:
+                dex
+                stx vduv.workspace._44
+                sty vduv.workspace._45
+                txa
+                cmp vduv.workspace._3A
+                tya
+                sbc vduv.workspace._3B
+                bpl LAF47
+                ldx #VDUVariables.workspace._36
+                ldy #VDUVariables.workspace._3E
+                jsr mos.sortVDUVariableWords
+                ldy #VDUVariables.workspace._34
+                jsr mos.sortVDUVariableWords
+                lda vduv.workspace._3B
+                sta vduv.workspace._43
+                lda vduv.workspace._3A
+                tax
+LAF2D:
+                stx vduv.workspace._42
+LAF30:
+                jsr LBD20
+                txa
+                bne LAF39
+                dec vduv.workspace._43
+
+LAF39:
+                dex
+                clc
+                txa
+                sbc vduv+0,y
+                lda vduv.workspace._43
+                sbc vduv+1,y
+                bpl LAF2D
+
+LAF47:
+                lda vduv.workspace._2F
+                bpl LBA05
+                jmp LBA7B
+
+                .endif
 
 plotSolidEllipse:
                 jsr     LBB2F

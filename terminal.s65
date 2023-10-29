@@ -5,7 +5,7 @@ terminal: .block
                 .if version==320
                 
                 jmp terminalLanguageEntryPoint ; Language entry point
-                jmp terminalServiceEntryPoint  ; Service entry point
+                jmp utilsServiceEntryPoint  ; Service entry point
                 .byte $C2                    ; ROM type=SERV+LANG+6502
                 .byte copyrightText-1-terminal ; (C) offset
                 .byte $01
@@ -23,9 +23,7 @@ copyrightText:
                 brk
 
                 ; Service entry point
-                brk
-                brk
-                brk
+                jmp utilsServiceEntryPoint
 
                 .byte $82
                 .byte copyright-1-terminal
@@ -4392,9 +4390,9 @@ L9F4C:
 
 ;-------------------------------------------------------------------------
 ;
-; Terminal ROM service entry point.
+; Utils/Terminal ROM service entry point.
 ;
-terminalServiceEntryPoint:
+utilsServiceEntryPoint:
                 .if version==320
                 cmp #romServiceCallTubeSystemPostInitialisation
                 bcc L9DCC        ;taken if definitely not Tube-related
@@ -4576,7 +4574,7 @@ LA304:
 
                 .if version==320
 L9E8F:
-                jmp LAE19                    ; 9E8F= 4C 19 AE    L..
+                jmp terminalServiceEntryPoint
                 .endif
 
 mosHelpSubject: .text "SOM"
@@ -5958,6 +5956,7 @@ LA694:
 LA6A6:
                 jsr LA778
 LA6A9:
+                .if version==320
                 php
                 pha
                 sec
@@ -5981,14 +5980,15 @@ LA6C2:
                 bne LA6B2
                 pla
                 plp
+                .endif
 LA6CC:
                 rts
 
-LA6CD:
+LA6CD:                                       ;AAA6 in MOS 5.00
                 jsr LA776
                 bra LA6A9
 
-LA6D2:
+LA6D2:                                       ;AAAB in MOS 5.00
                 lda #$00
 LA6D4:
                 sta $BD
@@ -6003,7 +6003,7 @@ LA6E6:
                 stx $C2
                 rts
 
-LA6E9:
+LA6E9:                                       ;AAC2 in MOS 5.00
                 php
                 ldx #$03
 LA6EC:
@@ -7424,13 +7424,15 @@ LAE0F:
 
 ;-------------------------------------------------------------------------
                 .endif
+
+                .if version==320
 ;-------------------------------------------------------------------------
 
-LAE19:
-                php                          ; AE19= 08          .
-                phy                          ; AE1A= 5A          Z
-                phx                          ; AE1B= DA          Z
-                pha                          ; AE1C= 48          H
+terminalServiceEntryPoint:
+                php
+                phy
+                phx
+                pha
                 cmp #romServiceCallUnrecognisedCommand
                 beq handleUnrecognisedCommand
                 cmp #romServiceCallUnrecognisedOSBYTE
@@ -7438,82 +7440,82 @@ LAE19:
                 cmp #romServiceCallLanguageChange
                 beq handleLanguageChange
 LAE29:
-                pla                          ; AE29= 68          h
-                plx                          ; AE2A= FA          z
-                ply                          ; AE2B= 7A          z
-                plp                          ; AE2C= 28          (
-                rts                          ; AE2D= 60          `
+                pla
+                plx
+                ply
+                plp
+                rts
 
 handleUnrecognisedCommand:
-                jsr LB832                    ; AE2E= 20 32 B8     28
-                cmp #$0B                     ; AE31= C9 0B       I.
-                bne LAE29                    ; AE33= D0 F4       Pt
-                pla                          ; AE35= 68          h
-                plx                          ; AE36= FA          z
-                lda #$8E                     ; AE37= A9 8E       ).
-                jsr OSBYTE                   ; AE39= 20 F4 FF     t.
+                jsr LB832
+                cmp #$0B
+                bne LAE29
+                pla
+                plx
+                lda #$8E
+                jsr OSBYTE
 LAE3C:
-                ldx #$04                     ; AE3C= A2 04       ".
+                ldx #$04
 LAE3E:
-                lda INSV-1,x                  ; AE3E= BD 29 02    =).
-                cmp LAE93-1,x                ; AE41= DD 92 AE    ]..
-                bne LAE49                    ; AE44= D0 03       P.
-                dex                          ; AE46= CA          J
-                bne LAE3E                    ; AE47= D0 F5       Pu
+                lda INSV-1,x
+                cmp LAE93-1,x
+                bne LAE49
+                dex
+                bne LAE3E
 LAE49:
-                rts                          ; AE49= 60          `
-                
+                rts
+
 handleUnrecognisedOSBYTE:
-                phy                          ; AE4A= 5A          Z
-                ply                          ; AE4B= 7A          z
-                bne LAE29                    ; AE4C= D0 DB       P[
-                lda $EF                      ; AE4E= A5 EF       %o
-                cmp #$60                     ; AE50= C9 60       I`
-                bne LAE29                    ; AE52= D0 D5       PU
+                phy
+                ply
+                bne LAE29
+                lda $EF
+                cmp #$60
+                bne LAE29
 
                 ; handle OSBYTE $60
 osbyte60:
-                pla                          ; AE54= 68          h
-                phy                          ; AE55= 5A          Z
-                sei                          ; AE56= 78          x
-                lda $F0                      ; AE57= A5 F0       %p
-                bmi LAE6C                    ; AE59= 30 11       0.
-                lsr a                        ; AE5B= 4A          J
-                bne LAE66                    ; AE5C= D0 08       P.
-                lda #$11                     ; AE5E= A9 11       ).
-                sta $76                      ; AE60= 85 76       .v
-                ror $74                      ; AE62= 66 74       ft
-                bra LAE29                    ; AE64= 80 C3       .C
+                pla
+                phy
+                sei
+                lda $F0
+                bmi LAE6C
+                lsr a
+                bne LAE66
+                lda #$11
+                sta $76
+                ror $74
+                bra LAE29
 
 LAE66:
-                
-                stz $78                      ; AE66= 64 78       dx
-                ror $77                      ; AE68= 66 77       fw
-                
+
+                stz $78
+                ror $77
+
 LAE6A:
-                bra LAE29                    ; AE6A= 80 BD       .=
+                bra LAE29
 
 LAE6C:
-                lsr a                        ; AE6C= 4A          J
+                lsr a
                 bcc handleLanguageChange
-                stz $75                      ; AE6F= 64 75       du
-                jsr LAE3C                    ; AE71= 20 3C AE     <.
-                beq LAE29                    ; AE74= F0 B3       p3
-                ldx #$04                     ; AE76= A2 04       ".
+                stz $75
+                jsr LAE3C
+                beq LAE29
+                ldx #$04
 LAE78:
-                lda INSV-1,x                  ; AE78= BD 29 02    =).
-                sta oldINSV-1,x                    ; AE7B= 95 6F       .o
-                lda LAE93-1,x                ; AE7D= BD 92 AE    =..
-                sta INSV-1,x                  ; AE80= 9D 29 02    .).
-                dex                          ; AE83= CA          J
-                bne LAE78                    ; AE84= D0 F2       Pr
-                ldx #$06                     ; AE86= A2 06       ".
+                lda INSV-1,x
+                sta oldINSV-1,x
+                lda LAE93-1,x
+                sta INSV-1,x
+                dex
+                bne LAE78
+                ldx #$06
 LAE88:
-                lda LAE97-1,x                  ; AE88= BD 96 AE    =..
+                lda LAE97-1,x
                 sta ExtendedVectorAddress(INSV)-1,x
-                dex                          ; AE8E= CA          J
-                bne LAE88                    ; AE8F= D0 F7       Pw
-                bra LAE6A                    ; AE91= 80 D7       .W
+                dex
+                bne LAE88
+                bra LAE6A
 
 LAE93:
                 .word mos.E_INSV
@@ -7523,126 +7525,126 @@ LAE97:
                 .byte terminalROM
                 .word LAF13
                 .byte terminalROM
-                
+
 handleLanguageChange:
-                sei                          ; AE9D= 78          x
-                jsr LAE3C                    ; AE9E= 20 3C AE     <.
-                bne LAE6A                    ; AEA1= D0 C7       PG
-                ldx #$06                     ; AEA3= A2 06       ".
+                sei
+                jsr LAE3C
+                bne LAE6A
+                ldx #$06
 LAEA5:
                 lda ExtendedVectorAddress(INSV)-1,x;extendedVectorSpace+insvIndex*3-1,x
-                cmp LAE97-1,x                  ; AEA8= DD 96 AE    ]..
-                bne LAE6A                    ; AEAB= D0 BD       P=
-                dex                          ; AEAD= CA          J
-                bne LAEA5                    ; AEAE= D0 F5       Pu
-                ldx #$04                     ; AEB0= A2 04       ".
+                cmp LAE97-1,x
+                bne LAE6A
+                dex
+                bne LAEA5
+                ldx #$04
 LAEB2:
-                lda oldINSV-1,x                    ; AEB2= B5 6F       5o
-                sta INSV-1,x                  ; AEB4= 9D 29 02    .).
-                dex                          ; AEB7= CA          J
-                bne LAEB2                    ; AEB8= D0 F8       Px
-                lda #$E6                     ; AEBA= A9 E6       )f
-                jsr osbyteX00Y00                    ; AEBC= 20 23 B8     #8
-                lda #$CB                     ; AEBF= A9 CB       )K
-                ldx #$09                     ; AEC1= A2 09       ".
-                jsr osbyteY00                    ; AEC3= 20 25 B8     %8
-                jsr LB11A                    ; AEC6= 20 1A B1     .1
-                inc a                        ; AEC9= 1A          .
+                lda oldINSV-1,x
+                sta INSV-1,x
+                dex
+                bne LAEB2
+                lda #$E6
+                jsr osbyteX00Y00
+                lda #$CB
+                ldx #$09
+                jsr osbyteY00
+                jsr LB11A
+                inc a
 LAECA:
-                jsr osbyteX00Y00                    ; AECA= 20 23 B8     #8
-                dec a                        ; AECD= 3A          :
-                cmp #$01                     ; AECE= C9 01       I.
-                bne LAECA                    ; AED0= D0 F8       Px
-                bra LAE6A                    ; AED2= 80 96       ..
+                jsr osbyteX00Y00
+                dec a
+                cmp #$01
+                bne LAECA
+                bra LAE6A
 
 LAED4:
-                php                          ; AED4= 08          .
-                sei                          ; AED5= 78          x
-                cpx #$01                     ; AED6= E0 01       `.
-                bne LAF0B                    ; AED8= D0 31       P1
-                bit $77                      ; AEDA= 24 77       $w
-                bpl LAEEC                    ; AEDC= 10 0E       ..
-                cmp #$13                     ; AEDE= C9 13       I.
-                beq LAEE7                    ; AEE0= F0 05       p.
-                cmp #$11                     ; AEE2= C9 11       I.
-                bne LAEEC                    ; AEE4= D0 06       P.
-                clc                          ; AEE6= 18          .
+                php
+                sei
+                cpx #$01
+                bne LAF0B
+                bit $77
+                bpl LAEEC
+                cmp #$13
+                beq LAEE7
+                cmp #$11
+                bne LAEEC
+                clc
 LAEE7:
-                ror $78                      ; AEE7= 66 78       fx
+                ror $78
 LAEE9:
-                plp                          ; AEE9= 28          (
-                clc                          ; AEEA= 18          .
-                rts                          ; AEEB= 60          `
+                plp
+                clc
+                rts
 
 LAEEC:
-                bit $74                      ; AEEC= 24 74       $t
-                bpl LAF0B                    ; AEEE= 10 1B       ..
-                pha                          ; AEF0= 48          H
-                sec                          ; AEF1= 38          8
-                jsr LAF0F                    ; AEF2= 20 0F AF     ./
-                tya                          ; AEF5= 98          .
-                bne LAF08                    ; AEF6= D0 10       P.
-                cpx #$20                     ; AEF8= E0 20       `
-                bcs LAF08                    ; AEFA= B0 0C       0.
-                lda #$13                     ; AEFC= A9 13       ).
-                cpx #$10                     ; AEFE= E0 10       `.
-                bcc LAF06                    ; AF00= 90 04       ..
-                cmp $76                      ; AF02= C5 76       Ev
-                beq LAF08                    ; AF04= F0 02       p.
+                bit $74
+                bpl LAF0B
+                pha
+                sec
+                jsr LAF0F
+                tya
+                bne LAF08
+                cpx #$20
+                bcs LAF08
+                lda #$13
+                cpx #$10
+                bcc LAF06
+                cmp $76
+                beq LAF08
 LAF06:
-                sta $75                      ; AF06= 85 75       .u
+                sta $75
 LAF08:
-                pla                          ; AF08= 68          h
-                ldx #$01                     ; AF09= A2 01       ".
+                pla
+                ldx #$01
 LAF0B:
-                plp                          ; AF0B= 28          (
-                jmp ($0070)                  ; AF0C= 6C 70 00    lp.
+                plp
+                jmp ($0070)
 
 LAF0F:
-                clv                          ; AF0F= B8          8
-                jmp (CNPV)                  ; AF10= 6C 2E 02    l..
+                clv
+                jmp (CNPV)
 
 LAF13:
-                php                          ; AF13= 08          .
-                sei                          ; AF14= 78          x
-                cpx #$01                     ; AF15= E0 01       `.
-                bne LAF37                    ; AF17= D0 1E       P.
-                bit $74                      ; AF19= 24 74       $t
-                bpl LAF33                    ; AF1B= 10 16       ..
-                clc                          ; AF1D= 18          .
-                jsr LAF0F                    ; AF1E= 20 0F AF     ./
-                cpy #$00                     ; AF21= C0 00       @.
-                bne LAF31                    ; AF23= D0 0C       P.
-                cpx #$20                     ; AF25= E0 20       `
-                bcs LAF31                    ; AF27= B0 08       0.
-                lda #$11                     ; AF29= A9 11       ).
-                cmp $76                      ; AF2B= C5 76       Ev
-                beq LAF31                    ; AF2D= F0 02       p.
-                sta $75                      ; AF2F= 85 75       .u
+                php
+                sei
+                cpx #$01
+                bne LAF37
+                bit $74
+                bpl LAF33
+                clc
+                jsr LAF0F
+                cpy #$00
+                bne LAF31
+                cpx #$20
+                bcs LAF31
+                lda #$11
+                cmp $76
+                beq LAF31
+                sta $75
 LAF31:
-                ldx #$01                     ; AF31= A2 01       ".
+                ldx #$01
 LAF33:
-                plp                          ; AF33= 28          (
-                jmp ($0072)                  ; AF34= 6C 72 00    lr.
+                plp
+                jmp ($0072)
 
 LAF37:
-                cpx #$02                     ; AF37= E0 02       `.
-                bne LAF33                    ; AF39= D0 F8       Px
-                lda $75                      ; AF3B= A5 75       %u
-                tay                          ; AF3D= A8          (
-                beq LAF48                    ; AF3E= F0 08       p.
-                bvs LAEE9                    ; AF40= 70 A7       p'
-                stz $75                      ; AF42= 64 75       du
-                sta $76                      ; AF44= 85 76       .v
-                bra LAEE9                    ; AF46= 80 A1       .!
+                cpx #$02
+                bne LAF33
+                lda $75
+                tay
+                beq LAF48
+                bvs LAEE9
+                stz $75
+                sta $76
+                bra LAEE9
 
 LAF48:
-                lda $78                      ; AF48= A5 78       %x
-                bpl LAF33                    ; AF4A= 10 E7       .g
-                plp                          ; AF4C= 28          (
-                sec                          ; AF4D= 38          8
+                lda $78
+                bpl LAF33
+                plp
+                sec
 LAF4E:
-                rts                          ; AF4E= 60          `
+                rts
 
 ;-------------------------------------------------------------------------
 
@@ -9402,43 +9404,15 @@ LB8B7:
                 clc                          ; B8DD= 18          .
 LB8DE:
                 rts                          ; B8DE= 60          `
+                .endif
+
+                .if version>=500
+                .include "ext.s65"
+                .endif
 
 ; Unused space
 ; ============
-                .align 256,$ff
-                ; .byte $FF                    ; B8DF= FF          .
-                ; .byte $FF                    ; B8E0= FF          .
-                ; .byte $FF                    ; B8E1= FF          .
-                ; .byte $FF                    ; B8E2= FF          .
-                ; .byte $FF                    ; B8E3= FF          .
-                ; .byte $FF                    ; B8E4= FF          .
-                ; .byte $FF                    ; B8E5= FF          .
-                ; .byte $FF                    ; B8E6= FF          .
-                ; .byte $FF                    ; B8E7= FF          .
-                ; .byte $FF                    ; B8E8= FF          .
-                ; .byte $FF                    ; B8E9= FF          .
-                ; .byte $FF                    ; B8EA= FF          .
-                ; .byte $FF                    ; B8EB= FF          .
-                ; .byte $FF                    ; B8EC= FF          .
-                ; .byte $FF                    ; B8ED= FF          .
-                ; .byte $FF                    ; B8EE= FF          .
-                ; .byte $FF                    ; B8EF= FF          .
-                ; .byte $FF                    ; B8F0= FF          .
-                ; .byte $FF                    ; B8F1= FF          .
-                ; .byte $FF                    ; B8F2= FF          .
-                ; .byte $FF                    ; B8F3= FF          .
-                ; .byte $FF                    ; B8F4= FF          .
-                ; .byte $FF                    ; B8F5= FF          .
-                ; .byte $FF                    ; B8F6= FF          .
-                ; .byte $FF                    ; B8F7= FF          .
-                ; .byte $FF                    ; B8F8= FF          .
-                ; .byte $FF                    ; B8F9= FF          .
-                ; .byte $FF                    ; B8FA= FF          .
-                ; .byte $FF                    ; B8FB= FF          .
-                ; .byte $FF                    ; B8FC= FF          .
-                ; .byte $FF                    ; B8FD= FF          .
-                ; .byte $FF                    ; B8FE= FF          .
-                ; .byte $FF                    ; B8FF= FF          .
+                .fill $b900-*,$ff
 
 ; Default font
 ; ============
@@ -10405,8 +10379,6 @@ chr127:
                 .byte %11111111
                 .byte %11111111
                 
-                .if version==320
-
                 ; CHR$128
                 .byte %01100110
                 .byte %00000000
@@ -11686,5 +11658,4 @@ chr127:
                 .byte %11111111
                 .byte %11111111
                 .byte %11111111
-                .endif
                 .endblock

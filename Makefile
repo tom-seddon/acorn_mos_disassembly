@@ -15,7 +15,7 @@ endif
 ##########################################################################
 
 .PHONY:all
-all: $(BUILD)/320/all.orig $(BUILD)/400/all.orig $(BUILD)/500/all.orig $(BUILD)/510/all.orig $(BUILD)/511/all.orig
+all: $(BUILD)/320/all.orig $(BUILD)/400/all.orig $(BUILD)/500/all.orig $(BUILD)/510/all.orig $(BUILD)/511/all.orig $(BUILD)/PC128S/all.orig
 	$(_V)$(TASS) mos320.s65 -L$(BUILD)/mos320.lst --output-section mos -o$(BUILD)/320/mos.rom --output-section terminal -o $(BUILD)/320/terminal.rom --output-section ext -o $(BUILD)/320/ext.rom
 	$(_V)cat $(BUILD)/320/terminal.rom $(BUILD)/320/mos.rom $(BUILD)/320/ext.rom > $(BUILD)/320/all.new
 	$(_V)$(MAKE) _check_identical VERSION=320
@@ -71,6 +71,10 @@ diff510:
 diff511:
 	$(MAKE) _diff VERSION=511
 
+.PHONY:diffPC128S
+diffPC128S:
+	$(MAKE) _diff VERSION=PC128S
+
 .PHONY:_diff
 _diff: all
 	vbindiff $(BUILD)/$(VERSION)/all.orig $(BUILD)/$(VERSION)/all.new
@@ -98,6 +102,9 @@ $(BUILD)/510/all.orig: orig/510/mos.rom orig/510/utils.rom
 
 $(BUILD)/511/all.orig: orig/511/mos.rom orig/511/utils.rom
 	$(_V)$(MAKE) _orig VERSION=511
+
+$(BUILD)/PC128S/all.orig: orig/PC128S/mos.rom orig/PC128S/utils.rom
+	$(_V)$(MAKE) _orig VERSION=PC128S
 
 _orig:
 	$(_V)$(MKDIR) $(BUILD)/$(VERSION)

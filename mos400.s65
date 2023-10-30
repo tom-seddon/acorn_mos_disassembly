@@ -30,7 +30,13 @@ starMOTOR=$967f
 ;starSRREADOrStarSRWRITE=$8901
 starTAPE=$9400
 ;L8A88=$8a88
-                
+LA2B8=$a2b8
+LA45D=$a45d
+LA6CD=$a6cd
+                ;.warn "LA7D4"
+LA9C5=$af6a
+LA9E0=$af6a
+
 ;-------------------------------------------------------------------------
 
                 .section utils

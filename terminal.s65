@@ -4647,6 +4647,14 @@ L9F4C:
 ; Utils/Terminal ROM service entry point.
 ;
 utilsServiceEntryPoint:
+                .if version==400
+                ; this is the same as the MOS 5.00 code, but I didn't
+                ; get the if arrangement right. This needs improving.
+                cpx #15
+                beq utilsInCorrectBank
+                rts
+utilsInCorrectBank:
+                .endif
                 .if version<500
                 cmp #romServiceCallTubeSystemPostInitialisation
                 bcc L9DCC        ;taken if definitely not Tube-related
@@ -4711,10 +4719,14 @@ utilsInCorrectBank:
                 bra LA245
 L9DCA:
                 lda #$00
-LA245:           
+LA245:
                 .endif
                 cmp #romServiceCallInitialiseFilingSystem
                 bne L9DEA
+                .if version==400
+                cpy #3
+                bne L9DEA
+                .else
                 cpy #$04                     ; Exit if not TAPE/ROM
                 bcs L9E16
                 cpy #$00                     ; Exit if Y=0, no FS
@@ -4727,6 +4739,7 @@ LA245:
                 adc #$02
 L9DE3:
                 adc #$89                     ; Convert to TAPE/ROM select value
+                .endif
                 jsr mos.selectROMOrTAPEByOSBYTE
                 bra L9DCA                    ; Jump to claim and return
 
@@ -4739,66 +4752,66 @@ L9DEA:
                 lda hazel.oldACCCON        ; Restore ACCCON
                 sta ACCCON
 L9DFC:
-                phy                          ; 9DFC= 5A          Z
+                phy
                 ldy hazel.moveSrcHandle
-                beq L9E08                    ; 9E00= F0 06       p.
+                beq L9E08
                 stz hazel.moveSrcHandle
-                jsr closeFile                    ; 9E05= 20 0F 8F     ..
+                jsr closeFile
 L9E08:
                 ldy hazel.moveDestHandle
-                beq L9E13                    ; 9E0B= F0 06       p.
+                beq L9E13
                 stz hazel.moveDestHandle
-                jsr closeFile                    ; 9E10= 20 0F 8F     ..
+                jsr closeFile
 L9E13:
-                ply                          ; 9E13= 7A          z
-                lda #$06                     ; 9E14= A9 06       ).
+                ply
+                lda #$06
 L9E16:
-                rts                          ; 9E16= 60          `
+                rts
 L9E17:
                 cmp #romServiceCallCloseAllOpenFiles
-                bne L9E38                    ; 9E19= D0 1D       P.
-                lda #$8D                     ; 9E1B= A9 8D       ).
-                jsr L9E2C                    ; 9E1D= 20 2C 9E     ,.
-                ldx #$03                     ; 9E20= A2 03       ".
-                lda #$04                     ; 9E22= A9 04       ).
-                bit $C6                      ; 9E24= 24 C6       $F
-                beq L9E2A                    ; 9E26= F0 02       p.
-                ldx #$00                     ; 9E28= A2 00       ".
+                bne L9E38
+                .if version!=400
+                lda #$8D
+                jsr L9E2C
+                ldx #$03
+                lda #$04
+                bit $C6
+                beq L9E2A
+                ldx #$00
 L9E2A:
-                lda #$8C                     ; 9E2A= A9 8C       ).
+                lda #$8C
 L9E2C:
+                .endif
                 jsr mos.selectROMOrTAPEByOSBYTE
-                lda #$00                     ; 9E2F= A9 00       ).
-                tay                          ; 9E31= A8          (
+                lda #$00
+                tay
                 jsr osfindTapeOrROM
-                lda #$26                     ; 9E35= A9 26       )&
-                rts                          ; 9E37= 60          `
+                lda #$26
+                rts
 
 L9E38:
                 cmp #romServiceCallHelp
-                .if version<500
-                bne L9E8F                    ; 9E3A= D0 53       PS
-                .elsif version>=500
+                .if version<400
+                bne L9E8F
+                .elsif version>=400
                 bne LA304
                 .endif
-                phy                          ; 9E3C= 5A          Z
-                lda ($F2),y                  ; 9E3D= B1 F2       1r
-                cmp #$0D                     ; 9E3F= C9 0D       I.
-                bne L9E61                    ; 9E41= D0 1E       P.
-                jsr L9EFC                    ; 9E43= 20 FC 9E     |.
-                jsr alwaysPrintFollowingMessage                    ; 9E46= 20 58 A9     X)
+                phy
+                lda ($F2),y
+                cmp #$0D
+                bne L9E61
+                jsr L9EFC
+                jsr alwaysPrintFollowingMessage
                 .text "  MOS",13
-                .text 13
-                .if version<500
-                .text "TERMINAL 1.20"
+                .if version<400
+                .text 13,"TERMINAL 1.20",13
                 .elsif version==500
-                .text "UTILS 1.00"
+                .text 13,"UTILS 1.00",13
                 .elsif version==510
-                .text "UTILS 1.10"
+                .text 13,"UTILS 1.10",13
                 .elsif version==511
-                .text "UTILS 1.10C"
+                .text 13,"UTILS 1.10C",13
                 .endif
-                .byte 13
                 .text 0
                 bra L9E8B
 L9E61:
@@ -4806,16 +4819,16 @@ L9E61:
 L9E63:
                 lda (stringInputBufferAddress),y
                 cmp #'.'
-                beq L9E95                    ; 9E67= F0 2C       p,
-                and #$DF                     ; 9E69= 29 DF       )_
+                beq L9E95
+                and #$DF
                 cmp mosHelpSubject,x
-                bne L9E7B                    ; 9E6E= D0 0B       P.
-                iny                          ; 9E70= C8          H
-                dex                          ; 9E71= CA          J
-                bpl L9E63                    ; 9E72= 10 EF       .o
+                bne L9E7B
+                iny
+                dex
+                bpl L9E63
                 lda (stringInputBufferAddress),y
                 jsr mos.isLetter
-                bcs L9E95       
+                bcs L9E95
 L9E7B:
                 lda (stringInputBufferAddress),y
                 cmp #13
@@ -4831,7 +4844,7 @@ L9E8B:
 LA304:
                 rts
 
-                .if version<500
+                .if version<400
 L9E8F:
                 jmp terminalServiceEntryPoint
                 .endif
@@ -4846,25 +4859,34 @@ L9E95:
                 sta terminalHELPWorkspace.tablePtr+1
 L9EA0:
                 lda (terminalHELPWorkspace.tablePtr)
-                bmi L9EF4                    ; 9EA2= 30 50       0P
-                jsr printSpace                    ; 9EA4= 20 0C 9F     ..
-                jsr printSpace                    ; 9EA7= 20 0C 9F     ..
+                bmi L9EF4
+                .if version==400
+                cmp #'a'
+                bcs LA711
+                .endif
+                jsr printSpace
+                jsr printSpace
                 lda (terminalHELPWorkspace.tablePtr)
 L9EAC:
+                .if version==400
+                cmp #'a'
+                bcs LA711
+                .endif
                 jsr L9F0E
+LA711:
                 inc terminalHELPWorkspace.tablePtr+0
                 bne L9EB5
-                inc terminalHELPWorkspace.tablePtr+1  
+                inc terminalHELPWorkspace.tablePtr+1
 L9EB5:
                 lda (terminalHELPWorkspace.tablePtr)
                 bpl L9EAC
 
                 ; add 4 to tablePtr
-                lda #$04                     
-                clc                          
+                lda #$04
+                clc
                 adc terminalHELPWorkspace.tablePtr+0
                 sta terminalHELPWorkspace.tablePtr+0
-                bcc +          
+                bcc +
                 inc terminalHELPWorkspace.tablePtr+1
 +
                 jsr mos.LE25C
@@ -4872,20 +4894,20 @@ L9EB5:
                 beq L9EEF
 L9ECB:
                 jsr mos.getTextCursorPositionWithColumn81
-                txa                          ; 9ECE= 8A          .
-                beq L9EA0                    ; 9ECF= F0 CF       pO
+                txa
+                beq L9EA0
                 cpx #20
                 beq L9EA0
                 bcc L9EE4
                 cpx #40
                 beq L9EA0
                 bcs L9EE9
-                jsr mos.LE25C                ; 9EDD= 20 5C E2     \b
+                jsr mos.LE25C
                 cpx #39
-                beq L9EEF                    ; 9EE2= F0 0B       p.
+                beq L9EEF
 L9EE4:
-                jsr printSpace                    ; 9EE4= 20 0C 9F     ..
-                bra L9ECB                    ; 9EE7= 80 E2       .b
+                jsr printSpace
+                bra L9ECB
 
 L9EE9:
                 cpx #60
@@ -4905,8 +4927,10 @@ L9EFC:
                 phy
                 jsr alwaysPrintFollowingMessage
                 .text 13
-                .if version<500
+                .if version<400
                 .text "OS 3.20"
+                .elsif version<500
+                .text "MOS 4.00"
                 .elsif version==500
                 .text "MOS 5.00"
                 .elsif version==510
@@ -4952,17 +4976,19 @@ printNewLine:
 ; TAPE/ROM OSARGS handler
 ; =======================
 osargsTapeOrROM:
-                cpy #$00                     ; Handle<>0 - read/write open file info
+                cpy #$00       ; Handle<>0 - read/write open file info
                 bne L9F3B
-                ora #$00                     ; A<>0 - read/write filing system info - exit
+                ora #$00 ; A<>0 - read/write filing system info - exit
                 bne L9F3A
 
 ; A=0, Y=0 - read current filing system
 ; -------------------------------------
                 lda #$03                     ; Prepare A=ROMFS
-                bit cfsRFSFSSwitch                    ; If TAPE/ROM switch
+                .if version!=400
+                bit cfsRFSFSSwitch           ; If TAPE/ROM switch
                 bne L9F3A
-                and $C6                      ; Mask with speed to give A=2 or A=1
+                and $C6           ; Mask with speed to give A=2 or A=1
+                .endif
 
 ; TAPE/ROM FSC 6 - shut down FS
 ; TAPE/ROM FSC 8 - OS command
@@ -5051,83 +5077,85 @@ fscTapeOrROM:
 ; TAPE/ROM FSC 7 - obtain file handle range
 ; -----------------------------------------
 L9F9E:
-                ldx #$03                     ; 9F9E= A2 03       ".
-                ldy #$03                     ; 9FA0= A0 03        .
-                lda cfsRFSFSSwitch                    ; 9FA2= AD 47 02    -G.
-                bne L9F3A                    ; 9FA5= D0 93       P.
-                dey                          ; 9FA7= 88          .
-                ldx #$01                     ; 9FA8= A2 01       ".
-                rts                          ; 9FAA= 60          `
+                ldx #$03
+                ldy #$03
+                .if version!=400
+                lda cfsRFSFSSwitch
+                bne L9F3A
+                dey
+                ldx #$01
+                .endif
+                rts
 
 L9FAB:
-                pla                          ; 9FAB= 68          h
-                plp                          ; 9FAC= 28          (
-                sec                          ; 9FAD= 38          8
-                rts                          ; 9FAE= 60          `
+                pla
+                plp
+                sec
+                rts
 
 L9FAF:
-                php                          ; 9FAF= 08          .
-                pha                          ; 9FB0= 48          H
-                jsr LA9F3                    ; 9FB1= 20 F3 A9     s)
-                lda $03C2                    ; 9FB4= AD C2 03    -B.
-                pha                          ; 9FB7= 48          H
-                jsr LA502                    ; 9FB8= 20 02 A5     .%
-                pla                          ; 9FBB= 68          h
-                bcs L9FAB                    ; 9FBC= B0 ED       0m
-                beq L9FD9                    ; 9FBE= F0 19       p.
-                ldx #$03                     ; 9FC0= A2 03       ".
-                lda #$FF                     ; 9FC2= A9 FF       ).
+                php
+                pha
+                jsr LA9F3
+                lda $03C2
+                pha
+                jsr LA502
+                pla
+                bcs L9FAB
+                beq L9FD9
+                ldx #$03
+                lda #$FF
 L9FC4:
-                pha                          ; 9FC4= 48          H
-                lda $03BE,x                  ; 9FC5= BD BE 03    =>.
-                sta $B0,x                    ; 9FC8= 95 B0       .0
-                pla                          ; 9FCA= 68          h
-                and $B0,x                    ; 9FCB= 35 B0       50
-                dex                          ; 9FCD= CA          J
-                bpl L9FC4                    ; 9FCE= 10 F4       .t
-                inc a                        ; 9FD0= 1A          .
-                bne L9FD9                    ; 9FD1= D0 06       P.
-                jsr LA9B1                    ; 9FD3= 20 B1 A9     1)
-                jmp badAddressError                    ; 9FD6= 4C 4B 93    LK.
+                pha
+                lda $03BE,x
+                sta $B0,x
+                pla
+                and $B0,x
+                dex
+                bpl L9FC4
+                inc a
+                bne L9FD9
+                jsr LA9B1
+                jmp badAddressError
 
 L9FD9:
-                lda $03CA                    ; 9FD9= AD CA 03    -J.
-                lsr a                        ; 9FDC= 4A          J
-                pla                          ; 9FDD= 68          h
-                pha                          ; 9FDE= 48          H
-                beq L9FF1                    ; 9FDF= F0 10       p.
-                bcc L9FF8                    ; 9FE1= 90 15       ..
+                lda $03CA
+                lsr a
+                pla
+                pha
+                beq L9FF1
+                bcc L9FF8
 L9FE3:
-                jsr LA9BB                    ; 9FE3= 20 BB A9     ;)
-                jsr doFollowingError                    ; 9FE6= 20 ED AA     m*
+                jsr LA9BB
+                jsr doFollowingError
                 .text $d5,"Locked",0
 L9FF1:
-                bcc L9FF8                    ; 9FF1= 90 05       ..
-                lda #$03                     ; 9FF3= A9 03       ).
-                sta breakAndESCAPEEffect                    ; 9FF5= 8D 58 02    .X.
+                bcc L9FF8
+                lda #$03
+                sta breakAndESCAPEEffect
 L9FF8:
-                lda #$30                     ; 9FF8= A9 30       )0
-                and $BB                      ; 9FFA= 25 BB       %;
-                beq LA002                    ; 9FFC= F0 04       p.
-                lda $C1                      ; 9FFE= A5 C1       %A
+                lda #$30
+                and $BB
+                beq LA002
+                lda $C1
 LA000:
-                bne LA00A                    ; A000= D0 08       P.
+                bne LA00A
 LA002:
                 .if version<500
-                phy                          ; A002= 5A          Z
-                jsr LAAA4                    ; A003= 20 A4 AA     $*
-                ply                          ; A006= 7A          z
+                phy
+                jsr LAAA4
+                ply
                 .endif
-                jsr LA6D2                    ; A007= 20 D2 A6     R&
+                jsr LA6D2
 LA00A:
-                jsr LA8A1                    ; A00A= 20 A1 A8     !(
-                bne LA066                    ; A00D= D0 57       PW
-                jsr LAA35                    ; A00F= 20 35 AA     5*
-                bit $03CA                    ; A012= 2C CA 03    ,J.
-                bmi LA01F                    ; A015= 30 08       0.
-                jsr LA85B                    ; A017= 20 5B A8     [(
-                jsr LA678                    ; A01A= 20 78 A6     x&
-                bra L9FF8                    ; A01D= 80 D9       .Y
+                jsr LA8A1
+                bne LA066
+                jsr LAA35
+                bit $03CA
+                bmi LA01F
+                jsr LA85B
+                jsr LA678
+                bra L9FF8
 
 LA01F:
                 pla                          ; RUN, no control block to update
@@ -5178,28 +5206,28 @@ LA064:
                 rts
 
 LA066:
-                jsr LA506                    ; A066= 20 06 A5     .%
-                bne L9FF8                    ; A069= D0 8D       P.
+                jsr LA506
+                bne L9FF8
 LA06B:
-                stx $F2                      ; A06B= 86 F2       .r
-                sty $F3                      ; A06D= 84 F3       .s
-                ldy #$00                     ; A06F= A0 00        .
+                stx $F2
+                sty $F3
+                ldy #$00
                 jsr mos.gsinitForFilenameParsing
-                ldx #$00                     ; A074= A2 00       ".
+                ldx #$00
 LA076:
-                jsr mos.gsreadEntryPoint     ; A076= 20 7F F2     .r
-                bcs LA088                    ; A079= B0 0D       0.
-                beq LA085                    ; A07B= F0 08       p.
-                sta $03D2,x                  ; A07D= 9D D2 03    .R.
-                inx                          ; A080= E8          h
-                cpx #$0B                     ; A081= E0 0B       `.
-                bne LA076                    ; A083= D0 F1       Pq
+                jsr mos.gsreadEntryPoint
+                bcs LA088
+                beq LA085
+                sta $03D2,x
+                inx
+                cpx #$0B
+                bne LA076
 LA085:
-                jmp mos.badStringError       ; A085= 4C 8F F2    L.r
+                jmp mos.badStringError
 
 LA088:
-                stz $03D2,x                  ; A088= 9E D2 03    .R.
-                rts                          ; A08B= 60          `
+                stz $03D2,x
+                rts
 
 ; CFS/RFS OSFILE
 ; ==============
@@ -5228,6 +5256,9 @@ LA09E:
                 jmp L9FAF
 
 LA0B5:
+                .if version==400
+                jmp mos.badCommandError
+                .else
                 sta $03C6
                 sta $03C7
 LA0BB:
@@ -5275,7 +5306,8 @@ LA0FB:
                 bne LA0D3
                 inc $03C7
                 bra LA0D3
-
+                .endif
+                
 ; TAPE/ROM FSC 2 - */
 ; TAPE/ROM FSC 4 - *RUN
 ; ---------------------
@@ -5295,7 +5327,9 @@ LA113:
                 ply
                 plx
                 bcc LA12E
+                .if version!=400
                 jsr LA9CA
+                .endif
 
 ; TAPE/ROM FSC 3 - unknown * command
 ; ----------------------------------
@@ -5352,7 +5386,9 @@ LA168:
 LA16F:
                 lda #$00
                 jsr LA17C
+                .if version!=400
                 jsr LA9CA
+                .endif
 LA177:
                 lda #$08
                 trb $E2
@@ -5361,8 +5397,10 @@ LA17B:
 
 LA17C:
                 pha
+                .if version!=400
                 lda cfsRFSFSSwitch
                 beq LA18B
+                .endif
                 jsr mos.LF6FC
                 jsr mos.LF701
                 clv
@@ -5379,8 +5417,10 @@ LA18B:
                 bra LA1B7
 
 LA1A1:
+                .if version!=400
                 lda cfsRFSFSSwitch
                 beq LA1DD
+                .endif
 LA1A6:
                 jsr mos.LF717
 LA1A9:
@@ -5391,8 +5431,10 @@ LA1B1:
                 jsr LAA35
                 jsr LA678
 LA1B7:
+                .if version!=400
                 lda cfsRFSFSSwitch
                 beq LA1BE
+                .endif
                 bvc LA1DB
 LA1BE:
                 pla
@@ -5420,8 +5462,10 @@ LA1DD:
 LA1E4:
                 ldx #$00
                 jsr LA8C4
+                .if version!=400
                 lda cfsRFSFSSwitch
                 beq LA1F2
+                .endif
                 bit $BB
                 bvc LA1A6
 LA1F2:
@@ -5439,25 +5483,34 @@ osfindTapeOrROM:
                 bne LA220
                 tya
                 bne LA212
+                .if version!=400
                 lda cfsRFSFSSwitch
                 bne LA20C
                 jsr LA29C
+                .endif
 LA20C:
                 lda #$01
                 trb $E2
+                .if version==400
+                bra LA297
+                .else
                 bra LA21E
-
+                .endif
 LA212:
                 lsr a
                 bcs LA20C
+                .if version!=400
                 lsr a
                 bcs LA21B
+                .endif
                 jmp LAA81
 
+                .if version!=400
 LA21B:
                 jsr LA29C
 LA21E:
                 bra LA297
+                .endif
 
 LA220:
                 jsr LA06B
@@ -5487,6 +5540,12 @@ LA241:
                 lda #$40
                 tsb $E2
 LA259:
+                .if version==400
+                lda #3
+                bne LA295
+LA260:
+                jmp mos.badCommandError
+                .else
                 lda #$01
                 ora cfsRFSFSSwitch
                 bne LA295
@@ -5521,6 +5580,7 @@ LA27D:
                 jsr LA9BB
                 lda #$02
                 tsb $E2
+                .endif
 LA295:
                 sta $BC
 LA297:
@@ -5530,6 +5590,7 @@ LA297:
 LA29B:
                 rts
 
+                .if version!=400
 LA29C:
                 lda #$02
                 and $E2
@@ -5568,6 +5629,7 @@ LA2BD:
                 inc $0395
 LA2E9:
                 rts
+                .endif
 
 bputTapeOrROM:
                 phx
@@ -5625,6 +5687,18 @@ LA33D:
 LA343:
                 jsr doFollowingError
                 .text $df,"EOF",0
+
+                .if version==400
+osgbpbTapeOrROM:
+bgetTapeOrROM:
+LAA9A:
+                cmp #4
+                beq LA378
+                sec
+                rts
+                .endif
+
+                .if version!=400
 bgetTapeOrROM:
                 sta $C4
                 phx
@@ -5642,7 +5716,9 @@ LA365:
                 inc $039D
                 lda $C4
                 jmp LA295
+                .endif
 
+                .if version!=400
 ; TAPE/ROM OSGBPB handler
 ; =======================
 osgbpbTapeOrROM:
@@ -5654,6 +5730,8 @@ osgbpbTapeOrROM:
 LA376:
                 sec
                 rts
+                .endif
+                
 ; Call Return
 ;  0    A=0   SEC                        - unsupported
 ;  1    A=0   SEC  Write using new PTR   - unsupported
@@ -5665,7 +5743,9 @@ LA376:
 ; TAPE/ROM OSGBPB 2 and 4 - read/write with current PTR
 ; -----------------------------------------------------
 LA378:
+                .if version!=400
                 lsr a
+                .endif
                 stx $CC
                 sty $CD
                 ldy #$01
@@ -5682,7 +5762,9 @@ LA378:
                 inc a
                 and tubePresence
                 pha
+                .if version!=400
                 php
+                .endif
                 beq LA3A7
                 ldx $CC
                 ldy $CD
@@ -5690,25 +5772,32 @@ LA378:
                 bne LA39E
                 iny
 LA39E:
-                
+                .if version!=400
                 lda #$00
                 plp
                 php
                 adc #$00
+                .else
+                lda #1
+                .endif
                 jsr LAAB0
 LA3A7:
                 .endif
                 lda ($CC)
                 tay
                 lda #$01
+                .if version!=400
                 .if version<500
                 plp
                 .endif
                 php
                 adc #$00
+                .endif
                 jsr LAA8D
                 bcs LA3C1
+                .if version!=400
                 plp
+                .endif
                 .if version<500
                 pla
                 beq LA3BE
@@ -5719,8 +5808,10 @@ LA3BE:
                 jmp LAA81
 
 LA3C1:
+                .if version!=400
                 plp
                 bcs LA401
+                .endif
                 bit $E2
                 bpl LA3D3
                 .if version<500
@@ -5768,6 +5859,7 @@ LA3FF:
                 .endif
                 rts
 
+                .if version!=400
 LA401:
                 jsr LAAE0
                 beq LA3F6
@@ -5790,7 +5882,8 @@ LA41A:
                 jsr bgetTapeOrROM
                 jsr LAACA
                 bra LA401
-
+                .endif
+                
 ; TAPE/ROM FSC 0 - *OPT
 ; ---------------------
 LA422:
@@ -5857,6 +5950,8 @@ LA456:
                 .byte $00
                 .byte $88
                 .byte $CC
+                
+                .if version!=400
 LA45D:
                 dec $C0
                 lda cfsRFSFSSwitch
@@ -5892,11 +5987,23 @@ LA485:
                 bcc LA4F0
                 ldy #$02
                 bra LA4EE
-
+                .endif
+                
 LA492:
+                .if version==400
+                jsr $f4ff
+                tay
+                clc
+                ldx $c2
+                dex
+                beq LA4F0
+                dex
+                bne LA4A8
+                .else
                 dex
                 bne LA4A8
                 bcs LA4F0
+                .endif
                 tya
                 jsr LAA44
                 ldy #$03
@@ -5909,19 +6016,25 @@ LA492:
 LA4A8:
                 dex
                 bne LA4B5
+                .if version!=400
                 bcs LA4B0
+                .endif
                 sty $BD
                 rts
 
+                .if version!=400
 LA4B0:
                 lda #$80
                 sta $C0
                 rts
+                .endif
 
 LA4B5:
                 dex
                 bne LA4E1
+                .if version!=400
                 bcs LA4E9
+                .endif
                 tya
                 jsr LA6A9
                 ldy $BC
@@ -5952,8 +6065,10 @@ LA4E1:
                 jsr LA6A9
                 dec $BC
                 bpl LA4F0
+                .if version!=400
 LA4E9:
                 jsr resetACIA
+                .endif
                 ldy #$00
 LA4EE:
                 sty $C2
@@ -5977,38 +6092,42 @@ LA4F1:
                 rts
 
 LA502:
-                stz $B4                      ; A502= 64 B4       d4
-                stz $B5                      ; A504= 64 B5       d5
+                stz $B4
+                stz $B5
 LA506:
-                lsr $CE                      ; A506= 46 CE       FN
-                lda $B4                      ; A508= A5 B4       %4
-                pha                          ; A50A= 48          H
-                sta $B6                      ; A50B= 85 B6       .6
-                lda $B5                      ; A50D= A5 B5       %5
-                pha                          ; A50F= 48          H
-                sta $B7                      ; A510= 85 B7       .7
-                jsr LA923                    ; A512= 20 23 A9     #)
+                lsr $CE
+                lda $B4
+                pha
+                sta $B6
+                lda $B5
+                pha
+                sta $B7
+                jsr LA923
                 .text "Searching",13,0
                 lda #$ff
-                jsr LA17C                    ; A522= 20 7C A1     |!
-                pla                          ; A525= 68          h
-                sta $B5                      ; A526= 85 B5       .5
-                pla                          ; A528= 68          h
-                sta $B4                      ; A529= 85 B4       .4
-                lda $B6                      ; A52B= A5 B6       %6
-                ora $B7                      ; A52D= 05 B7       .7
-                bne LA564                    ; A52F= D0 33       P3
-                stz $B4                      ; A531= 64 B4       d4
-                stz $B5                      ; A533= 64 B5       d5
-                lda cfsRFSFSSwitch                    ; A535= AD 47 02    -G.
-                beq LA55B                    ; A538= F0 21       p!
-                bvs LA55B                    ; A53A= 70 1F       p.
-                jsr LA9CA                    ; A53C= 20 CA A9     J)
-                bit $CE                      ; A53F= 24 CE       $N
-                bvc notFoundError                    ; A541= 50 0A       P.
-                sec                          ; A543= 38          8
+                jsr LA17C
+                pla
+                sta $B5
+                pla
+                sta $B4
+                lda $B6
+                ora $B7
+                bne LA564
+                stz $B4
+                stz $B5
+                .if version!=400
+                lda cfsRFSFSSwitch
+                beq LA55B
+                .endif
+                bvs LA55B
+                .if version!=400
+                jsr LA9CA
+                .endif
+                bit $CE
+                bvc notFoundError
+                sec
 rtsA544:
-                rts                          ; A544= 60          `
+                rts
 
 ;-------------------------------------------------------------------------
 
@@ -6148,6 +6267,7 @@ LA61F:
                 .byte 0
 
 LA62E:
+                .if version!=400
                 ldy #$FF
                 jsr LAA5C
                 lda #$01
@@ -6158,6 +6278,7 @@ LA63A:
                 lda #$03
                 cmp $C2
                 bne LA63A
+                .endif
 LA643:
                 jsr LAA46
 LA646:
@@ -6195,8 +6316,10 @@ LA670:
                 bne rtsAAC1
                 .endif
 LA678:
+                .if version!=400
                 lda cfsRFSFSSwitch
                 beq LA62E
+                .endif
 LA67D:
                 jsr mos.LF710
                 cmp #$2B
@@ -6212,8 +6335,10 @@ LA68D:
                 rts
 
 LA694:
+                .if version!=400
                 lda cfsRFSFSSwitch
                 beq LA6A6
+                .endif
                 phx
                 phy
                 jsr mos.LF710
@@ -6253,9 +6378,11 @@ LA6C2:
 LA6CC:
                 rts
 
+                .if version!=400
 LA6CD:                                       ;AAA6 in MOS 5.00
                 jsr LA776
                 bra LA6A9
+                .endif
 
 LA6D2:                                       ;AAAB in MOS 5.00
                 lda #$00
@@ -6273,6 +6400,7 @@ LA6E6:
 rtsAAC1:
                 rts
 
+                .if version!=400
 LA6E9:                                       ;AAC2 in MOS 5.00
                 php
                 ldx #$03
@@ -6359,6 +6487,8 @@ LA76F:
                 .endif
 LA776:
                 sta $BD
+                .endif
+                
 LA778:
                 jsr LA880
                 bit $C0
@@ -6367,6 +6497,7 @@ LA778:
                 lda $BD
                 rts
 
+                .if version!=400
 LA784:
                 lda #$32
                 bra LA78A
@@ -6384,7 +6515,8 @@ LA78F:
                 dex
                 bne LA78C
                 rts
-
+                .endif
+                
 LA79B:
                 lda $03C6
                 ora $03C7
@@ -6415,9 +6547,12 @@ LA7CE:
                 jsr OSWRCH
                 iny
                 bne LA7BF
+                
 LA7D4:
+                .if version!=400
                 lda cfsRFSFSSwitch
                 beq LA7DD
+                .endif
                 bit $BB
                 bvc LA821
 LA7DD:
@@ -6459,6 +6594,7 @@ LA817:
 LA821:
                 rts
 
+                .if version!=400
 LA822:
                 lda cfsRFSFSSwitch
                 beq LA82D
@@ -6480,6 +6616,7 @@ LA84E:
                 cmp #$0D
                 bne LA84E
                 jmp OSNEWL
+                .endif
 
 LA85B:
                 ldx #$FD
@@ -6596,8 +6733,10 @@ LA8F3:
                 bit $EB
                 bmi LA909
                 txa
+                .if version!=400
                 and cfsRFSFSSwitch
 LA900:
+                .endif
                 bne LA909
                 txa
                 and #$11
@@ -6715,7 +6854,9 @@ LA978:
                 lda #$22
                 bit $BB
                 beq LA99D
+                .if version!=400
                 jsr resetACIA
+                .endif
                 tay
                 jsr printFollowingMessage
                 .byte $0D
@@ -6732,8 +6873,10 @@ LA9A0:
                 lda $C2
                 beq LA977
                 jsr LA880
+                .if version!=400
                 lda cfsRFSFSSwitch
                 beq LA9A0
+                .endif
                 jsr LA45D
                 bra LA9A0
 
@@ -6750,6 +6893,7 @@ LA9BB:
                 lda #$80
                 jsr tubeHost.entryPoint
                 .endif
+                .if version!=400
 LA9C5:
                 ldx #$00
                 jsr LAA61
@@ -6763,19 +6907,22 @@ LA9CA:
 
 ;-------------------------------------------------------------------------
 
+                .if version!=400
 resetACIAThenRewriteControlRegister:
                 php
 LA9D7:
                 jsr resetACIA
                 lda aciaControlRegister
                 jmp mos.writeACIAControlRegister
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 
 LA9E0:
                 plp
                 bit $FF
                 bpl LA9FD
+                .endif
                 rts
 
 LA9E6:
@@ -6785,13 +6932,18 @@ LA9E6:
                 asl a
                 asl a
                 sta $BB
+                .if version==400
+                rts
+                .else
                 lda $03D1
                 bra LA9FB
+                .endif
 
 LA9F3:
                 lda $E3
                 and #$F0
                 sta $BB
+                .if version!=400
                 lda #$06
 LA9FB:
                 sta $C7
@@ -6809,29 +6961,36 @@ LAA00:
                 sta $EA
                 jsr resetACIA
                 plp
+                .endif
                 rts
 
 ;-------------------------------------------------------------------------
 
+                .if version!=400
 resetACIA:
                 lda #ACIA.control.reset
                 bra writeACIAControlRegister
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 
 LAA16:
+                .if version!=400
                 lda #$30
                 sta $CA
                 bra LAA2F
-
+                .endif
 LAA1C:
+                .if version!=400
                 lda #$05
                 sta SERPROC+0
                 ldx #$FF
 LAA23:
                 dex
                 bne LAA23
+                .endif
                 stz $CA
+                .if version!=400
                 lda #$D0
 LAA2A:
                 ldy #$85
@@ -6840,6 +6999,7 @@ LAA2F:
                 ora $C6
 writeACIAControlRegister:
                 sta ACIA+0
+                .endif
                 rts
 
 ;-------------------------------------------------------------------------
@@ -6873,6 +7033,7 @@ LAA4F:
                 bne LAA4F
                 rts
 
+                .if version!=400
 LAA5A:
                 ldy #$00
 LAA5C:
@@ -6883,6 +7044,7 @@ LAA61:
                 lda #$89
                 ldy $C3
                 jmp OSBYTE
+                .endif
 
 ; Check if TAPE/ROM channel is open
 ; ---------------------------------
@@ -6913,7 +7075,11 @@ LAA81:
 LAA8D:
                 pha                          ; Toggle channel with CFS/RFS switch
                 tya
+                .if version==400
+                eor #2
+                .else
                 eor cfsRFSFSSwitch
+                .endif
                 tay                          ; If CFS=unchanged, if RFS 1/2/3->3/0/1
                 pla
                 and $E2                      ; Mask with open channels bitmask
@@ -6927,9 +7093,11 @@ LAA8D:
 LAA9F:
                 rts
 
+                .if version!=400
 LAAA0:
                 lda #$10
                 bra LAA2A
+                .endif
 
                 .if version<500
 LAAA4:
@@ -7703,7 +7871,7 @@ LAE0F:
 ;-------------------------------------------------------------------------
                 .endif
 
-                .if version<500
+                .if version<400
 ;-------------------------------------------------------------------------
 
 terminalServiceEntryPoint:
@@ -9688,11 +9856,6 @@ LB8DE:
                 .include "ext.s65"
                 .endif
 
-                .if version==400
-chr127:
-LB900=$b900
-                .else
-                
 ; Unused space
 ; ============
                 .fill $b900-*,$ff
@@ -11941,5 +12104,4 @@ chr127:
                 .byte %11111111
                 .byte %11111111
                 .byte %11111111
-                .endif
                 .endblock

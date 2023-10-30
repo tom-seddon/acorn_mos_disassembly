@@ -1,15 +1,25 @@
-Rebuildable, partially-commented version of Acorn's MOS 3.20 for the
-Master 128.
+Rebuildable, partially-commented version of Acorn MOS for the Master
+series. The following versions are covered, as they all seem to be
+quite closely related:
 
-The starting point was JGH's MOS 3.20 disassembly here, providing
-comments for several sections:
-http://mdfs.net/Info/Comp/Acorn/Source/MOS.htm
+- MOS 3.20 (Master 128, UK)
+- MOS 4.00 (Master ET, UK)
+- MOS 5.00, MOS 5.10 (Master Compact, UK)
+- MOS 5.11 (Master Compact, International)
+
+The starting point was JGH's MOS 3.20 disassembly here:
+http://mdfs.net/Info/Comp/Acorn/Source/MOS.htm - this provided
+comments for several sections, identified many of the tables, and
+convinced me that this sort of project might actually be feasible:
 
 https://tobylobster.github.io/mos/ has provided most comments and
 symbol names for the bits that haven't changed (or haven't changed
 much) since OS 1.20.
 
-**This is extremely WIP.** 
+**This project is extremely WIP.** A lot of it isn't actually
+commented, and many of the label names fail to meet even the low bar
+of "not actively misleading". But I think I've found all the bits that
+are code, and all the bits that are data...
 
 # project goals
 
@@ -99,25 +109,9 @@ Type `make`.
 
 ## build output
 
-The main output file is `build/mos320.lst` - an assembler listing file
-that you can use for reference. The 64tass format is prety easy to
-read.
-
-The build process also outputs `build/3.20/all.new`, 33.5 KBytes of
-concatenated ROM pieces, in the following order:
-
-- 1.5 KB, "ext" ROM (end of sideways bank 14)
-- 16 KB, Terminal ROM (sideways bank 15)
-- 16 KB, MOS ROM ($c000)
-
-The build process prints SHA1 hashes for the output file, and for the
-corresponding sections of original rom, so you can see if the output
-is the same. (The expected SHA1 for MOS 3.20 is
-`684b1ee65441609e1703ee2a3caf07043e40e1c0`.)
-
-(I've found `vbindiff` helpful for figuring out discrepancies. If you
-have this installed, type `make diff320` to run it, comparing the
-built MOS 3.20 with the original.)
+The main output file is `build/mos*.lst` - an assembler listing file
+that you can use for reference, named after the MOS version. The
+64tass format is pretty easy to read.
 
 # the other MOS 3.20 parts
 
@@ -151,19 +145,7 @@ Nobody appears to have disassembled ViewSheet.
 
 # the other MOS versions
 
-As well as MOS 3.20, at least the following other versions were
-released:
+I haven't done MOS 3.50 yet - it looked rather different from the
+others.
 
-- MOS 3.50 (128 KB) - Master 128
-- MOS 4.00 (64 KB) - Master ET
-- MOS 5.00 (64 KB) - Master Compact
-- MOS 5.10 (64 KB) - Master Compact
-
-I intend to attempt a disassembly of the MOS part of MOS 4.00, MOS
-5.00 and MOS 5.10, as all 3 look quite similar to MOS 3.20. I'm hoping
-this won't be an unmanageable amount of work.
-
-I'd like to do the sideways ROM parts as as well. They look quite
-different, but presumably they're actually related to some mix of the
-ext ROM and Terminal ROM parts of MOS 3.20.
-
+I plan on at least sizing up the Olivetti PC 128S ROMs.

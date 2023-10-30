@@ -6,11 +6,12 @@ quite closely related:
 - MOS 4.00 (Master ET, UK)
 - MOS 5.00, MOS 5.10 (Master Compact, UK)
 - MOS 5.11 (Master Compact, International)
+- PC128S MOS (Olivetti PC128S)
 
 The starting point was JGH's MOS 3.20 disassembly here:
 http://mdfs.net/Info/Comp/Acorn/Source/MOS.htm - this provided
 comments for several sections, identified many of the tables, and
-convinced me that this sort of project might actually be feasible:
+convinced me that this sort of project might actually be feasible.
 
 https://tobylobster.github.io/mos/ has provided most comments and
 symbol names for the bits that haven't changed (or haven't changed
@@ -19,7 +20,8 @@ much) since OS 1.20.
 **This project is extremely WIP.** A lot of it isn't actually
 commented, and many of the label names fail to meet even the low bar
 of "not actively misleading". But I think I've found all the bits that
-are code, and all the bits that are data...
+are code, and all the bits that are data, and many of the
+data-dependent constants.
 
 # project goals
 
@@ -32,11 +34,45 @@ simplify following along when looking at an unadorned disassembly
 That's the sort of situation where I've personally most missed having
 an annotated disassembly.
 
+The 64tass listing file is relatively easy to read, but not ideal. I
+intend to add a postprocessing step to transform it into something a
+bit tidier.
+
 My longer term goal is to produce a decent-quality modifiable source
-file, with all label references located and all current assumptions
-(page alignment, routines that share pages, variables that must be
-together, etc.) checked. Then, in theory, code can be added or removed
-fairly freely.
+file, with all label references located, all data-dependent constants
+identified, and all current assumptions (page alignment, routines that
+share pages, variables that must be together, etc.) checked. Then, in
+theory, code can be added or removed fairly freely.
+
+# build
+
+## prerequisites ##
+
+Mandatory:
+
+* [`64tass`](http://tass64.sourceforge.net/) (I use r3120)
+* a Unix-type system with the usual Unix-type stuff (on Windows, you
+  should be good with WSL, cygwin, Git Bash, etc.)
+
+Optional:
+
+* [`vbindiff`](https://www.cjmweb.net/vbindiff/)
+
+## build steps ##
+
+Type `make`.
+
+## build output
+
+The build output is assembler listing files that you can use for
+reference:
+
+- `build/mos320.lst` - MOS 3.20
+- `build/mos400.lst` - MOS 4.00
+- `build/mos500.lst` - MOS 5.00
+- `build/mos510.lst` - MOS 5.10
+- `build/mos511.lst` - MOS 5.11
+- `build/mosPC128S.lst` - PC128S MOS
 
 # code notes
 
@@ -89,30 +125,6 @@ Registers are referred to using their names. `RL` and `RH` are the low
 and high bytes of the return address. Other things get an English
 description.
 
-# build
-
-## prerequisites ##
-
-Mandatory:
-
-* [`64tass`](http://tass64.sourceforge.net/) (I use r2625)
-* a Unix-type system with the usual Unix-type stuff (on Windows, you
-  should be good with WSL, cygwin, Git Bash, etc.)
-
-Optional:
-
-* [`vbindiff`](https://www.cjmweb.net/vbindiff/)
-
-## build steps ##
-
-Type `make`.
-
-## build output
-
-The main output file is `build/mos*.lst` - an assembler listing file
-that you can use for reference, named after the MOS version. The
-64tass format is pretty easy to read.
-
 # the other MOS 3.20 parts
 
 ## BASIC
@@ -147,5 +159,3 @@ Nobody appears to have disassembled ViewSheet.
 
 I haven't done MOS 3.50 yet - it looked rather different from the
 others.
-
-I plan on at least sizing up the Olivetti PC 128S ROMs.

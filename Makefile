@@ -24,6 +24,7 @@ all: $(BUILD)/320/all.orig $(BUILD)/400/all.orig $(BUILD)/500/all.orig $(BUILD)/
 	$(_V)$(MAKE) _build VERSION=510
 	$(_V)$(MAKE) _build VERSION=511
 	$(_V)$(MAKE) _build VERSION=400
+	$(_V)$(MAKE) _build VERSION=PC128S
 
 .PHONY:_build
 _build:

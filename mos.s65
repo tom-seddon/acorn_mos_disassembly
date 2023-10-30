@@ -7250,7 +7250,11 @@ LE431:
                 and #$0F                     ;get default FS ROM
                 ply
                 .elsif version>=500
+                .if olivetti
+                ldx #$3c
+                .else
                 ldx #$33
+                .endif
                 jsr terminal.L8A64
                 .endif
                 
@@ -7324,7 +7328,11 @@ LE4BB:
                 .if version<500
                 jsr terminal.readDefaultLanguageROM        ; Read configured LANG
                 .elsif version>=500
+                .if olivetti
+                ldx #$4A
+                .else
                 ldx #$41
+                .endif
                 jsr terminal.L8A64
                 .endif
                 tax
@@ -11304,7 +11312,7 @@ LF424o:
                 .byte $8d
                 .byte $97
                 .byte $99
-                .byte $8d
+                .byte $8c
                 .byte $9b
                 .byte $9f
                 .endif
@@ -12017,7 +12025,7 @@ LF839:
                 bne LF693
                 pla
                 .if olivetti
-                bra LF6AD
+                bra LF718o
                 .else
                 bra LF6A8
                 .endif
@@ -12029,7 +12037,7 @@ LF693:
                 bne LF699
                 pla
                 .if olivetti
-                bra LF6AD
+                bra LF718o
                 .else
                 bra LF6A8
                 .endif
@@ -12041,7 +12049,7 @@ LF699:
                 bne LF69F
                 pla
                 .if olivetti
-                bra LF6AD
+                bra LF718o
                 .else
                 bra LF6A8
                 .endif
@@ -12049,7 +12057,11 @@ LF699:
 
 LF69F:
                 dex
+                .if olivetti
+                bne LF712o
+                .else
                 bne LF6A7
+                .endif
                 pla
                 ora #$80
                 bra LF6AD

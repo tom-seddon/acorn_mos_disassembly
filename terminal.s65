@@ -45,14 +45,21 @@ copyrightText:
                 .if version==500
                 .byte 0
                 .elsif version==510
+                .if olivetti
+                .byte $10
+                .else
                 .byte 1
+                .endif
                 .elsif version==511
                 .byte $10
                 .endif
                 .text "UTILS",0
 copyright:
+                .if olivetti
+                .text "(C)1986 Olivetti",0
+                .else
                 .text "(C)1986 Acorn",0
-
+                .endif
                 .endif
                 
 ; STARTUP
@@ -179,7 +186,11 @@ L80AD:
                 jsr readDefaultMODE          ; Read configured MODE
                 .elsif version>=500
                 jsr L9E58
+                .if olivetti
+                ldx #$56
+                .else
                 ldx #$4d
+                .endif
                 jsr L8A64
                 .endif
 L80B4:
@@ -331,7 +342,11 @@ gotKeyboardStatusByte:
                 .if version<500
                 jsr readDefaultFX5Settings
                 .elsif version>=500
+                .if olivetti
+                ldx #$7E
+                .else
                 ldx #$75
+                .endif
                 jsr L8A64
                 .endif
                 sta printerDriverType
@@ -340,7 +355,11 @@ L8196:
                 .if version<500
                 jsr readDefaultSerialDataFormat
                 .elsif version>=500
+                .if olivetti
+                ldx #$22
+                .else
                 ldx #$19
+                .endif
                 jsr L8A64
                 .endif
                 asl a                        ;
@@ -355,6 +374,11 @@ L8196:
                 ldx #$12
                 jsr readRTCByte
                 sta adcConversionType
+                .if olivetti
+                ldx #$13
+                jsr readRTCByte
+                sta countryFlag
+                .endif
                 ldx #$ff
 L81B2:
                 jsr resetACIA
@@ -486,10 +510,10 @@ L8264:
                 bcs checkForResetKey
                 tya
                 and #$7f
-                .if version<511
-                cmp #$30
-                .else
+                .if version>=511||olivetti
                 cmp #$32
+                .else
+                cmp #$30
                 .endif
                 beq checkForResetKey
                 ldx #0
@@ -543,10 +567,10 @@ L82A9:
                 jsr writeCMOSByte
                 plx
                 dex
-                .if version<511
-                cpx #$13
-                .else
+                .if version>=511||olivetti
                 cpx #$14
+                .else
+                cpx #$13
                 .endif
                 bcs L82A9
                 bra resetCMOSRAM
@@ -556,10 +580,10 @@ L82B7:
                 .endif
                 .if version>=500
 resetCMOSRAM:                                ;82bb in MOS 5.10
-                .if version<511
-                ldx #$13
-                .else
+                .if version>=511||olivetti
                 ldx #$14
+                .else
+                ldx #$13
                 .endif
 L8280:
                 phx
@@ -573,10 +597,10 @@ L8280:
                 jsr L9ECA
                 tya
                 and #$80
-                .if version<511
-                eor #$b0
-                .else
+                .if version>=511||olivetti
                 eor #$b2
+                .else
+                eor #$b0
                 .endif
                 tay
                 ldx #$ff
@@ -4311,10 +4335,10 @@ readRTCByte:
                 bcc L9DDB
 L9DD0:
                 ldy #0
-                .if version<511
-                cpx #$13
-                .else
+                .if version>=511||olivetti
                 cpx #$14
+                .else
+                cpx #$13
                 .endif
                 bcs L9DDE
                 ldy L9DE4,x
@@ -4334,6 +4358,7 @@ L9DE1:
                 bra L9DD0
 
 L9DE4:
+                ; Default CMOS contents?
                 .byte 0  
                 .byte $FE
                 .byte 0
@@ -4344,7 +4369,7 @@ L9DE4:
                 .byte $FF
                 .byte 0
                 .byte 0
-                .if version>=511
+                .if version>=511||olivetti
                 .byte $f9
                 .else
                 .byte $F7
@@ -4357,7 +4382,7 @@ L9DE4:
                 .byte $80
                 .byte 0
                 .byte 3
-                .if version>=511
+                .if version>=511||olivetti
                 .byte 4
                 .endif
                 .endif
@@ -4816,7 +4841,11 @@ L9E38:
                 .elsif version==500
                 .text 13,"UTILS 1.00",13
                 .elsif version==510
+                .if olivetti
+                .text 13,"UTILS 1.10C",13
+                .else
                 .text 13,"UTILS 1.10",13
+                .endif
                 .elsif version==511
                 .text 13,"UTILS 1.10C",13
                 .endif
@@ -4942,7 +4971,11 @@ L9EFC:
                 .elsif version==500
                 .text "MOS 5.00"
                 .elsif version==510
+                .if olivetti
+                .text "MOS I5.10C"
+                .else
                 .text "MOS 5.10"
+                .endif
                 .elsif version==511
                 .text "MOS 5.11i"
                 .else

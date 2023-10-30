@@ -1,9 +1,13 @@
 configureTable: .text "."
+                .if olivetti
+                .byte $8a,$0d
+                .else
                 .byte $89
                 .if version<510
                 .byte $BC       ;
                 .else
                 .byte $f9
+                .endif
                 .endif
                 .text "Baud"
                 .byte $D0       ;
@@ -14,6 +18,11 @@ configureTable: .text "."
                 .text "Caps"
                 .byte $D4       ;
                 .byte $33       ; 3
+                .if olivetti
+                .text "Country"
+                .byte $f8
+                .byte $f0
+                .endif
                 .text "Data"
                 .byte $D0       ;
                 .byte $DD       ;
@@ -34,7 +43,11 @@ configureTable: .text "."
                 .if version<510
                 .byte $12
                 .else
+                .if olivetti
+                .byte $63
+                .else
                 .byte $4f
+                .endif
                 .endif
                 .text "Lang"
                 .byte $D8       ;
@@ -86,7 +99,11 @@ configureTable: .text "."
                 .if version<510
                 .byte $64; d
                 .else
+                .if olivetti
+                .byte $b5
+                .else
                 .byte $a1
+                .endif
                 .endif
                 .byte 0
                 .byte 8
@@ -105,14 +122,18 @@ configureTable: .text "."
                 .byte $74; t
                 .byte $FF
 L8850:
-                .byte $24; $
-                .byte $63       ; c
-                .byte $8F       ;
+                .if olivetti
+                .byte $2d,$6c,$98
+                .else
+                .byte $24,$63,$8f
+                .endif
 L8853:
-                .byte $BE
-                .byte $BE       ;
-                .byte $C5       ;
-
+                .if olivetti
+                .byte $c7,$c7,$ce
+                .else
+                .byte $be,$be,$c5
+                .endif
+                
 ;-------------------------------------------------------------------------
 
 starCONFIGUREOrStarSTATUS:
@@ -186,7 +207,11 @@ L88B3:
                 dec a
 
 L88B4:
+                .if olivetti
+                cpx #$56
+                .else
                 cpx #$4D
+                .endif
                 bne L88C1
                 bit #$78
                 bne L88EB
@@ -294,7 +319,11 @@ L8927:
 
 L8929:
 
+                .if olivetti
+                ldx #$c3
+                .else
                 ldx #$BA
+                .endif
 
 L892B:
                 bra L88CB
@@ -392,7 +421,11 @@ L898B:
                 ora $B1
 
 L898E:
+                .if olivetti
+                ldx #$c5
+                .else
                 ldx #$BC
+                .endif
                 bra L892B
 
 ;-------------------------------------------------------------------------
@@ -530,7 +563,11 @@ L8A74:
                 inc a
 
 L8A82:
+                .if olivetti
+                cpx #$56
+                .else
                 cpx #$4D
+                .endif
                 bne L8A8C
                 bit #8
                 beq L8A8C
@@ -646,7 +683,11 @@ L8B08:
                 php
                 phx
                 bvc L8B15
+                .if olivetti
+                cpy #$3e
+                .else
                 cpy #$35
+                .endif
                 bne L8B15
                 jsr readUsePrinterIgnoreChar
                 bcs L8B30
@@ -855,8 +896,12 @@ L8BD4:
 
 ;-------------------------------------------------------------------------
 
-L8BD6:       
+L8BD6:
+                .if olivetti
+                ldx #$c5
+                .else
                 ldx #$BC
+                .endif
                 jsr L8A64
                 lsr a
                 bit #4

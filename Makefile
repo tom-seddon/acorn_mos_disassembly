@@ -4,7 +4,7 @@ ifeq ($(OS),Windows_NT)
 PYTHON:=py -3
 TASSCMD:=bin\64tass.exe
 else
-PYTHON:=/usr/bin/python
+PYTHON:=/usr/bin/python3
 TASSCMD:=64tass
 endif
 SHELLCMD:=$(PYTHON) submodules/shellcmd.py/shellcmd.py

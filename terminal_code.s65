@@ -1,0 +1,1978 @@
+;-------------------------------------------------------------------------
+
+terminalServiceEntryPoint:
+                php
+                phy
+                phx
+                pha
+                cmp #romServiceCallUnrecognisedCommand
+                beq handleUnrecognisedCommand
+                cmp #romServiceCallUnrecognisedOSBYTE
+                beq handleUnrecognisedOSBYTE
+                cmp #romServiceCallLanguageChange
+                beq handleLanguageChange
+LAE29:
+                pla
+                plx
+                ply
+                plp
+                rts
+
+handleUnrecognisedCommand:
+                jsr LB832
+                cmp #$0B
+                bne LAE29
+                pla
+                plx
+                lda #$8E
+                jsr OSBYTE
+LAE3C:
+                ldx #$04
+LAE3E:
+                lda INSV-1,x
+                cmp LAE93-1,x
+                bne LAE49
+                dex
+                bne LAE3E
+LAE49:
+                rts
+
+handleUnrecognisedOSBYTE:
+                phy
+                ply
+                bne LAE29
+                lda $EF
+                cmp #$60
+                bne LAE29
+
+                ; handle OSBYTE $60
+osbyte60:
+                pla
+                phy
+                sei
+                lda $F0
+                bmi LAE6C
+                lsr a
+                bne LAE66
+                lda #$11
+                sta $76
+                ror $74
+                bra LAE29
+
+LAE66:
+
+                stz $78
+                ror $77
+
+LAE6A:
+                bra LAE29
+
+LAE6C:
+                lsr a
+                bcc handleLanguageChange
+                stz $75
+                jsr LAE3C
+                beq LAE29
+                ldx #$04
+LAE78:
+                lda INSV-1,x
+                sta oldINSV-1,x
+                lda LAE93-1,x
+                sta INSV-1,x
+                dex
+                bne LAE78
+                ldx #$06
+LAE88:
+                lda LAE97-1,x
+                sta ExtendedVectorAddress(INSV)-1,x
+                dex
+                bne LAE88
+                bra LAE6A
+
+LAE93:
+                .word mos.E_INSV
+                .word mos.E_REMV
+LAE97:
+                .word LAED4
+                .byte terminalROM
+                .word LAF13
+                .byte terminalROM
+
+handleLanguageChange:
+                sei
+                jsr LAE3C
+                bne LAE6A
+                ldx #$06
+LAEA5:
+                lda ExtendedVectorAddress(INSV)-1,x;extendedVectorSpace+insvIndex*3-1,x
+                cmp LAE97-1,x
+                bne LAE6A
+                dex
+                bne LAEA5
+                ldx #$04
+LAEB2:
+                lda oldINSV-1,x
+                sta INSV-1,x
+                dex
+                bne LAEB2
+                lda #$E6
+                jsr osbyteX00Y00
+                lda #$CB
+                ldx #$09
+                jsr osbyteY00
+                jsr LB11A
+                inc a
+LAECA:
+                jsr osbyteX00Y00
+                dec a
+                cmp #$01
+                bne LAECA
+                bra LAE6A
+
+LAED4:
+                php
+                sei
+                cpx #$01
+                bne LAF0B
+                bit $77
+                bpl LAEEC
+                cmp #$13
+                beq LAEE7
+                cmp #$11
+                bne LAEEC
+                clc
+LAEE7:
+                ror $78
+LAEE9:
+                plp
+                clc
+                rts
+
+LAEEC:
+                bit $74
+                bpl LAF0B
+                pha
+                sec
+                jsr LAF0F
+                tya
+                bne LAF08
+                cpx #$20
+                bcs LAF08
+                lda #$13
+                cpx #$10
+                bcc LAF06
+                cmp $76
+                beq LAF08
+LAF06:
+                sta $75
+LAF08:
+                pla
+                ldx #$01
+LAF0B:
+                plp
+                jmp ($0070)
+
+LAF0F:
+                clv
+                jmp (CNPV)
+
+LAF13:
+                php
+                sei
+                cpx #$01
+                bne LAF37
+                bit $74
+                bpl LAF33
+                clc
+                jsr LAF0F
+                cpy #$00
+                bne LAF31
+                cpx #$20
+                bcs LAF31
+                lda #$11
+                cmp $76
+                beq LAF31
+                sta $75
+LAF31:
+                ldx #$01
+LAF33:
+                plp
+                jmp ($0072)
+
+LAF37:
+                cpx #$02
+                bne LAF33
+                lda $75
+                tay
+                beq LAF48
+                bvs LAEE9
+                stz $75
+                sta $76
+                bra LAEE9
+
+LAF48:
+                lda $78
+                bpl LAF33
+                plp
+                sec
+LAF4E:
+                rts
+
+;-------------------------------------------------------------------------
+
+terminalBRKHandler:
+                lda #$DA                     
+                jsr osbyteX00Y00             ;Set VDU queue length to 0
+                jsr disableESCAPE
+                ldy #$00
+                lda (errPtr),y
+                bne LAF63
+                stz $20
+                lda #$16
+                sta $6F
+LAF63:
+                lda #13
+-
+                jsr OSASCI
+                iny
+                lda (errPtr),y
+                bne -
+                jsr OSNEWL
+                sec
+                ror $19
+                lda $1A
+                bne LAFF4
+terminalLanguageEntryPoint:
+                dec a
+                bne LAF4E
+                lda #$01
+                sta $6F
+LAF7E:
+                sei
+                ldx #$FE
+                txs
+                lda #<terminalBRKHandler
+                sta BRKV+0
+                lda #>terminalBRKHandler
+                sta BRKV+1
+                lda #<terminalINDnHandler
+                sta IND1V+0
+                lda #>terminalINDnHandler
+                sta IND1V+1
+                lda #<terminalINDnHandler
+                sta IND2V+0
+                lda #>terminalINDnHandler
+                sta IND2V+1
+
+                ; Clear zero page
+                ldx #$6E
+-
+                stz $00,x
+                dex
+                bpl -
+                
+                dec $21                      ; AFA7= C6 21       F!
+                dec $34                      ; AFA9= C6 34       F4
+                dec $36                      ; AFAB= C6 36       F6
+                cli                          ; AFAD= 58          X
+                lda #$0B                     ; AFAE= A9 0B       ).
+                jsr LB690                    ; AFB0= 20 90 B6     .6
+                lda #$87
+                jsr OSBYTE                   ;Read screen mode
+                tya                          ;A = screen mode
+                jsr reinitDisplayMode
+                ldy #$FF
+-
+                iny
+                lda initOSBYTEAs,y
+                beq LAFF4
+                ldx initOSBYTEXs,y
+                phy
+                jsr osbyteY00
+                ply
+                bra -
+
+;-------------------------------------------------------------------------
+
+initOSBYTEAs:
+                .byte $CB ;OSBYTE 203 (&CB) Read/write RS423 input buffer [MasRef D.2-64]
+                .byte $60 ;OSBYTE 96 (&60) ???
+                .byte $60 ;OSBYTE 96 (&60) ???
+                .byte $60 ;OSBYTE 96 (&60) ???
+                .byte $0F ;OSBYTE 15 (&0F) Flush buffer [MasRef D.2-24]
+                .byte $0F ;OSBYTE 15 (&0F) Flush buffer [MasRef D.2-24]
+                .byte $dd ;OSBYTE 221 (&DD) Read/write interpretation of input values 192-207 [MasRef D.2-73]
+                .byte $de ;OSBYTE 222 (&DE) Read/write interpretation of input values 208-223 [MasRef D.2-73]
+                .byte $df ;OSBYTE 223 (&DF) Read/write interpretation of input values 224-239 [MasRef D.2-73]
+                .byte $e0 ;OSBYTE 224 (&E0) Read/write interpretation of input values 240-255 [MasRef D.2-73]
+                .byte $e1 ;OSBYTE 225 (&E1) Read/write soft key interpretation [MasRef D.2-74]
+                .byte $E2 ;OSBYTE 226 (&E2) Read/write SHIFT+soft key interpretation [MasRef D.2-74]
+                .byte $E3 ;OSBYTE 227 (&E3) Read/write CTRL+soft key interpretation [MasRef D.2-74]
+                .byte $e4 ;OSBYTE 228 (&E4) Read/write SHIFT+CTRL+soft key interpretation [MasRef D.2-74]
+                .byte $e5 ;OSBYTE 229 (&E5) Read/write ESCAPE key status [MasRef D.2-75]
+                .byte $04 ;OSBYTE 4 (&04) Enable/disable cursor editing [MasRef D.2-19]
+                .byte $7e ;OSBYTE 126 (&7E) Acknowledge escape condition [MasRef D.2-37]
+                .byte $e6 ;OSBYTE 230 (&E6) Read/write ESCAPE effects [MasRef D.2-75]
+                .byte $02 ;OSBYTE 2 (&02) Specify input stream [MasRef D.2-18]
+                
+initOSBYTEXs:
+                .byte $00
+                .byte $01
+                .byte $03
+                .byte $ff
+                .byte $01
+                .byte $02
+                .byte $c0
+                .byte $d0
+                .byte $e0
+                .byte $f0
+                .byte $01
+                .byte $90
+                .byte $a0
+                .byte $a0
+                .byte $01
+                .byte $00
+                .byte $00
+                .byte $01
+                .byte $02
+
+;-------------------------------------------------------------------------
+
+LAFF4:
+                ldx #$FE
+                txs
+                sec
+                ror $1A
+                stz $1D
+                jsr LB004
+                jsr LB004
+                bra LB030
+
+LB004:
+                jsr LB041                    ; B004= 20 41 B0     A0
+                ldy #$01                     ; B007= A0 01        .
+                sta ($1B),y                  ; B009= 91 1B       ..
+                iny                          ; B00B= C8          H
+                txa                          ; B00C= 8A          .
+                sta ($1B),y                  ; B00D= 91 1B       ..
+                iny                          ; B00F= C8          H
+                tya                          ; B010= 98          .
+                sta ($1B),y                  ; B011= 91 1B       ..
+                asl a                        ; B013= 0A          .
+                sta ($1B)                    ; B014= 92 1B       ..
+                rts                          ; B016= 60          `
+
+LB017:
+                php                          ; B017= 08          .
+                pha                          ; B018= 48          H
+                phx                          ; B019= DA          Z
+                phy                          ; B01A= 5A          Z
+                tsx                          ; B01B= BA          :
+                inx                          ; B01C= E8          h
+                txa                          ; B01D= 8A          .
+                eor #$FF                     ; B01E= 49 FF       I.
+                sta ($1B)                    ; B020= 92 1B       ..
+                tay                          ; B022= A8          (
+LB023:
+                pla                          ; B023= 68          h
+                sta ($1B),y                  ; B024= 91 1B       ..
+                dey                          ; B026= 88          .
+                bne LB023                    ; B027= D0 FA       Pz
+                lda #$20                     ; B029= A9 20       )
+                sta $1E                      ; B02B= 85 1E       ..
+                jsr LB041                    ; B02D= 20 41 B0     A0
+LB030:
+                lda ($1B)                    ; B030= B2 1B       2.
+                tax                          ; B032= AA          *
+                ldy #$00                     ; B033= A0 00        .
+LB035:
+                iny                          ; B035= C8          H
+                lda ($1B),y                  ; B036= B1 1B       1.
+                pha                          ; B038= 48          H
+                dex                          ; B039= CA          J
+                bne LB035                    ; B03A= D0 F9       Py
+                ply                          ; B03C= 7A          z
+                plx                          ; B03D= FA          z
+                pla                          ; B03E= 68          h
+                plp                          ; B03F= 28          (
+                rts                          ; B040= 60          `
+
+LB041:
+                ldy #$04                     ; B041= A0 04        .
+                sty $1C                      ; B043= 84 1C       ..
+                ldy #$20                     ; B045= A0 20
+                ldx #$50                     ; B047= A2 50       "P
+                lda #$B6                     ; B049= A9 B6       )6
+                lsr $1D                      ; B04B= 46 1D       F.
+                bcs LB05B                    ; B04D= B0 0C       0.
+                inc $1D                      ; B04F= E6 1D       f.
+                ldy #$04                     ; B051= A0 04        .
+                sty $1C                      ; B053= 84 1C       ..
+                ldy #$00                     ; B055= A0 00        .
+                ldx #$5D                     ; B057= A2 5D       "]
+                lda #$B0                     ; B059= A9 B0       )0
+LB05B:
+                sty $1B                      ; B05B= 84 1B       ..
+                rts                          ; B05D= 60          `
+
+LB05E:
+                jsr LB063                    ; B05E= 20 63 B0     c0
+                bra LB05E                    ; B061= 80 FB       .{
+
+LB063:
+                bit $20                      ; B063= 24 20       $
+                bpl LB06C                    ; B065= 10 05       ..
+                jsr LB096                    ; B067= 20 96 B0     .0
+                bcc LB083                    ; B06A= 90 17       ..
+LB06C:
+                bra LB017                    ; B06C= 80 A9       .)
+
+LB06E:
+                cmp #$0A                     ; B06E= C9 0A       I.
+                bcc LB081                    ; B070= 90 0F       ..
+                ldx #$00                     ; B072= A2 00       ".
+LB074:
+                inx                          ; B074= E8          h
+                sbc #$0A                     ; B075= E9 0A       i.
+                cmp #$0A                     ; B077= C9 0A       I.
+                bcs LB074                    ; B079= B0 F9       0y
+                pha                          ; B07B= 48          H
+                txa                          ; B07C= 8A          .
+                jsr LB06E                    ; B07D= 20 6E B0     n0
+                pla                          ; B080= 68          h
+LB081:
+                ora #$30                     ; B081= 09 30       .0
+LB083:
+                pha                          ; B083= 48          H
+                phy                          ; B084= 5A          Z
+                tay                          ; B085= A8          (
+                lda #$8A                     ; B086= A9 8A       ).
+                ldx #$02                     ; B088= A2 02       ".
+                jsr OSBYTE                   ; B08A= 20 F4 FF     t.
+                ply                          ; B08D= 7A          z
+                pla                          ; B08E= 68          h
+                bcc LB0B0                    ; B08F= 90 1F       ..
+                jsr LB017                    ; B091= 20 17 B0     .0
+                bra LB083                    ; B094= 80 ED       .m
+
+LB096:
+                ldy $6F                      ; B096= A4 6F       $o
+                beq LB0B1                    ; B098= F0 17       p.
+                inc $6F                      ; B09A= E6 6F       fo
+                lda LB14C-1,y                ; B09C= B9 4B B1    9K1
+                bpl LB0AE                    ; B09F= 10 0D       ..
+                stz $6F                      ; B0A1= 64 6F       do
+                pha                          ; B0A3= 48          H
+                lda #$D9                     ; B0A4= A9 D9       )Y
+                jsr osbyteX00Y00                    ; B0A6= 20 23 B8     #8
+                pla                          ; B0A9= 68          h
+                ldy #$18                     ; B0AA= A0 18        .
+                sty $1F                      ; B0AC= 84 1F       ..
+LB0AE:
+                asl a                        ; B0AE= 0A          .
+                lsr a                        ; B0AF= 4A          J
+LB0B0:
+                rts                          ; B0B0= 60          `
+
+LB0B1:
+                lda #$81                     ; B0B1= A9 81       ).
+                jsr osbyteX00Y00                    ; B0B3= 20 23 B8     #8
+                txa                          ; B0B6= 8A          .
+                bcs LB0B0                    ; B0B7= B0 F7       0w
+                bpl LB0B0                    ; B0B9= 10 F5       .u
+                cmp #$E0                     ; B0BB= C9 E0       I`
+                bcs LB0B0                    ; B0BD= B0 F1       0q
+                jsr LB0C4                    ; B0BF= 20 C4 B0     D0
+                sec                          ; B0C2= 38          8
+LB0C3:
+                rts                          ; B0C3= 60          `
+
+LB0C4:
+                cmp #$99                     ; B0C4= C9 99       I.
+                beq LB12A                    ; B0C6= F0 62       pb
+                and #$0F                     ; B0C8= 29 0F       ).
+                beq LB0E9                    ; B0CA= F0 1D       p.
+                cmp #$02                     ; B0CC= C9 02       I.
+                bcc LB0EE                    ; B0CE= 90 1E       ..
+                beq LB0C3                    ; B0D0= F0 F1       pq
+                cmp #$04                     ; B0D2= C9 04       I.
+                bcc LB116                    ; B0D4= 90 40       .@
+                beq LB11A                    ; B0D6= F0 42       pB
+                cmp #$06                     ; B0D8= C9 06       I.
+                bcc LB10A                    ; B0DA= 90 2E       ..
+                beq LB0F5                    ; B0DC= F0 17       p.
+                cmp #$08                     ; B0DE= C9 08       I.
+                bcc LB0C3                    ; B0E0= 90 E1       .a
+                beq LB11E                    ; B0E2= F0 3A       p:
+                cmp #$09                     ; B0E4= C9 09       I.
+                beq LB12E                    ; B0E6= F0 46       pF
+                rts                          ; B0E8= 60          `
+
+LB0E9:
+                lda #$0C                     ; B0E9= A9 0C       ).
+LB0EB:
+                jmp OSWRCH                   ; B0EB= 4C EE FF    Ln.
+
+LB0EE:
+                lda #$16                     ; B0EE= A9 16       ).
+                sta $6F                      ; B0F0= 85 6F       .o
+                stz $20                      ; B0F2= 64 20       d
+                rts                          ; B0F4= 60          `
+
+LB0F5:
+                ldx #$10                     ; B0F5= A2 10       ".
+                jsr LB101                    ; B0F7= 20 01 B1     .1
+                and #$10                     ; B0FA= 29 10       ).
+                bne LB113                    ; B0FC= D0 15       P.
+LB0FE:
+                jmp LB7B6                    ; B0FE= 4C B6 B7    L67
+
+LB101:
+                lda #$EC                     ; B101= A9 EC       )l
+                ldy #$FF                     ; B103= A0 FF        .
+                jsr OSBYTE                   ; B105= 20 F4 FF     t.
+                txa                          ; B108= 8A          .
+                rts                          ; B109= 60          `
+
+LB10A:
+                ldx #$40                     ; B10A= A2 40       "@
+                jsr LB101                    ; B10C= 20 01 B1     .1
+                and #$40                     ; B10F= 29 40       )@
+                beq LB0FE                    ; B111= F0 EB       pk
+LB113:
+                jmp LB7E2                    ; B113= 4C E2 B7    Lb7
+
+LB116:
+                lda #$02                     ; B116= A9 02       ).
+                bra LB0EB                    ; B118= 80 D1       .Q
+
+LB11A:
+                lda #$03                     ; B11A= A9 03       ).
+                bra LB0EB                    ; B11C= 80 CD       .M
+
+LB11E:
+                lda #$FF                     ; B11E= A9 FF       ).
+                eor $21                      ; B120= 45 21       E!
+                sta $21                      ; B122= 85 21       .!
+                sta $20                      ; B124= 85 20       .
+                bne LB0FE                    ; B126= D0 D6       PV
+                bra LB113                    ; B128= 80 E9       .i
+
+LB12A:
+                ldx #$0C                     ; B12A= A2 0C       ".
+                bra LB130                    ; B12C= 80 02       ..
+
+LB12E:
+                ldx #$AF                     ; B12E= A2 AF       "/
+LB130:
+                phx                          ; B130= DA          Z
+                ldx #$60                     ; B131= A2 60       "`
+                jsr LB82A                    ; B133= 20 2A B8     *8
+                plx                          ; B136= FA          z
+LB137:
+                phx                          ; B137= DA          Z
+                lda #$13                     ; B138= A9 13       ).
+                jsr OSBYTE                   ; B13A= 20 F4 FF     t.
+                plx                          ; B13D= FA          z
+                dex                          ; B13E= CA          J
+                bne LB137                    ; B13F= D0 F6       Pv
+                ldx #$00                     ; B141= A2 00       ".
+                jsr LB82A                    ; B143= 20 2A B8     *8
+LB146:
+                jsr LB198                    ; B146= 20 98 B1     .1
+                bcc LB146                    ; B149= 90 FB       .{
+                rts                          ; B14B= 60          `
+
+LB14C:
+                .byte $1B                    ; B14C= 1B          .
+                lsr $4B2A,x                  ; B14D= 5E 2A 4B    ^*K
+                eor $59                      ; B150= 45 59       EY
+                and $217C,y                  ; B152= 39 7C 21    9|!
+                jmp ($1B59,x)                ; B155= 7C 59 1B    |Y.
+
+                .byte $5C                    ; B158= 5C          \
+                .byte $54                    ; B159= 54          T
+                eor $52                      ; B15A= 45 52       ER
+                eor $4E49                    ; B15C= 4D 49 4E    MIN
+                eor ($4C,x)                  ; B15F= 41 4C       AL
+                ora $3D0A                    ; B161= 0D 0A 3D    ..=
+                .byte $1B                    ; B164= 1B          .
+;BNE LB187        :\ B165= D0 20       P
+;BVS LB11A        :\ B167= 70 B1       p1
+                .byte $D0
+LB166:
+                jsr LB170
+                bcs LB1C4                    ; B169= B0 59       0Y
+                cmp #$1B                     ; B16B= C9 1B       I.
+                bne LB166                    ; B16D= D0 F7       Pw
+                rts                          ; B16F= 60          `
+
+LB170:
+                jsr LB17A                    ; B170= 20 7A B1     z1
+                cmp #$7F                     ; B173= C9 7F       I.
+                beq LB170                    ; B175= F0 F9       py
+                cmp #$20                     ; B177= C9 20       I
+                rts                          ; B179= 60          `
+
+LB17A:
+                phx                          ; B17A= DA          Z
+                phy                          ; B17B= 5A          Z
+LB17C:
+                jsr LB189                    ; B17C= 20 89 B1     .1
+                bcs LB184                    ; B17F= B0 03       0.
+                ply                          ; B181= 7A          z
+                plx                          ; B182= FA          z
+                rts                          ; B183= 60          `
+
+LB184:
+                jsr LB017                    ; B184= 20 17 B0     .0
+LB187:
+                bra LB17C                    ; B187= 80 F3       .s
+
+LB189:
+                bit $20                      ; B189= 24 20       $
+                bmi LB190                    ; B18B= 30 03       0.
+                jmp LB096                    ; B18D= 4C 96 B0    L.0
+
+LB190:
+                bit $25                      ; B190= 24 25       $%
+                bmi LB1E0                    ; B192= 30 4C       0L
+                bit $23                      ; B194= 24 23       $#
+                bmi LB1A3                    ; B196= 30 0B       0.
+LB198:
+                lda #$91                     ; B198= A9 91       ).
+                ldx #$01                     ; B19A= A2 01       ".
+                jsr OSBYTE                   ; B19C= 20 F4 FF     t.
+                tya                          ; B19F= 98          .
+                and $22                      ; B1A0= 25 22       %"
+LB1A2:
+                rts                          ; B1A2= 60          `
+
+LB1A3:
+                jsr LB198                    ; B1A3= 20 98 B1     .1
+                bcs LB1A2                    ; B1A6= B0 FA       0z
+                jsr LB1D0                    ; B1A8= 20 D0 B1     P1
+                bcc LB201                    ; B1AB= 90 54       .T
+                asl a                        ; B1AD= 0A          .
+                asl a                        ; B1AE= 0A          .
+                asl a                        ; B1AF= 0A          .
+                asl a                        ; B1B0= 0A          .
+                sta $24                      ; B1B1= 85 24       .$
+LB1B3:
+                jsr LB198                    ; B1B3= 20 98 B1     .1
+                bcc LB1BD                    ; B1B6= 90 05       ..
+                jsr LB017                    ; B1B8= 20 17 B0     .0
+                bra LB1B3                    ; B1BB= 80 F6       .v
+
+LB1BD:
+                jsr LB1D0                    ; B1BD= 20 D0 B1     P1
+                bcc LB1B3                    ; B1C0= 90 F1       .q
+                ora $24                      ; B1C2= 05 24       .$
+LB1C4:
+                clc                          ; B1C4= 18          .
+                rts                          ; B1C5= 60          `
+
+LB1C6:
+                jsr LB166                    ; B1C6= 20 66 B1     f1
+                bcc LB1D0                    ; B1C9= 90 05       ..
+                plx                          ; B1CB= FA          z
+                plx                          ; B1CC= FA          z
+                jmp LB389                    ; B1CD= 4C 89 B3    L.3
+
+LB1D0:
+                cmp #$3A                     ; B1D0= C9 3A       I:
+                bcs LB1D7                    ; B1D2= B0 03       0.
+                sbc #$2F                     ; B1D4= E9 2F       i/
+                rts                          ; B1D6= 60          `
+
+LB1D7:
+                sbc #$37                     ; B1D7= E9 37       i7
+                cmp #$10                     ; B1D9= C9 10       I.
+                bcs LB1C4                    ; B1DB= B0 E7       0g
+                cmp #$0A                     ; B1DD= C9 0A       I.
+LB1DF:
+                rts                          ; B1DF= 60          `
+
+LB1E0:
+                stz $26                      ; B1E0= 64 26       d&
+                jsr LB198                    ; B1E2= 20 98 B1     .1
+                bcs LB1DF                    ; B1E5= B0 F8       0x
+                cmp #$7F                     ; B1E7= C9 7F       I.
+                bcs LB1DF                    ; B1E9= B0 F4       0t
+                cmp #$20                     ; B1EB= C9 20       I
+                bcs LB203                    ; B1ED= B0 14       0.
+                bit $27                      ; B1EF= 24 27       $'
+                bmi LB201                    ; B1F1= 30 0E       0.
+                cmp #$07                     ; B1F3= C9 07       I.
+                bcc LB201                    ; B1F5= 90 0A       ..
+                beq LB240                    ; B1F7= F0 47       pG
+                cmp #$0B                     ; B1F9= C9 0B       I.
+                bcc LB240                    ; B1FB= 90 43       .C
+                cmp #$0D                     ; B1FD= C9 0D       I.
+                beq LB240                    ; B1FF= F0 3F       p?
+LB201:
+                sec                          ; B201= 38          8
+                rts                          ; B202= 60          `
+
+LB203:
+                stz $27                      ; B203= 64 27       d'
+                cmp #$7C                     ; B205= C9 7C       I|
+                bne LB23E                    ; B207= D0 35       P5
+LB209:
+                jsr LB198                    ; B209= 20 98 B1     .1
+                bcc LB213                    ; B20C= 90 05       ..
+                jsr LB017                    ; B20E= 20 17 B0     .0
+                bra LB209                    ; B211= 80 F6       .v
+
+LB213:
+                cmp #$20                     ; B213= C9 20       I
+                bcc LB242                    ; B215= 90 2B       .+
+                cmp #$21                     ; B217= C9 21       I!
+                bne LB22F                    ; B219= D0 14       P.
+                lda #$80                     ; B21B= A9 80       ).
+                sta $26                      ; B21D= 85 26       .&
+LB21F:
+                jsr LB198                    ; B21F= 20 98 B1     .1
+                bcc LB229                    ; B222= 90 05       ..
+                jsr LB017                    ; B224= 20 17 B0     .0
+                bra LB21F                    ; B227= 80 F6       .v
+
+LB229:
+                cmp #$20                     ; B229= C9 20       I
+                bcc LB21F                    ; B22B= 90 F2       .r
+                bra LB203                    ; B22D= 80 D4       .T
+
+LB22F:
+                cmp #$3F                     ; B22F= C9 3F       I?
+                bne LB236                    ; B231= D0 03       P.
+                lda #$7F                     ; B233= A9 7F       ).
+                clc                          ; B235= 18          .
+LB236:
+                bcc LB23E                    ; B236= 90 06       ..
+                cmp #$7C                     ; B238= C9 7C       I|
+                beq LB23E                    ; B23A= F0 02       p.
+                and #$9F                     ; B23C= 29 9F       ).
+LB23E:
+                ora $26                      ; B23E= 05 26       .&
+LB240:
+                clc                          ; B240= 18          .
+                rts                          ; B241= 60          `
+
+LB242:
+                sec                          ; B242= 38          8
+                ror $27                      ; B243= 66 27       f'
+                sec                          ; B245= 38          8
+                rts                          ; B246= 60          `
+
+LB247:
+                lda #$00                     ; B247= A9 00       ).
+                sta $F2                      ; B249= 85 F2       .r
+                lda #$05                     ; B24B= A9 05       ).
+                sta $F3                      ; B24D= 85 F3       .s
+                ldy #$00                     ; B24F= A0 00        .
+LB251:
+                jsr LB17A                    ; B251= 20 7A B1     z1
+                ldx $1F                      ; B254= A6 1F       &.
+                beq LB296                    ; B256= F0 3E       p>
+                stz $2B                      ; B258= 64 2B       d+
+                cmp #$1B                     ; B25A= C9 1B       I.
+                bne LB262                    ; B25C= D0 04       P.
+                ldy #$00                     ; B25E= A0 00        .
+                bra LB266                    ; B260= 80 04       ..
+
+LB262:
+                cmp #$0D                     ; B262= C9 0D       I.
+                bne LB273                    ; B264= D0 0D       P.
+LB266:
+                lda #$0D                     ; B266= A9 0D       ).
+                sta ($F2),y                  ; B268= 91 F2       .r
+                bit $2B                      ; B26A= 24 2B       $+
+                bmi LB271                    ; B26C= 30 03       0.
+                jsr OSASCI                   ; B26E= 20 E3 FF     c.
+LB271:
+                clc                          ; B271= 18          .
+                rts                          ; B272= 60          `
+
+LB273:
+                cmp #$7F                     ; B273= C9 7F       I.
+                bne LB27E                    ; B275= D0 07       P.
+                cpy #$00                     ; B277= C0 00       @.
+                beq LB251                    ; B279= F0 D6       pV
+                dey                          ; B27B= 88          .
+                bra LB291                    ; B27C= 80 13       ..
+
+LB27E:
+                cmp #$7F                     ; B27E= C9 7F       I.
+                bcs LB251                    ; B280= B0 CF       0O
+                cmp #$20                     ; B282= C9 20       I
+                bcc LB251                    ; B284= 90 CB       .K
+                cpy #$FF                     ; B286= C0 FF       @.
+                bcs LB251                    ; B288= B0 C7       0G
+                sta ($F2),y                  ; B28A= 91 F2       .r
+                iny                          ; B28C= C8          H
+                bit $2B                      ; B28D= 24 2B       $+
+                bmi LB251                    ; B28F= 30 C0       0@
+LB291:
+                jsr LB728                    ; B291= 20 28 B7     (7
+                bra LB251                    ; B294= 80 BB       .;
+
+LB296:
+                cmp #$1B                     ; B296= C9 1B       I.
+                bne LB27E                    ; B298= D0 E4       Pd
+                jsr LB166                    ; B29A= 20 66 B1     f1
+                cmp #$5C                     ; B29D= C9 5C       I\
+                beq LB266                    ; B29F= F0 C5       pE
+                sec                          ; B2A1= 38          8
+                rts                          ; B2A2= 60          `
+
+LB2A3:
+                ldx #$19                     ; B2A3= A2 19       ".
+LB2A5:
+                dex                          ; B2A5= CA          J
+                stz $00,x                    ; B2A6= 74 00       t.
+                bne LB2A5                    ; B2A8= D0 FB       P{
+LB2AA:
+                stz $3A                      ; B2AA= 64 3A       d:
+                stz $3B                      ; B2AC= 64 3B       d;
+LB2AE:
+                jsr LB166                    ; B2AE= 20 66 B1     f1
+                bcs LB2E0                    ; B2B1= B0 2D       0-
+                jsr LB8AD                    ; B2B3= 20 AD B8     -8
+                bcc LB2E5                    ; B2B6= 90 2D       .-
+                pha                          ; B2B8= 48          H
+                lda $3A                      ; B2B9= A5 3A       %:
+                sta $02,x                    ; B2BB= 95 02       ..
+                lda $3B                      ; B2BD= A5 3B       %;
+                sta $03,x                    ; B2BF= 95 03       ..
+                pla                          ; B2C1= 68          h
+                cmp #$40                     ; B2C2= C9 40       I@
+                bcs LB2F5                    ; B2C4= B0 2F       0/
+                cmp #$30                     ; B2C6= C9 30       I0
+                bcc LB2D7                    ; B2C8= 90 0D       ..
+                cmp #$3C                     ; B2CA= C9 3C       I<
+                bcs LB2E3                    ; B2CC= B0 15       0.
+                inc $00                      ; B2CE= E6 00       f.
+                inx                          ; B2D0= E8          h
+                inx                          ; B2D1= E8          h
+                inx                          ; B2D2= E8          h
+                cpx #$18                     ; B2D3= E0 18       `.
+                bcc LB2AA                    ; B2D5= 90 D3       .S
+LB2D7:
+                cmp #$40                     ; B2D7= C9 40       I@
+                bcs LB2F5                    ; B2D9= B0 1A       0.
+                jsr LB166                    ; B2DB= 20 66 B1     f1
+                bcc LB2D7                    ; B2DE= 90 F7       .w
+LB2E0:
+                jmp LB389                    ; B2E0= 4C 89 B3    L.3
+
+LB2E3:
+                sta $01,x                    ; B2E3= 95 01       ..
+LB2E5:
+                lda $00                      ; B2E5= A5 00       %.
+                bne LB2AE                    ; B2E7= D0 C5       PE
+                inc $00                      ; B2E9= E6 00       f.
+                bra LB2AE                    ; B2EB= 80 C1       .A
+
+LB2ED:
+                lda #$01                     ; B2ED= A9 01       ).
+                sta $02                      ; B2EF= 85 02       ..
+                stz $01                      ; B2F1= 64 01       d.
+                stz $03                      ; B2F3= 64 03       d.
+LB2F5:
+                rts                          ; B2F5= 60          `
+
+LB2F6:
+                lda #$03                     ; B2F6= A9 03       ).
+                bra LB2FC                    ; B2F8= 80 02       ..
+
+LB2FA:
+                lda #$00                     ; B2FA= A9 00       ).
+LB2FC:
+                phx                          ; B2FC= DA          Z
+                tax                          ; B2FD= AA          *
+                lda $01,x                    ; B2FE= B5 01       5.
+                cmp #$01                     ; B300= C9 01       I.
+                lda $03,x                    ; B302= B5 03       5.
+                beq LB307                    ; B304= F0 01       p.
+                sec                          ; B306= 38          8
+LB307:
+                lda $02,x                    ; B307= B5 02       5.
+                plx                          ; B309= FA          z
+                and #$FF                     ; B30A= 29 FF       ).
+                rts                          ; B30C= 60          `
+
+LB30D:
+                pla                          ; B30D= 68          h
+                sta $28                      ; B30E= 85 28       .(
+                pla                          ; B310= 68          h
+                sta $29                      ; B311= 85 29       .)
+                lda $01                      ; B313= A5 01       %.
+                bne LB338                    ; B315= D0 21       P!
+                lda $02                      ; B317= A5 02       %.
+                ora $03                      ; B319= 05 03       ..
+                bne LB31F                    ; B31B= D0 02       P.
+                inc $02                      ; B31D= E6 02       f.
+LB31F:
+                lda $02                      ; B31F= A5 02       %.
+                bne LB325                    ; B321= D0 02       P.
+                dec $03                      ; B323= C6 03       F.
+LB325:
+                dec $02                      ; B325= C6 02       F.
+                bne LB32D                    ; B327= D0 04       P.
+                lda $03                      ; B329= A5 03       %.
+                beq LB332                    ; B32B= F0 05       p.
+LB32D:
+                jsr LB332                    ; B32D= 20 32 B3     23
+                bra LB31F                    ; B330= 80 ED       .m
+
+LB332:
+                lda $29                      ; B332= A5 29       %)
+                pha                          ; B334= 48          H
+                lda $28                      ; B335= A5 28       %(
+                pha                          ; B337= 48          H
+LB338:
+                rts                          ; B338= 60          `
+
+LB339:
+                dec $1E                      ; B339= C6 1E       F.
+                bne LB340                    ; B33B= D0 03       P.
+                jsr LB017                    ; B33D= 20 17 B0     .0
+LB340:
+                lda $6F                      ; B340= A5 6F       %o
+                bne LB348                    ; B342= D0 04       P.
+                lda $21                      ; B344= A5 21       %!
+                sta $20                      ; B346= 85 20       .
+LB348:
+                rts                          ; B348= 60          `
+
+LB349:
+                jsr LB34E                    ; B349= 20 4E B3     N3
+                bra LB349                    ; B34C= 80 FB       .{
+
+LB34E:
+                jsr LB339                    ; B34E= 20 39 B3     93
+                jsr LB170                    ; B351= 20 70 B1     p1
+LB354:
+                cmp #$20                     ; B354= C9 20       I
+                bcc LB361                    ; B356= 90 09       ..
+                jmp LB728                    ; B358= 4C 28 B7    L(7
+
+LB35B:
+                jmp LB46C                    ; B35B= 4C 6C B4    Ll4
+
+LB35E:
+                jmp LB493                    ; B35E= 4C 93 B4    L.4
+
+LB361:
+                pha                          ; B361= 48          H
+                jsr LB2ED                    ; B362= 20 ED B2     m2
+                pla                          ; B365= 68          h
+                cmp #$07                     ; B366= C9 07       I.
+                bcc LB3BB                    ; B368= 90 51       .Q
+                beq LB3E9                    ; B36A= F0 7D       p}
+                cmp #$09                     ; B36C= C9 09       I.
+                bcc LB35B                    ; B36E= 90 EB       .k
+                beq LB35E                    ; B370= F0 EC       pl
+                cmp #$0B                     ; B372= C9 0B       I.
+                bcc LB3EE                    ; B374= 90 78       .x
+                cmp #$0D                     ; B376= C9 0D       I.
+                beq LB3E9                    ; B378= F0 6F       po
+                cmp #$1B                     ; B37A= C9 1B       I.
+                bne LB3BB                    ; B37C= D0 3D       P=
+LB37E:
+                ldx $6F                      ; B37E= A6 6F       &o
+                bne LB386                    ; B380= D0 04       P.
+                bit $2D                      ; B382= 24 2D       $-
+                bmi LB3BB                    ; B384= 30 35       05
+LB386:
+                jsr LB166                    ; B386= 20 66 B1     f1
+LB389:
+                cmp #$1B                     ; B389= C9 1B       I.
+                beq LB37E                    ; B38B= F0 F1       pq
+                cmp #$25                     ; B38D= C9 25       I%
+                beq LB401                    ; B38F= F0 70       pp
+                cmp #$28                     ; B391= C9 28       I(
+                beq LB404                    ; B393= F0 6F       po
+                cmp #$44                     ; B395= C9 44       ID
+                beq LB3EE                    ; B397= F0 55       pU
+                cmp #$45                     ; B399= C9 45       IE
+                beq LB3EB                    ; B39B= F0 4E       pN
+                cmp #$4D                     ; B39D= C9 4D       IM
+                beq LB3E7                    ; B39F= F0 46       pF
+                cmp #$50                     ; B3A1= C9 50       IP
+                beq LB3C5                    ; B3A3= F0 20       p
+                cmp #$5B                     ; B3A5= C9 5B       I[
+                beq LB407                    ; B3A7= F0 5E       p^
+                cmp #$5D                     ; B3A9= C9 5D       I]
+                stz $2B                      ; B3AB= 64 2B       d+
+                beq LB3F6                    ; B3AD= F0 47       pG
+                cmp #$5E                     ; B3AF= C9 5E       I^
+                beq LB3F3                    ; B3B1= F0 40       p@
+                cmp #$5F                     ; B3B3= C9 5F       I_
+                beq LB3BC                    ; B3B5= F0 05       p.
+                cmp #$63                     ; B3B7= C9 63       Ic
+                beq LB3FE                    ; B3B9= F0 43       pC
+LB3BB:
+                rts                          ; B3BB= 60          `
+
+LB3BC:
+                jsr LB247                    ; B3BC= 20 47 B2     G2
+                bcs LB389                    ; B3BF= B0 C8       0H
+LB3C1:
+                sec                          ; B3C1= 38          8
+                jmp (IND2V)                  ; B3C2= 6C 32 02    l2.
+
+LB3C5:
+                sec                          ; B3C5= 38          8
+                ror $2B                      ; B3C6= 66 2B       f+
+                jsr LB247                    ; B3C8= 20 47 B2     G2
+                bcs LB389                    ; B3CB= B0 BC       0<
+                ldx $1F                      ; B3CD= A6 1F       &.
+                stz $1F                      ; B3CF= 64 1F       d.
+                beq LB3E4                    ; B3D1= F0 11       p.
+                ldy #$00                     ; B3D3= A0 00        .
+                jsr LB89E                    ; B3D5= 20 9E B8     .8
+                beq LB3BB                    ; B3D8= F0 E1       pa
+                stx $6F                      ; B3DA= 86 6F       .o
+                cmp #$2A                     ; B3DC= C9 2A       I*
+                beq LB3FB                    ; B3DE= F0 1B       p.
+                cmp #$21                     ; B3E0= C9 21       I!
+                beq LB3C1                    ; B3E2= F0 DD       p]
+LB3E4:
+                jmp LB4F2                    ; B3E4= 4C F2 B4    Lr4
+
+LB3E7:
+                lda #$0B                     ; B3E7= A9 0B       ).
+LB3E9:
+                bra LB3F0                    ; B3E9= 80 05       ..
+
+LB3EB:
+                jmp OSNEWL                   ; B3EB= 4C E7 FF    Lg.
+
+LB3EE:
+                lda #$0A                     ; B3EE= A9 0A       ).
+LB3F0:
+                jmp OSWRCH                   ; B3F0= 4C EE FF    Ln.
+
+LB3F3:
+                sec                          ; B3F3= 38          8
+                ror $2B                      ; B3F4= 66 2B       f+
+LB3F6:
+                jsr LB247                    ; B3F6= 20 47 B2     G2
+                bcs LB389                    ; B3F9= B0 8E       0.
+LB3FB:
+                jmp LB61F                    ; B3FB= 4C 1F B6    L.6
+
+LB3FE:
+                jmp LAF7E                    ; B3FE= 4C 7E AF    L~/
+
+LB401:
+                jmp LB640                    ; B401= 4C 40 B6    L@6
+
+LB404:
+                jmp LB68B                    ; B404= 4C 8B B6    L.6
+
+LB407:
+                jsr LB2A3                    ; B407= 20 A3 B2     #2
+                ldx #$0E                     ; B40A= A2 0E       ".
+LB40C:
+                cmp LB41E-1,x                ; B40C= DD 1D B4    ].4
+                beq LB418                    ; B40F= F0 07       p.
+                dex                          ; B411= CA          J
+                bne LB40C                    ; B412= D0 F8       Px
+                sec                          ; B414= 38          8
+                jmp (IND1V)                  ; B415= 6C 30 02    l0.
+
+LB418:
+                txa                          ; B418= 8A          .
+                asl a                        ; B419= 0A          .
+                tax                          ; B41A= AA          *
+                jmp (LB42C-2,x)                ; B41B= 7C 2A B4    |*4
+LB41E:
+                .byte $41,$42   ; B41E= 41 42       AB
+                .byte $43       ; B420= 43          C
+                .byte $44       ; B421= 44          D
+                .byte $48       ; B422= 48          H
+                .byte $4a       ; B423= 4A          J
+                .byte $4B       ; B424= 4B          K
+                .byte $53       ; B425= 53          S
+                .byte $58       ; B426= 58          X
+                .byte $68       ; B427= 68          h
+                .byte $6C       ; B428= 6C
+                .byte $6E       ; B429= 6E
+                .byte $66
+                .byte $63
+LB42C:
+                .word LB4C5
+                .word LB485
+                .word LB493
+                .word LB46C
+                .word LB4A7
+                .word LB5FD
+                .word LB60D
+                .word LB720
+                .word LB5E1
+                .word LB6B1
+                .word LB6AD
+                .word LB5A9
+                .word LB4A7
+                .word LB4D1
+LB448:
+                jsr LB44D
+                bra LB448
+LB44D:
+                jsr LB339                    ; B44D= 20 39 B3     93
+                jsr LB17A                    ; B450= 20 7A B1     z1
+                cmp #$1B                     ; B453= C9 1B       I.
+                bne LB466                    ; B455= D0 0F       P.
+                lda #$DA                     ; B457= A9 DA       )Z
+                ldy #$FF                     ; B459= A0 FF        .
+                ldx #$00                     ; B45B= A2 00       ".
+                jsr OSBYTE                   ; B45D= 20 F4 FF     t.
+                lda #$1B                     ; B460= A9 1B       ).
+                cpx #$00                     ; B462= E0 00       `.
+                beq LB469                    ; B464= F0 03       p.
+LB466:
+                jmp OSWRCH                   ; B466= 4C EE FF    Ln.
+
+LB469:
+                jmp LB37E                    ; B469= 4C 7E B3    L~3
+
+LB46C:
+                lda #$08                     ; B46C= A9 08       ).
+                sta $2C                      ; B46E= 85 2C       .,
+                jsr LB30D                    ; B470= 20 0D B3     .3
+                jsr LB821                    ; B473= 20 21 B8     !8
+                txa                          ; B476= 8A          .
+                bne LB480                    ; B477= D0 07       P.
+                bit $34                      ; B479= 24 34       $4
+                bpl LB4E2                    ; B47B= 10 65       .e
+LB47D:
+                tya                          ; B47D= 98          .
+LB47E:
+                beq LB4E2                    ; B47E= F0 62       pb
+LB480:
+                lda $2C                      ; B480= A5 2C       %,
+LB482:
+                jmp OSWRCH                   ; B482= 4C EE FF    Ln.
+
+LB485:
+                lda #$0A                     ; B485= A9 0A       ).
+                sta $2C                      ; B487= 85 2C       .,
+                jsr LB30D                    ; B489= 20 0D B3     .3
+                jsr LB821                    ; B48C= 20 21 B8     !8
+LB48F:
+                cpy zterm.numRowsMinusOne                      ; B48F= C4 39       D9
+                bra LB47E                    ; B491= 80 EB       .k
+
+LB493:
+                lda #$09                     ; B493= A9 09       ).
+                sta $2C                      ; B495= 85 2C       .,
+                jsr LB30D                    ; B497= 20 0D B3     .3
+                jsr LB821                    ; B49A= 20 21 B8     !8
+                cpx zterm.numColumnsMinusOne
+LB49F:
+                bcc LB480                    ; B49F= 90 DF       ._
+                lda $34                      ; B4A1= A5 34       %4
+                beq LB4E2                    ; B4A3= F0 3D       p=
+                bra LB48F                    ; B4A5= 80 E8       .h
+
+LB4A7:
+                jsr LB2FA                    ; B4A7= 20 FA B2     z2
+                bcs LB4E2                    ; B4AA= B0 36       06
+                tay                          ; B4AC= A8          (
+                beq LB4B0                    ; B4AD= F0 01       p.
+                dey                          ; B4AF= 88          .
+LB4B0:
+                jsr LB2F6                    ; B4B0= 20 F6 B2     v2
+                bcs LB4E2                    ; B4B3= B0 2D       0-
+                tax                          ; B4B5= AA          *
+                beq LB4B9                    ; B4B6= F0 01       p.
+                dex                          ; B4B8= CA          J
+LB4B9:
+                lda #$1F                     ; B4B9= A9 1F       ).
+                jsr OSWRCH                   ; B4BB= 20 EE FF     n.
+                txa                          ; B4BE= 8A          .
+                jsr OSWRCH                   ; B4BF= 20 EE FF     n.
+                tya                          ; B4C2= 98          .
+                bra LB482                    ; B4C3= 80 BD       .=
+
+LB4C5:
+                lda #$0B                     ; B4C5= A9 0B       ).
+                sta $2C                      ; B4C7= 85 2C       .,
+                jsr LB30D                    ; B4C9= 20 0D B3     .3
+                jsr LB821                    ; B4CC= 20 21 B8     !8
+                bra LB47D                    ; B4CF= 80 AC       .,
+
+LB4D1:
+                jsr LB2FA                    ; B4D1= 20 FA B2     z2
+                bne LB4E2                    ; B4D4= D0 0C       P.
+                tay                          ; B4D6= A8          (
+LB4D7:
+                lda #$1B                     ; B4D7= A9 1B       ).
+LB4D9:
+                iny                          ; B4D9= C8          H
+                jsr LB083                    ; B4DA= 20 83 B0     .0
+                lda LB4E2,y                  ; B4DD= B9 E2 B4    9b4
+                bne LB4D9                    ; B4E0= D0 F7       Pw
+LB4E2:
+                rts                          ; B4E2= 60          `
+
+                .byte $5B                    ; B4E3= 5B          [
+                .byte $3e,$35,$63            ; B4E4= 3E 35 63    >5c
+                .byte $00                    ; B4E7= 00          .
+                .byte $5B                    ; B4E8= 5B          [
+                .byte $30,$6e                ; B4E9= 30 6E       0n
+                .byte $00                    ; B4EB= 00          .
+                .byte $5B                    ; B4EC= 5B          [
+                .byte $33                    ; B4ED= 33          3
+                .byte $6e,$00,$5b            ; B4EE= 6E 00 5B    n.[
+                .byte $00                    ; B4F1= 00          .
+LB4F2:
+                jsr LB830                    ; B4F2= 20 30 B8     08
+                bcs LB547                    ; B4F5= B0 50       0P
+                cmp #$07                     ; B4F7= C9 07       I.
+                bcs LB518                    ; B4F9= B0 1D       0.
+                pha                          ; B4FB= 48          H
+                jsr LB832                    ; B4FC= 20 32 B8     28
+                stz $2E                      ; B4FF= 64 2E       d.
+                cmp #$0A                     ; B501= C9 0A       I.
+                beq LB50B                    ; B503= F0 06       p.
+                dec $2E                      ; B505= C6 2E       F.
+                cmp #$09                     ; B507= C9 09       I.
+                bne LB546                    ; B509= D0 3B       P;
+LB50B:
+                ply                          ; B50B= 7A          z
+                cpy #$06                     ; B50C= C0 06       @.
+                bne LB515                    ; B50E= D0 05       P.
+                lda $2E                      ; B510= A5 2E       %.
+                sta $34                      ; B512= 85 34       .4
+LB514:
+                rts                          ; B514= 60          `
+
+LB515:
+                jmp LB6E0                    ; B515= 4C E0 B6    L`6
+
+LB518:
+                cmp #$08                     ; B518= C9 08       I.
+                beq LB53A                    ; B51A= F0 1E       p.
+                bcs LB54A                    ; B51C= B0 2C       0,
+LB51E:
+                jsr LB89E                    ; B51E= 20 9E B8     .8
+                beq LB514                    ; B521= F0 F1       pq
+                jsr LB565                    ; B523= 20 65 B5     e5
+                jsr LB89E                    ; B526= 20 9E B8     .8
+                beq LB535                    ; B529= F0 0A       p.
+                cmp #$2C                     ; B52B= C9 2C       I,
+                bne LB547                    ; B52D= D0 18       P.
+                iny                          ; B52F= C8          H
+                jsr LB535                    ; B530= 20 35 B5     55
+                bra LB51E                    ; B533= 80 E9       .i
+
+LB535:
+                lda $3A                      ; B535= A5 3A       %:
+                jmp OSWRCH                   ; B537= 4C EE FF    Ln.
+
+LB53A:
+                jsr LB89E                    ; B53A= 20 9E B8     .8
+                jsr LB565                    ; B53D= 20 65 B5     e5
+                bcs LB547                    ; B540= B0 05       0.
+                lda $3A                      ; B542= A5 3A       %:
+                bra reinitDisplayMode                    ; B544= 80 33       .3
+
+LB546:
+                pla                          ; B546= 68          h
+LB547:
+                jmp LB7B3                    ; B547= 4C B3 B7    L37
+
+LB54A:
+                ldy #$00                     ; B54A= A0 00        .
+                cmp #$0B                     ; B54C= C9 0B       I.
+                bcc LB547                    ; B54E= 90 F7       .w
+                beq LB561                    ; B550= F0 0F       p.
+                iny                          ; B552= C8          H
+                cmp #$0E                     ; B553= C9 0E       I.
+                beq LB561                    ; B555= F0 0A       p.
+                bcs LB547                    ; B557= B0 EE       0n
+                ldy #$04                     ; B559= A0 04        .
+                cmp #$0C                     ; B55B= C9 0C       I.
+                beq LB561                    ; B55D= F0 02       p.
+                ldy #$05                     ; B55F= A0 05        .
+LB561:
+                tya                          ; B561= 98          .
+                jmp LB64F                    ; B562= 4C 4F B6    LO6
+
+LB565:
+                jsr LB8A9                    ; B565= 20 A9 B8     )8
+                bcs LB573                    ; B568= B0 09       0.
+LB56A:
+                iny                          ; B56A= C8          H
+                lda ($F2),y                  ; B56B= B1 F2       1r
+                jsr LB8AD                    ; B56D= 20 AD B8     -8
+                bcc LB56A                    ; B570= 90 F8       .x
+                clc                          ; B572= 18          .
+LB573:
+                rts                          ; B573= 60          `
+
+                jsr LB2FA                    ; B574= 20 FA B2     z2
+                bcs LB547                    ; B577= B0 CE       0N
+reinitDisplayMode:
+                tay              ;Y = screen mode
+                and #$7F         ;mask off shadow bit (unnecessarily!)
+                cmp #$08
+                bcs LB547                    ;branch taken if mode>=8
+                tax                          ;X = mode number
+                lda screenDimensionsForMode,x                  ;
+                lsr a       ;A = width -1; C = height flag (1=32 rows,
+                            ;0=25 rows)
+                ldx #$1F                     ;assume 32 rows
+                bcs +                        ;taken if 32 rows
+                ldx #$18                     ;25 rows
++
+                stx zterm.numRowsMinusOne    ;store rows
+                sta zterm.numColumnsMinusOne ;store columns
+                inc a                        ;compute column count
+                sta zterm.numColumns
+
+                ; re-select mode
+                lda #22
+                jsr OSWRCH
+                tya
+                jsr OSWRCH
+                
+                asl a
+                cmp #$0E                     ;C=1 if Mode 7
+                ror $30                      ;?$30 bit 7 set if Mode 7
+                rts
+
+screenDimensionsForMode:
+                .byte 79<<1|1 ;mode 0 - 80 columns, 32 rows
+                .byte 39<<1|1 ;mode 1 - 40 columns, 32 rows
+                .byte 19<<1|1 ;mode 2 - 20 columns, 32 rows
+                .byte 79<<1|0 ;mode 3 - 80 columns, 25 rows
+                .byte 39<<1|1 ;mode 4 - 40 columns, 32 rows
+                .byte 19<<1|1 ;mode 5 - 20 columns, 32 rows
+                .byte 39<<1|0 ;mode 6 - 40 columns, 25 rows
+                .byte 39<<1|0 ;mode 7 - 40 columns, 25 rows
+
+LB5A9:
+                jsr LB2FA                    ; B5A9= 20 FA B2
+                bcs LB606                    ; B5AC= B0 58
+                cmp #$05                     ; B5AE= C9 05       I.
+                beq LB5D4                    ; B5B0= F0 22       p"
+                cmp #$06                     ; B5B2= C9 06       I.
+LB5B4:
+                bne LB606                    ; B5B4= D0 50       PP
+                jsr LB821                    ; B5B6= 20 21 B8     !8
+                inx                          ; B5B9= E8          h
+                phx                          ; B5BA= DA          Z
+                iny                          ; B5BB= C8          H
+                phy                          ; B5BC= 5A          Z
+                ldy #$0D                     ; B5BD= A0 0D        .
+                jsr LB4D7                    ; B5BF= 20 D7 B4     W4
+                pla                          ; B5C2= 68          h
+                jsr LB06E                    ; B5C3= 20 6E B0     n0
+                lda #$3B                     ; B5C6= A9 3B       );
+                jsr LB083                    ; B5C8= 20 83 B0     .0
+                pla                          ; B5CB= 68          h
+                jsr LB06E                    ; B5CC= 20 6E B0     n0
+                lda #$52                     ; B5CF= A9 52       )R
+                jmp LB083                    ; B5D1= 4C 83 B0    L.0
+
+LB5D4:
+                ldy #$05                     ; B5D4= A0 05        .
+                bit $19                      ; B5D6= 24 19       $.
+                stz $19                      ; B5D8= 64 19       d.
+                bpl LB5DE                    ; B5DA= 10 02       ..
+                ldy #$09                     ; B5DC= A0 09        .
+LB5DE:
+                jmp LB4D7                    ; B5DE= 4C D7 B4    LW4
+
+LB5E1:
+                jsr LB821                    ; B5E1= 20 21 B8     !8
+                phx                          ; B5E4= DA          Z
+                phy                          ; B5E5= 5A          Z
+                lda #$20                     ; B5E6= A9 20       )
+                sta $2C                      ; B5E8= 85 2C       .,
+                jsr LB5F2                    ; B5EA= 20 F2 B5     r5
+                ply                          ; B5ED= 7A          z
+                plx                          ; B5EE= FA          z
+                jmp LB4B9                    ; B5EF= 4C B9 B4    L94
+
+LB5F2:
+                jsr LB30D                    ; B5F2= 20 0D B3     .3
+                jsr LB821                    ; B5F5= 20 21 B8     !8
+                cpx zterm.numColumns                      ; B5F8= E4 38       d8
+                jmp LB49F                    ; B5FA= 4C 9F B4    L.4
+
+LB5FD:
+                jsr LB2FA                    ; B5FD= 20 FA B2     z2
+                bcs LB606                    ; B600= B0 04       0.
+                cmp #$03                     ; B602= C9 03       I.
+                bcc LB618                    ; B604= 90 12       ..
+LB606:
+                rts                          ; B606= 60          `
+
+LB607:
+                .byte $0F                    ; B607= 0F          .
+                .byte $13                    ; B608= 13          .
+                inc a                        ; B609= 1A          .
+                brk                          ; B60A= 00          .
+                tsb $0B                      ; B60B= 04 0B       ..
+LB60D:
+                jsr LB2FA                    ; B60D= 20 FA B2     z2
+                bcs LB606                    ; B610= B0 F4       0t
+                cmp #$03                     ; B612= C9 03       I.
+                bcs LB606                    ; B614= B0 F0       0p
+                adc #$03                     ; B616= 69 03       i.
+LB618:
+                tax                          ; B618= AA          *
+                lda LB607,x                  ; B619= BD 07 B6    =.6
+                jmp LB7E6                    ; B61C= 4C E6 B7    Lf7
+
+LB61F:
+                lda $20                      ; B61F= A5 20       %
+                and $36                      ; B621= 25 36       %6
+                bpl LB628                    ; B623= 10 03       ..
+                jmp LB7B3                    ; B625= 4C B3 B7    L37
+
+LB628:
+                lda #$E5                     ; B628= A9 E5       )e
+                jsr osbyteX00Y00                    ; B62A= 20 23 B8     #8
+                ldx #$00                     ; B62D= A2 00       ".
+                ldy #$05                     ; B62F= A0 05        .
+                jsr OSCLI                   ; B631= 20 F7 FF     w.
+disableESCAPE:
+                lda #$E5
+                ldx #$01
+                jsr osbyteY00                ;disable ESCAPE key
+                lda #$7E
+                jmp OSBYTE                   ;acknowledge ESCAPE
+
+LB640:
+                jsr LB1C6                    ; B640= 20 C6 B1     F1
+                cmp #$07                     ; B643= C9 07       I.
+                bcc LB64F                    ; B645= 90 08       ..
+                bne LB606                    ; B647= D0 BD       P=
+                jsr LB166                    ; B649= 20 66 B1     f1
+                jmp LB354                    ; B64C= 4C 54 B3    LT3
+
+LB64F:
+                sta $2A                      ; B64F= 85 2A       .*
+                stz $25                      ; B651= 64 25       d%
+                stz $23                      ; B653= 64 23       d#
+                ldx #$FE                     ; B655= A2 FE       "~
+                txs                          ; B657= 9A          .
+                inx                          ; B658= E8          h
+                stx $22                      ; B659= 86 22       ."
+                lda $2A                      ; B65B= A5 2A       %*
+                cmp #$06                     ; B65D= C9 06       I.
+                bcc LB665                    ; B65F= 90 04       ..
+                ror $23                      ; B661= 66 23       f#
+                bra LB66D                    ; B663= 80 08       ..
+
+LB665:
+                cmp #$04                     ; B665= C9 04       I.
+                bcc LB67B                    ; B667= 90 12       ..
+                beq LB671                    ; B669= F0 06       p.
+                ror $25                      ; B66B= 66 25       f%
+LB66D:
+                stz $27                      ; B66D= 64 27       d'
+                lsr $22                      ; B66F= 46 22       F"
+LB671:
+                ror $30                      ; B671= 66 30       f0
+                lda #$21                     ; B673= A9 21       )!
+                jsr LB7E6                    ; B675= 20 E6 B7     f7
+                jmp LB448                    ; B678= 4C 48 B4    LH4
+
+LB67B:
+                stz $30                      ; B67B= 64 30       d0
+                lsr a                        ; B67D= 4A          J
+                ror $2D                      ; B67E= 66 2D       f-
+                lsr a                        ; B680= 4A          J
+                ror $22                      ; B681= 66 22       f"
+                lda #$1E                     ; B683= A9 1E       ).
+                jsr LB7E6                    ; B685= 20 E6 B7     f7
+                jmp LB349                    ; B688= 4C 49 B3    LI3
+
+LB68B:
+                jsr LB1C6                    ; B68B= 20 C6 B1     F1
+                bcc LB69B                    ; B68E= 90 0B       ..
+LB690:
+                lsr a                        ; B690= 4A          J
+                and #$04                     ; B691= 29 04       ).
+                bne LB69C                    ; B693= D0 07       P.
+                ror a                        ; B695= 6A          j
+                lsr a                        ; B696= 4A          J
+                adc #$40                     ; B697= 69 40       i@
+                sta $33                      ; B699= 85 33       .3
+LB69B:
+                rts                          ; B69B= 60          `
+
+LB69C:
+                stz $33                      ; B69C= 64 33       d3
+                ldx #$60                     ; B69E= A2 60       "`
+                ldy #$23                     ; B6A0= A0 23        #
+                bcc LB6A8                    ; B6A2= 90 04       ..
+                phx                          ; B6A4= DA          Z
+                phy                          ; B6A5= 5A          Z
+                plx                          ; B6A6= FA          z
+                ply                          ; B6A7= 7A          z
+LB6A8:
+                stx $31                      ; B6A8= 86 31       .1
+                sty $32                      ; B6AA= 84 32       .2
+                rts                          ; B6AC= 60          `
+
+LB6AD:
+                lda #$00                     ; B6AD= A9 00       ).
+                bra LB6B3                    ; B6AF= 80 02       ..
+                
+LB6B1:
+                lda #$FF                     ; B6B1= A9 FF       ).
+LB6B3:
+                sta $2E                      ; B6B3= 85 2E       ..
+                stz $2F                      ; B6B5= 64 2F       d/
+LB6B7:
+                ldx $2F                      ; B6B7= A6 2F       &/
+                inx                          ; B6B9= E8          h
+                inx                          ; B6BA= E8          h
+                inx                          ; B6BB= E8          h
+                cpx #$1B                     ; B6BC= E0 1B       `.
+                beq LB6DF                    ; B6BE= F0 1F       p.
+                stx $2F                      ; B6C0= 86 2F       ./
+                jsr LB6C7                    ; B6C2= 20 C7 B6     G6
+                bra LB6B7                    ; B6C5= 80 F0       .p
+
+LB6C7:
+                ldy $FFFF,x                  ; B6C7= BC FF FF    <..
+                lda $00,x                    ; B6CA= B5 00       5.
+                bne LB6DF                    ; B6CC= D0 11       P.
+                lda LFFFE,x                  ; B6CE= BD FE FF    =~.
+                cmp #$3E                     ; B6D1= C9 3E       I>
+                bcc LB6DF                    ; B6D3= 90 0A       ..
+                beq LB6E0                    ; B6D5= F0 09       p.
+                lda $2E                      ; B6D7= A5 2E       %.
+                cpy #$07                     ; B6D9= C0 07       @.
+                bne LB6DF                    ; B6DB= D0 02       P.
+                sta $34                      ; B6DD= 85 34       .4
+LB6DF:
+                rts                          ; B6DF= 60          `
+
+LB6E0:
+                lda $2E                      ; B6E0= A5 2E       %.
+                cpy #$01                     ; B6E2= C0 01       @.
+                bcs LB6ED                    ; B6E4= B0 07       0.
+                inc a                        ; B6E6= 1A          .
+                asl a                        ; B6E7= 0A          .
+                tax                          ; B6E8= AA          *
+                lda #$04                     ; B6E9= A9 04       ).
+                bra LB6F6                    ; B6EB= 80 09       ..
+
+LB6ED:
+                bne LB6F9                    ; B6ED= D0 0A       P.
+                tax                          ; B6EF= AA          *
+                beq LB6F4                    ; B6F0= F0 02       p.
+                ldx #$21                     ; B6F2= A2 21       "!
+LB6F4:
+                lda #$CB                     ; B6F4= A9 CB       )K
+LB6F6:
+                jmp osbyteY00                    ; B6F6= 4C 25 B8    L%8
+
+LB6F9:
+                cpy #$03                     ; B6F9= C0 03       @.
+                bcs LB707                    ; B6FB= B0 0A       0.
+                bit $20                      ; B6FD= 24 20       $
+                bpl LB704                    ; B6FF= 10 03       ..
+                tay                          ; B701= A8          (
+                beq LB6DF                    ; B702= F0 DB       p[
+LB704:
+                sta $36                      ; B704= 85 36       .6
+LB706:
+                rts                          ; B706= 60          `
+
+LB707:
+                bne LB712                    ; B707= D0 09       P.
+                rol a                        ; B709= 2A          *
+                lda #$00                     ; B70A= A9 00       ).
+LB70C:
+                rol a                        ; B70C= 2A          *
+                tax                          ; B70D= AA          *
+                lda #$60                     ; B70E= A9 60       )`
+                bra LB6F6                    ; B710= 80 E4       .d
+
+LB712:
+                cpy #$05                     ; B712= C0 05       @.
+                bcs LB71B                    ; B714= B0 05       0.
+                rol a                        ; B716= 2A          *
+                lda #$01                     ; B717= A9 01       ).
+                bra LB70C                    ; B719= 80 F1       .q
+
+LB71B:
+                bne LB706                    ; B71B= D0 E9       Pi
+                sta $35                      ; B71D= 85 35       .5
+                rts                          ; B71F= 60          `
+
+LB720:
+                jsr LB30D                    ; B720= 20 0D B3     .3
+                lda #$23                     ; B723= A9 23       )#
+                jmp LB7E6                    ; B725= 4C E6 B7    Lf7
+
+LB728:
+                phy                          ; B728= 5A          Z
+                phx                          ; B729= DA          Z
+                pha                          ; B72A= 48          H
+                bit $30                      ; B72B= 24 30       $0
+                bmi LB74C                    ; B72D= 30 1D       0.
+                cmp #$40                     ; B72F= C9 40       I@
+                bcc LB739                    ; B731= 90 06       ..
+                tay                          ; B733= A8          (
+                bmi LB739                    ; B734= 30 03       0.
+                clc                          ; B736= 18          .
+                adc $33                      ; B737= 65 33       e3
+LB739:
+                tay                          ; B739= A8          (
+                cpy #$60                     ; B73A= C0 60       @`
+                bne LB740                    ; B73C= D0 02       P.
+                lda #$BB                     ; B73E= A9 BB       );
+LB740:
+                cpy #$BB                     ; B740= C0 BB       @;
+                bne LB746                    ; B742= D0 02       P.
+                lda $32                      ; B744= A5 32       %2
+LB746:
+                cpy #$23                     ; B746= C0 23       @#
+                bne LB74C                    ; B748= D0 02       P.
+                lda $31                      ; B74A= A5 31       %1
+LB74C:
+                pha                          ; B74C= 48          H
+                jsr LB821                    ; B74D= 20 21 B8     !8
+                cpx zterm.numColumns                      ; B750= E4 38       d8
+                beq LB75E                    ; B752= F0 0A       p.
+LB754:
+                pla                          ; B754= 68          h
+                jsr OSWRCH                   ; B755= 20 EE FF     n.
+                pha                          ; B758= 48          H
+LB759:
+                pla                          ; B759= 68          h
+                pla                          ; B75A= 68          h
+                plx                          ; B75B= FA          z
+                ply                          ; B75C= 7A          z
+                rts                          ; B75D= 60          `
+
+LB75E:
+                bit $34                      ; B75E= 24 34       $4
+                bpl LB759                    ; B760= 10 F7       .w
+                bit $35                      ; B762= 24 35       $5
+                bpl LB754                    ; B764= 10 EE       .n
+                pla                          ; B766= 68          h
+                pha                          ; B767= 48          H
+                cmp #$20                     ; B768= C9 20       I
+                bcc LB754                    ; B76A= 90 E8       .h
+                bne LB773                    ; B76C= D0 05       P.
+                jsr OSNEWL                   ; B76E= 20 E7 FF     g.
+                bra LB759                    ; B771= 80 E6       .f
+
+LB773:
+                lda #$0D                     ; B773= A9 0D       ).
+                jsr OSWRCH                   ; B775= 20 EE FF     n.
+                jsr LB4B9                    ; B778= 20 B9 B4     94
+                ldy #$00                     ; B77B= A0 00        .
+LB77D:
+                phy                          ; B77D= 5A          Z
+                lda #$08                     ; B77E= A9 08       ).
+                jsr OSWRCH                   ; B780= 20 EE FF     n.
+                lda #$87                     ; B783= A9 87       ).
+                jsr OSBYTE                   ; B785= 20 F4 FF     t.
+                ply                          ; B788= 7A          z
+                txa                          ; B789= 8A          .
+                cmp #$20                     ; B78A= C9 20       I
+                beq LB79B                    ; B78C= F0 0D       p.
+                sta $0440,y                  ; B78E= 99 40 04    .@.
+                iny                          ; B791= C8          H
+                cpy zterm.numColumns                      ; B792= C4 38       D8
+                bne LB77D                    ; B794= D0 E7       Pg
+                jsr OSNEWL                   ; B796= 20 E7 FF     g.
+                bra LB754                    ; B799= 80 B9       .9
+
+LB79B:
+                phy                          ; B79B= 5A          Z
+                lda #$00                     ; B79C= A9 00       ).
+                jsr LB7E6                    ; B79E= 20 E6 B7     f7
+                jsr OSNEWL                   ; B7A1= 20 E7 FF     g.
+                ply                          ; B7A4= 7A          z
+                iny                          ; B7A5= C8          H
+LB7A6:
+                dey                          ; B7A6= 88          .
+                beq LB754                    ; B7A7= F0 AB       p+
+                lda $043F,y                  ; B7A9= B9 3F 04    9?.
+                jsr OSWRCH                   ; B7AC= 20 EE FF     n.
+                bra LB7A6                    ; B7AF= 80 F5       .u
+
+terminalINDnHandler:
+                bcc LB7F9                    ; B7B1= 90 46       .F
+LB7B3:
+                sec                          ; B7B3= 38          8
+                ror $19                      ; B7B4= 66 19       f.
+LB7B6:
+                ldx #$32                     ; B7B6= A2 32       "2
+LB7B8:
+                lda #$D5                     ; B7B8= A9 D5       )U
+                jsr osbyteY00                    ; B7BA= 20 25 B8     %8
+                phx                          ; B7BD= DA          Z
+                ldx #$01                     ; B7BE= A2 01       ".
+                lda #$D6                     ; B7C0= A9 D6       )V
+                jsr osbyteY00                    ; B7C2= 20 25 B8     %8
+                phx                          ; B7C5= DA          Z
+                lda #$EC                     ; B7C6= A9 EC       )l
+                ldx #$14                     ; B7C8= A2 14       ".
+                jsr osbyteY00                    ; B7CA= 20 25 B8     %8
+                lda #$07                     ; B7CD= A9 07       ).
+                jsr OSWRCH                   ; B7CF= 20 EE FF     n.
+                lda #$EC                     ; B7D2= A9 EC       )l
+                jsr osbyteY00                    ; B7D4= 20 25 B8     %8
+                plx                          ; B7D7= FA          z
+                lda #$D6                     ; B7D8= A9 D6       )V
+                jsr osbyteY00                    ; B7DA= 20 25 B8     %8
+                plx                          ; B7DD= FA          z
+                lda #$D5                     ; B7DE= A9 D5       )U
+                bra osbyteY00                    ; B7E0= 80 43       .C
+
+LB7E2:
+                ldx #$8C                     ; B7E2= A2 8C       ".
+                bra LB7B8                    ; B7E4= 80 D2       .R
+
+LB7E6:
+                tay                          ; B7E6= A8          (
+                ldx #$0A                     ; B7E7= A2 0A       ".
+                lda #$97                     ; B7E9= A9 97       ).
+LB7EB:
+                asl a                        ; B7EB= 0A          .
+                bcs LB7EF                    ; B7EC= B0 01       0.
+                iny                          ; B7EE= C8          H
+LB7EF:
+                lsr a                        ; B7EF= 4A          J
+                jsr OSWRCH                   ; B7F0= 20 EE FF     n.
+                lda LB7FA,y                  ; B7F3= B9 FA B7    9z7
+                dex                          ; B7F6= CA          J
+                bne LB7EB                    ; B7F7= D0 F2       Pr
+LB7F9:
+                rts                          ; B7F9= 60          `
+
+LB7FA:
+                ; PHP                        ; B7FA= 08          .
+                ; ORA $06                    ; B7FB= 05 06       ..
+                ; BRA LB807                  ; B7FD= 80 08       ..
+
+                ; TSB $05                    ; B7FF= 04 05       ..
+                ; BRK                        ; B801= 00          .
+                ; BRK                        ; B802= 00          .
+                ; ORA ($80,x)                ; B803= 01 80       ..
+                ; PHP                        ; B805= 08          .
+                ; TSB $06                    ; B806= 04 06       ..
+                ; BRA LB812                  ; B808= 80 08       ..
+
+                ; ORA $0A                    ; B80A= 05 0A       ..
+                ; BRA LB816                  ; B80C= 80 08       ..
+
+                ; BRK                        ; B80E= 00          .
+                ; ORA $00                    ; B80F= 05 00       ..
+                ; BRK                        ; B811= 00          .
+                .byte $08
+                .byte $05
+                .byte $06
+                .byte $80
+                .byte $08
+                .byte $04
+                .byte $05
+                .byte $00
+                .byte $00
+                .byte $01
+                .byte $80
+                .byte $08
+                .byte $04
+                .byte $06
+                .byte $80
+                .byte $08
+                .byte $05
+                .byte $0A
+                .byte $80
+                .byte $08
+                .byte $00
+                .byte $05
+                .byte $00
+                .byte $00
+
+LB812:
+;ORA (&80,x)      :\ B812= 01 80       ..
+                .byte $01
+                .byte $80
+;PHP              :\ B814= 08          .
+                .byte $08
+;BRK              :\ B815= 00          .
+                .byte $00
+;.LB816
+;ASL A            :\ B816= 0A          .
+                .byte $0A
+;BRA LB829        :\ B817= 80 10       ..
+                .byte $80
+                .byte $10
+;ORA (&80,x)      :\ B819= 01 80       ..
+                .byte $01
+                .byte $80
+;BPL LB79D        :\ B81B= 10 80       ..
+                .byte $10
+                .byte $80
+                .byte $07                    ; B81D= 07          .
+                .byte $00                    ; B81E= 00          .
+                .byte $03                    ; B81F= 03          .
+;BRA LB7CB        :\ B820= 80 A9       .)
+; LDA &A2          :\ B822= A5 A2       %"
+; BRK              :\ B824= 00          .
+                .byte $80
+LB821:
+                lda #$A5
+osbyteX00Y00:
+                ldx #$00
+osbyteY00:
+                ldy #$00                     ; B825= A0 00        .
+-
+                jmp OSBYTE                   ; B827= 4C F4 FF    Lt.
+
+LB82A:
+                lda #$9C                     ; B82A= A9 9C       ).
+                ldy #$9F                     ; B82C= A0 9F        .
+                bra -
+
+LB830:
+                ldy #$00                     ; B830= A0 00        .
+LB832:
+                ldx #$FF                     ; B832= A2 FF       ".
+                phx                          ; B834= DA          Z
+LB835:
+                pla                          ; B835= 68          h
+                inc a                        ; B836= 1A          .
+                pha                          ; B837= 48          H
+                phy                          ; B838= 5A          Z
+                jsr LB89E                    ; B839= 20 9E B8     .8
+LB83C:
+                cmp #'.'                     ; B83C= C9 2E       I.
+                beq LB858                    ; B83E= F0 18       p.
+                cmp #'@'                     ; B840= C9 40       I@
+                bcs LB846                    ; B842= B0 02       0.
+                lda #$00                     ; B844= A9 00       ).
+LB846:
+                and #$5F                     ; B846= 29 5F       )_
+                inx                          ; B848= E8          h
+                eor LB86B,x                  ; B849= 5D 6B B8    ]k8
+                beq LB853                    ; B84C= F0 05       p.
+                asl a                        ; B84E= 0A          .
+                beq LB858                    ; B84F= F0 07       p.
+                bra LB85D                    ; B851= 80 0A       ..
+
+LB853:
+                iny                          ; B853= C8          H
+                lda ($F2),y                  ; B854= B1 F2       1r
+                bra LB83C                    ; B856= 80 E4       .d
+
+LB858:
+                iny                          ; B858= C8          H
+                pla                          ; B859= 68          h
+                pla                          ; B85A= 68          h
+                clc                          ; B85B= 18          .
+                rts                          ; B85C= 60          `
+
+LB85D:
+                ply                          ; B85D= 7A          z
+LB85E:
+                lda LB86B,x                  ; B85E= BD 6B B8    =k8
+                bne LB866                    ; B861= D0 03       P.
+                sec                          ; B863= 38          8
+                pla                          ; B864= 68          h
+                rts                          ; B865= 60          `
+
+LB866:
+                bmi LB835                    ; B866= 30 CD       0M
+                inx                          ; B868= E8          h
+                bra LB85E                    ; B869= 80 F3       .s
+
+LB86B:
+                .byte $43                    ; B86B= 43          C
+                .byte $4B                    ; B86C= 4B          K
+                .byte $cc,$4d,$43            ; B86D= CC 4D 43    LMC
+                .byte $cc,$50,$52            ; B870= CC 50 52    LPR
+                .byte $4F                    ; B873= 4F          O
+                .byte $D4                    ; B874= D4          T
+                .byte $52,$46                ; B875= 52 46       RF
+                .byte $C3                    ; B877= C3          C
+                .byte $54                    ; B878= 54          T
+                .byte $46,$c3                ; B879= 46 C3       FC
+                .byte $57                    ; B87B= 57          W
+                .byte $57                    ; B87C= 57          W
+                .byte $cd,$41,$57            ; B87D= CD 41 57    MAW
+                .byte $cd,$56,$44            ; B880= CD 56 44    MVD
+                .byte $d5,$4d                ; B883= D5 4D       UM
+                .byte $4F                    ; B885= 4F          O
+                .byte $44                    ; B886= 44          D
+                .byte $c5,$4f                ; B887= C5 4F       EO
+                .byte $ce,$4f,$46            ; B889= CE 4F 46    NOF
+                .byte $c6,$54                ; B88C= C6 54       FT
+                .byte $45,$52                ; B88E= 45 52       ER
+                .byte $4d,$49,$4e            ; B890= 4D 49 4E    MIN
+                .byte $41,$cc                ; B893= 41 CC       AL
+                .byte $42                    ; B895= 42          B
+                .byte $42                    ; B896= 42          B
+                .byte $C3                    ; B897= C3          C
+                .byte $47                    ; B898= 47          G
+                .byte $D3                    ; B899= D3          S
+                .byte $54                    ; B89A= 54          T
+                .byte $54                    ; B89B= 54          T
+                .byte $D9
+                .byte $00
+LB89E:
+                dey
+LB89F:
+                iny                          ; B89F= C8          H
+                lda ($F2),y                  ; B8A0= B1 F2       1r
+                cmp #$20                     ; B8A2= C9 20       I
+                beq LB89F                    ; B8A4= F0 F9       py
+                cmp #$0D                     ; B8A6= C9 0D       I.
+                rts                          ; B8A8= 60          `
+
+LB8A9:
+                stz $3A                      ; B8A9= 64 3A       d:
+                stz $3B                      ; B8AB= 64 3B       d;
+LB8AD:
+                cmp #$30                     ; B8AD= C9 30       I0
+                bcc LB8B5                    ; B8AF= 90 04       ..
+                cmp #$3A                     ; B8B1= C9 3A       I:
+                bcc LB8B7                    ; B8B3= 90 02       ..
+LB8B5:
+                sec                          ; B8B5= 38          8
+                rts                          ; B8B6= 60          `
+
+LB8B7:
+                sbc #$2F                     ; B8B7= E9 2F       i/
+                pha                          ; B8B9= 48          H
+                lda $3B                      ; B8BA= A5 3B       %;
+                pha                          ; B8BC= 48          H
+                lda $3A                      ; B8BD= A5 3A       %:
+                asl a                        ; B8BF= 0A          .
+                rol $3B                      ; B8C0= 26 3B       &;
+                asl a                        ; B8C2= 0A          .
+                rol $3B                      ; B8C3= 26 3B       &;
+                clc                          ; B8C5= 18          .
+                adc $3A                      ; B8C6= 65 3A       e:
+                sta $3A                      ; B8C8= 85 3A       .:
+                pla                          ; B8CA= 68          h
+                adc $3B                      ; B8CB= 65 3B       e;
+                sta $3B                      ; B8CD= 85 3B       .;
+                asl $3A                      ; B8CF= 06 3A       .:
+                rol $3B                      ; B8D1= 26 3B       &;
+                pla                          ; B8D3= 68          h
+                clc                          ; B8D4= 18          .
+                adc $3A                      ; B8D5= 65 3A       e:
+                sta $3A                      ; B8D7= 85 3A       .:
+                bcc LB8DE                    ; B8D9= 90 03       ..
+                inc $3B                      ; B8DB= E6 3B       f;
+                clc                          ; B8DD= 18          .
+LB8DE:
+                rts                          ; B8DE= 60          `

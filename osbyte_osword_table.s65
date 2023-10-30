@@ -224,6 +224,8 @@ osbyteAndOSWORDRoutineTable:
 
                 .if version<400
                 .word mos.osbyte89 ;Switch cassette motor relay
+                .elsif version<500
+                .word LECD9
                 .else
                 .word mos.osbyteUnused
                 .endif
@@ -278,8 +280,12 @@ osbyteAndOSWORDRoutineTable:
                 .word mos.osbyte98
 
                 ;Insert character code into buffer checking for escape
+                .if version==400
+                .word mos.insertCharacterIntoKeyboardBuffer
+                .else
                 .word mos.osbyte99
-
+                .endif
+                
                 ;Write video ULA control register
                 .word mos.osbyte9A
 

@@ -26,7 +26,11 @@ L8BF2:
 
 L8BF4:
                 lda ($F0),y
+                .if version==400
+                ldx unk_8BE8-1,y
+                .else
                 ldx unk_8BE8,y
+                .endif
                 sta osfileParameterBlock,x
                 dey
                 .if version==400
@@ -362,8 +366,8 @@ L8DB7:
 L8DC0:
                 jsr L8F40
                 .if version==400
-                lda osfileParameterBlock+10
-                and osfileParameterBlock+11
+                lda osfileParameterBlock+11
+                and osfileParameterBlock+12
                 inc a
                 and tubePresence
                 bne L8952
@@ -386,8 +390,8 @@ L8952:
                 bmi L8961
                 inc a
 L8961:
-                ldx #$f6
-                ldy #$02
+                ldx #$f6        ;TODO
+                ldy #$02        ;TODO
                 jsr $0406
                 jsr L8CEA
                 bcs L8970
@@ -457,7 +461,11 @@ L8E0D:
 L8E20:
                 stx osfileParameterBlock+$C
                 ldx ACCCON
+                .if version==400
+                jsr mos.skipSpacesAndCheckForCRInStringInput
+                .else
                 jsr L8D66
+                .endif
                 beq L8E41
                 jmp L8DB4
 

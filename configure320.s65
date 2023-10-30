@@ -62,7 +62,7 @@ configureTable:
                 .for i=0,i<len(configureData),i+=1
                 .text configureData[i][0]
                 .beword configureData[i][1]-1
-                .beword configureData[i][1]-1
+                .beword configureData[i][2]-1
                 .next
                 .byte 0
                 .endif
@@ -288,10 +288,11 @@ L894A:
 L8951:
                 .if version==400
                 lda configureTable,x
+                bmi L8CE4
                 .else
                 lda configureNames,x
-                .endif
                 bmi L896C           ;taken if info byte - i.e., name matches
+                .endif
                 lda ($F2),y
                 cmp #'.'
                 beq L8960                    ;accept abbreviations
@@ -324,6 +325,7 @@ L896C:
                 dex
                 dex
                 .endif
+L8CE4:
                 sec
                 rts
 

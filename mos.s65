@@ -195,9 +195,9 @@ outputCharToPrinter:
                 bcc rtsC035 ;taken if printer disabled - VDU 1 then a no-op
                 txa                          ;restore char to print
                 clc
-                .if version<500
+                .if version<400
                 jmp LE8B9
-                .elsif version>=500
+                .else
                 jmp LE2ED
                 .endif
 
@@ -311,9 +311,9 @@ vdu2EntryPoint:
 vdu3EntryPoint:
                 pha                          ;
                 jsr reinstateCursorEditing
-                .if version<500
+                .if version<400
                 jsr callPrinterDriverWithPrinterBuffer
-                .elsif version>=500
+                .else
                 jsr LE2E7
                 .endif
                 lda #STATE.isPrinterEnabled  ;
@@ -1339,9 +1339,9 @@ callVDUVForPLOT:
 ; Call VDUV.
 ; 
 callVDUV:
-                .if version<500
+                .if version<400
                 jmp (VDUV)
-                .elsif version>=500
+                .else
                 jmp LE2F3
                 .endif
 
@@ -2184,14 +2184,14 @@ LCAE8:
 ;-------------------------------------------------------------------------
 
 LCAF1:
-                ldx #$77                     ; CAF1= A2 77       "w
-                lda #$CC                     ; CAF3= A9 CC       )L
+                ldx #<LCC77                     ; CAF1= A2 77       "w
+                lda #>LCC77                     ; CAF3= A9 CC       )L
                 ldy $032D                    ; CAF5= AC 2D 03    ,-.
                 bra LCB01                    ; CAF8= 80 07       ..
 
 LCAFA:
-                ldx #$57                     ; CAFA= A2 57       "W
-                lda #$CC                     ; CAFC= A9 CC       )L
+                ldx #<LCC57                     ; CAFA= A2 57       "W
+                lda #>LCC57                     ; CAFC= A9 CC       )L
                 ldy $032F                    ; CAFE= AC 2F 03    ,/.
 LCB01:
                 stx $035D                    ; CB01= 8E 5D 03    .].
@@ -6072,9 +6072,6 @@ plotSolidEllipse:
                 .endif
 
                 .if version==400
-plotMoveOrCopyRectangle:
-plotEllipseOutline:
-plotSolidEllipse:
                 .align 256
                 .endif
                 
@@ -6953,7 +6950,11 @@ defaultMOSVariables:
                 .endif
                 .byte $00                    ;adcConversionType
                 .byte $FF                    ;rs423Busy
+                .if version==400
+                .byte $00                    ;aciaControlRegister
+                .else
                 .byte $42                    ;aciaControlRegister
+                .endif
                 .byte $19                    ;flashCounter
                 .byte $19                    ;firstFlashColourDuration
                 .byte $19                    ;secondFlashColourDuration
@@ -7003,10 +7004,18 @@ valueFF:        .byte $FF                    ;userVIAInterruptMask
                 .byte $01                    ;shadowRAMState
                 .byte $00                    ;countryFlag
                 .byte $00                    ;userFlag
+                .if version==400
+                .byte $00                    ;serialULARegister
+                .else
                 .byte $64                    ;serialULARegister
+                .endif
                 .byte initialTimerSwitchState ;timerSwitchState
                 .byte $FF                    ;softKeyConsistencyFlag
+                .if version==400
+                .byte $00                    ;printerDriverType
+                .else
                 .byte $01                    ;printerDriverType
+                .endif
                 .byte $0a                    ;printerIgnoreChar
                 .byte $00                    ;breakVectorByte0
                 .byte $00                    ;breakVectorByte1
@@ -7710,8 +7719,7 @@ flashDone:
                 jsr eventEntryPoint
                 lda #VIA.irq.ca1
                 .if version==400
-                nop
-                nop;bra staSystemVIAIFR
+                bra staSystemVIAIFR
                 .else
                 jmp staSystemVIAIFR          ;acknowledge CA1
                 .endif
@@ -9385,7 +9393,11 @@ osbyte0D:
 ; 
 osbyte0E:
                 cpx #eventMax+1
+                .if version!=400
                 bcs LEC90
+                .else
+                bcs LEB22
+                .endif
                 ldy eventEnabledFlags,x
                 sta eventEnabledFlags,x
                 .if version!=400
@@ -9974,9 +9986,9 @@ LEF76:
                 .if version>=400
 osword0E:
                 cmp #3
-                .if version<500
+                .if version<400
                 bcs handleUnrecognisedOSBYTEOrOSWORD
-                .elif version>=500
+                .else
                 bcs handleUnrecognisedOSWORD
                 .endif
                 jsr withTerminalROM
@@ -10159,7 +10171,7 @@ oswordEntryPoint:
                 .else
 
                 cmp #16
-                bcs LED4D
+                bcc LED4D
                 cmp #$44
                 bcs handleUnrecognisedOSBYTEOrOSWORD
                 cmp #$42
@@ -10220,9 +10232,11 @@ getAddressFromOSWORDParameterBlock:
                 sta SEIWKA+1
                 ldy #$04
 ldxim03_rts:
-                .if version<500
+                .if version<400
                 ldx #$03
-                .elsif version>=500
+                .elsif version<500
+                ldx #$04
+                .else
                 ldx #$05
                 .endif
                 rts
@@ -10925,7 +10939,11 @@ LF1FA:
                 .byte terminalROM
                 .word terminal.bputTapeOrROM ; BPUTV
                 .byte terminalROM
+                .if version==400
+                .word mos.badCommandError
+                .else
                 .word terminal.bgetTapeOrROM ; BGETV
+                .endif
                 .byte terminalROM
                 .word terminal.osgbpbTapeOrROM ; GBPBV
                 .byte terminalROM
@@ -12267,7 +12285,7 @@ LF7A4:
                 jsr LF7F0
                 bne LF7A4
                 lda 1,x
-                cmp osfileParameterBlock+2
+                cmp osfileParameterBlock+3
                 bne LF7A4
                 jmp selectTerminalROM
                 .endif
@@ -12284,7 +12302,7 @@ LF7BA:
                 jsr LF7F0
                 bne LF7BA
                 lda 1,x
-                cmp osfileParameterBlock+2
+                cmp osfileParameterBlock+3
                 bne LF7BA
                 jmp selectTerminalROM
                 .endif
@@ -12300,10 +12318,10 @@ LF7D9:
                 lda ($b0),y
                 sta tube.data3
                 jsr LF800
-                jsr LF8F0
+                jsr LF7F0
                 bne LF7D9
                 lda 1,x
-                cmp osfileParameterBlock+2
+                cmp osfileParameterBlock+3
                 bne LF7D9
                 jmp selectTerminalROM
                 .endif
@@ -12327,7 +12345,9 @@ LF7F0:
 LF800:
                 cpy osfileParameterBlock+2
 LF803:
-                rts
+                ; the dummy ROM header's first byte is the RTS for
+                ; this routine...
+                .cerror *!=dummy_rom_header
                 .endif
                 
 ;-------------------------------------------------------------------------
@@ -12383,10 +12403,7 @@ LF85D:
 
                 .if version>=400
 dummy_rom_header: .block
-                ; overlaps with preceding routine in MOS 4.00
-                .if version!=400
                 rts
-                .endif
                 .byte 0,0
                 rts
                 .byte 0,0
@@ -12494,11 +12511,7 @@ LF8D1:
                 .if version>=400
 LF8EA:
                 jsr withTerminalROM
-                .if version==400
-                jmp $ffff
-                .else
                 jmp terminal.L8EDC
-                .endif
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -12506,11 +12519,7 @@ LF8EA:
                 .if version>=400
 LF8F0:
                 jsr withTerminalROM
-                .if version==400
-                jmp $ffff
-                .else
                 jmp terminal.L8F8C
-                .endif
                 .endif
                 
 ;-------------------------------------------------------------------------
@@ -12518,11 +12527,7 @@ LF8F0:
                 .if version>=400
 osword10:
                 jsr withTerminalROM
-                .if version==400
-                jmp $ffff
-                .else
                 jmp terminal.L8BF2
-                .endif
                 .endif
                 
 ;-------------------------------------------------------------------------
@@ -12530,11 +12535,7 @@ osword10:
                 .if version>=400
 osword11:
                 jsr withTerminalROM
-                .if version==400
-                jmp $ffff
-                .else
                 jmp terminal.L8E2E
-                .endif
                 .endif
                 
 ;-------------------------------------------------------------------------

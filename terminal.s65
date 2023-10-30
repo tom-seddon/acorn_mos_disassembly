@@ -397,7 +397,11 @@ initializeVIAInterruptsLoop:
                 bvc +
                 jsr mos.call1MHzBusHook
 +
+                .if version!=400
                 ldx #$80|VIA.irq.t1|VIA.irq.cb1|VIA.irq.ca1
+                .else
+                ldx #$80|VIA.irq.t1|VIA.irq.ca1
+                .endif
                 stx systemVIA.ier
                 .if version>=500
                 ldx #$80|VIA.irq.cb1|VIA.irq.cb2
@@ -608,7 +612,11 @@ L8284:
                 jsr mos.osbyte247EntryPoint
                 lda lastBREAKType
                 beq L829D
+                .if version==400
+                jsr mos.LEBBF
+                .else
                 jsr mos.LEDD0
+                .endif
 L829D:
                 .if version<500
                 jsr readDefaults2
@@ -820,7 +828,7 @@ mosCommandTable:
                 .if version<400
                 .mos_command "TAPE",starCommandThroughOSBYTE,$00,$8C ; X,y=parameters, OSBYTE &8C
                 .elsif version==400
-                .mos_command "tape",starTAPE,$00,$8c
+                .mos_command "tape",starCommandThroughOSBYTE,$00,$8c
                 .elsif version>=500
                 .mos_command "TAPE",mos.rtsFFAA,$00,$8C ; X,y=parameters, OSBYTE &8C
                 .endif
@@ -4725,7 +4733,7 @@ LA245:
                 bne L9DEA
                 .if version==400
                 cpy #3
-                bne L9DEA
+                bne L9E16
                 .else
                 cpy #$04                     ; Exit if not TAPE/ROM
                 bcs L9E16
@@ -6877,7 +6885,11 @@ LA9A0:
                 lda cfsRFSFSSwitch
                 beq LA9A0
                 .endif
+                .if version==400
+                jsr LA492
+                .else
                 jsr LA45D
+                .endif
                 bra LA9A0
 
 LA9B1:

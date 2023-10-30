@@ -28,7 +28,7 @@ starMOTOR=$967f
 ;starSRDATAOrStarSRROM=$8901
 ;starSRLOADOrStarSRSAVE=$8977
 ;starSRREADOrStarSRWRITE=$8901
-starTAPE=$9400
+;starTAPE=$9400
 ;L8A88=$8a88
 LA2B8=$a2b8
 LA45D=$a45d
@@ -37,6 +37,10 @@ LA6CD=$a6cd
 LA9C5=$af6a
 LA9E0=$af6a
 
+plotMoveOrCopyRectangle=ext.plotMoveOrCopyRectangle
+plotEllipseOutline=ext.plotEllipseOutline
+plotSolidEllipse=ext.plotSolidEllipse
+                
 ;-------------------------------------------------------------------------
 
                 .section utils

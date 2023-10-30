@@ -1,6 +1,10 @@
 ; -*- comment-column:45; -*-
 
 mos: .block
+                .if version==350
+; bodge space
+LF55D:
+                .endif
 
 ; VDU driver entry block
 ; ======================
@@ -11645,7 +11649,7 @@ starRunBOOT:
 
 ;-------------------------------------------------------------------------
 
-                .if version<500
+                .if version<500&&version!=350
                 .include "sound_stuff.s65"
                 .endif
 

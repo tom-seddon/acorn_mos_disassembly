@@ -33,6 +33,10 @@ all:
 	$(_V)$(MAKE) _build VERSION=400
 	$(_V)$(MAKE) _build VERSION=PC128S
 
+	$(_V)$(SHELLCMD) mkdir $(BUILD)/350
+	$(_V)$(TASS) mos350.s65 -L$(BUILD)/mos350.lst --output-section mos -o$(BUILD)/350/mos.rom --output-section terminal -o $(BUILD)/350/utils.rom --output-section ext -o $(BUILD)/350/ext.rom
+	$(_V)$(MAKE) _check_identical VERSION=350 EXTRA=ext.rom
+
 .PHONY:_build
 _build:
 	$(_V)$(SHELLCMD) mkdir $(BUILD)/$(VERSION)

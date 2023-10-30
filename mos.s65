@@ -7299,7 +7299,7 @@ LE499:
                 tax
                 jsr selectROMOrTAPE
                 .elsif version<500
-                jsr LEBC5
+                jsr selectROMOrTAPEByOSBYTE
                 .elsif version>=500
                 lda #$8d
                 jsr osbyte8C8D
@@ -12335,7 +12335,7 @@ LF7F0:
                 inc $b1
                 inc $b3
                 jsr selectTerminalROM
-                jsr L88AA
+                jsr terminal.L8D0F
                 jsr selectROMA
                 .endif
 

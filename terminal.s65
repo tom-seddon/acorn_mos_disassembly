@@ -795,7 +795,7 @@ mosCommandTable:
                 .if version<400
                 .mos_command "MOTOR",starCommandThroughOSBYTE,$00,$89 ; X,y=parameters, OSBYTE &89
                 .elsif version==400
-                .mos_command "motor",starMOTOR,$00,$89
+                .mos_command "motor",starCommandThroughOSBYTE,$00,$89
                 .elsif version>=500
                 .mos_command "MOTOR",mos.rtsFFAA,$00,$89 ; X,y=
                 .endif
@@ -6905,8 +6905,8 @@ LA9BB:
                 lda #$80
                 jsr tubeHost.entryPoint
                 .endif
-                .if version!=400
 LA9C5:
+                .if version!=400
                 ldx #$00
                 jsr LAA61
 LA9CA:
@@ -6919,14 +6919,12 @@ LA9CA:
 
 ;-------------------------------------------------------------------------
 
-                .if version!=400
 resetACIAThenRewriteControlRegister:
                 php
 LA9D7:
                 jsr resetACIA
                 lda aciaControlRegister
                 jmp mos.writeACIAControlRegister
-                .endif
                 
 ;-------------------------------------------------------------------------
 

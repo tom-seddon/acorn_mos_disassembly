@@ -6090,7 +6090,11 @@ startupMessages: .block
                 .endif
 acornMOS:
                 .text 13
+                .if olivetti
+                .text "Olivetti MOS"
+                .else
                 .text "Acorn MOS"
+                .endif
                 .if version==400
                 .text " "
                 .endif
@@ -10273,7 +10277,11 @@ osbyte00:                       ;ef6f
                 .elsif version==500
                 .text "MOS 5.00"
                 .elsif version==510
+                .if olivetti
+                .text "MOS I5.10C"
+                .else
                 .text "MOS 5.10"
+                .endif
                 .elsif version==511
                 .text "MOS 5.11i"
                 .endif
@@ -11209,6 +11217,99 @@ LF30A:
                 rts
 
 ;-------------------------------------------------------------------------
+
+                .if version==510&&olivetti
+
+LF3C6o:
+                ldx #0
+LF3C8o:
+                pha
+                lda LF3F0o,x
+                tay
+                pla
+                cpy #32
+                beq LF3EAo
+                inx
+                cpy countryFlag
+                bne LF3C8o
+
+LF3D8o:
+                pha
+                lda LF3F0o,x
+                tay
+                pla
+                cpy #33
+                bcc LF3EAo
+                cmp LF3F0o,x
+                beq LF3EBo
+                inx
+                bra LF3D8o
+
+LF3EAo:
+                rts
+
+LF3EBo:
+                clv
+                lda LF3F0o+1,x
+                rts
+
+LF3F0o:
+                .byte $20
+LF3F1o:
+                ldx #$00
+LF3F3o:
+                pha
+                lda LF41Bo,x
+                tay
+                pla
+                cpy #32
+                beq LF415o
+                inx
+                cpy countryFlag
+                bne LF3F3o
+
+LF403o:
+                pha
+                lda LF41Bo,x
+                tay
+                pla
+                cpy #33
+                bcc LF415o
+                cmp LF41Bo,x
+                beq LF416o
+                inx
+                bra LF403o
+
+LF415o:
+                rts
+
+LF416o:
+                clv
+                lda LF424o,x
+                rts
+
+LF41Bo:
+                .byte $04
+                .byte $7b
+                .byte $5b
+                .byte $5e
+                .byte $3b
+                .byte $3a
+                .byte $5d
+                .byte $7d
+                .byte $20
+LF424o:
+                .byte $04
+                .byte $94
+                .byte $8d
+                .byte $97
+                .byte $99
+                .byte $8d
+                .byte $9b
+                .byte $9f
+                .endif
+                
+;-------------------------------------------------------------------------
 ;
 ; Modify character in A as if the SHIFT key is being pressed.
 ;
@@ -11915,7 +12016,11 @@ LF839:
                 .if version<511
                 bne LF693
                 pla
+                .if olivetti
+                bra LF6AD
+                .else
                 bra LF6A8
+                .endif
                 .endif
 
 LF693:
@@ -11923,7 +12028,11 @@ LF693:
                 .if version<511
                 bne LF699
                 pla
+                .if olivetti
+                bra LF6AD
+                .else
                 bra LF6A8
+                .endif
                 .endif
 
 LF699:
@@ -11931,7 +12040,11 @@ LF699:
                 .if version<511
                 bne LF69F
                 pla
+                .if olivetti
+                bra LF6AD
+                .else
                 bra LF6A8
+                .endif
                 .endif
 
 LF69F:
@@ -11941,9 +12054,21 @@ LF69F:
                 ora #$80
                 bra LF6AD
 
+                .if olivetti
+LF712o:
+                pla
+                jsr LF3C6o
+                bra LF6A7
+
+LF718o:
+                jsr LF3F1o
+                .endif
+
 LF6A7:
+                .if !olivetti
                 pla
 LF6A8:
+                .endif
                 tay
                 bvc LF6AD
                 bne LF6B3
@@ -13155,7 +13280,11 @@ badCommandError:
                 .text "(C) 1984 Acorn Computers Ltd."
                 .text "Thanks are due to the following contributors to the BBC Computer (among others too numerous to mention):- "
                 .elsif version>=500
+                .if olivetti
+                .text "(C) 1986 Olivetti."
+                .else
                 .text "(C) 1986 Acorn Computers Ltd."
+                .endif
                 .text "Thanks are due to the following contributors to this Computer (among many others):- "
                 .endif
                 .text "David Allen,"
@@ -13301,7 +13430,11 @@ badCommandError:
                 .text "Roger Wilson."
                 .endif
                 .if version!=400
+                .if olivetti
+                .align 256,$ff
+                .else
                 .align 256,' '
+                .endif
                 .else
                 .align 256
                 .endif

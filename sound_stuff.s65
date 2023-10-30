@@ -304,10 +304,14 @@ LF61C:
                 and #$03                     ; F62B= 29 03       ).
                 sta $083E                    ; F62D= 8D 3E 08    .>.
                 pla                          ; F630= 68          h
+                .if version==350
+                jsr LE520
+                .else
                 lsr a                        ; F631= 4A          J
                 lsr a                        ; F632= 4A          J
                 lsr a                        ; F633= 4A          J
                 lsr a                        ; F634= 4A          J
+                .endif
                 sta $083F                    ; F635= 8D 3F 08    .?.
                 lda $083D                    ; F638= AD 3D 08    -=.
                 ldy $083C                    ; F63B= AC 3C 08    ,<.

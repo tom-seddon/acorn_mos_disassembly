@@ -17,17 +17,19 @@ LBA08:
                 ldx     #VDUVariables.workspace._34
                 ldy     #VDUVariables.workspace._3C
                 jsr     mos.sortVDUVariableWords
+                .if version!=350
                 ldx     #VDUVariables.workspace._38
-                .if version<500
+                .endif
+                .if version<500&&version!=350
                 lda     vduv+1,x
-                .elsif version>=500
+                .else
                 lda vduv.workspace._39
                 .endif
                 sta     vduv.workspace._43
-                .if version<500
+                .if version<500&&version!=350
                 lda     vduv+0,x
                 tax
-                .elsif version>=500
+                .else
                 ldx vduv.workspace._38
                 .endif
 
@@ -44,7 +46,7 @@ LBA27:
                 lda     vduv.workspace._43
                 sbc     vduv+1,y
                 bmi     LBA1B
-                .if version<500
+                .if version<500&&version!=350
                 ldx     #VDUVariables.workspace._36
                 ldy     #VDUVariables.workspace._3E
                 jsr     mos.sortVDUVariableWords
@@ -73,7 +75,7 @@ LBA52:
                 bpl     LBA05
                 bra     LBA7B
 
-                .elsif version>=500
+                .else
 
                 ldy vduv.workspace._43
                 txa
@@ -117,7 +119,11 @@ LAF39:
 LAF47:
                 lda vduv.workspace._2F
                 bpl LBA05
+                .if version==350
+                bra LBA7B
+                .else
                 jmp LBA7B
+                .endif
 
                 .endif
 
@@ -954,7 +960,7 @@ LBFE6:
 rtsBFF4:
                 rts
 
-                .if version!=400
+                .if version!=400&&version!=350
 ; Hmm. What even is this???
                 .byte $ff
                 .byte $ff

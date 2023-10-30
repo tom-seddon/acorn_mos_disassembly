@@ -4,6 +4,9 @@ mos: .block
                 .if version==350
 ; bodge space
 LF55D:
+LE375=$e375
+scanROMs=$ffff
+osbyte77=$ffff
                 .endif
 
 ; VDU driver entry block
@@ -237,10 +240,14 @@ handleControlChar:
                 ora #$F0                     
                 sta vduQueueNegativeLength ;initialise initial VDU queue length
                 txa                          ; Restore original MSB value
+                .if version==350
+                jsr LE520
+                .else
                 lsr a                        ; 
                 lsr a                        ; 
                 lsr a                        ; 
                 lsr a                        ; Extract value in top 4 bits
+                .endif
                 clc                          ; 
                 adc #vduRoutinesPage         ; form MSB
                 sta vduv.jumpVector+1
@@ -1562,6 +1569,9 @@ vdu22EntryPoint:
 ;-------------------------------------------------------------------------
 ; 
 setStartupMODE:
+                .if version==350
+                jsr LF35C
+                .endif
                 sta ZTEMP+0                  ;save MODE
                 lda $F4
                 pha    
@@ -1703,7 +1713,7 @@ LC895:
                 lda vduv.textCursorXPosition,y
                 cmp vduv.textWindowLeft,x
                 bne LC8D3
-                .if version==400
+                .if version==400||version==350
                 cpy #0
                 .else
                 sec
@@ -1735,7 +1745,7 @@ LC8C9:
 
 LC8CF:
                 stz pagedModeCounter        ; Clear paged mode counter
-                .if version!=400
+                .if version!=400&&version!=350
                 nop
                 .endif
 LC8D3:
@@ -2818,10 +2828,14 @@ write2bppChar:
                 eor ZEOR
                 sta (ZTEMPD),y               ;write to right column
                 lda (ZTEMPC),y               ;get font byte
+                .if version==350
+                jsr LE520
+                .else
                 lsr a                        ;
                 lsr a                        ;
                 lsr a                        ;
                 lsr a                        ;get data for left 4 pixels
+                .endif
                 tax                          ;
                 lda LE013,x                  ;form byte
                 ora ZORA                      
@@ -5720,6 +5734,10 @@ compare:
                 bpl -
 
                 txa                          ;A = char found
+                .if version==350
+                bpl bitmapModeDone
+                eor #$7f
+                .endif
 bitmapModeDone:
                 plx
                 jsr selectROMX
@@ -5727,13 +5745,21 @@ bitmapModeDone:
 
 nextFontChar:
                 inx                          ;next ASCII code
+                .if version==350
+                txa
+                bpl LDE4A
+                eor #$7f
+LDE4A:
+                jsr LE22A
+                .else
                 clc
                 lda ZTEMPC+0
                 adc #$08                     ;8 bytes/font char
                 sta ZTEMPC+0
-                bcc +
+                bcc gotCharAddress
                 inc ZTEMPC+1
-+
+                .endif
+gotCharAddress:
                 cpx #$7F                     
                 beq nextFontChar                 ;skip CHR$127
                 txa
@@ -6096,17 +6122,19 @@ acornMOS:
                 .text 13
                 .if olivetti
                 .text "Olivetti MOS"
+                .elsif version==350
+                .text "ACORN MOS"
                 .else
                 .text "Acorn MOS"
                 .endif
-                .if version==400
+                .if version==400||version==350
                 .text " "
                 .endif
                 .byte 0
 beep:
                 .byte 7
                 .byte 0
-                .if version!=400
+                .if version!=400&&version!=350
                 .byte 0,0,0   ;space for "xxK"
                 .endif
                 
@@ -6868,7 +6896,7 @@ testVDU5State:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=400
+                .if version>=350
 LE2E7:
                 jsr withMOSROM
                 jmp callPrinterDriverWithPrinterBuffer
@@ -6876,7 +6904,7 @@ LE2E7:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=400
+                .if version>=350
 LE2ED:
                 jsr withMOSROM
                 jmp LE8B9
@@ -6884,7 +6912,7 @@ LE2ED:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=400
+                .if version>=350
 LE2F3:
                 jsr withMOSROM
                 jmp (VDUV)
@@ -7043,8 +7071,29 @@ resetEntryPoint:                ;e364
                 sei
                 lda #$53                 ; ???
                 sta LFE8E                ; ???
+                .if version==350
+                lda #~ACCCON.D
+                trb ACCCON
+                trb vduv.cursorFlags
+                lda ACCCON
+                ora #ACCCON.TST|ACCCON.Y|ACCCON.X
+                .endif
                 jsr selectTerminalROM ; Page in ROM 15 and continue
                 jmp terminal.reset
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+staSEIWKAAndACCCON:
+                sta SEIWKA
+                sta ACCCON
+                rts
+                .endif
+
+                .if version==350
+LE398:
+                jsr callWithTST
+                .endif
 
 ;-------------------------------------------------------------------------
 ; 
@@ -7055,7 +7104,8 @@ resetEntryPoint:                ;e364
 ; C=0 = no Tube
 ;
 ; C=1 = Tube
-; 
+;
+                .if version!=350
 LE375:
                 ldx #$01                     
                 stx tube.status1
@@ -7066,7 +7116,8 @@ LE375:
                 and tube.status1       ; Cy=0 if no Tube, Cy=1 if Tube
                 ror a
                 rts
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; 
@@ -7074,7 +7125,10 @@ LE375:
 LE389:
                 phy
                 phx
-                .if version<500
+                .if version==350
+                jsr selectTerminalROM
+                jsr L84F4
+                .elsif version<500
                 jsr getROMInsertedFlagRTCAddressAndMask
                 sta $FC                      ;save mask
                 jsr selectTerminalROM
@@ -7097,7 +7151,8 @@ LE389:
 ; entry:
 ;
 ; X = first ROM to scan
-; 
+;
+                .if version!=350
 scanROMs: .proc
                 txa               ;A = ROM of interest
                 tay               ;Y = ROM of interest
@@ -7181,6 +7236,7 @@ nextROM:
                 jsr selectTerminalROM
                 jmp terminal.romsScanned     ;not sure why not RTS.
                 .endproc
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -7237,10 +7293,14 @@ LE424:
 LE431:
                 jsr LEE64                    ; Set default ROMFS/TAPEFS settings
                 jsr osbyte76                    ; Test Shift and Ctrl keys
+                .if version==350
+                jsr LE520
+                .else
                 lsr a                        ; Move SHIFT status from b7 to b3
                 lsr a
                 lsr a
                 lsr a
+                .endif
                 eor startupOptions ; Toggle with OSBYTE 255 boot status
                 and #$08
                 tay
@@ -7248,18 +7308,24 @@ LE431:
                 lda lastBREAKType ; Soft Break, use current filing system
                 beq LE454
                 jsr selectTerminalROM
-                .if version<500
+                .if version<500&&version!=350
                 phy
                 jsr terminal.readDefaultROMs
                 and #$0F                     ;get default FS ROM
                 ply
-                .elsif version>=500
-                .if olivetti
+                .else
+                .if version==350
+                ldx #$3b
+                .elsif olivetti
                 ldx #$3c
                 .else
                 ldx #$33
                 .endif
+                .if version==350
+                jsr L8834_350
+                .else
                 jsr terminal.L8A64
+                .endif
                 .endif
                 
                 tax
@@ -7323,21 +7389,33 @@ LE4A3:
                 lda lastBREAKType ; If not Soft Break, select default language
                 bne LE4BB
                 ldx currentLanguageROM      ; Get current language ROM
+                .if version==350
+                txa
+                and #$bf
+                cmp #$10
+                .else
                 cpx #$10                     ; <16, normal ROM number, use it
+                .endif
                 bcc LE4C2
                 cpx #$1F                     ; 16+UTILS ROM, re-enter Supervisor or Tube CLI
                 beq LE509
 LE4BB:
                 jsr selectTerminalROM     ; Page in ROM 15 - UTILS ROM
-                .if version<500
+                .if version<500&&version!=350
                 jsr terminal.readDefaultLanguageROM        ; Read configured LANG
-                .elsif version>=500
-                .if olivetti
+                .else
+                .if version==350
+                ldx #$5f
+                .elsif olivetti
                 ldx #$4A
                 .else
                 ldx #$41
                 .endif
+                .if version==350
+                jsr L8834_350
+                .else
                 jsr terminal.L8A64
+                .endif
                 .endif
                 tax
 LE4C2:
@@ -7348,7 +7426,16 @@ LE4C2:
 ; OSBYTE 142 (&8E) Enter language ROM [MasRef D.2-44]
 ; 
 osbyte8E:
+                .if version==350
+                phx
+                txa
+                and #$f
+                tax
+                .endif
                 bit romInformationTable,x ; b6=0, error Not a language
+                .if version==350
+                plx
+                .endif
                 bvc thisIsNotALanguageError
                 php
                 bcc LE4E1 ;taken if not OSBYTE 142 - so skip ROM check
@@ -7439,6 +7526,27 @@ osbyteA4:
 rtsE564:
                 rts                          ; E564= 60          `
 
+;-------------------------------------------------------------------------
+
+                .if version==350
+LE520:
+                lsr a
+                lsr a
+                lsr a
+                lsr a
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+LE525:
+                ldy #$2c
+                ldy #$03
+                jsr terminal.writeCMOSByte
+                jmp L8035
+                .endif
+                
 ;-------------------------------------------------------------------------
 
 defaultBRKHandler:
@@ -7686,7 +7794,10 @@ handleUnrecogisedInterrupt:
                 pla                          
                 ply                          
                 plx                          
-                pla                          
+                pla
+                .if version==350
+                sta SEIWKA
+                .endif
                 jmp (IRQ2V)                  
 
 ;-------------------------------------------------------------------------
@@ -8339,8 +8450,12 @@ LE833:
                 tax                          ;X=char to print
                 lda ACCCON                   ;
                 pha                          ;S=[old ACCCON; ch; y; x; ch]
+                .if version==350
+                jsr LECF4
+                .else
                 lda #ACCCON.Y
                 trb ACCCON                   ;MOS ROM at $c000
+                .endif
                 lda $F4
                 pha          ;S=[old ROMSEL; old ACCCON; ch; y; x; ch]
                 lda #$80|terminalROM
@@ -8618,19 +8733,19 @@ rtsE9A1:
 ;-------------------------------------------------------------------------
 
 LE9A2:
-                cli                          ; E9A2= 58          X
+                cli
 LE9A3:
-                sei                          ; E9A3= 78          x
+                sei
 LE9A4:
-                jsr callINSV                    ; E9A4= 20 40 EA     @j
-                bcc rtsE9A1                    ; E9A7= 90 F8       .x
-                jsr LF241                    ; E9A9= 20 41 F2     Ar
-                pha                          ; E9AC= 48          H
+                jsr callINSV
+                bcc rtsE9A1
+                jsr LF241
+                pha
                 jsr updateKeyboardLEDs
-                asl a                        ; E9B0= 0A          .
-                pla                          ; E9B1= 68          h
-                bcc LE9A2                    ; E9B2= 90 EE       .n
-                rts                          ; E9B4= 60          `
+                asl a
+                pla
+                bcc LE9A2
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -8638,9 +8753,11 @@ LE9A4:
 ;
 ; D.2-33
 ;
+                .if version!=350
 osbyte77:                       ;e9b5
-                jsr withTerminalROM          ; E9B5= 20 84 F3     .s
-                jmp terminal.L9423           ; E9B8= 4C 23 94    L#.
+                jsr withTerminalROM
+                jmp terminal.L9423
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -8901,6 +9018,9 @@ isLetter: .proc                 ;EA71
 ; ESCAPE [MasRef D.2-46]
 ;
 insertCharacterIntoKeyboardBuffer:
+                .if version==350
+                jsr callWithTST
+                .endif
                 ldx #$00                     
 osbyte99:
                 .if version!=400
@@ -8940,15 +9060,20 @@ handleCursorKeysAndCopy:
                 
 handleFunctionKey:
                 tya
-                .if version<500
+                .if version<500&&version!=350
                 and #$0F
                 .endif
+                .if version==350
+                pha
+                jsr LE520
+                .else
                 pha
                 tya
                 lsr a
                 lsr a
                 lsr a
                 lsr a
+                .endif
                 eor #$04
                 tay
                 lda input192To207Interpretation-8,y
@@ -8958,7 +9083,7 @@ handleFunctionKey:
                 pla
                 clc
                 adc input192To207Interpretation-8,y
-                .elsif version>=500
+                .else
                 bne +
                 jmp LEC99
 +

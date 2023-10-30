@@ -305,7 +305,7 @@ LF61C:
                 sta $083E                    ; F62D= 8D 3E 08    .>.
                 pla                          ; F630= 68          h
                 .if version==350
-                jsr LE520
+                jsr mos.LE520
                 .else
                 lsr a                        ; F631= 4A          J
                 lsr a                        ; F632= 4A          J

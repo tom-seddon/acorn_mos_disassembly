@@ -6,6 +6,7 @@ Version=collections.namedtuple('Version','ver star_commands_table_addr')
 
 VERSIONS=[
     Version(ver="320",star_commands_table_addr=0x8368),
+    Version(ver="350",star_commands_table_addr=0x8137),
     Version(ver="400",star_commands_table_addr=0x8349),
     Version(ver="500",star_commands_table_addr=0x8383),
     Version(ver="510",star_commands_table_addr=0x83c0),
@@ -20,7 +21,9 @@ def main():
     vectors={}
     
     for version in VERSIONS:
-        with open('build/%s/all.orig'%version.ver,'rb') as f: data=f.read()
+        data=bytes()
+        with open('orig/%s/utils.rom'%version.ver,'rb') as f: data+=f.read()
+        with open('orig/%s/mos.rom'%version.ver,'rb') as f: data+=f.read()
 
         def byte(i): return data[i&0x7fff]
         def word(i): return byte(i)*256+byte(i+1)

@@ -8954,7 +8954,7 @@ handleFunctionKey:
                 pla
                 clc
                 adc input192To207Interpretation-8,y
-                .elif version>=500
+                .elsif version>=500
                 bne +
                 jmp LEC99
 +

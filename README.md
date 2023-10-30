@@ -46,13 +46,22 @@ theory, code can be added or removed fairly freely.
 
 # build
 
+This repo has submodules. Clone it with `--recursive`:
+
+    git clone --recursive https://github.com/tom-seddon/mos320
+	
+Alternatively, if you already cloned it non-recursively, you can do
+the following from inside the working copy:
+
+    git submodule init
+	git submodule update
+
 ## prerequisites ##
 
 Mandatory:
 
 * [`64tass`](http://tass64.sourceforge.net/) (I use r3120)
-* a Unix-type system with the usual Unix-type stuff (on Windows, you
-  should be good with WSL, cygwin, Git Bash, etc.)
+* Python 3.x
 
 Optional:
 

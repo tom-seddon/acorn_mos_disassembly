@@ -61,7 +61,7 @@ copyright:
                 .text "(C)1986 Acorn",0
                 .endif
                 .endif
-                
+
 ; STARTUP
 ; =======
 reset:                          ;8020
@@ -1999,7 +1999,7 @@ L9134:
 L9137:
                 ldx #$07
 L9139:
-                stz osfileParameterBlock+OSGBPBParameterBlock.address,x ; Addr=0, Num=0
+                stz @w osfileParameterBlock+OSGBPBParameterBlock.address,x ; Addr=0, Num=0
                 stz hazel.moveOSGBPB+1,x
                 dex
                 bpl L9139

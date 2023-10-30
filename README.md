@@ -60,16 +60,22 @@ the following from inside the working copy:
 
 Mandatory:
 
-* [`64tass`](http://tass64.sourceforge.net/) (I use r3120)
 * Python 3.x
 
-Optional:
+On Unix:
 
-* [`vbindiff`](https://www.cjmweb.net/vbindiff/)
+* [`64tass`](http://tass64.sourceforge.net/) (I use r3120)
+* GNU Make
+
+(Prebuilt Windows EXEs for 64tass and make are included in the repo.)
 
 ## build steps ##
 
-Type `make`.
+Type `make` from the root of the working copy.
+
+The build process is supposed to be silent when there are no errors,
+but some versions of make might print a load of stuff about entering
+and leaving the directory.
 
 ## build output
 

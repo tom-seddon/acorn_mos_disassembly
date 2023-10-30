@@ -2,12 +2,14 @@
 
 ifeq ($(OS),Windows_NT)
 PYTHON:=py -3
+TASSCMD:=bin\64tass.exe
 else
 PYTHON:=/usr/bin/python
+TASSCMD:=64tass
 endif
 SHELLCMD:=$(PYTHON) submodules/shellcmd.py/shellcmd.py
 MKDIR:=$(SHELLCMD) mkdir
-TASS:=64tass --m65c02 --nostart -Wall -q --case-sensitive --line-numbers --verbose-list
+TASS:=$(TASSCMD) --m65c02 --nostart -Wall -q --case-sensitive --line-numbers --verbose-list
 BUILD:=build
 
 ifeq ($(VERBOSE),1)
@@ -51,35 +53,3 @@ _test:
 .PHONY:clean
 clean:
 	$(_V)$(SHELLCMD) rm-tree $(BUILD)
-
-##########################################################################
-##########################################################################
-
-.PHONY:diff320
-diff320:
-	$(MAKE) _diff VERSION=320
-
-.PHONY:diff400
-diff400:
-	$(MAKE) _diff VERSION=400
-
-.PHONY:diff500
-diff500:
-	$(MAKE) _diff VERSION=500
-
-.PHONY:diff510
-diff510:
-	$(MAKE) _diff VERSION=510
-
-.PHONY:diff511
-diff511:
-	$(MAKE) _diff VERSION=511
-
-.PHONY:diffPC128S
-diffPC128S:
-	$(MAKE) _diff VERSION=PC128S
-
-.PHONY:_diff
-_diff: all
-	vbindiff $(BUILD)/$(VERSION)/all.orig $(BUILD)/$(VERSION)/all.new
-

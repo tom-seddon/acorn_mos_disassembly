@@ -63,6 +63,10 @@ version=320
 
 ;-------------------------------------------------------------------------
 
+                .section ext
+                .include "ext.s65"
+                .endsection
+
                 .section terminal
                 .include "terminal.s65"
                 .endsection
@@ -71,6 +75,3 @@ version=320
                 .include "mos.s65"
                 .endsection
 
-                .section ext
-                .include "ext.s65"
-                .endsection

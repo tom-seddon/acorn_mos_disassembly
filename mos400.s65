@@ -21,7 +21,6 @@ ext=terminal.ext
 plotMoveOrCopyRectangle=ext.plotMoveOrCopyRectangle
 plotEllipseOutline=ext.plotEllipseOutline
 plotSolidEllipse=ext.plotSolidEllipse
-L8D0F=terminal.L8D0F
                 
 ;-------------------------------------------------------------------------
 

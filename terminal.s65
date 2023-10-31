@@ -1,6 +1,11 @@
 ; -*- comment-column:45; -*-
 
 terminal: .block
+                .if version==350
+                ; temp bodges
+L8D0F=$8d0f
+                
+                .endif
 
                 .if version==320
                 

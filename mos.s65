@@ -12811,7 +12811,7 @@ LF849:
                 inc $b1
                 inc $b3
                 jsr selectTerminalROM
-                jsr L8D0F
+                jsr terminal.L8D0F
                 jsr selectROMA
 LF85D:
                 cpy $2ef

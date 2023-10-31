@@ -3,10 +3,14 @@
 mos: .block
                 .if version==350
 ; bodge space
-LF55D:
+LF55D=$f55d
 LE375=$e375
 scanROMs=$ffff
 osbyte77=$ffff
+osbyteA1=$ffff
+osbyteA2=$ffff
+osword0F=$ffff
+osbyte14=$ffff
                 .endif
 
 ; VDU driver entry block
@@ -7275,7 +7279,11 @@ isROMValid: .proc ;e3f7
 ; ===================
 LE40E:
                 sec                      ; Call Break Intercept Vector
+                .if version==350
+                jsr osbyte247EntryPointWithTST
+                .else
                 jsr osbyte247EntryPoint
+                .endif
                 ldx #romServiceCallInformReset
                 jsr makeROMServiceCall
                 ldy execFileHandle ; Get Exec handle, skip past if closed
@@ -9078,7 +9086,7 @@ handleFunctionKey:
                 tay
                 lda input192To207Interpretation-8,y
                 lsr a
-                .if version<500
+                .if version<500&&version!=350
                 beq LEB32
                 pla
                 clc
@@ -9116,18 +9124,22 @@ copyCharNotRecognised:
                 plx
 readFromInputBufferX:
                 jsr osbyte91          ;extract character from buffer X
-                .if version<500
+                .if version<500&&version!=350
                 bcs rtsEB28           ;taken if buffer empty
-                .elsif version>=500
+                .elsif version>=500||version==350
                 bcs LEC0D
                 tay
                 bne LEAC8
-                .if version>=511
+                .if version>=511||version==350
                 txa
                 and rs423InputInterpretationStatus
                 bne LEC29
                 .endif
+                .if version==350
+                jsr LEB75
+                .else
                 jsr osbyte91
+                .endif
 LEC0D:
                 bcs rtsEB28
                 tay
@@ -9145,7 +9157,7 @@ LEC15:
                 bra clc_rts_EABD
                 .endif
 
-                .if version>=511
+                .if version>=511||version==350
 LEC29:
                 tya
                 .endif
@@ -9199,7 +9211,7 @@ callNETV:
 readFromSoftKeyOrInputBufferA:
                 lda softKeyStringLength
                 beq readFromInputBufferX
-                .if version>=500
+                .if version>=500||version==350
                 inc a
                 bne LEC70
                 stz softKeyStringLength
@@ -9230,9 +9242,9 @@ rtsEB28:
 readCopyChar:
                 phx
                 jsr handleCopyKeyThunk
-                .if version<500
+                .if version<500&&version!=350
                 beq copyCharNotRecognised
-                .elsif version>=500
+                .else
                 bne +
                 jmp copyCharNotRecognised
 +
@@ -9242,7 +9254,7 @@ readCopyChar:
 rtsEB31:
                 rts
 
-                .if version>=500
+                .if version>=500||version==350
 LEC99:
                 pla
                 and #$0f
@@ -9302,7 +9314,19 @@ handleCopyKeyThunk:
 
 ;-------------------------------------------------------------------------
 
-                .if version<500
+                .if version==350
+LEB75:
+                jsr osbyte91
+                bcc LEB7E
+                bit $ff
+                bpl LEB75
+LEB7E:
+                rts
+                .endif
+                
+;-------------------------------------------------------------------------
+
+                .if version<500&&version!=350
                 .include "osbyte_osword_table.s65"
                 .endif
 
@@ -9331,6 +9355,11 @@ osbyte7C: ;EC56
                 clc
 osbyte7D: ;EC57
                 .if version<500
+                .if version==350
+                php
+                rol $ff
+                plp
+                .endif
                 ror $FF
                 bit tubePresence
                 bpl LECD9
@@ -9625,6 +9654,8 @@ LED14:
                 ldx #$f5
                 .elsif version==511
                 ldx #$f4
+                .elsif version==350
+                ldx #$fd
                 .endif
                 bra LECFD
 
@@ -9778,6 +9809,9 @@ osbyteUnused:                   ;ed84
                 .endif
                 rts
 
+;-------------------------------------------------------------------------
+
+                .if version!=350
 osbyteA1:
                 jsr withTerminalROM
                 .if version<510
@@ -9785,10 +9819,15 @@ osbyteA1:
                 .else
                 jmp terminal.L9DAA
                 .endif
+                .endif
 
+;-------------------------------------------------------------------------
+
+                .if version!=350
 osbyteA2:
                 jsr withTerminalROM
                 jmp terminal.writeCMOSByte
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -9808,6 +9847,7 @@ osbyte8C8D:
 selectMOSOrHAZEL:                                       ;edb0
                 and #ACCCON.Y   ;get just the HAZEL/MOS bit
                 bne tsbACCCON   ;branch taken if HAZEL at $c000
+selectMOS:
                 lda #ACCCON.Y
                 trb ACCCON      ;page in MOS at $c000
                 rts
@@ -9851,7 +9891,7 @@ LEDD0:
                 stz $ce
                 
                 .else
-                
+
                 eor #$8C                     ;A=0 if tape, A=1 if ROM
 selectROMOrTAPE:
                 asl a           ; Set CFS/RFS switch to 0=CFS or 2=RFS
@@ -9862,8 +9902,11 @@ selectROMOrTAPE:
 LEDCC:
                 cpx #$03                     ; EQ=TAPE 300, NE=TAPE 1200
                 bra LEDD6
-
+                
 LEDD0:
+                .if version==350
+                jsr callWithTST
+                .endif
                 jsr LEE64
                 jsr LF1EE
 LEDD6:
@@ -10042,14 +10085,18 @@ osbyte6B:                       ;ee9e
 ; OSBYTE &6C (108) - Select memory for direct access
 ; ==============================================
 osbyte6C:
-                ldy #ACCCON.X                     ; Y=&04 to change RAM bit
+                ldy #ACCCON.X                ; Y=&04 to change RAM bit
 LEEA4:
                 tya                          ; Clear RAM or 1MHz bit
                 trb ACCCON
                 txa                          ; If X=0, exit with normal RAM/1MHz selected
                 beq LEEB0
-                lda #ACCCON.X                 ; BUG! This should be TYA
-                tsb ACCCON                    ; Page in shadow RAM
+                .if version==350
+                tya
+                .else
+                lda #ACCCON.X                ; BUG! This should be TYA
+                .endif
+                tsb ACCCON                   ; Page in shadow RAM
 LEEB0:
                 rts                          ; X preserved, Y=&04 or &20
 
@@ -10080,7 +10127,7 @@ LEF2E:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=400
+                .if version>=350
 osword06: .osword06Macro
 LEF1B: .LEF1BMacro
                 .endif
@@ -10124,7 +10171,7 @@ LEF76:
                 
 ;-------------------------------------------------------------------------
 
-                .if version>=400
+                .if version>=350
 osword0E:
                 cmp #3
                 .if version<400
@@ -10138,7 +10185,7 @@ osword0E:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version>=500||version==350
 LEF85:
                 plp
                 pla
@@ -10171,10 +10218,10 @@ osbyteA6ToFF:
 osbyteOrUSERV:      ;call OSBYTE A6+ routine if C=0; call USERV if C=1
                 lda #$A6
                 adc #$00
-                .if version<400
+                .if version<350
 osbyte6BToA5:
                 sbc #$50        ;map $6b-$a5 to $1b-$56
-                .elsif version>=400
+                .elsif version>=350
 osbyte6BToA5:
                 sbc #$24
 LEFA9:
@@ -10199,6 +10246,9 @@ LEEE0:
                 lda $f4
                 pha
                 jsr selectTerminalROM
+                .elsif version==350
+                ldx $f4
+                jsr selectTerminalROM
                 .endif
                 lda osbyteAndOSWORDRoutineTable+1,y
                 sta SEIWKB
@@ -10207,6 +10257,10 @@ LEEE0:
                 .if version>=500
                 plx
                 jsr selectROMX
+                .elsif version==350
+                jsr selectROMX
+                and #$40
+                tax
                 .endif
                 lda originalA
                 ldy originalY
@@ -10215,11 +10269,15 @@ LEEE0:
                 lda ($F0)           ;fetch 0th byte of parameter block
 +
                 sec
+                .if version==350
+                jsr LF198
+                .else
                 ldx originalX
 
 ; on entry to the OSBYTE handlers, C=1, N/Z set as per X.
                 
                 jsr callSEIWKA
+                .endif
 LEEFA:
                 ror a                        ; EEFA= 6A          j
                 plp                          ; EEFB= 28          (
@@ -10232,7 +10290,7 @@ osbyte00To6A:
                 ldy #$00        ;Y=0 on entry for this lot
                 cmp #$1A        ;OSBYTE <=$19 is table-driven
                 bcc osbyteUseTable ;taken if OSBYTE $00-$19
-                .if version>=400
+                .if version>=350
                 cmp #$44
                 beq LEFA9
                 cmp #$45
@@ -10246,14 +10304,14 @@ handleUnrecognisedOSWORD:
                 pla
 handleUnrecognisedOSBYTEOrOSWORD:
                 jsr makeROMServiceCall
-                .if version<500
+                .if version<500&&version!=350
                 bne LEF15
                 .else
                 bne LEF85
                 .endif
                 ldx originalX
                 bra LEEFA
-                .if version<500
+                .if version<500&&version!=350
 LEF15:
                 plp
                 pla
@@ -10263,7 +10321,7 @@ LEF15:
 
 ;-------------------------------------------------------------------------
 
-                .if version<400
+                .if version<350
 LEF1B: .LEF1BMacro
                 .endif
 
@@ -10271,7 +10329,7 @@ LEF1B: .LEF1BMacro
 ;
 ; OSWORD 14 (&0E) Read CMOS clock [MasRef D.3-22]
 ;
-                .if version<400
+                .if version<350
 osword0E:
                 cmp #$03                   ;only codes 0/1/2 are valid
                 bcs handleUnrecognisedOSWORD
@@ -10298,7 +10356,7 @@ oswordEntryPoint:
                 bcs osbyteOrUSERV ;taken if OSWORD $E0 or higher -
                                   ;these go via USERV
 
-                .if version<400
+                .if version<350
                 cmp #16
                 bcs handleUnrecognisedOSBYTEOrOSWORD ;taken if unknown OSWORD
 
@@ -10344,7 +10402,7 @@ osword05:
 ; OSWORD 6 (&06) Write byte to I/O processor memory [MasRef D.3-9]
 ;
 
-                .if version<400
+                .if version<350
 osword06: .osword06Macro
                 .endif
 
@@ -10421,6 +10479,8 @@ osbyte00:                       ;ef6f
                 .endif
                 .elsif version==511
                 .text "MOS 5.11i"
+                .elsif version==350
+                .text "MOS 3.50"
                 .endif
                 .byte 0
 
@@ -10851,16 +10911,20 @@ osbyteA0:
 ; Reset key auto repeat settings to the defaults set in CMOS.
 ; 
 resetKeyRepeat:
+                .if version==350
+                jsr callWithTST
+resetKeyRepeatWithTST:
+                .endif
                 jsr withTerminalROM
-                .if version<500
+                .if version<500&&version!=350
                 jsr terminal.getDefaultKeyboardAutoRepeatDelay
                 sty keyboardAutoRepeatDelay
                 jsr terminal.getDefaultKeyboardAutoRepeatRate
-                .elsif version>=500
-                ldx #$0c
+                .else
+                ldx #$0c+cmosBytesOffset
                 jsr terminal.readRTCByte
                 sta keyboardAutoRepeatDelay
-                ldx #$0d
+                ldx #$0d+cmosBytesOffset
                 jsr terminal.readRTCByte
                 tay
                 .endif
@@ -11057,10 +11121,12 @@ callFSCV:
 ;
 ; OSWORD 15 (&0F) Write CMOS clock [MasRef D.3-24]
 ;
+                .if version!=350
 osword0F:
                 jsr withTerminalROM       ; Page in ROM 15
                 jmp terminal.osword0F
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 
 ; Set TAPE/ROM extended vectors
@@ -11116,10 +11182,12 @@ osbyte6D:;f20f
 ;
 ; MasRef D.2-24
 ; 
+                .if version!=350
 osbyte14:                       ;f21c
                 jsr withTerminalROM
                 jmp terminal.restoreFont32To126
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; OSBYTE 25 (&19) Restore a group of font definitions
@@ -11127,7 +11195,7 @@ osbyte14:                       ;f21c
 ; MasRef D.2-28
 ;
 osbyte19:                       ;f222
-                .if version>=511
+                .if version>=511||version==350
                 ldx #romServiceCallUnrecognisedOSBYTE
                 jsr makeROMServiceCall
                 beq LF2EB
@@ -11152,6 +11220,20 @@ osbyte17:                       ;f22c
 ; ========================================
                 dec romPollingSemaphore
                 rts
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+LF198:
+                dex
+                bpl LF19E
+                jsr LF316
+LF19E:
+                ldx originalX
+                jmp (SEIWKA)
+                .endif
+                
+;-------------------------------------------------------------------------
 
 ; OSBYTE &76 - Set LEDs to keyboard state
 ; =======================================
@@ -11452,7 +11534,7 @@ LF424o:
 ;
 
 implementShift:
-                .if version<500
+                .if version<500&&version!=350
                 
                 cmp #'0'
                 beq gotShiftedChar           ;taken if SHIFT+0 - no change
@@ -11478,7 +11560,7 @@ shiftNumber:
 gotShiftedChar:
                 rts                          ; F335= 60          `
 
-                .elsif version>=500
+                .else
 
                 ldx #2
                 bvc LF3C5
@@ -11491,6 +11573,9 @@ LF3C5:
                 cmp #'!'
                 bcc LF3E1
                 cmp #'@'
+                .if version==350
+                beq LF3E1
+                .endif
                 bcc LF3DF
                 cmp #$7f
                 beq LF3E1
@@ -11521,7 +11606,7 @@ LF3E9:
 ;
 ; 
 implementCTRLCodes:
-                .if version<500
+                .if version<500&&version!=350
                 
                 cmp #$7F                     ; F336= C9 7F       I.
                 beq gotCtrlChar
@@ -11536,7 +11621,7 @@ implementCTRLCodes:
 gotCtrlChar:
                 rts                          ; F348= 60          `
 
-                .elsif version>=500
+                .else
 
                 phx
                 ldx #2
@@ -11571,12 +11656,19 @@ LF40C:
 ;-------------------------------------------------------------------------
 
 osbyte247EntryPoint:
+                .if version==350
+                jsr callWithTST
+osbyte247EntryPointWithTST:
+                .endif
                 lda breakVectorByte0
                 eor #$4C                     ; JMP abs
                 bne rtsF363
-                .if version<500
+                .if version==350
+                jsr breakVectorByte0
+                jmp selectTerminalROM
+                .elsif version<500
                 jmp breakVectorByte0
-                .elsif version>=500
+                .else
                 lda $f4
                 pha
                 jsr breakVectorByte0
@@ -11665,6 +11757,15 @@ withTerminalROMReturnThunk:
 ; ROM is re-selected when withTerminalROM's caller itself returns.
 ;
 withTerminalROM:
+                .if version==350
+                jsr LF381
+                lda $f4
+                lda $109,x
+                lda #>(withTerminalROMReturnThunk-1)
+                sta $108,x
+                lda #<(withTerminalROMReturnThunk-1)
+                sta $107,x
+                .else
                 pha                          ; S=[A]
                 pha                          ; S=[A; A]
                 pha                          ; S=[A; A; A]
@@ -11684,7 +11785,7 @@ withTerminalROM:
                 sta $0107,x                  
                 lda #<withTerminalROMReturnThunk-1                
                 sta $0106,x
-                
+                .endif                
                 jsr selectTerminalROM      ; F3A6= 20 90 E5     .e
                 bra plx_pla_plp_rts
 
@@ -11695,6 +11796,16 @@ withTerminalROM:
 ; returns.
 ; 
 withMOSROM:
+                .if version==350
+                jsr LF381
+                lda #>(withMOSROMReturnThunk-1)
+                sta $108,x
+                lda #<(withMOSROMReturnThunk-1)
+                sta $107,x
+                lda ACCCON
+                sta $109,x
+                jsr selectMOS
+                .else
                 pha                          ; S=[A]
                 pha                          ; S=[A; A]
                 pha                          ; S=[A; A; A]
@@ -11716,7 +11827,9 @@ withMOSROM:
                 lda ACCCON                   ; get ACCCON
                 sta $0108,x                  ; overwrite RH
                 lda #ACCCON.Y
-                trb ACCCON                   ; HAZEL off
+                trb ACCCON
+                ; HAZEL off
+                .endif
 plx_pla_plp_rts:
                 ; S=[X; A; P; RL; RH; thunkRL; thunkRH; old ACCCON/ROMSEL]
                 plx                          ; F3D3= FA          z
@@ -11742,30 +11855,79 @@ returnThunkSuffix:
                 plp
                 rts
 
+;-------------------------------------------------------------------------
+
+                .if version==350
+callWithTST:
+                jsr LF381
+                lda SEIWKA
+                and #$bf
+                sta ACCCON
+                lda #<(withTSTReturnThunk-1)
+                sta $107,x
+                lda #>(withTSTReturnThunk-1)
+                sta $108,x
+                bra plx_pla_plp_rts
+
+withTSTReturnThunk:
+                pha
+                pha
+                phx
+                tsx
+                sei
+                lda ACCCON
+                ora #$40
+                jsr staSEIWKAAndACCCON
+                bra returnThunkSuffix
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+LF381:
+                pha
+                php
+                pha
+                phx
+                tsx
+                lda $106,x
+                pha
+                lda $105,x
+                pha
+                jsr LF392
+                dex
+LF392:
+                lda $108,x
+                sta $105,x
+                rts
+                .endif
+                
+;-------------------------------------------------------------------------
+
 vduChrEntryPoint:
-                jsr withMOSROM               ; F3EC= 20 AB F3     +s
-                ldx $F4                      ; F3EF= A6 F4       &t
-                phx                          ; F3F1= DA          Z
-                jsr selectTerminalROMAndANDY                    ; F3F2= 20 7F E5     .e
+                jsr withMOSROM
+                ldx $F4
+                phx
+                jsr selectTerminalROMAndANDY
                 jsr outputToVDU
-                plx                          ; F3F8= FA          z
-                jmp selectROMX                    ; F3F9= 4C 81 E5    L.e
+                plx
+                jmp selectROMX
 
 ;-------------------------------------------------------------------------
 ;
 ; OSRDSC [MasRef D.6-1]
-; 
+;
 osrdscEntryPoint:
-                jsr withMOSROM               ; F3FC= 20 AB F3     +s
-                jmp LC018                    ; F3FF= 4C 18 C0    L.@
+                jsr withMOSROM
+                jmp LC018
 
 ;-------------------------------------------------------------------------
 ;
 ; OSWRSC [MasRef D.8-1]
-; 
+;
 oswrscEntryPoint:
-                jsr withMOSROM               ; F402= 20 AB F3     +s
-                jmp oswrscCode                    ; F405= 4C 5F DB    L_[
+                jsr withMOSROM
+                jmp oswrscCode
 
 ;-------------------------------------------------------------------------
 
@@ -11803,6 +11965,37 @@ LF55D:
 
                 .endif
 
+;-------------------------------------------------------------------------
+
+                .if version==350
+LF3DC:
+                jsr selectExtROM
+                phy
+                jsr LF55D
+                bra selectOldROM
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+LF3C5_350:
+                jsr selectExtROM
+                phy
+                jsr LF416
+selectOldROM:
+                pla
+                jmp selectROMA
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+selectExtROM:
+                ldy $f4
+                lda #extROM
+                jmp selectROMA
+                .endif
+                
 ;-------------------------------------------------------------------------
 
 LF6FC:
@@ -11958,9 +12151,9 @@ resetKeyboardStatusAndTimer:
                 sta keyboardStatusByte
                 stz autoRepeatCountdownTimer
 braRolloverChecks:
-                .if version<500
+                .if version<500&&version!=350
                 bra keyboardRolloverChecks
-                .elsif version>=500
+                .else
                 jmp keyboardRolloverChecks
                 .endif
 

@@ -9028,6 +9028,7 @@ isLetter: .proc                 ;EA71
 insertCharacterIntoKeyboardBuffer:
                 .if version==350
                 jsr callWithTST
+insertCharacterIntoKeyboardBufferWithTST:
                 .endif
                 ldx #$00                     
 osbyte99:
@@ -12159,7 +12160,7 @@ braRolloverChecks:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=511
+                .if version>=511||version==350
 LF5E5_511:
                 bit keyboardTranslationTableAddress+1
                 bmi getASCIICode
@@ -12179,10 +12180,10 @@ LF5FC:
                 bmi braRolloverChecks
                 lda keyboardTranslationTableAddress+0
                 bit keyboardTranslationTableAddress+1
-                .if version>=511
-                jmp LF6A8
+                .if version==350
+                jmp LF545
                 .else
-                jmp LF6A7
+                jmp LF6A8
                 .endif
 
 LF607:
@@ -12216,9 +12217,9 @@ LF5EF:
                 .endif
                 beq handleTAB                ;taken if TAB
                 cmp #$9D                     ;was it key_numpad_return?
-                .if version<500
+                .if version<500&&version!=350
                 bne handleKey                ;taken if not
-                .elsif version>=500
+                .else
                 bne LF5FD
                 .endif
                 
@@ -12256,19 +12257,25 @@ LF61F:
                 cmp #$90
                 bcc handleKey
                 clv
+                .elsif version==350
+LF5FD:
+                bit valueFF
+                cmp #$90
+                bcc handleKey
+                clv
                 .endif
 handleKey:
                 cmp #$A0                     ;numpad key?
                 bcc processModifiers         ;taken if not
 getNumpadASCIICode:
-                .if version>=500
+                .if version>=500||version==350
                 php
                 .endif
                 ; C=1 at this point
                 sbc #'0'+1      ;+1 to compensate for C=1 in the next
                                 ;addition
                 adc numericKeypadInterpretation ;form actual ASCII value
-                .if version>=500
+                .if version>=500||version==350
                 plp
                 .endif
                 eor #$80                     ;clear bit 7
@@ -12282,7 +12289,7 @@ processModifiers:
                 bpl testShiftLock           ;taken if ctrl not pressed
                 ldx firstKeyPressedInternal
 localResetAutoRepeatAndContinue:
-                .if version<500
+                .if version<500&&version!=350
                 bne resetAutoRepeatAndContinue
                 jsr implementCTRLCodes
                 .else
@@ -12321,8 +12328,28 @@ testEscape:
                 stz autoRepeatCountdownTimer
 
 LF839:
+
+                .if version==350
+
+                tay
+                bvc LF54A
+                bne LF555
+LF54A:
+                tya
+                beq LF54F
+                bpl LF555
+LF54F:
+                jsr LF6D3
+                bcc LF55D
+                tay
+LF555:
+                lda keyboardStatus
+                bne LF55D_350
+                jsr insertCharacterIntoKeyboardBufferWithTST
+LF55D_350:
+                jsr enableKeyboardScanningFlippingInterrupts
                 
-                .if version<500
+                .elsif version<500
                 
                 tay
                 jsr enableKeyboardScanningFlippingInterrupts
@@ -12470,7 +12497,11 @@ resetAutoRepeatCounters:
 ;
 ; Preserves: A/C
 ; 
-interrogateKeyboard: .proc
+interrogateKeyboard:
+                .if version==350
+                jsr callWithTST
+interrogateKeyboardWithTST:
+                .endif
                 ldy #$03                     ;write to keyboard
                 sty systemVIA.orb
                 ldy #$7F
@@ -12479,7 +12510,6 @@ interrogateKeyboard: .proc
                 nop
                 ldx systemVIA.iraNoHandshake ;read key state
                 rts
-                .pend
 
 ; Default keyboard table
 ; ======================
@@ -12636,6 +12666,10 @@ osbyte78:                          ;f90b
 ; MasRef D.2-36
 ; 
 osbyte7A:
+                .if version==350
+                jsr callWithTST
+osbyte7AWithTST:
+                .endif
                 ldx #$10
                 clv
                 sec
@@ -12996,22 +13030,46 @@ osword11:
                 jsr withTerminalROM
                 jmp terminal.L8E2E
                 .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+LF6D3:
+                pha
+                ldx #0
+                clv
+                sec
+                jsr countBufferViaCNPV
+                tya
+                bne LF6E2
+                cpx #bufferFirstOutput
+                bcc LF6EC
+LF6E2:
+                ldy keyboardStatus
+                clc
+                bne LF6EC
+                jsr insertCharacterIntoKeyboardBufferWithTST
+                sec
+LF6EC:
+                pla
+                rts
+                .endif
                 
 ;-------------------------------------------------------------------------
 ;
 ; OSBPUT [AUG p339]
-; 
+;
 osbputEntryPoint:
-                jsr selectFSForHandle                    ; F9B2= 20 97 FA     .z
-                jmp (BPUTV)                  ; F9B5= 6C 18 02    l..
+                jsr selectFSForHandle
+                jmp (BPUTV)
 
 ;-------------------------------------------------------------------------
 ;
 ; OSBGET [AUG p338]
-; 
+;
 osbgetEntryPoint:
-                jsr selectFSForHandle                    ; F9B8= 20 97 FA     .z
-                jmp (BGETV)                  ; F9BB= 6C 16 02    l..
+                jsr selectFSForHandle
+                jmp (BGETV)
 
 ;-------------------------------------------------------------------------
 ;
@@ -13020,7 +13078,7 @@ osbgetEntryPoint:
 osgbpbEntryPoint: .proc
                 cmp #gbpbGetMediaMetadata
                 bcs nonFileOperation
-                cmp #$00                     ; F9C2= C9 00       I.
+                cmp #$00
                 beq nonFileOperation
 
                 ; Handle OSGBPB call that's an operation on a file

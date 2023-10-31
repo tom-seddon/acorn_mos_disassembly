@@ -1,0 +1,52 @@
+dummy_rom_header: .block
+                rts
+                .byte 0,0
+                rts
+                .byte 0,0
+                .byte 2
+                .byte copyright-dummy_rom_header
+                .byte $ff
+                .text "R"
+ram_or_rom_char:
+                .text "A"
+                .text "M"
+copyright:
+                .byte 0
+                .text "(C)"
+                .endblock
+
+LF87C:
+                jsr selectROMX
+                ldy #size(dummy_rom_header)-1
+LF881:
+                lda dummy_rom_header,y
+                sta $8000,y
+                dey
+                bpl LF881
+                bit $2ee
+                bvs LF894
+                lda #'O'
+                sta $8000+(dummy_rom_header.ram_or_rom_char-dummy_rom_header)
+LF894:
+                stx $8001
+                jmp selectTerminalROM
+
+;-------------------------------------------------------------------------
+
+LF89A:
+                jsr selectROMX
+                lda $8008
+                tay
+                eor #$ff
+                sei
+                sta $8008
+                cmp $8008
+                sty $8008
+                cli
+                beq LF8B1
+                clc
+LF8B1:
+                jmp selectTerminalROM
+
+;-------------------------------------------------------------------------
+

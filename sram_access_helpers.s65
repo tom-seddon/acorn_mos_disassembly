@@ -1,0 +1,63 @@
+LF846:
+                jsr selectROMA
+LF7A4:
+                lda ($b0),y
+                sta ($b2),y
+                jsr LF7F0
+                bne LF7A4
+                lda 1,x
+                cmp osfileParameterBlock+3
+                bne LF7A4
+                jmp selectTerminalROM
+
+;-------------------------------------------------------------------------
+
+LF7B7:
+                jsr selectROMA
+LF7BA:
+                lda tube.data3
+                sta ($b2),y
+                jsr LF800
+                jsr LF7F0
+                bne LF7BA
+                lda 1,x
+                cmp osfileParameterBlock+3
+                bne LF7BA
+                jmp selectTerminalROM
+
+;-------------------------------------------------------------------------
+
+LF7D1:
+                bit osfileParameterBlock+1
+                bmi LF7B7
+                jsr selectROMA
+LF7D9:
+                lda ($b0),y
+                sta tube.data3
+                jsr LF800
+                jsr LF7F0
+                bne LF7D9
+                lda 1,x
+                cmp osfileParameterBlock+3
+                bne LF7D9
+                jmp selectTerminalROM
+
+;-------------------------------------------------------------------------
+
+LF7F0:
+                iny
+                bne LF800
+                inc $b1
+                inc $b3
+                jsr selectTerminalROM
+                jsr L8D0F
+                jsr selectROMA
+
+;-------------------------------------------------------------------------
+
+LF800:
+                cpy osfileParameterBlock+2
+LF803:
+                ; the dummy ROM header's first byte is the RTS for
+                ; this routine...
+                .cerror *!=dummy_rom_header

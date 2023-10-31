@@ -12770,82 +12770,13 @@ LF9AD:
 ;-------------------------------------------------------------------------
 
                 .if version==400
-LF846:
-                jsr selectROMA
-LF7A4:
-                lda ($b0),y
-                sta ($b2),y
-                jsr LF7F0
-                bne LF7A4
-                lda 1,x
-                cmp osfileParameterBlock+3
-                bne LF7A4
-                jmp selectTerminalROM
-                .endif
-
-;-------------------------------------------------------------------------
-
-                .if version==400
-LF7B7:
-                jsr selectROMA
-LF7BA:
-                lda tube.data3
-                sta ($b2),y
-                jsr LF800
-                jsr LF7F0
-                bne LF7BA
-                lda 1,x
-                cmp osfileParameterBlock+3
-                bne LF7BA
-                jmp selectTerminalROM
-                .endif
-
-;-------------------------------------------------------------------------
-
-                .if version==400
-LF7D1:
-                bit osfileParameterBlock+1
-                bmi LF7B7
-                jsr selectROMA
-LF7D9:
-                lda ($b0),y
-                sta tube.data3
-                jsr LF800
-                jsr LF7F0
-                bne LF7D9
-                lda 1,x
-                cmp osfileParameterBlock+3
-                bne LF7D9
-                jmp selectTerminalROM
-                .endif
-
-;-------------------------------------------------------------------------
-
-                .if version==400
-LF7F0:
-                iny
-                bne LF800
-                inc $b1
-                inc $b3
-                jsr selectTerminalROM
-                jsr terminal.L8D0F
-                jsr selectROMA
-                .endif
-
-;-------------------------------------------------------------------------
-
-                .if version==400
-LF800:
-                cpy osfileParameterBlock+2
-LF803:
-                ; the dummy ROM header's first byte is the RTS for
-                ; this routine...
-                .cerror *!=dummy_rom_header
+                .include "sram_access_helpers.s65"
                 .endif
                 
 ;-------------------------------------------------------------------------
 
                 .if version>=500
+                ; dup of what's called LF6D3 in MOS 3.50
 LF82B:
                 pha
                 ldx #0
@@ -12880,7 +12811,7 @@ LF849:
                 inc $b1
                 inc $b3
                 jsr selectTerminalROM
-                jsr terminal.L8D0F
+                jsr L8D0F
                 jsr selectROMA
 LF85D:
                 cpy $2ef
@@ -12895,57 +12826,7 @@ LF85D:
 ;-------------------------------------------------------------------------
 
                 .if version>=400
-dummy_rom_header: .block
-                rts
-                .byte 0,0
-                rts
-                .byte 0,0
-                .byte 2
-                .byte copyright-dummy_rom_header
-                .byte $ff
-                .text "R"
-ram_or_rom_char:
-                .text "A"
-                .text "M"
-copyright:
-                .byte 0
-                .text "(C)"
-                .endblock
-
-LF87C:
-                jsr selectROMX
-                ldy #size(dummy_rom_header)-1
-LF881:
-                lda dummy_rom_header,y
-                sta $8000,y
-                dey
-                bpl LF881
-                bit $2ee
-                bvs LF894
-                lda #'O'
-                sta $8000+(dummy_rom_header.ram_or_rom_char-dummy_rom_header)
-LF894:
-                stx $8001
-                jmp selectTerminalROM
-                .endif
-
-;-------------------------------------------------------------------------
-
-                .if version>=400
-LF89A:
-                jsr selectROMX
-                lda $8008
-                tay
-                eor #$ff
-                sei
-                sta $8008
-                cmp $8008
-                sty $8008
-                cli
-                beq LF8B1
-                clc
-LF8B1:
-                jmp selectTerminalROM
+                .include "sram_access_helpers_2.s65"
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -12977,11 +12858,10 @@ LF8BE:
                 bcs LF8B4
                 jmp selectTerminalROM
                 .endif
-
+                
 ;-------------------------------------------------------------------------
 
-                .if version>=500
-LF8D1:
+LF8D1Macro: .macro
                 lda $02ee
                 cmp #$a0
                 bne LF8B1
@@ -12993,10 +12873,10 @@ LF8D1:
                 lda $8006
                 sta romInformationTable,x
                 bra LF8B1
-                .endif
-
-                .if version==400
-LF8D1:
+                .endmacro
+                
+                .if version>=500
+LF8D1: .LF8D1Macro
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -13034,6 +12914,7 @@ osword11:
 ;-------------------------------------------------------------------------
 
                 .if version==350
+                ; dup of what's called LF82B in MOS 5.00+
 LF6D3:
                 pha
                 ldx #0
@@ -13658,6 +13539,14 @@ badCommandError:
                 .byte 254
                 .text "Bad command"
                 brk
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+                .include "sram_access_helpers.s65"
+                .include "sram_access_helpers_2.s65"
+LF8D1: .LF8D1Macro
+                .endif
 
 ;-------------------------------------------------------------------------
 

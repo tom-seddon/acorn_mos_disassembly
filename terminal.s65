@@ -3,7 +3,7 @@
 terminal: .block
                 .if version==350
                 ; temp bodges
-L8D0F=$8d0f
+;L8D0F=$8d0f
                 
                 .endif
 
@@ -893,9 +893,9 @@ mosCommandTable:
                 .mos_command "BASIC",starBASIC,$00,$00  ;
                 .mos_command "BUILD",starBUILD,$80,$00  ; XY=>parameters
                 .mos_command "CLOSE",starCLOSE,$00,$FF  ;
-                .if version<500
+                .if version<500&&version!=350
                 .mos_command "CONFIGURE",starCONFIGURE,$00,$FF ;
-                .elsif version>=500
+                .else
                 .mos_command "CONFIGURE",starCONFIGUREOrStarSTATUS,$00,$80 ;
                 .endif
                 .mos_command "CODE",starCommandThroughOSBYTE,$00,$88 ; X,y=parameters, OSBYTE &88
@@ -944,9 +944,9 @@ mosCommandTable:
                 .mos_command "SRSAVE",starSRLOADOrStarSRSAVE,$80,$20
                 .mos_command "SRWRITE",starSRREADOrStarSRWRITE,$00,$e0
                 .endif
-                .if version<500
+                .if version<500&&version!=350
                 .mos_command "STATUS",starSTATUS,$00,$FF  ;
-                .elsif version>=500
+                .else
                 .mos_command "STATUS",starCONFIGUREOrStarSTATUS,$00,$c0
                 .endif
                 .if version<400
@@ -1464,9 +1464,9 @@ starUNPLUG:
 starINSERTOrStarUNPLUG:
                 php
                 jsr mos.skipSpacesAndCheckForCRInStringInput
-                .if version<500
+                .if version<500&&version!=350
                 jsr parseSingle4BitNumberFromCommandLine
-                .elsif version>=500
+                .else
                 jsr L8953
                 .endif
                 tay                          ;Y=ROM number
@@ -1508,7 +1508,10 @@ L8752:
 
 ;-------------------------------------------------------------------------
 
-                .if version<400
+                .if version==350
+                .include "configure500.s65"
+                .include "sram_utils.s65"
+                .elsif version<400
                 .include "configure320.s65"
                 .elsif version<500
                 .include "sram_utils.s65"

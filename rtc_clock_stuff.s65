@@ -1,0 +1,660 @@
+                .if version<500
+; Day string not matched
+; ----------------------
+nextDayString:
+                pla                          ; Drop number of characters matched
+                pla                          ; Get offset to string table
+                ply                          ; Get start of supplied string
+                clc                          ; Step to next string table entry
+                adc #$04
+                cmp #size(dayOfWeekStrings) ; If not checked 28/4=7 entries, keep looking
+                bcc checkDayString
+                rts                          ; Otherwise exit silently
+
+; Month string not matched
+; ------------------------
+nextMonthString:
+                pla                          ; Drop number of characters matched
+                pla                          ; Get offset to string table
+                ply                          ; Get start of supplied string
+                clc                          ; Step to next string table entry
+                adc #$04
+                cmp #size(monthStrings) ; If not checked 48/4=12 entries, keep looking
+                bcc checkMonthString
+rts9655:
+                rts                          ; Otherwise exit silently
+
+;-------------------------------------------------------------------------
+;
+; OSWORD 15 (&0F) Write CMOS clock [MasRef D.3-24]
+; 
+osword0F:
+                stz osfileParameterBlock     ;got no time, got no date
+                eor #15                     ; len=15, set date
+                beq setDate
+                eor #15^8
+                beq setTime
+                eor #(15^8)^23
+                bne rts9655
+
+; Set date and set date+time
+; --------------------------
+; (&F0),1=>"Day,00 Mon 0000"
+; (&F0),1=>"Day,00 Mon 0000.00:00:00"
+; A=0, Y=0
+setDate:
+                iny                          ; Point to supplied data
+; Translate day string into day number
+checkDayString:
+                phy                          ; Push pointer to data string
+                pha                          ; Push offset to match strings
+                tax                          ; X=>match strings
+                lda #$03                     ; A=3 characters to match
+checkDayStringLoop:
+                pha                          ; Save number of characters to match
+                lda (originalX),y      ; Get character from string
+                eor dayOfWeekStrings,x ; Compare with day string table
+                and #$DF                     ; Force to upper case
+                bne nextDayString  ; No match step to check next entry
+                inx                          ; Step to next character to match
+                iny                          ; Step to next data character
+                pla                          ; Get character count back
+                dec a                        ; Decrement and loop until 3 characters matched
+                bne checkDayStringLoop
+                lda dayOfWeekStrings,x ; Get translation byte from string table
+                sta osfileParameterBlock+1+RTC.dayOfWeek ; Store it in workspace
+; Translates Sun,Mon,Tue,etc to &01,&02,&03,etc
+                plx                          ; Drop char count and table offset
+                plx
+                lda ($F0),y                  ; Get next character
+                cmp #','                     ; Not followed by a comma, so exit silently
+                bne rts9655
+                ldx #$07                     ; Get day of month
+                jsr readDecimalBCDByte
+                bcc rts9655                    ; Bad number, exit silently
+                iny                          ; Get next character
+                lda ($F0),y
+                eor #' '                     ; Not space, exit silently
+                bne rts9655
+                iny                          ; Step to first character of month
+; Translate month string into month number
+; This could use the same code as the Day translation
+checkMonthString:
+                phy                          ; Push pointer to data string
+                pha                          ; Push offset to match strings
+                tax                          ; X=>match strings
+                lda #$03                     ; A=3 characters to match
+checkMonthStringLoop:
+                pha
+                lda (originalX),y
+                eor monthStrings,x
+                and #$DF
+                bne nextMonthString
+                inx
+                iny
+                pla
+                dec a
+                bne checkMonthStringLoop
+                lda monthStrings,x
+                sta osfileParameterBlock+1+RTC.month
+; Translates Jan,Feb,Mar,etc to &01,&02,&03,etc..&09,&10,&11,&12
+                plx                          ; Drop char count and table offset
+                plx
+                lda ($F0),y                  ; Get next character
+                cmp #' '                     ; Not followed by space, exit silently
+                bne rts9655
+                ldx #RTC.year
+                jsr readDecimalBCDByte
+                bcc rts9655                    ; Bad number, exit silently
+                jsr readDecimalBCDByte                    ; Get year number
+                bcc rts9655                    ; Bad number, exit silently
+                ror osfileParameterBlock+0     ;got date
+                lda (originalX)        ; Get data length
+                cmp #$0F                     ; len=15, jump to just set date
+                beq setRTCDate
+; Must be len=24 to set date+time
+                iny                          ; Get next character
+                lda (originalX),y
+                cmp #'.'                     ; If not full stop, exit silently
+                bne rts9753
+
+setTime:
+                ldx #RTC.hours
+                jsr readDecimalBCDByte
+                bcc rts9753
+                iny        
+                lda (originalX),y
+                cmp #':'
+                bne rts9753
+                ldx #RTC.minutes
+                jsr readDecimalBCDByte
+                bcc rts9753           
+                iny                   
+                lda (originalX),y     
+                cmp #':'
+                bne rts9753
+                ldx #RTC.seconds
+                jsr readDecimalBCDByte
+                bcc rts9753
+                lda #$40
+                tsb osfileParameterBlock+0   ;got time
+setRTCDate:
+                cli
+                sei
+                ldy #RTC.b.set|RTC.b._24h|RTC.b.dse
+                ldx #RTC.b
+                jsr writeRTCByte
+                bit osfileParameterBlock+0 ;N=1 if got date; V=1 if got time
+                bpl setRTCTime ;taken if not got date - must then have time
+                ldx #$06
+-
+                ldy osfileParameterBlock+1,x
+                jsr writeRTCByte
+                inx
+                cpx #RTC.a
+                bcc -
+                bvc finishRTCUpdate                    ;taken if not got date
+setRTCTime:
+                ldx #RTC.seconds
+-
+                ldy osfileParameterBlock+1,x
+                jsr writeRTCByte
+                inx
+                cpx #RTC.dayOfWeek
+                bcc -
+finishRTCUpdate:
+                ldx #RTC.b
+                ldy #RTC.b._24h
+                jmp writeRTCByte
+
+readDecimalBCDByte:
+                jsr readDecimalDigit
+                eor #$20         ;check for ' '
+                beq +        ;taken if leading space - that's fine
+                eor #$20         ;reinstate old value
+                bcc rts9753      ;taken if non-space non-digits
++
+                sta osfileParameterBlock+1,x
+                jsr readDecimalDigit
+                bcc rts9753                  ;taken if invalid digit
+
+                ; rotate new digit into place
+                phy
+                ldy #$04
+                asl a
+                asl a
+                asl a
+                asl a
+-
+                asl a
+                rol osfileParameterBlock+1,x
+                dey
+                bne -
+                ply
+                sec
+rts9753:
+                rts
+
+readDecimalDigit:
+                iny
+                lda (originalX),y
+                cmp #'9'+1
+                bcs notDecimalDigit
+                cmp #'0'
+                bcc notDecimalDigit
+                and #$0F
+                rts     
+
+notDecimalDigit:
+                clc
+                rts
+                .endif
+                
+;-------------------------------------------------------------------------
+
+; TODO - is this necessary?
+;
+; There's a reference to dayOfWeekStrings-4, but that seems to be
+; because days are 1-based. The data here is presumably never
+; accesssed.
+                .text "   ",0
+
+;-------------------------------------------------------------------------
+
+dayOfWeekStrings: .block
+                .text "Sun",$01
+                .text "Mon",$02
+                .text "Tue",$03
+                .text "Wed",$04
+                .text "Thu",$05
+                .text "Fri",$06
+                .text "Sat",$07
+                .endblock
+                
+;-------------------------------------------------------------------------
+
+monthStrings: .block
+                .text "Jan",$01
+                .text "Feb",$02
+                .text "Mar",$03
+                .text "Apr",$04
+                .text "May",$05
+                .text "Jun",$06
+                .text "Jul",$07
+                .text "Aug",$08
+                .text "Sep",$09
+                .text "Oct",$10
+                .text "Nov",$11
+                .text "Dec",$12
+                .endblock
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+L986C:
+                .byte $99
+                .byte $12
+                .byte $31
+                .byte $06
+                .byte $23
+                .byte $59
+                .byte $59
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version>=500
+osword0F:
+                ldx #romServiceCallUnrecognisedOSWORD
+                jmp mos.makeROMServiceCall
+                .endif
+                
+;-------------------------------------------------------------------------
+;
+; OSWORD 14 (&0E) Read CMOS clock [MasRef D.3-22]
+; 
+
+osword0E:
+                .if version<500
+                pha                          ;save reason code
+                eor #$02                     ;
+                bne readClock
+                .else
+                cmp #2
+                beq L98A8
+                pha
+                lda originalX
+                pha
+                lda originalY
+                pha
+                ldx #romServiceCallUnrecognisedOSWORD
+                jsr mos.makeROMServiceCall
+                cmp #1
+                pla
+                sta originalY
+                pla
+                sta originalX
+                bcc L98B0
+                ldy #7
+                pla
+                pha
+                beq L9899
+                dey
+L9899:
+                ldx #7
+L989B:
+                lda L986C-1,x
+                sta (originalX),y
+                dey
+                dex
+                bne L989B
+                pla
+                dec a
+                beq L98AF
+L98A8:
+                ldx #romServiceCallUnrecognisedOSWORD
+                jsr mos.makeROMServiceCall
+                bne L98B2
+L98AF:
+                pha
+L98B0:
+                pla
+                rts
+
+L98B2:
+                .endif
+                
+                ; Convert given time to string. Fill out the RTC temp
+                ; data with the info from the parameter block, then
+                ; pass on to the common code.
+                ldy #$07
+
+                ; Copy hours, mins, secs.
+                ldx #$00
+-
+                lda ($F0),y
+                sta osfileParameterBlock+1,x
+                dey
+                inx
+                inx
+                cpx #$06
+                bcc -
+
+                ; Copy day of week, day of month, month, year.
+-
+                lda (originalX),y
+                sta osfileParameterBlock+1,x
+                inx
+                dey
+                bne -
+
+                .if version<500
+                bra maybeConvertToString ; (called from here, there's no maybe about it)
+
+readClock:
+                lda originalX
+                pha
+                lda originalY
+                pha
+readRTCClock:
+                ldx #RTC.c
+                jsr readRTCByte ;clear the various IRQ flags with a read of register C
+                ldx #RTC.year
+-
+                jsr readRTCByte
+                sta osfileParameterBlock+1,x
+                dex
+                bpl -
+                ldx #RTC.a
+                jsr readRTCByte
+                bpl L97F5 ;taken if update not in progress - result is good
+retryReadRTCClock:
+                cli
+                sei
+                bra readRTCClock
+
+L97F5:
+                ldx #RTC.c
+                jsr readRTCByte
+                and #RTC.c.uf
+                bne retryReadRTCClock
+                pla         
+                sta originalY
+                pla         
+                sta originalX
+maybeConvertToString:
+                pla                          ;get reason code
+                dec a                        
+                bne convertTimeToString                    ;taken if 0 or 2
+                
+                ; Copy year, month, day of month, day of week.
+                ldy #$00                     ; 9808= A0 00        .
+                ldx #RTC.year
+-
+                lda osfileParameterBlock+1,x
+                sta (originalX),y
+                iny
+                dex
+                cpx #RTC.dayOfWeek
+                bcs -
+
+                ; Copy hours, minutes, seconds.
+-
+                lda osfileParameterBlock,x          
+                sta (originalX),y            
+                iny                          
+                dex                          
+                dex                          
+                bpl -
+                rts                          
+
+                .endif
+
+convertTimeToString:
+                ; Store terminating CR.
+                ldy #ClockStringFormat.cr
+                lda #13
+                sta (originalX),y
+                ldx #$00
+                dey                          ; 982A= 88          .
+                jsr storeRTCDataByteString
+                lda #':'
+                sta (originalX),y
+                ldy #ClockStringFormat.hh+2
+                sta (originalX),y
+                ldx #RTC.minutes
+                ldy #ClockStringFormat.mm+1
+                jsr storeRTCDataByteString
+                ldx #RTC.hours
+                ldy #ClockStringFormat.hh+1
+                jsr storeRTCDataByteString
+                lda #'.'
+                sta (originalX),y
+                lda osfileParameterBlock+1+RTC.dayOfWeek;
+                asl a           
+                asl a           
+                ldy #$00        
+                tax             
+-
+                lda dayOfWeekStrings-4,x     ;-4 as 1=Sunday
+                sta (originalX),y
+                inx
+                iny
+                cpy #$03
+                bcc -
+                lda #','
+                sta (originalX),y
+                lda osfileParameterBlock+1+RTC.month
+                cmp #$10
+                bcc +
+                sbc #$06            ;convert $10, $11 and $12 from BCD
++
+                dec a                        ;make month 0-based
+                asl a
+                asl a
+                tax
+                ldy #ClockStringFormat.mmm
+-
+                lda monthStrings,x
+                sta ($F0),y                  ; 9871= 91 F0       .p
+                inx                          ; 9873= E8          h
+                iny                          ; 9874= C8          H
+                cpy #ClockStringFormat.mmm+3
+                bcc -
+                ldx #RTC.year
+                ldy #ClockStringFormat.yyyy+3
+                jsr storeRTCDataByteString
+                lda #$19                     ;it's always 19xx... right?
+                jsr storeBCDByteString
+                lda #$20                     
+                sta ($F0),y                  
+                ldy #ClockStringFormat.nn+2
+                sta ($F0),y                  
+                dey                          
+                ldx #RTC.dayOfMonth
+storeRTCDataByteString:
+                lda osfileParameterBlock+1,x
+storeBCDByteString:
+                pha
+                jsr storeNybbleString
+                pla
+                .if version==350
+                jsr mos.LE520
+                .else
+                lsr a
+                lsr a
+                lsr a
+                lsr a
+                .endif
+storeNybbleString:
+                and #$0F
+                ora #'0'
+                cmp #'9'+1
+                bcc +
+                adc #('A'-'9'-1)-1           ;(-1 because C set)
++
+                sta (originalX),y
+                dey
+                rts
+
+;-------------------------------------------------------------------------
+
+                .if version<500
+readDefaults2:
+                .if version==350
+                jsr mos.callWithTST
+readDefaults2WithTST:
+                .endif
+                ldx #CMOSBytes.defaults2+cmosBytesOffset
+                bra readRTCByte
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version<500
+readDefaults3:
+                .if version==350
+                jsr mos.callWithTST
+readDefaults3WithTST:
+                .endif
+                ldx #CMOSBytes.defaults3+cmosBytesOffset
+                bra readRTCByte
+                .endif
+
+;-------------------------------------------------------------------------
+;
+; Read byte from RTC, either by 0-based CMOS RAM offset (readCMOSByte)
+; or by RTC register index (readRTCByte).
+;
+; entry:
+;
+; X = address to read from
+;
+; exit:
+;
+; A = byte read
+;
+; N,Z = set as per byte read
+;
+                .if version<500
+readCMOSByte:
+                jsr getRTCAddressForCMOSByte
+                .if version==350
+                bcc readRTCByteWithTST
+                rts
+                .else
+                bcs rts98DB                  ;taken if invalid address
+                .endif
+readRTCByte:
+                .if version==350
+                jsr mos.callWithTST
+readRTCByteWithTST:
+                .endif
+                php
+                sei
+                jsr setRTCAddress
+                lda #$49
+                sta systemVIA.orb
+                stz systemVIA.ddra
+                lda #$4A
+                sta systemVIA.orb
+                ldy systemVIA.iraNoHandshake ;read value
+deselectRTC:
+                lda #$42
+                sta systemVIA.orb            ;RTC AS=0 CS=1 DS=0 R=0
+                lda #$02
+                sta systemVIA.orb            ;RTC AS=0 CS=0 DS=0 R=0
+                stz systemVIA.ddra           ;all bits inputs
+                plp
+                tya
+rts98DB:
+                rts
+                .elsif version>=500
+readCMOSByte=$9daa
+                .warn "readCMOSByte... wtf"
+                .endif
+                
+;-------------------------------------------------------------------------
+;
+; Write byte to RTC, either by 0-based CMOS RAM offset (writeCMOSByte)
+; or by RTC register index (writeRTCByte).
+;
+; (For some reason, writeCMOSByte can't be used to write to CMOS RAM
+; offset 0.)
+;
+; entry:
+;
+; X = address to write to
+;
+; Y = value to write
+;
+                .if version<500
+writeCMOSByte:
+                txa
+                beq rts98DB
+                jsr getRTCAddressForCMOSByte
+                bcs rts98DB
+writeRTCByte:
+                php
+                sei
+                jsr setRTCAddress            ;X=address
+                lda #$41
+                sta systemVIA.orb            ;RTC AS=0 CS=1 DS=0 R=0
+                lda #$FF
+                sta systemVIA.ddra           ;all bits outputs
+                lda #$4A
+                sta systemVIA.orb            ;RTC AS=0 CS=1 DS=0 R=1
+                sty systemVIA.oraNoHandshake ;store value
+                bra deselectRTC
+                .endif
+                
+;-------------------------------------------------------------------------
+;
+; Convert CMOS byte offset to actual RTC address.
+;
+; entry:
+;
+; X = CMOS byte offset - 0-49
+;
+; exit:
+;
+; C=1 = invalid address
+;
+; C=0 = valid address: X = register index
+;
+                .if version<500
+getRTCAddressForCMOSByte:
+                cpx #size(RTC.ram)
+                bcs rts9905
+                txa        
+                adc #RTC.ram
+                tax        
+rts9905:
+                rts        
+                .endif
+                
+;-------------------------------------------------------------------------
+;
+; set RTC address for future read/write operation.
+;
+; entry:
+;
+; X = address to set
+;
+; preserves: Y
+;
+                .if version<500
+setRTCAddress:
+                lda #$02
+                sta systemVIA.orb            ;RTC AS=0 CS=0 DS=0 R=0
+                lda #$82
+                sta systemVIA.orb            ;RTC AS=1 CS=0 DS=0 R=0
+                lda #$FF
+                sta systemVIA.ddra           ;all bits outputs
+                stx systemVIA.oraNoHandshake ;write RTC address
+                lda #$c2
+                sta systemVIA.orb            ;RTC AS=1 CS=1 DS=0 R=0
+                lda #$42
+                sta systemVIA.orb            ;RTC AS=0 CS=1 DS=0 R=0
+                rts                          ; 9922= 60          `
+                .endif

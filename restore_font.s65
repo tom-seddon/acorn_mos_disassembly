@@ -1,0 +1,99 @@
+;-------------------------------------------------------------------------
+;
+; restore entire font.
+;
+restoreFont32To255:
+                ldx #$07                     ;224 chars - 32-255
+                .cerror *!=restoreFont32ToN
+                ; fall through to restoreFont32ToN
+
+;-------------------------------------------------------------------------
+;
+; Restore part of the font, starting from char 32.
+;
+; entry:
+;
+; X = number of pages of font data to restore - X*32 chars will be
+; restored
+; 
+restoreFont32ToN:
+                php
+                sei
+                lda #>LB900                ;start at beginning of font
+                sta $F1
+                lda #>andy.softCharacterDefinitions ;write to beginning of soft character definitions
+                .cerror *!=restoreFontPart
+                ; fall through to restoreFontPart
+
+;-------------------------------------------------------------------------
+;
+; Restore part of the font.
+;
+; entry:
+;
+; ?$f1 = MSB of font data
+;
+; A = MSB of dest page in ANDY - should be part of the soft character
+; definitions!
+;
+; X = number of pages of font data to restore - X*32 chars will be
+; restored
+;
+; preserves: Y
+
+restoreFontPart:
+                sta $FB                      ;save MSB of dest
+                jsr mos.selectTerminalROMAndANDY2
+                phy                          ;
+                ldy #$00                     ;
+                stz $FA                      ;initialize LSB of src
+                stz $F0                      ;initialize LSB of dest
+-
+                lda ($F0),y                  
+                sta ($FA),y                  
+                iny                          
+                bne -
+                inc $F1                      ; 9298= E6 F1       fq
+                inc $FB                      ; 929A= E6 FB       f{
+                dex                          ; 929C= CA          J
+                bne -
+                ply                          ; 929F= 7A          z
+                plp                          ; 92A0= 28          (
+                jmp mos.selectTerminalROM    ; 92A1= 4C 90 E5    L.e
+
+restoreFont32To126:
+                ldx #$03                     ;96 chars - 32-126
+                bra restoreFont32ToN         ; 92A6= 80 D5       .U
+
+;-------------------------------------------------------------------------
+;
+; OSBYTE 25 (&19) Restore a group of font definitions
+;
+; MasRef D.2-28
+;
+osbyte19:
+                txa                          ;A=group identifier
+                beq restoreFont32To255   ;taken if group 0 - all chars
+                .if version<500
+                cmp #$08
+                .if version==350
+                nop
+                nop
+                .else
+                bcs rts9238         ;taken if group >= 8 (not invalid)
+                .endif
+                .elsif version>=500
+                cmp #$10
+                bcs rts94A4
+                and #7
+                beq restoreFont32To255
+                .endif
+                php
+                sei
+                adc #(>LB900)-1 ;form address of ROM font data for group
+                sta $F1
+                txa
+                ldx #$01                   ;copy 1 page, 32 chars
+                adc #(>andy.softCharacterDefinitions)-1 ;get page in ANDY for group
+                bra restoreFontPart
+                

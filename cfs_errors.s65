@@ -1,0 +1,15 @@
+dataError:
+                jsr doFollowingError
+                .text $d8,13,"Data?",0
+                bra LAB2A
+
+fileError:
+                jsr doFollowingError
+                .text $db,13,"File?",0
+                bra LAB2A
+
+blockError:
+                jsr doFollowingError
+                .text $da,13,"Block?",0
+LAB2A:
+                jmp LA978

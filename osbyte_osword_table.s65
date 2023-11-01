@@ -101,7 +101,7 @@ osbyteAndOSWORDRoutineTable:
                 .word mos.osbyte13
 
                 ;Restore default font definitions D.2-26
-                .word mos.osbyte14
+                .word osbyte14
 
                 ;Flush selected buffer D.2-27
                 .word mos.osbyte15

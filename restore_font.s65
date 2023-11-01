@@ -15,7 +15,7 @@ restoreFont32To255:
 ;
 ; X = number of pages of font data to restore - X*32 chars will be
 ; restored
-; 
+;
 restoreFont32ToN:
                 php
                 sei
@@ -61,6 +61,11 @@ restoreFontPart:
                 plp                          ; 92A0= 28          (
                 jmp mos.selectTerminalROM    ; 92A1= 4C 90 E5    L.e
 
+;-------------------------------------------------------------------------
+
+                .if version==350
+osbyte14:
+                .endif
 restoreFont32To126:
                 ldx #$03                     ;96 chars - 32-126
                 bra restoreFont32ToN         ; 92A6= 80 D5       .U

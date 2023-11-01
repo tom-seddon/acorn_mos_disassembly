@@ -39,6 +39,7 @@ L885F=$885f
 ;L8952=$8bac
 
 osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
+osbyte14=terminal.osbyte14
 
 ;-------------------------------------------------------------------------
 

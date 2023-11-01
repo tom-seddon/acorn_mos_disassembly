@@ -4,6 +4,7 @@ terminal: .block
                 .if version==350
                 ; temp bodges
 ;L8D0F=$8d0f
+osbyte19=$ffff
                 
                 .endif
 
@@ -1511,6 +1512,7 @@ L8752:
                 .if version==350
                 .include "configure500.s65"
                 .include "sram_utils.s65"
+                .include "osbyte_osword_table.s65"
                 .elsif version<400
                 .include "configure320.s65"
                 .elsif version<500
@@ -1520,8 +1522,6 @@ L8752:
                 .include "configure500.s65"
                 .include "sram_utils.s65"
                 .include "osbyte_osword_table.s65"
-parseSingle4BitNumberFromCommandLine:
-readDefaultTVSettings:
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -1538,7 +1538,7 @@ L907E:
 
 ;-------------------------------------------------------------------------
 
-                .if version<500
+                .if version<500&&version!=350
 ;-------------------------------------------------------------------------
 ;
 ; Read default *TV settings.
@@ -1923,9 +1923,9 @@ starBUILDOrAPPEND:
 L9033:
                 jsr printLineNumber
 L9036:
-                .if version<500
+                .if version<500&&version!=350
                 jsr readCommandLine
-                .elsif version>=500
+                .else
                 lda #0
                 ldx #<starBuildOrAPPENDOSWORD0Parameters
                 ldy #>starBuildOrAPPENDOSWORD0Parameters
@@ -2010,7 +2010,7 @@ setStringInputBufferToCommandLine:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version>=500||version==350
 starBuildOrAPPENDOSWORD0Parameters:
                 .word hazel.commandLine      ;address
                 .byte $f0                    ;max # chars
@@ -2214,10 +2214,14 @@ L91F5:
                 lda hazel.lineNumberBCD+0    ;get line number LSB
                 pha                          ;save line number LSB
                 php                          ;save C
+                .if version==350
+                jsr mos.LE520
+                .else
                 lsr a
                 lsr a
                 lsr a
                 lsr a
+                .endif
                 plp                          ;restore  C
                 jsr printPossiblyLeading0    ;print line number 3rd digit
                 pla                          ;restore line number LSB
@@ -2228,10 +2232,14 @@ L91F5:
 printPossiblyLeading0s:
                 pha                          ;save value
                 php                          ;save C
+                .if version==350
+                jsr mos.LE520
+                .else
                 lsr a
                 lsr a
                 lsr a
                 lsr a
+                .endif
                 plp                          ;restore C
                 jsr printPossiblyLeading0    ;print 1st digit
                 pla                          ;restore value
@@ -2313,11 +2321,12 @@ L926D:
 
 ;-------------------------------------------------------------------------
 ;
-; Restore entire font.
+; restore entire font.
 ;
+                .if version!=350
 restoreFont32To255:
                 ldx #$07                     ;224 chars - 32-255
-                
+                .cerror *!=restoreFont32ToN
                 ; fall through to restoreFont32ToN
 
 ;-------------------------------------------------------------------------
@@ -2335,7 +2344,7 @@ restoreFont32ToN:
                 lda #>LB900                ;start at beginning of font
                 sta $F1
                 lda #>andy.softCharacterDefinitions ;write to beginning of soft character definitions
-                
+                .cerror *!=restoreFontPart
                 ; fall through to restoreFontPart
 
 ;-------------------------------------------------------------------------
@@ -2377,13 +2386,15 @@ restoreFontPart:
 restoreFont32To126:
                 ldx #$03                     ;96 chars - 32-126
                 bra restoreFont32ToN         ; 92A6= 80 D5       .U
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; OSBYTE 25 (&19) Restore a group of font definitions
 ;
 ; MasRef D.2-28
-; 
+;
+                .if version!=350
 osbyte19:
                 txa                          ;A=group identifier
                 beq restoreFont32To255   ;taken if group 0 - all chars
@@ -2404,7 +2415,8 @@ osbyte19:
                 ldx #$01                   ;copy 1 page, 32 chars
                 adc #(>andy.softCharacterDefinitions)-1 ;get page in ANDY for group
                 bra restoreFontPart
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 ;
 ; Clear 4 bytes in the OSFILE parameter block.
@@ -2553,7 +2565,7 @@ callOSFILEWithOSFILEParameterBlock:
 starREMOVE:
                 stx osfileParameterBlock+OSFILEParameterBlock.fileName+0
                 sty osfileParameterBlock+OSFILEParameterBlock.fileName+1
-                .if version>=510
+                .if version>=510||version==350
                 stx stringInputBufferAddress+0
                 sty stringInputBufferAddress+1
                 ldy #$ff
@@ -2570,7 +2582,7 @@ L9596:
                 bra callOSFILEWithOSFILEParameterBlock
 
 ;-------------------------------------------------------------------------
-                .if version<510
+                .if version<510&&version!=350
 ;
 ; *CLOSE [MasRef G.5-3]
 ; 
@@ -2582,7 +2594,7 @@ starCLOSE:
                 jmp (FINDV)                  ;OSFIND A=0 Y=0
                 .endif
 ;-------------------------------------------------------------------------
-                .if version<510
+                .if version<510&&version!=350
 ;
 ; *IGNORE [MasRef C.5-7]
 ; 
@@ -2699,7 +2711,7 @@ starSPOOLON:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=510
+                .if version>=510||version==350
 starSHADOW:
                 lda #$72
 L963A:
@@ -2748,7 +2760,7 @@ callOSARGSWithBuffer:
 
 ;-------------------------------------------------------------------------
 
-                .if version<510
+                .if version<510&&version!=350
 starSHADOW:
                 lda #$72
                 bra starCommandThroughOSBYTE
@@ -2756,7 +2768,7 @@ starSHADOW:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=510
+                .if version>=510||version==350
 starCLOSE:
                 jsr mos.skipSpacesAndCheckForCRInStringInput
                 bne L9625
@@ -2767,7 +2779,7 @@ starCLOSE:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=510
+                .if version>=510||version==350
 starIGNORE:
                 bne L938E
                 sec

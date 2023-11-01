@@ -1,7 +1,7 @@
 ;-------------------------------------------------------------------------
 
 unk_8BE8:
-                .if version>=500
+                .if version>=500||version==350
                 .byte 1
                 .endif
                 .byte 9
@@ -346,7 +346,7 @@ L8DA2:
                 ldx #5
                 jsr L8D58
                 jsr L8C7F
-                .if version>=500
+                .if version>=500||version==350
                 jsr L8D66
                 .endif
                 beq L8DB7
@@ -365,7 +365,7 @@ L8DB7:
 
 L8DC0:
                 jsr L8F40
-                .if version==400
+                .if version==400||version==350
                 lda osfileParameterBlock+11
                 and osfileParameterBlock+12
                 inc a
@@ -380,16 +380,18 @@ L8DC0:
                 jmp mos.LF8D1
                 .endif
 
-                .if version==400
+;-------------------------------------------------------------------------
+
+                .if version<500
 L8952:
                 lda #$c8
                 jsr $0406
                 bcc L8952
                 lda #0
                 bit osfileParameterBlock+1
-                bmi L8961
+                bmi L8961_sram
                 inc a
-L8961:
+L8961_sram:
                 ldx #$f6        ;TODO
                 ldy #$02        ;TODO
                 jsr $0406
@@ -448,15 +450,32 @@ L8DFC:
 L8E0D:
                 jsr L8C7F
                 stz osfileParameterBlock+$B
+                .if version==350
+                ldx #$ff
+                .else
                 ldx #0
-                .if version>=500
+                .endif
+                .if version>=500||version==350
                 jsr L8D66
                 .endif
                 and #$DF
+                .if version==350
+                iny
+                .endif
                 cmp #'Q'
                 bne L8E20
+                .if version==350
+                dey
+                .endif
+                .if version==350
+                stz osfileParameterBlock+$c
+                ldx #$dc
+                stx osfileParameterBlock+$d
+                ldx #$03
+                .else
                 dex
                 iny
+                .endif
 
 L8E20:
                 stx osfileParameterBlock+$C

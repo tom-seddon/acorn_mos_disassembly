@@ -400,10 +400,16 @@ oswordRoutineTable:
                 ;Write CMOS clock
                 .word mos.osword0F
                 
-                .if version>=400
+                .if version>=350
                 .word mos.osword10
                 .endif
 
-                .if version>=400
+                .if version>=350
                 .word mos.osword11
                 .endif
+
+                .if version==350
+                .word $ffff
+                .word $ffff
+                .endif
+                

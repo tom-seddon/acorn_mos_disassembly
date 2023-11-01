@@ -11,6 +11,9 @@ osbyteA1=$ffff
 osbyteA2=$ffff
 osword0F=$ffff
 osbyte14=$ffff
+osword10=$ffff
+osword11=$ffff
+                
                 .endif
 
 ; VDU driver entry block

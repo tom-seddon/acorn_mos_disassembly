@@ -9818,11 +9818,7 @@ osbyteUnused:                   ;ed84
                 .if version!=350
 osbyteA1:
                 jsr withTerminalROM
-                .if version<510
                 jmp terminal.readCMOSByte
-                .else
-                jmp terminal.L9DAA
-                .endif
                 .endif
 
 ;-------------------------------------------------------------------------

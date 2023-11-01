@@ -1,48 +1,58 @@
+byte2: .macro value,value350
+                .if version==350
+                .byte \value350
+                .else
+                .byte \value
+                .endif
+                .endmacro
+
 configureTable: .text "."
                 .if olivetti
                 .byte $8a,$0d
+                .elsif version==350
+                .byte $87,$89
                 .else
                 .byte $89
                 .if version<510
-                .byte $BC       ;
+                .byte $BC
                 .else
                 .byte $f9
                 .endif
                 .endif
                 .text "Baud"
-                .byte $D0       ;
-                .byte $D2       ;
+                .byte $D0
+                .byte2 $d2,$d2|$20
                 .text "Boot"
-                .byte $C1       ;
-                .byte $5C       ; \
+                .byte $C1
+                .byte2 $5c,$5c|$20
                 .text "Caps"
-                .byte $D4       ;
-                .byte $33       ; 3
+                .byte $D4
+                .byte2 $33,$33^$60
                 .if olivetti
                 .text "Country"
                 .byte $f8
                 .byte $f0
                 .endif
                 .text "Data"
-                .byte $D0       ;
-                .byte $DD       ;
+                .byte $D0
+                .byte2 $dd,$dd|$20
                 .text "Delay"
-                .byte $F8       ;
-                .byte $B8       ;
+                .byte $F8
+                .byte2 $b8,$b8^$60
                 .text "Dir"
-                .byte $C0       ;
-                .byte $36       ; 6
+                .byte $C0
+                .byte2 $36,$36^$60
                 .if version==350
                 .text "ExTube"
                 .byte $c1
                 .byte $7a
                 .endif
                 .text "Fdrive"
-                .byte $D0       ;
-                .byte $B0       ;
+                .byte $D0
+                .byte2 $b0,$b0^$60
                 .text "File"
-                .byte $D8       ;
-                .byte $80       ;
+                .byte $D8
+                .byte2 $80,$80|$20
                 .if version==350
                 .text "Floppy"
                 .byte $c1
@@ -54,9 +64,9 @@ configureTable: .text "."
                 .byte $57
                 .endif
                 .text "Ignore"
-                .byte $89       ;
+                .byte2 $89,$86
                 .if version<510
-                .byte $12
+                .byte2 $12,$df
                 .else
                 .if olivetti
                 .byte $63
@@ -66,50 +76,54 @@ configureTable: .text "."
                 .endif
                 .if version==350
                 .text "InTube"
-                .byte $b8
-                .byte $a4
+                .byte2 $b8,$c0
+                .byte2 $a4,$7a
                 .endif
                 .text "Lang"
-                .byte $D8       ;
-                .byte $84       ;
+                .byte $D8
+                .byte2 $84,$84|$20
                 .text "Loud"
-                .byte $C1       ;
-                .byte $59       ; Y
+                .byte $C1
+                .byte2 $59,$59|$20
                 .text "Mode"
-                .byte $D8       ;
-                .byte $A8       ;
+                .byte $D8
+                .byte2 $A8,$a8^$60
                 .text "NoBoot"
-                .byte $C0       ;
-                .byte $5C       ; \
+                .byte $C0
+                .byte2 $5C,$5c|$20
                 .text "NoCaps"
-                .byte $D2       ;
-                .byte $33       ; 3
+                .byte $D2
+                .byte2 $33,$33^$60
                 .text "NoDir"
-                .byte $C1       ;
-                .byte $36       ; 6
+                .byte $C1
+                .byte2 $36,$36^$60
                 .text "NoScroll"
-                .byte $C1       ;
-                .byte $5B       ; [
+                .byte $C1
+                .byte2 $5B,$5b|$20
                 .if version==350
                 .text "NoTube"
                 .byte $c0
                 .byte $70
                 .endif
                 .text "Print"
-                .byte $D0       ;
-                .byte $D5       ;
+                .byte $D0
+                .byte2 $D5,$d5|$20
                 .text "Quiet"
-                .byte $C0       ;
-                .byte $59       ; Y
+                .byte $C0
+                .byte2 $59,$59|$79
                 .text "Repeat"
-                .byte $F8       ;
-                .byte $C0       ;
+                .byte $F8
+                .byte2 $C0,$c0|$20
                 .text "Scroll"
-                .byte $C0       ;
-                .byte $5B       ; [
+                .byte $C0
+                .byte2 $5B,$5b|$20
                 .text "ShCaps"
-                .byte $D1       ;
-                .byte $33       ; 3
+                .byte $D1
+                .if version==350
+                .byte $53
+                .else
+                .byte $33
+                .endif
                 .if version==350
                 .text "Tube"
                 .byte $c1
@@ -117,8 +131,8 @@ configureTable: .text "."
                 .endif
                 .if version>=500
                 .text "Proportional"
-                .byte $C0       ;
-                .byte $6D       ; m
+                .byte $C0
+                .byte $6D
                 .endif
                 .if version>=500
                 .text "Switched"
@@ -167,21 +181,21 @@ configureTable: .text "."
                 .text "ift",$ff
 L8850:
                 .if version==350
-                .text $24,$81,$29
+                .text $24,$81,$28,$54,$b5
                 .elsif olivetti
-                .text "-l",$98
+                .text $2d,$6c,$98
                 .else
-                .text "$c",$8f
+                .text $24,$63,$8f
                 .endif
 L8853:
                 .if version==350
-                .byte $54,$b5,$cb,$cb,$d2,$d2,$d9
+                .byte $cb,$cb,$d2,$d2,$d9
                 .elsif olivetti
                 .byte $c7,$c7,$ce
                 .else
                 .byte $be,$be,$c5
                 .endif
-                
+
 ;-------------------------------------------------------------------------
 
 starCONFIGUREOrStarSTATUS:
@@ -216,7 +230,7 @@ L887B:
 
 ;-------------------------------------------------------------------------
 
-L8884:       
+L8884:
 
                 lda configureTable,x; "."
                 bit #$40
@@ -232,7 +246,11 @@ L8884:
 
 L8895:
                 and #7
+                .if version==350
+                dec configureTable+1,x
+                .else
                 inc configureTable+1,x
+                .endif
                 bvs L88D9
                 bcs L88CE
                 bmi L88A5
@@ -257,6 +275,8 @@ L88B3:
 L88B4:
                 .if olivetti
                 cpx #$56
+                .elsif version==350
+                cpx #$6b
                 .else
                 cpx #$4D
                 .endif
@@ -272,7 +292,7 @@ L88C1:
                 cmp word_8B99,y
                 beq L88CB
                 bcs L88EB
-                
+
 
 L88CB:
                 jmp L88EE
@@ -355,7 +375,7 @@ L8910:
                 lda #0
                 jsr L8929
                 ply
-                ldx #$E
+                ldx #$E+cmosBytesOffset
                 bra L8910
 
 ;-------------------------------------------------------------------------
@@ -367,7 +387,9 @@ L8927:
 
 L8929:
 
-                .if olivetti
+                .if version==350
+                ldx #$c7
+                .elsif olivetti
                 ldx #$c3
                 .else
                 ldx #$BA
@@ -396,7 +418,7 @@ L892D:
 ;-------------------------------------------------------------------------
 
 L8941:
-                ldx #$E
+                ldx #$E+cmosBytesOffset
                 jsr readRTCByte
 
 L8946:
@@ -469,7 +491,9 @@ L898B:
                 ora $B1
 
 L898E:
-                .if olivetti
+                .if version==350
+                ldx #$c9
+                .elsif olivetti
                 ldx #$c5
                 .else
                 ldx #$BC
@@ -509,12 +533,12 @@ L89A4:
 
 ;-------------------------------------------------------------------------
 
-L89B5:       
+L89B5:
                 jsr parseNumberFromString
                 bcc L8956
                 txa
                 bra L895D
-                
+
 
 ;-------------------------------------------------------------------------
 
@@ -593,7 +617,7 @@ L8831:
 
 ;-------------------------------------------------------------------------
 
-L8A64:       
+L8A64:
                 php
                 phy
                 phx
@@ -618,7 +642,9 @@ L8A74:
                 inc a
 
 L8A82:
-                .if olivetti
+                .if version==350
+                cpx #$6b
+                .elsif olivetti
                 cpx #$56
                 .else
                 cpx #$4D
@@ -632,11 +658,11 @@ L8A8C:
                 ply
                 plp
                 rts
-                
+
 
 ;-------------------------------------------------------------------------
 
-utils_8A8F:     
+utils_8A8F:
                 sty $E6
                 bra L8A9D
 
@@ -686,7 +712,7 @@ L8AC9:
 
 L8ACD:
                 rts
-                
+
 
 ;-------------------------------------------------------------------------
 
@@ -701,11 +727,11 @@ fetchCommandTableByte:
 L8AD8:
                 pla
                 rts
-                
+
 
 ;-------------------------------------------------------------------------
 
-L8ADA:       
+L8ADA:
                 pha
                 ldy #3
                 ldx #2
@@ -738,7 +764,9 @@ L8B08:
                 php
                 phx
                 bvc L8B15
-                .if olivetti
+                .if version==350
+                cpy #$4b
+                .elsif olivetti
                 cpy #$3e
                 .else
                 cpy #$35
@@ -790,7 +818,7 @@ L8B39:
 L8B3F:
                 pla
                 rts
-                
+
 
 ;-------------------------------------------------------------------------
 
@@ -799,7 +827,11 @@ L8B41:
                 pha
                 phy
                 tya
+                .if version==350
+                ldy #4
+                .else
                 ldy #2
+                .endif
 
 L8B49:
                 cmp L8850,y
@@ -825,12 +857,12 @@ L8B55:
 
 ;-------------------------------------------------------------------------
 
-L8B6B:       
+L8B6B:
 
                 lda configureTable,y; "."
                 bpl L8B41
                 rts
-                
+
 
 ;-------------------------------------------------------------------------
 
@@ -839,35 +871,39 @@ unknownCONFIGOrStatus:
                 rol a
                 tax
                 jmp mos.makeROMServiceCall
-                
+
 
 ;-------------------------------------------------------------------------
 
-L8B78:       
+L8B78:
                 lda configureTable+1,x
                 and #$78
                 lsr a
                 lsr a
                 lsr a
+                .if version==350
+                adc #$f
+                .else
                 adc #5
+                .endif
                 tax
                 rts
-                
+
 
 ;-------------------------------------------------------------------------
 
-L8B84:       
+L8B84:
                 pha
                 lda configureTable+1,x
                 and #7
                 tay
                 pla
                 rts
-                
+
 
 ;-------------------------------------------------------------------------
 
-L8B8D:       
+L8B8D:
                 pha
                 lda configureTable,x; "."
                 lsr a
@@ -877,7 +913,7 @@ L8B8D:
                 tay
                 pla
                 rts
-                
+
 
 ;-------------------------------------------------------------------------
 
@@ -890,28 +926,28 @@ word_8B99:      .word %1100000001
 
 ;-------------------------------------------------------------------------
 
-readUsePrinterIgnoreChar:
                 .if version==350
+setTSTAndReadUsePrinterIgnoreChar:
                 jsr mos.callWithTST
-readUsePrinterIgnoreCharWithTST:
                 .endif
+readUsePrinterIgnoreChar:
                 phy
                 jsr readDefaults2
                 lsr a
                 lsr a
                 ply
                 rts
-                
+
 
 ;-------------------------------------------------------------------------
 
-L8BA9:       
+L8BA9:
                 tya
-                
+
 
 ;-------------------------------------------------------------------------
 
-L8BAA:       
+L8BAA:
                 sec
                 ldy #$FF
                 php
@@ -936,11 +972,11 @@ L8BBD:
                 jsr L8BCA
                 clc
                 tay
-                
+
 
 ;-------------------------------------------------------------------------
 
-L8BCA:       
+L8BCA:
                 pha
                 tya
                 bne L8BD0
@@ -953,15 +989,15 @@ L8BD0:
 L8BD4:
                 pla
                 rts
-                
+
 
 ;-------------------------------------------------------------------------
 
-L8BD6:
                 .if version==350
+setTSTAndL8BD6:
                 jsr mos.callWithTST
-L8BD6WithTST:
                 .endif
+L8BD6:
                 .if version==350
                 ldx #$c9
                 .elsif olivetti
@@ -981,6 +1017,6 @@ L8BE2:
                 rol a
                 tax
                 rts
-                
+
 
 ;-------------------------------------------------------------------------

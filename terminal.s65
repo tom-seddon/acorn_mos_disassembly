@@ -3730,7 +3730,7 @@ readDefaults3:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-L9DAA:
+readCMOSByte:
                 cpx #$ff
                 bne readRTCByte
                 jsr L907E

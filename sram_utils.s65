@@ -463,14 +463,18 @@ L8E0D:
                 iny
                 .endif
                 cmp #'Q'
+                .if version==350
+                beq L8E20
+                .else
                 bne L8E20
+                .endif
                 .if version==350
                 dey
                 .endif
                 .if version==350
-                stz osfileParameterBlock+$c
+                stz osfileParameterBlock+$9
                 ldx #$dc
-                stx osfileParameterBlock+$d
+                stx osfileParameterBlock+$a
                 ldx #$03
                 .else
                 dex

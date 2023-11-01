@@ -500,11 +500,11 @@ storeNybbleString:
 ;-------------------------------------------------------------------------
 
                 .if version<500
-readDefaults2:
                 .if version==350
+setTSTAndReadDefaults2:
                 jsr mos.callWithTST
-readDefaults2WithTST:
                 .endif
+readDefaults2:
                 ldx #CMOSBytes.defaults2+cmosBytesOffset
                 bra readRTCByte
                 .endif
@@ -540,16 +540,16 @@ readDefaults3WithTST:
 readCMOSByte:
                 jsr getRTCAddressForCMOSByte
                 .if version==350
-                bcc readRTCByteWithTST
+                bcc readRTCByte
                 rts
                 .else
                 bcs rts98DB                  ;taken if invalid address
                 .endif
-readRTCByte:
                 .if version==350
+setTSTAndReadRTCByte:
                 jsr mos.callWithTST
-readRTCByteWithTST:
                 .endif
+readRTCByte:
                 php
                 sei
                 jsr setRTCAddress
@@ -569,9 +569,6 @@ deselectRTC:
                 tya
 rts98DB:
                 rts
-                .elsif version>=500
-readCMOSByte=$9daa
-                .warn "readCMOSByte... wtf"
                 .endif
                 
 ;-------------------------------------------------------------------------

@@ -91,9 +91,9 @@ tsbACCCON:
 ;-------------------------------------------------------------------------
 
                 .if version==350
-ldaSystemVIAIFR:
+ldaSystemVIAIER:
                 jsr mos.callWithTST
-                lda systemVIA.ifr
+                lda systemVIA.ier
                 rts
                 .endif
 
@@ -1109,7 +1109,7 @@ starBASIC:
                 ldx basicROMNumber           ; Get BASIC ROM number
                 bmi passStarCommandThrough ; If no BASIC ROM, jump to pass to ROMs and filing system
                 .if version==350
-                jsr mos.LFAF9
+                jmp mos.LFAF9
                 .elsif version<500
                 sec                          ;
                 jmp mos.osbyte8E             ; Enter ROM as a language
@@ -6833,6 +6833,9 @@ enterNewLanguage: .proc
                 jsr getLanguageParasiteAddr ;sort out addresses
                 
 transferPage:
+                .if version==350
+                jsr mos.LF9FA
+                .endif
                 php
                 sei
 
@@ -6842,6 +6845,13 @@ transferPage:
                 jsr doTube
                 
                 ldy #$00
+                .if version==350
+-
+                lda $700,y
+                sta tube.data3
+                pha
+                pla
+                .else
                 stz tubeLanguageHostAddr+0
 -
                 lda (tubeLanguageHostAddr),y
@@ -6849,6 +6859,7 @@ transferPage:
                 nop
                 nop
                 nop
+                .endif
                 iny
                 bne -
                 plp
@@ -6860,8 +6871,10 @@ transferPage:
                 bne +
                 inc tubeLanguageParasiteAddr+3
 +
-                
+
+                .if version!=350
                 inc tubeLanguageHostAddr+1 ;next source page
+                .endif
                 bit tubeLanguageHostAddr+1
                 bvc transferPage ;branch taken if source page $c0 not
                                  ;reached yet
@@ -6892,7 +6905,11 @@ getLanguageParasiteAddr: .proc
                 lda #$20
                 and $8006  ;test parasite address flag
                 tay        ;Y=0 if $8000, Y=$20 if parasite address
+                .if version==350
+                sty @w tubeLanguageParasiteAddr+0
+                .else
                 sty tubeLanguageParasiteAddr+0
+                .endif
                 beq LAC60       ;branch taken if good to go with A=0
                                 ;and Y=0
 
@@ -6910,9 +6927,13 @@ getLanguageParasiteAddr: .proc
                 ldy $8000+3,x                  
                 lda $8000+4,x
 LAC60:
+                .if version==350
+                jmp mos.LFA22
+                .else
                 sta tubeLanguageParasiteAddr+3
                 sty tubeLanguageParasiteAddr+2
                 rts
+                .endif
                 .pend
                 .here
 
@@ -7034,7 +7055,11 @@ doARGS:
                 ; send 4 bytes OSARGS data
                 ldx #$03
 -
+                .if version==350
+                lda @w $00,x
+                .else
                 lda $00,x
+                .endif
                 jsr sendR2A
                 dex
                 bpl -
@@ -7100,7 +7125,11 @@ doGBPB:
                 ; Send updated OSGBPB parameter block.
                 ldx #size(OSGBPBParameterBlock)-1
 -
+                .if version==350
+                lda @w tubeOSGBPBParameterBlock,x
+                .else
                 lda tubeOSGBPBParameterBlock,x
+                .endif
                 jsr sendR2A
                 dex
                 bpl -
@@ -7118,12 +7147,21 @@ doFILE: .proc
                 ldx #size(OSFILEParameterBlock)-2
 -
                 jsr recvR2
+                .if version==350
+                sta @w tubeOSFILEParameterBlock.addresses-1,x
+                .else
                 sta tubeOSFILEParameterBlock.addresses-1,x
+                .endif
                 dex
                 bne -
                 jsr recvR2String
+                .if version==350
+                stx @w tubeOSFILEParameterBlock+0
+                sty @w tubeOSFILEParameterBlock+1
+                .else
                 stx tubeOSFILEParameterBlock+0
                 sty tubeOSFILEParameterBlock+1
+                .endif
                 ldy #>tubeOSFILEParameterBlock
                 .cerror (<tubeOSFILEParameterBlock)!=0,"Tube OSFILE parameter block must be at $0000"
                 jsr recvR2                   ;receive OSFILE reason code
@@ -7133,7 +7171,11 @@ doFILE: .proc
                 ; send non-name part of updated OSFILE parameter block
                 ldx #size(OSFILEParameterBlock)-2
 -
+                .if version==350
+                lda @w tubeOSFILEParameterBlock.addresses-1,x
+                .else
                 lda tubeOSFILEParameterBlock.addresses-1,x
+                .endif
                 jsr sendR2A
                 dex
                 bne -
@@ -7213,38 +7255,42 @@ LAD99:
 ;-------------------------------------------------------------------------
 
 doRDLN:
-                ldx #$04                     ; AD9B= A2 04       ".
+                ldx #$04
 LAD9D:
-                jsr recvR2                    ; AD9D= 20 A1 06     !.
-                sta $00,x                    ; ADA0= 95 00       ..
-                dex                          ; ADA2= CA          J
-                bpl LAD9D                    ; ADA3= 10 F8       .x
-                inx                          ; ADA5= E8          h
-                txa                          ; ADA6= 8A          .
-                tay                          ; ADA7= A8          (
-                jsr OSWORD                   ; ADA8= 20 F1 FF     q.
-                bcc LADB2                    ; ADAB= 90 05       ..
-                lda #$FF                     ; ADAD= A9 FF       ).
-                jmp sendR2AThenGoIdle                    ; ADAF= 4C 90 05    L..
+                jsr recvR2
+                .if version==350
+                sta @w $00,x
+                .else
+                sta $00,x
+                .endif
+                dex
+                bpl LAD9D
+                inx
+                txa
+                tay
+                jsr OSWORD
+                bcc LADB2
+                lda #$FF
+                jmp sendR2AThenGoIdle
 
 LADB2:
-                ldx #$00                     ; ADB2= A2 00       ".
-                lda #$7F                     ; ADB4= A9 7F       ).
-                jsr sendR2A                    ; ADB6= 20 61 06     a.
+                ldx #$00
+                lda #$7F
+                jsr sendR2A
 LADB9:
-                lda $0700,x                  ; ADB9= BD 00 07    =..
-                jsr sendR2A                    ; ADBC= 20 61 06     a.
-                inx                          ; ADBF= E8          h
-                cmp #$0D                     ; ADC0= C9 0D       I.
-                bne LADB9                    ; ADC2= D0 F5       Pu
-                bra LAD99                    ; ADC4= 80 D3       .S
+                lda $0700,x
+                jsr sendR2A
+                inx
+                cmp #$0D
+                bne LADB9
+                bra LAD99
 
 sendR2A:                          ;adc6/0661
-                bit tube.status2                   ; ADC6= 2C E2 FE    ,b~
-                bvc sendR2A                    ; ADC9= 50 FB       P{
-                sta tube.data2                   ; ADCB= 8D E3 FE    .c~
-                rts                          ; ADCE= 60          `
-                
+                bit tube.status2
+                bvc sendR2A
+                sta tube.data2
+                rts
+
 sendR4TubeClaimantID:              ;adcf
                 lda tubeClaimantID ;get Tube ID
 sendR4:                          ;add1/066c
@@ -7254,25 +7300,25 @@ sendR4:                          ;add1/066c
                 rts
 
 LADDA:
-                lda $FF                      ; ADDA= A5 FF       %.
-                sec                          ; ADDC= 38          8
-                ror a                        ; ADDD= 6A          j
-                bra LADEF                    ; ADDE= 80 0F       ..
+                lda $FF
+                sec
+                ror a
+                bra LADEF
 
 eventHandler:
-                pha                          ; ADE0= 48          H
-                lda #$00                     ; ADE1= A9 00       ).
-                jsr LADEF                    ; ADE3= 20 8A 06     ..
-                tya                          ; ADE6= 98          .
-                jsr LADEF                    ; ADE7= 20 8A 06     ..
-                txa                          ; ADEA= 8A          .
-                jsr LADEF                    ; ADEB= 20 8A 06     ..
-                pla                          ; ADEE= 68          h
+                pha
+                lda #$00
+                jsr LADEF
+                tya
+                jsr LADEF
+                txa
+                jsr LADEF
+                pla
 LADEF:
-                bit tube.status1                   ; ADEF= 2C E0 FE    ,`~
-                bvc LADEF                    ; ADF2= 50 FB       P{
-                sta tube.data1                   ; ADF4= 8D E1 FE    .a~
-                rts                          ; ADF7= 60          `
+                bit tube.status1
+                bvc LADEF
+                sta tube.data1
+                rts
 
 ;-------------------------------------------------------------------------
 ;
@@ -7349,13 +7395,6 @@ LAE0F:
                 .include "ext.s65"
                 .endif
 
-                .if version==350
-
-LB900:
-chr127:
-                
-                .else
-                
 ; Unused space
 ; ============
                 .fill $b900-*,$ff
@@ -9604,8 +9643,6 @@ chr127:
                 .byte %11111111
                 .byte %11111111
                 .byte %11111111
-
-                .endif
                 
                 .endblock
 

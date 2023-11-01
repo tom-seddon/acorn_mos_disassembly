@@ -13550,6 +13550,7 @@ badCommandError:
                 .include "sram_access_helpers_2.s65"
 LF8D1: .LF8D1Macro
 
+LF9FA:
                 ; TODO - all the 0/1/2/3 references here are
                 ; presumably tubeLanguageHostAddr
                 
@@ -13580,6 +13581,7 @@ LFA18:
 
 ;-------------------------------------------------------------------------
 
+LFA22:
                 sta @w tubeLanguageParasiteAddr+3
                 sty @w tubeLanguageParasiteAddr+2
                 bit $f4

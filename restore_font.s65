@@ -82,8 +82,7 @@ osbyte19:
                 .if version<500
                 cmp #$08
                 .if version==350
-                nop
-                nop
+                bcs rts9922
                 .else
                 bcs rts9238         ;taken if group >= 8 (not invalid)
                 .endif

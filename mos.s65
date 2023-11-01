@@ -12664,11 +12664,11 @@ osbyte78:                          ;f90b
 ;
 ; MasRef D.2-36
 ; 
-osbyte7A:
                 .if version==350
+setTSTAndOSBYTE7A:
                 jsr callWithTST
-osbyte7AWithTST:
                 .endif
+osbyte7A:
                 ldx #$10
                 clv
                 sec
@@ -13720,6 +13720,7 @@ LFAF9:
 
 ;-------------------------------------------------------------------------
 
+LFB02:
                 jsr $04C8
                 lda #$40        ; '@'
                 trb $f4

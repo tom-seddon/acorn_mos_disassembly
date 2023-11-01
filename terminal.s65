@@ -2719,7 +2719,11 @@ parseSoftKeyNumberFromCommandLine:
                 jsr parseNumberFromString
                 bcc badKeyError
                 cpx #softKeyCount
+                .if version==350
+                bcc rts9922
+                .else
                 bcc L96BE
+                .endif
 badKeyError:
                 jsr doFollowingError
                 .byte $FB
@@ -2754,6 +2758,7 @@ L96BE:
 L96BF:
                 jsr parseSoftKeyNumberFromCommandLine
                 jsr mos.skipSpacesAndCheckForCRInStringInput
+L96C5:
                 bne badKeyError
                 .endif
 
@@ -2794,7 +2799,7 @@ printKeyDefinition:
                 sta stringInputBufferAddress+0
                 lda andy.softKeys.stringMSBs,x
                 sta stringInputBufferAddress+1
-                .if version<510
+                .if version<510&&version!=350
                 ldy $E6
                 .else
                 txa
@@ -2858,8 +2863,7 @@ starKEY: .proc
 
 bneBadKeyError:
                 .if version==350
-                nop
-                nop
+                bne L96C5
                 .else
                 bne badKeyError
                 .endif
@@ -6846,14 +6850,14 @@ transferPage:
                 
                 ldy #$00
                 .if version==350
--
+transferPageLoop:
                 lda $700,y
                 sta tube.data3
                 pha
                 pla
                 .else
                 stz tubeLanguageHostAddr+0
--
+transferPageLoop:
                 lda (tubeLanguageHostAddr),y
                 sta tube.data3
                 nop
@@ -6861,7 +6865,7 @@ transferPage:
                 nop
                 .endif
                 iny
-                bne -
+                bne transferPageLoop
                 plp
 
                 ; advance to next dest page.
@@ -6880,7 +6884,11 @@ transferPage:
                                  ;reached yet
 
                 ; copy done - execute language in parasite
+                .if version==350
+                jsr mos.LFB02
+                .else
                 jsr getLanguageParasiteAddr
+                .endif
                 lda #$04        ;execute in copro
 
                 ; call Tube entry point with whatever reason code,

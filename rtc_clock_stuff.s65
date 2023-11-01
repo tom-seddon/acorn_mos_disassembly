@@ -653,5 +653,6 @@ setRTCAddress:
                 sta systemVIA.orb            ;RTC AS=1 CS=1 DS=0 R=0
                 lda #$42
                 sta systemVIA.orb            ;RTC AS=0 CS=1 DS=0 R=0
-                rts                          ; 9922= 60          `
+rts9922:
+                rts
                 .endif

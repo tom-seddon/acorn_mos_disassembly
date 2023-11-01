@@ -35,6 +35,11 @@ LF316=$f316
 ;LB04E=$b04e
 LF545=$f545
 ;LF6D3=$f6d3
+starSRDATAOrStarSRROM=$ffff
+starSRLOADOrStarSRSAVE=$ffff
+starSRREADOrStarSRWRITE=$ffff
+L885F=$885f
+fetchCommandTableByte=$889e
                 
 ;-------------------------------------------------------------------------
 

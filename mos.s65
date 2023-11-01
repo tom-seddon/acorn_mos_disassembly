@@ -13553,25 +13553,25 @@ LF8D1: .LF8D1Macro
                 ldy #0
                 sty 0
 
-loc_F9FE:
+LF9FE:
                 lda (0),y
                 ldx $4F9
-                beq loc_FA18
+                beq LFA18
                 cmp #$7F        ; ''
-                bcc loc_FA18
+                bcc LFA18
                 cmp #$C0        ; ''
-                bcs loc_FA18
+                bcs LFA18
                 pha
-                jsr sub_FACE
+                jsr LFACE
                 pla
-                bcc loc_FA18
+                bcc LFA18
                 clc
                 adc $4F9
 
-loc_FA18:
+LFA18:
                 sta $700,y
                 iny
-                bne loc_F9FE
+                bne LF9FE
                 inc @w 1
                 rts
 
@@ -13580,14 +13580,14 @@ loc_FA18:
                 sta @w tubeLanguageParasiteAddr+3
                 sty @w tubeLanguageParasiteAddr+2
                 bit $f4
-                bvs loc_FA9D
+                bvs LFA9D
                 lda $8006
                 and #$D
-                bne loc_FAAB
+                bne LFAAB
                 lda @w tubeLanguageParasiteAddr+3
                 sta @w 3
                 ora @w tubeLanguageParasiteAddr+2
-                beq loc_FAAB
+                beq LFAAB
                 lda @w tubeLanguageParasiteAddr+2
                 sta @w 2
                 ldy #2
@@ -13606,26 +13606,26 @@ loc_FA18:
                 stz @w tubeLanguageParasiteAddr+3
                 stz @w tubeLanguageParasiteAddr+2
                 txa
-                bpl loc_FA6A
+                bpl LFA6A
                 clc
                 adc $f4
 
-loc_FA6A:
+LFA6A:
                 and #$F
                 sta $04F8
                 ldx $f4
                 phx
                 jsr selectROMA
-                jsr sub_FAAF
+                jsr LFAAF
                 eor #$DE        ; ''
-                bne loc_FA97
-                jsr sub_FAAF
+                bne LFA97
+                jsr LFAAF
                 eor #$C0        ; ''
-                bne loc_FA97
+                bne LFA97
                 sta $04F7
-                jsr sub_FAAF
+                jsr LFAAF
                 sta $04F6
-                jsr sub_FAAF
+                jsr LFAAF
                 sta $04F5
                 pla
                 jsr selectROMA
@@ -13633,35 +13633,35 @@ loc_FA6A:
 
 ;-------------------------------------------------------------------------
 
-loc_FA97:
+LFA97:
                 pla
                 jsr selectROMA
-                bra loc_FAAB
+                bra LFAAB
 
 ;-------------------------------------------------------------------------
 
-loc_FA9D:
+LFA9D:
                 lda #$80        ; ''
                 sta @w tubeLanguageParasiteAddr+1
                 stz @w tubeLanguageParasiteAddr+0
                 stz @w tubeLanguageParasiteAddr+2
                 stz @w tubeLanguageParasiteAddr+3
 
-loc_FAAB:
+LFAAB:
                 stz $04F9
                 rts
 
 ;-------------------------------------------------------------------------
 
-sub_FAAF:       .block
+LFAAF:       .block
                 lda @w 2
                 php
                 dec @w 2
                 plp
-                bne loc_FABC
+                bne LFABC
                 dec @w 3
 
-loc_FABC:
+LFABC:
                 lda $f4
                 pha
                 lda $04F8
@@ -13676,10 +13676,10 @@ loc_FABC:
 
 ;-------------------------------------------------------------------------
 
-sub_FACE:       .block
+LFACE:       .block
                 asl $04F7
                 bne locret_FADD
-                jsr sub_FADE
+                jsr LFADE
                 clc
                 beq locret_FADD
                 sec
@@ -13691,17 +13691,17 @@ locret_FADD:
 
 ;-------------------------------------------------------------------------
 
-sub_FADE:       .block
-                jsr sub_FAAF
+LFADE:       .block
+                jsr LFAAF
                 sta $04F7
                 lda $04F5
                 php
                 dec $04F5
                 plp
-                bne loc_FAF1
+                bne LFAF1
                 dec $04F6
 
-loc_FAF1:
+LFAF1:
                 lda $04F6
                 eor #$80        ; ''
                 and #$80        ; ''
@@ -13710,7 +13710,7 @@ loc_FAF1:
 
 ;-------------------------------------------------------------------------
 
-loc_FAF9:
+LFAF9:
                 txa
                 ora #$40        ; '@'
                 tax
@@ -13726,7 +13726,7 @@ loc_FAF9:
 
 ;-------------------------------------------------------------------------
 
-sub_FB0A:       .block
+LFB0A:       .block
                 php
                 sei
                 lda econetInterceptionStatus

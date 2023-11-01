@@ -7,7 +7,7 @@ L8D0F=$8d0f
                 
                 .endif
 
-                .if version==320
+                .if version==320||version==350
                 
                 jmp terminalLanguageEntryPoint ; Language entry point
                 jmp utilsServiceEntryPoint  ; Service entry point
@@ -17,7 +17,11 @@ L8D0F=$8d0f
                 .text "TERMINAL"
                 .byte 0
 copyrightText:
+                .if version==350
+                .text "(C)1986 Acorn"
+                .else
                 .text "(C)1984 Acorn"
+                .endif
                 .byte 0
 
                 .elsif version==400
@@ -67,9 +71,98 @@ copyright:
                 .endif
                 .endif
 
+;-------------------------------------------------------------------------
+
+                .if version==350
+trbACCCON:
+                jsr mos.callWithTST
+                trb ACCCON
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+tsbACCCON:
+                jsr mos.callWithTST
+                tsb ACCCON
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+ldaSystemVIAIFR:
+                jsr mos.callWithTST
+                lda systemVIA.ifr
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+printCMOSRamResetMessage:
+                jsr mos.callWithTST
+                jsr alwaysPrintFollowingMessage
+                .text 13,10
+                .text "CMOS RAM reset",13,10
+                .text "Press break to continue",13,10
+                .text 0
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+                ; dup of same routine in non-3.50 MOS
+LE375:
+                jsr mos.callWithTST
+                ldx #$01                     
+                stx tube.status1
+                lda tube.status1                   
+                eor #$01
+                ldx #$81                     
+                stx tube.status1             
+                and tube.status1       ; Cy=0 if no Tube, Cy=1 if Tube
+                ror a
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+resetCRTC:
+                ldx #$1e
+L8081:
+                stx $fe00
+                stz $fe01
+                inx
+                cpx #$21
+                bcc L8081
+                rts
+                .endif
+
+;-------------------------------------------------------------------------
+
 ; STARTUP
 ; =======
 reset:                          ;8020
+
+                .if version==350             ;stripped_out_reset
+
+                jsr mos.callWithTST
+                pla
+                pla
+                pla
+                bcc L809F
+                ldx #romServiceCallTubeMainInitialisation
+                jsr mos.makeROMServiceCall   ;
+                bne L809F
+                dec tubePresence ; Tube PreInit claimed, set TubeFlag to &FF, Tube present
+L809F:
+
+                .else                        ;stripped_out_reset
+                
                 lda #~ACCCON.D  ;display main RAM
                 trb ACCCON
                 .if version<500
@@ -666,6 +759,7 @@ L82B4:
                 eor #ACCCON.ITU
                 sta ACCCON
                 jsr mos.LE375        ; No Tube, skip past Tube PreInit
+                
                 bcc L82D0
 L82C6:
                 ldx #romServiceCallTubeMainInitialisation
@@ -674,6 +768,7 @@ L82C6:
                 dec tubePresence ; Tube PreInit claimed, set TubeFlag to &FF, Tube present
 L82D0:
                 .endif
+                .endif                       ;stripped_out_reset
                 lda lastBREAKType ; Soft Break, don't ask about workspace
                 beq L82FC
                 ldy #$DC                     ; Start high workspace at &DC00 and work downwards
@@ -841,7 +936,7 @@ mosCommandTable:
                 .mos_command "SHUT",mos.starSHUT,$00,$00 ;
                 .mos_command "SPOOL",starSPOOL,$80,$00   ; XY=>parameters
                 .mos_command "SPOOLON",starSPOOLON,$80,$00 ; XY=>parameters
-                .if version>=400
+                .if version>=350
                 .mos_command "SRDATA",starSRDATAOrStarSRROM,$00,$a0
                 .mos_command "SRLOAD",starSRLOADOrStarSRSAVE,$80,$60
                 .mos_command "SRREAD",starSRREADOrStarSRWRITE,$00,$a0
@@ -926,14 +1021,18 @@ L8535:
                 jmp mos.callFSCV
 
 L8542:
-                .if version<500
+                .if version<500&&version!=350
                 sty $E6
                 .endif
                 lda #<mosCommandTable
                 sta oscliWorkspace.tablePtr+0
                 lda #>mosCommandTable
                 sta oscliWorkspace.tablePtr+1
-                .if version<500
+                .if version==350
+                clv
+                jsr L885F
+                bcc passStarCommandThrough
+                .elsif version<500
                 bra L8558
                 .elsif version>=500
                 clv
@@ -941,7 +1040,7 @@ L8542:
                 bcc passStarCommandThrough
                 .endif
 
-                .if version<500
+                .if version<500&&version!=350
 L854E:
                 eor (oscliWorkspace.tablePtr)
                 and #$DF
@@ -990,7 +1089,7 @@ L8592:
                 jsr L84EE                    
                 rti                          
 
-                .if version<500
+                .if version<500&&version!=350
 fetchCommandTableByte:
                 lda (oscliWorkspace.tablePtr)
                 pha                          
@@ -1010,10 +1109,12 @@ rts85A5:
 starBASIC:
                 ldx basicROMNumber           ; Get BASIC ROM number
                 bmi passStarCommandThrough ; If no BASIC ROM, jump to pass to ROMs and filing system
-                .if version<500
+                .if version==350
+                jsr mos.LFAF9
+                .elsif version<500
                 sec                          ;
                 jmp mos.osbyte8E             ; Enter ROM as a language
-                .elsif version>=500
+                .else
                 lda #$8e
                 jmp OSBYTE
                 .endif
@@ -1029,9 +1130,9 @@ passStarCommandThrough:
                 ldy $E6
                 ldx #romServiceCallUnrecognisedCommand
                 jsr mos.osbyte8F    ; Service call 4 - Unknown command
-                .if version<500
+                .if version<500&&version!=350
                 beq rts85A5                    ; Claimed, return
-                .elsif version>=500
+                .else
                 beq parseDone
                 .endif
 L85C0:
@@ -1151,7 +1252,9 @@ readDigitFromString:
 
 L8641:
                 jsr mos.skipSpacesAndCheckForCRInStringInput
+                .if version!=350
                 cmp #$0D
+                .endif
 errorReadingString:
                 clc
                 rts
@@ -1245,14 +1348,14 @@ starROMS:
                 bne badCommandError869A
                 ldy #$0F
 printROMsLoop:
-                .if version<400
+                .if version<400&&version!=350
                 iny                          ;ensure Y!=0
                 jsr printFollowingMessage
                 .text "ROM ",0
                 tya                          ;A = ROM number+1
                 dec a                        ;A = ROM number
                 pha                          ;save ROM number
-                .elsif version>=400
+                .else
                 tya
                 tax
                 phy
@@ -1274,15 +1377,15 @@ L86DA:
                 sta $F6
                 lda #>sidewaysROMName
                 sta $F7
-                .if version<400
+                .if version<400&&version!=350
                 plx                          ;restore ROM number
                 .endif
                 jsr mos.isROMValidThenSelectTerminalROM
-                .if version<400
+                .if version<400&&version!=350
                 dey
                 .endif
                 bcc invalidROM
-                .if version>=500
+                .if version>=500||version==350
                 lda romInformationTable,y
                 dec a
                 beq invalidROM
@@ -1310,12 +1413,12 @@ printROMVersion:
                 jsr printSpaceThenPrintHexByte
 printInsertionStatus:
                 phy                          ; 86F5= 5A          Z
-                .if version<500
+                .if version<500&&version!=350
                 jsr mos.getROMInsertedFlagRTCAddressAndMask
                 sta starROMSWorkspace.insertedFlagMask
                 jsr readRTCByte
                 and starROMSWorkspace.insertedFlagMask
-                .elsif version>=500
+                .else
                 jsr L873F
                 .endif
                 bne +
@@ -1335,7 +1438,7 @@ invalidROM:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                .if version>=500||version==350
 L873F:
                 jsr mos.getROMInsertedFlagRTCAddressAndMask
                 sta $b0
@@ -7927,6 +8030,13 @@ LAE0F:
                 .include "ext.s65"
                 .endif
 
+                .if version==350
+
+LB900:
+chr127:
+                
+                .else
+                
 ; Unused space
 ; ============
                 .fill $b900-*,$ff
@@ -10175,4 +10285,9 @@ chr127:
                 .byte %11111111
                 .byte %11111111
                 .byte %11111111
+
+                .endif
+                
                 .endblock
+
+                

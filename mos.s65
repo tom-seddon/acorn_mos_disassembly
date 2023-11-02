@@ -6118,7 +6118,11 @@ acornMOS:
                 .if olivetti
                 .text "Olivetti MOS"
                 .elsif version==350
+                .if CFA3000
+                .text "ACORN MOS (Tinsley 64K)"
+                .else
                 .text "ACORN MOS"
+                .endif
                 .else
                 .text "Acorn MOS"
                 .endif
@@ -10482,7 +10486,11 @@ osbyte00:                       ;ef6f
                 .elsif version==511
                 .text "MOS 5.11i"
                 .elsif version==350
+                .if CFA3000
+                .text "MOS 3.5a"
+                .else
                 .text "MOS 3.50"
+                .endif
                 .endif
                 .byte 0
 
@@ -13758,6 +13766,23 @@ LFB0A:       .block
                 rts
                 .endblock
 
+                .if CFA3000
+LFB2F:
+                ldx #$31
+LFB31:
+                phx
+                ldy #0
+                cpx #$11
+                bcs LFB3B
+                ldy LFEA2-1,x
+LFB3B:
+                jsr terminal.writeCMOSByte
+                plx
+                dex
+                bne LFB31
+                rts
+                .endif
+
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -13776,9 +13801,9 @@ LFC00:
                 cld
                 ldx #$FF
                 txs
-                stx LFE61+2
+                stx userVIA.ddra;
                 lda #$CF        ; ''
-                sta LFE42
+                sta systemVIA.ddrb
                 jsr enableKeyboardScanning
                 jsr LFEF5
                 ldy #$20        ; ' '
@@ -13845,9 +13870,9 @@ LFC79:
                 lsr a
                 dec a
                 beq LFC52
-                lda #$DD
+                lda #<mos.emptyCommandLine
                 sta hazel.commandLinePointer+0
-                lda #$E7
+                lda #>mos.emptyCommandLine
                 sta hazel.commandLinePointer+1
                 lda #$C
                 jsr terminal.trbACCCON
@@ -13871,7 +13896,14 @@ LFC79:
 LFCB2:
                 inc lastBREAKType
                 phy
-                ldx #$6B        ; 'k'
+                .if CFA3000
+                lda lastBREAKType
+                dec a
+                bne LFCBF
+                jsr LFB2F
+LFCBF:
+                .endif
+                ldx #$6B
                 jsr terminal.L8831_350
                 ora #8
                 sta startupOptions
@@ -14027,7 +14059,7 @@ LFDB7:
                 lda #$E
                 sta LFE46
                 sta LFE6C
-                sta LFE18
+                sta HADC.status
                 lda #$27        ; '''
                 sta LFE46+1
                 sta LFE44+1
@@ -14043,29 +14075,18 @@ LFDB7:
                 jsr terminal.L8831_350
                 pha
                 tax
-
-LFDFE:
                 jsr osbyte08
-
-LFE01:
                 plx
                 lda #7
                 jsr osbyte07
-
-LFE07:
                 jsr terminal.readDefaults3
                 bit #2
                 bne LFE13
                 lda #$F0        ; ''
-
-LFE10:
                 sta bellSound
-
 LFE13:
                 ldx softKeyConsistencyFlag
                 beq LFE1B
-
-LFE18:
                 jsr osbyte12
 
 LFE1B:
@@ -14074,8 +14095,6 @@ LFE1B:
 
 LFE20:
                 txa
-
-LFE21:
                 tay
                 jsr isROMValid
                 bcc LFE53
@@ -14094,13 +14113,8 @@ LFE36:
                 lda (SEIWKA)
                 stx ROMSEL
                 cmp (SEIWKA)
-
-LFE40:
                 bne LFE2B
-
-LFE42:
                 inc SEIWKA
-
 LFE44:
                 bne LFE36
 
@@ -14156,6 +14170,9 @@ LFE73:
                 lda firstKeyPressedInternal
                 cmp #key_r
                 bne LFEB2
+                .if CFA3000
+                jsr LFB2F
+                .else
                 ldx #$31        ; '1'
 
 LFE87:
@@ -14163,13 +14180,14 @@ LFE87:
                 ldy #0
                 cpx #$11
                 bcs LFE91
-                ldy $FEA1,x
+                ldy LFEA2-1,x
 
 LFE91:
                 jsr terminal.writeCMOSByte
                 plx
                 dex
                 bne LFE87
+                .endif
                 jsr LE525
                 lda #3
                 sta breakAndESCAPEEffect
@@ -14179,11 +14197,11 @@ LFEA0:
 
 ;-------------------------------------------------------------------------
 
-                inc $EB00,x
-                brk
-
-;-------------------------------------------------------------------------
-
+LFEA2:
+                .byte $fe
+                .byte $00
+                .byte $eb
+                .byte $00
                 .byte $CD
                 .byte $FF
                 .byte $FF
@@ -14253,6 +14271,8 @@ LFEF7:
                 bne LFEF7
                 rts
                 .endblock
+
+                .fill $ff00-*
 
 ;-------------------------------------------------------------------------
 
@@ -14490,6 +14510,9 @@ E_IND3V: ; ff4e
 ;-------------------------------------------------------------------------
 
 extendedVectorEntryPoint:
+                ; .if CFA3000
+                ; ;...
+                ; .else
                 ; $10b,x = rL
                 pha                 ; $10a,x  (old ROMSEL)
                 pha                 ; $109,x  (old ACCCON)
@@ -14540,6 +14563,7 @@ extendedVectorEntryPoint:
                 plx
                 pla
                 rti
+;                .endif
 
 ;-------------------------------------------------------------------------
 

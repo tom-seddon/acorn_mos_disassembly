@@ -5,8 +5,17 @@
 ; 
 ;-------------------------------------------------------------------------
 
+; These variant flags are applicable to the stated versions only, and
+; may or may not be separable from the various .if/.endif constructs
+; for that version. If they're set for any other version, the output
+; may not make sense.
+
                 .weak
+                ; Set if building Olivetti MOS, a variant of 5.10.
 olivetti=false
+
+                ; Set if building CFA3000 MOS, a variant of 3.50.
+CFA3000=false
                 .endweak
                 
 ;-------------------------------------------------------------------------

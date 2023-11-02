@@ -4383,7 +4383,11 @@ L9EFC:
                 .if version==320
                 .text "OS 3.20"
                 .elsif version==350
+                .if CFA3000
+                .text "MOS 3.5a"
+                .else
                 .text "MOS 3.50"
+                .endif
                 .elsif version==400
                 .text "MOS 4.00"
                 .elsif version==500

@@ -1,0 +1,41 @@
+                .include "hardware.s65"
+                .include "mos_workspace.s65"
+                .include "terminal_workspace.s65"
+
+version=350
+CFA3000=true
+                
+*=$af00
+                .dsection ext
+                .cwarn *>$b800,'Ext ROM is too large'
+                
+*=$8000
+                .dsection utils
+                .cwarn *>$c000,'Terminal ROM is too large'
+                
+*=$c000
+                .dsection mos
+                ; there's no need for a size check here - 64tass gives
+                ; you an error if the code would go past the 64 K
+                ; barrier.
+
+;-------------------------------------------------------------------------
+
+osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
+osbyte14=terminal.osbyte14
+
+;-------------------------------------------------------------------------
+
+                .section ext
+                .include "sound_stuff.s65"
+                .fill 7,255
+                .include "ext.s65"
+                .endsection
+
+                .section utils
+                .include "terminal.s65"
+                .endsection
+
+                .section mos
+                .include "mos.s65"
+                .endsection

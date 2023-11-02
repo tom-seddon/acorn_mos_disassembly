@@ -30,6 +30,7 @@ all:
 	$(_V)$(MAKE) _build VERSION=400
 	$(_V)$(MAKE) _build VERSION=PC128S
 	$(_V)$(MAKE) _build_with_ext VERSION=350
+	$(_V)$(MAKE) _build_with_ext VERSION=CFA3000
 
 .PHONY:_build_with_ext
 _build_with_ext:

@@ -1,11 +1,6 @@
 ; -*- comment-column:45; -*-
 
 terminal: .block
-                .if version==350
-                ; temp bodges
-                
-                .endif
-
                 .if version==320||version==350
                 
                 jmp terminalLanguageEntryPoint ; Language entry point
@@ -1027,13 +1022,9 @@ L8542:
                 sta oscliWorkspace.tablePtr+0
                 lda #>mosCommandTable
                 sta oscliWorkspace.tablePtr+1
-                .if version==350
-                clv
-                jsr L885F
-                bcc passStarCommandThrough
-                .elsif version<500
+                .if version<500&&version!=350
                 bra L8558
-                .elsif version>=500
+                .else
                 clv
                 jsr utils_8A8F
                 bcc passStarCommandThrough

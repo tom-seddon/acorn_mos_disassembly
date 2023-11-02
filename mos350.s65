@@ -20,24 +20,6 @@ version=350
 
 ;-------------------------------------------------------------------------
 
-LF35C=$f35c
-LE22A=$e22a
-;callWithTST=$f35c
-L84F4=$84f4
-L8834_350=$8834
-L8035=$8035
-LECF4=$ecf4
-;osbyteAndOSWORDRoutineTable=$fffe
-;oswordRoutineTable=$fffe
-;LF198=$f198
-LF316=$f316
-;LF381=$f381
-;LB04E=$b04e
-LF545=$f545
-;LF6D3=$f6d3
-L885F=$885f
-;L8952=$8bac
-
 osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
 osbyte14=terminal.osbyte14
 

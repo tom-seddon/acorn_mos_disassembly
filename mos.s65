@@ -1,19 +1,6 @@
 ; -*- comment-column:45; -*-
 
 mos: .block
-                .if version==350
-; bodge space
-LE375=$e375
-scanROMs=$ffff
-osbyte77=$ffff
-osbyteA1=$ffff
-osbyteA2=$ffff
-osword0F=$ffff
-osbyte14=$ffff
-osword10=$ffff
-osword11=$ffff
-                
-                .endif
 
 ; VDU driver entry block
 ; ======================
@@ -1576,7 +1563,7 @@ vdu22EntryPoint:
 ; 
 setStartupMODE:
                 .if version==350
-                jsr LF35C
+                jsr callWithTST
                 .endif
                 sta ZTEMP+0                  ;save MODE
                 lda $F4
@@ -5756,7 +5743,7 @@ nextFontChar:
                 bpl LDE4A
                 eor #$7f
 LDE4A:
-                jsr LE22A
+                jsr getSoftCharacterDefinitionAddress
                 .else
                 clc
                 lda ZTEMPC+0
@@ -7142,7 +7129,7 @@ LE389:
                 phx
                 .if version==350
                 jsr selectTerminalROM
-                jsr L84F4
+                jsr terminal.L873F
                 .elsif version<500
                 jsr getROMInsertedFlagRTCAddressAndMask
                 sta $FC                      ;save mask
@@ -7340,11 +7327,7 @@ LE431:
                 .else
                 ldx #$33
                 .endif
-                .if version==350
-                jsr L8834_350
-                .else
                 jsr terminal.L8A64
-                .endif
                 .endif
                 
                 tax
@@ -7434,11 +7417,7 @@ LE4BB:
                 .else
                 ldx #$41
                 .endif
-                .if version==350
-                jsr L8834_350
-                .else
                 jsr terminal.L8A64
-                .endif
                 .endif
                 tax
 LE4C2:
@@ -7567,7 +7546,7 @@ LE525:
                 ldx #$2c
                 ldy #$03
                 jsr terminal.writeCMOSByte
-                jmp L8035
+                jmp terminal.printCMOSRamResetMessage
                 .endif
                 
 ;-------------------------------------------------------------------------
@@ -8478,7 +8457,7 @@ LE833:
                 lda ACCCON                   ;
                 pha                          ;S=[old ACCCON; ch; y; x; ch]
                 .if version==350
-                jsr LECF4
+                jsr selectMOS
                 .else
                 lda #ACCCON.Y
                 trb ACCCON                   ;MOS ROM at $c000
@@ -11255,7 +11234,7 @@ osbyte17:                       ;f22c
 LF198:
                 dex
                 bpl LF19E
-                jsr LF316
+                jsr withTerminalROM
 LF19E:
                 ldx originalX
                 jmp (SEIWKA)
@@ -12215,7 +12194,7 @@ LF5FC:
                 lda keyboardTranslationTableAddress+0
                 bit keyboardTranslationTableAddress+1
                 .if version==350
-                jmp LF545
+                jmp LF839
                 .else
                 jmp LF6A8
                 .endif

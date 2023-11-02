@@ -9,7 +9,7 @@ version=350
                 .cwarn *>$b800,'Ext ROM is too large'
                 
 *=$8000
-                .dsection terminal
+                .dsection utils
                 .cwarn *>$c000,'Terminal ROM is too large'
                 
 *=$c000
@@ -31,7 +31,7 @@ osbyte14=terminal.osbyte14
                 .include "ext.s65"
                 .endsection
 
-                .section terminal
+                .section utils
                 .include "terminal.s65"
                 .endsection
 

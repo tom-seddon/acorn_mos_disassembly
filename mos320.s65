@@ -52,7 +52,7 @@ version=320
                 .cwarn *>$c000,'Ext ROM is too large'
                 
 *=$8000
-                .dsection terminal
+                .dsection utils
                 .cwarn *>$c000,'Terminal ROM is too large'
                 
 *=$c000
@@ -67,7 +67,7 @@ version=320
                 .include "ext.s65"
                 .endsection
 
-                .section terminal
+                .section utils
                 .include "terminal.s65"
                 .endsection
 

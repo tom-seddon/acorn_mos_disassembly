@@ -23,19 +23,19 @@ endif
 
 .PHONY:all
 all:
-	$(_V)$(SHELLCMD) mkdir $(BUILD)/320
-	$(_V)$(TASS) mos320.s65 -L$(BUILD)/mos320.lst --output-section mos -o$(BUILD)/320/mos.rom --output-section terminal -o $(BUILD)/320/utils.rom --output-section ext -o $(BUILD)/320/ext.rom
-	$(_V)$(MAKE) _check_identical VERSION=320 EXTRA=ext.rom
-
+	$(_V)$(MAKE) _build_with_ext VERSION=320
 	$(_V)$(MAKE) _build VERSION=500
 	$(_V)$(MAKE) _build VERSION=510
 	$(_V)$(MAKE) _build VERSION=511
 	$(_V)$(MAKE) _build VERSION=400
 	$(_V)$(MAKE) _build VERSION=PC128S
+	$(_V)$(MAKE) _build_with_ext VERSION=350
 
-	$(_V)$(SHELLCMD) mkdir $(BUILD)/350
-	$(_V)$(TASS) mos350.s65 -L$(BUILD)/mos350.lst --output-section mos -o$(BUILD)/350/mos.rom --output-section terminal -o $(BUILD)/350/utils.rom --output-section ext -o $(BUILD)/350/ext.rom
-	$(_V)$(MAKE) _check_identical VERSION=350 EXTRA=ext.rom
+.PHONY:_build_with_ext
+_build_with_ext:
+	$(_V)$(SHELLCMD) mkdir $(BUILD)/$(VERSION)
+	$(_V)$(TASS) mos$(VERSION).s65 -L$(BUILD)/mos$(VERSION).lst --output-section mos -o $(BUILD)/$(VERSION)/mos.rom --output-section utils -o $(BUILD)/$(VERSION)/utils.rom --output-section ext -o $(BUILD)/$(VERSION)/ext.rom
+	$(_V)$(MAKE) _check_identical VERSION=$(VERSION) EXTRA=ext.rom
 
 .PHONY:_build
 _build:

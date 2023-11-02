@@ -1,3 +1,4 @@
+#+STARTUP: overview
 * OSBYTEs
 
 ** By number
@@ -247,3 +248,45 @@ OSBYTE 255 (&FF) Read/write startup options [MasRef D.2-84]
 |--------+-------+-------+-------+-------+-------+-------+--------|
 | reset  | $64e3 | $74e3 | $74e3 | $86e3 | $86e3 | $87e3 | $89e3  |
 | irq    | $9ee5 | $68e5 | $abe5 | $b7e5 | $b7e5 | $b8e5 | $bae5  |
+
+* Non-Acorn systems
+
+** `CFA3000` - Henson CFA3000
+
+https://stardot.org.uk/forums/viewtopic.php?t=20676
+
+Related to MOS 3.50?
+
+BASIC is identical.
+
+DFS 2.45 has some differences, but only in the MOS code. Presumably
+things moving about slightly. Hopefully.
+
+** `autocue` - Autocue 1500 Teleprompter
+
+https://stardot.org.uk/forums/viewtopic.php?t=7179
+
+Related to MOS 5.11? BASIC and ADFS are identical to the 5.11
+versions, and utils ROM is very similar. MOS code diverges noticeably
+from 5.10 earlier than from 5.11, but the code size is closer to 5.11.
+
+** `329` - FinMOS 3.29
+
+https://stardot.org.uk/forums/viewtopic.php?t=18510
+
+Related to MOS 3.50?
+
+| ROM       | 3.29  | 3.50  | Notes                                     |
+|-----------+-------+-------+-------------------------------------------|
+| ViewSheet | B1.01 | B1.01 | Identical                                 |
+| View      | $07   | $07   | Differences start at $bbc03               |
+| BASIC     | 4r31  | 4r32  | Identical apart from version number       |
+| ADFS      | 202   | 203   | Similar apart from *HELP text             |
+| DFS       | 2.44  | 2.45  | Similar barring a few bytes in the middle |
+| EDIT      | 1r47  | 1.50r | Lots of differences!                      |
+| UTILS     |       |       | Looks largely the same                    |
+| MOS       |       |       | Some differences, but looks related       |
+
+The ext part of DFS looks very similar.
+
+This does have the reset code behind the I/O area.

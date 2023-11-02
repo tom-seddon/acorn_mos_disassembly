@@ -3,7 +3,6 @@
 mos: .block
                 .if version==350
 ; bodge space
-LF55D=$f55d
 LE375=$e375
 scanROMs=$ffff
 osbyte77=$ffff
@@ -209,7 +208,7 @@ outputCharToPrinter:
                 bcc rtsC035 ;taken if printer disabled - VDU 1 then a no-op
                 txa                          ;restore char to print
                 clc
-                .if version<400
+                .if version<350
                 jmp LE8B9
                 .else
                 jmp LE2ED
@@ -329,7 +328,7 @@ vdu2EntryPoint:
 vdu3EntryPoint:
                 pha                          ;
                 jsr reinstateCursorEditing
-                .if version<400
+                .if version<350
                 jsr callPrinterDriverWithPrinterBuffer
                 .else
                 jsr LE2E7
@@ -1357,7 +1356,7 @@ callVDUVForPLOT:
 ; Call VDUV.
 ; 
 callVDUV:
-                .if version<400
+                .if version<350
                 jmp (VDUV)
                 .else
                 jmp LE2F3
@@ -5966,7 +5965,9 @@ handleCopyKey:
                 bit STATE
                 bvc ldaim00_rts_DF3E      ;taken if not cursor editing
                 bne ldaim00_rts_DF3E      ;taken if VDU5
-                .if version<511
+                .if version==350
+                jsr LFB0A
+                .elsif version<511
                 jsr readCharacterAtTextCursor
                 .else
                 lda #$87
@@ -7085,14 +7086,21 @@ resetEntryPoint:                ;e364
                 lda ACCCON
                 ora #ACCCON.TST|ACCCON.Y|ACCCON.X
                 .endif
+                .if version==350
+                jsr staSEIWKAAndACCCON
+                jmp LFC00
+                .else
                 jsr selectTerminalROM ; Page in ROM 15 and continue
                 jmp terminal.reset
+                .endif
 
 ;-------------------------------------------------------------------------
 
                 .if version==350
+                ; D'oh! I got confused, and gave this completely the
+                ; wrong name.
 staSEIWKAAndACCCON:
-                sta SEIWKA
+                sta $fc
                 sta ACCCON
                 rts
                 .endif
@@ -7408,7 +7416,11 @@ LE4A3:
                 cpx #$10                     ; <16, normal ROM number, use it
                 .endif
                 bcc LE4C2
+                .if version==350
+                cmp #$1f
+                .else
                 cpx #$1F                     ; 16+UTILS ROM, re-enter Supervisor or Tube CLI
+                .endif
                 beq LE509
 LE4BB:
                 jsr selectTerminalROM     ; Page in ROM 15 - UTILS ROM
@@ -7552,7 +7564,7 @@ LE520:
 
                 .if version==350
 LE525:
-                ldy #$2c
+                ldx #$2c
                 ldy #$03
                 jsr terminal.writeCMOSByte
                 jmp L8035
@@ -7807,7 +7819,7 @@ handleUnrecogisedInterrupt:
                 plx                          
                 pla
                 .if version==350
-                sta SEIWKA
+                sta $fc
                 .endif
                 jmp (IRQ2V)                  
 
@@ -7934,7 +7946,11 @@ LE718:
                 bpl LE728
                 inc previousKeyPressedWhenReadingOSBYTE
                 cli
+                .if version==350
+                jsr LF3C5_350
+                .else
                 jsr LF416                    ;update sound???
+                .endif
                 sei
                 dec previousKeyPressedWhenReadingOSBYTE
 LE728:
@@ -8693,7 +8709,11 @@ LE95A:
                 txa
                 and #$04                     ;buffer 4-7?
                 beq LE967                    ;taken if not sound buffer
+                .if version==350
+                jsr LF3BC
+                .else
                 jsr LF55D
+                .endif
 LE967:
                 sec
                 ror bufferEmptyFlags,x
@@ -10174,11 +10194,7 @@ LEF76:
                 .if version>=350
 osword0E:
                 cmp #3
-                .if version<400
-                bcs handleUnrecognisedOSBYTEOrOSWORD
-                .else
                 bcs handleUnrecognisedOSWORD
-                .endif
                 jsr withTerminalROM
                 jmp terminal.osword0E
                 .endif
@@ -10250,10 +10266,17 @@ LEEE0:
                 ldx $f4
                 jsr selectTerminalROM
                 .endif
+                .if version==350
+                lda osbyteAndOSWORDRoutineTable,y
+                sta SEIWKA
+                lda osbyteAndOSWORDRoutineTable+1,y
+                sta SEIWKB
+                .else
                 lda osbyteAndOSWORDRoutineTable+1,y
                 sta SEIWKB
                 lda osbyteAndOSWORDRoutineTable,y
                 sta SEIWKA
+                .endif
                 .if version>=500
                 plx
                 jsr selectROMX
@@ -10910,11 +10933,11 @@ osbyteA0:
 ;
 ; Reset key auto repeat settings to the defaults set in CMOS.
 ; 
-resetKeyRepeat:
                 .if version==350
+setTSTAndResetKeyRepeat:
                 jsr callWithTST
-resetKeyRepeatWithTST:
                 .endif
+resetKeyRepeat:
                 jsr withTerminalROM
                 .if version<500&&version!=350
                 jsr terminal.getDefaultKeyboardAutoRepeatDelay
@@ -11174,6 +11197,7 @@ osbyte6D:;f20f
                 stx hazel.currentFS
                 lda ExtendedVectorAddress(FILEV)+2 ; Copy XFILEV ROM to current FS ROM number
                 sta hazel.currentFSROM
+rtsF180:
                 rts
 
 ;-------------------------------------------------------------------------
@@ -11198,7 +11222,11 @@ osbyte19:                       ;f222
                 .if version>=511||version==350
                 ldx #romServiceCallUnrecognisedOSBYTE
                 jsr makeROMServiceCall
+                .if version==350
+                beq rtsF180
+                .else
                 beq LF2EB
+                .endif
                 ldx originalX
                 .endif
                 jsr withTerminalROM
@@ -11594,9 +11622,15 @@ LF3E2:
                 rts
 
 LF3E7:
-                .byte '_','0'
+                .byte '_'
+                .byte '0'
 LF3E9:
-                .byte '`','@'
+                .byte '`'
+                .if version==350
+                .byte '0'
+                .else
+                .byte '@'
+                .endif
                 
                 .endif
 
@@ -11760,7 +11794,7 @@ withTerminalROM:
                 .if version==350
                 jsr LF381
                 lda $f4
-                lda $109,x
+                sta $109,x
                 lda #>(withTerminalROMReturnThunk-1)
                 sta $108,x
                 lda #<(withTerminalROMReturnThunk-1)
@@ -11858,9 +11892,10 @@ returnThunkSuffix:
 ;-------------------------------------------------------------------------
 
                 .if version==350
+                ; Should be called something more like runWithTST
 callWithTST:
                 jsr LF381
-                lda SEIWKA
+                lda $fc
                 and #$bf
                 sta ACCCON
                 lda #<(withTSTReturnThunk-1)
@@ -11870,7 +11905,7 @@ callWithTST:
                 bra plx_pla_plp_rts
 
 withTSTReturnThunk:
-                pha
+                php
                 pha
                 phx
                 tsx
@@ -11968,7 +12003,7 @@ LF55D:
 ;-------------------------------------------------------------------------
 
                 .if version==350
-LF3DC:
+LF3BC:
                 jsr selectExtROM
                 phy
                 jsr LF55D
@@ -12128,7 +12163,7 @@ checkForKeyAutoRepeat:
                 cpx #$80|key_shift_lock
                 beq shiftLockPressed
                 cpx #$80|key_caps_lock
-                .if version>=511
+                .if version>=511||version==350
                 bne LF5E5_511
                 .else
                 bne getASCIICode
@@ -12339,7 +12374,7 @@ LF54A:
                 bpl LF555
 LF54F:
                 jsr LF6D3
-                bcc LF55D
+                bcc LF55D_350
                 tay
 LF555:
                 lda keyboardStatus
@@ -12496,11 +12531,11 @@ resetAutoRepeatCounters:
 ;
 ; Preserves: A/C
 ; 
-interrogateKeyboard:
                 .if version==350
+setTSTAndInterrogateKeyboard:
                 jsr callWithTST
-interrogateKeyboardWithTST:
                 .endif
+interrogateKeyboard:
                 ldy #$03                     ;write to keyboard
                 sty systemVIA.orb
                 ldy #$7F

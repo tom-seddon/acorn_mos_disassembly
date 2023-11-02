@@ -13785,6 +13785,500 @@ LFB0A:       .block
 
                 .fill $fc00-*,$ff
 
+                .if version==350
+
+;-------------------------------------------------------------------------
+;
+; Some init code - normally hidden by the I/O region
+
+LFC00:
+                jsr selectTerminalROM
+                stz hazel.hasACCCONChanged
+                cld
+                ldx #$FF
+                txs
+                stx LFE61+2
+                lda #$CF        ; ''
+                sta LFE42
+                jsr enableKeyboardScanning
+                jsr LFEF5
+                ldy #$20        ; ' '
+                ldx #$A
+                jsr terminal.writeRTCByte
+                jsr terminal.finishRTCUpdate
+                lda defaultVectorTable+0
+                lda defaultVectorTable+0
+                jsr terminal.ldaSystemVIAIER
+                asl a
+                pha
+                bne LFC79
+                jsr terminal.resetCRTC
+                ldx #7
+
+LFC34:
+                jsr selectROMX
+                ldy #$80        ; ''
+                sty 1
+                stz 0
+                tay
+
+LFC3E:
+                sta (0),y
+                iny
+                bne LFC3E
+                inc 1
+                bit 1
+                bvc LFC3E
+                dex
+                cpx #4
+                bcs LFC34
+                jsr selectTerminalROM
+                tya
+
+LFC52:
+                tay
+
+LFC53:
+                ldx $fc
+                tya
+                stz 1
+                stz 0
+
+LFC5A:
+                sta (0),y
+                iny
+                bne LFC5A
+                inc 1
+                ldy #$40        ; '@'
+                sty $d00
+                ldy 1
+                cpy #$E0        ; ''
+                tay
+                bcc LFC5A
+                stx $FC
+                lda #4
+                jsr terminal.trbACCCON
+                bne LFC53
+                jsr selectTerminalROM
+
+LFC79:
+                lda breakAndESCAPEEffect
+                lsr a
+                dec a
+                beq LFC52
+                lda #$DD
+                sta hazel.commandLinePointer+0
+                lda #$E7
+                sta hazel.commandLinePointer+1
+                lda #$C
+                jsr terminal.trbACCCON
+                lda #$F
+                sta numericKeypadShiftEffect
+                ldx #1
+                jsr setTSTAndInterrogateKeyboard
+                cpx #$80
+                jsr updateKeyboardLEDs
+                stz lastBREAKType
+                ror a
+                ldx #$9C
+                ldy #$8D
+                pla
+                beq LFCB2
+                ldy #$7E
+                bcc LFCE6
+                ldy #$87
+                inc lastBREAKType
+
+LFCB2:
+                inc lastBREAKType
+                phy
+                ldx #$6B        ; 'k'
+                jsr terminal.L8831_350
+                ora #8
+                sta startupOptions
+                jsr terminal.readDefaults3
+                and #$10
+                lsr a
+                trb startupOptions
+                jsr terminal.setTSTAndL8BD6
+                sty tvOffset
+                stx tvInterlace
+                jsr terminal.readDefaults3
+                and #8
+                beq LFCDB
+                lda #1
+
+LFCDB:
+                sta vduv.cursorFlags
+                jsr terminal.restoreFont32To255
+                ply
+                ldx #$92
+                bra LFCFE
+
+;-------------------------------------------------------------------------
+
+LFCE6:
+                lda #$87
+                trb startupOptions
+                lda vduv.currentScreenMODE
+                and #7
+                tsb startupOptions
+                lda #$10
+                bit STATE
+                beq LFCFE
+                lda #$80
+                tsb startupOptions
+
+LFCFE:
+                lda lastBREAKType
+                bne LFD0B
+                cpx #$B1
+                bcs LFD0B
+                cpx #$A1
+                bcs LFD15
+
+LFD0B:
+                stz $200,x
+                cpx #$CD
+                bcc LFD15
+                dec $200,x
+
+LFD15:
+                inx
+                bne LFCFE
+                lda $fc
+                ldx #$CF
+
+LFD1C:
+                stz 0,x
+                inx
+                bne LFD1C
+                sta $fc
+                jsr selectTerminalROM
+                lda lastBREAKType
+                bne LFD4B
+                lda noignoreState
+                pha
+                lda basicROMNumber
+                pha
+                lda oshwm
+                pha
+                lda spoolFileHandle
+                pha
+                ldx execFileHandle
+
+LFD3E:
+                lda defaultVectorTable-1,y
+                sta vectors-1,y
+                dey
+                cpy #EVENTV+1-vectors
+                bcs LFD3E
+                ldy #FILEV-vectors
+
+LFD4B:
+                lda defaultVectorTable-1,y
+                sta vectors-1,y
+                dey
+                bne LFD4B
+                lda lastBREAKType
+                bne LFD71
+                stx execFileHandle
+                pla
+                cmp #4
+                bcs LFD62
+                tya
+
+LFD62:
+                sta spoolFileHandle
+                pla
+                sta oshwm
+                pla
+                sta basicROMNumber
+                pla
+                sta noignoreState
+
+LFD71:
+                ldx #$19
+                jsr terminal.setTSTAndReadRTCByte
+                ldx #$20
+                asl a
+                asl a
+                bmi LFD83
+                ldx #$30
+                asl a
+                bmi LFD83
+                ldx #$A0
+
+LFD83:
+                stx keyboardStatusByte
+                jsr setTSTAndResetKeyRepeat
+                lda lastBREAKType
+                beq LFDA4
+                ldx #$1C
+                jsr terminal.setTSTAndReadRTCByte
+                sta printerIgnoreChar
+                jsr terminal.setTSTAndReadUsePrinterIgnoreChar
+                ror noignoreState
+                ldx #$9B
+                jsr terminal.L8831_350
+                sta printerDriverType
+
+LFDA4:
+                ldx #$19
+                jsr terminal.L8831_350
+                asl a
+                asl a
+                ora #$42
+                sta aciaControlRegister
+                jsr terminal.resetACIAThenRewriteControlRegister
+                ldx #1
+                lda #$7F
+
+LFDB7:
+                sta systemVIA.ifr,x
+                sta userVIA.ifr,x
+                dex
+                bpl LFDB7
+                ldx #$D2
+                stx LFE4E
+                ldx #4
+                stx LFE4C
+                lda #$40        ; '@'
+                sta LFE4A+1
+                lda #$E
+                sta LFE46
+                sta LFE6C
+                sta LFE18
+                lda #$27        ; '''
+                sta LFE46+1
+                sta LFE44+1
+                jsr LFEF5
+                jsr setTSTAndOSBYTE7A
+                stx firstKeyPressedInternal
+                ldx #0
+                jsr purgeBuffer
+                lda serialULARegister
+                and #$7F        ; ''
+                jsr LEC89
+                ldx #7
+                jsr terminal.L8831_350
+                pha
+                tax
+
+LFDFE:
+                jsr osbyte08
+
+LFE01:
+                plx
+                lda #7
+                jsr osbyte07
+
+LFE07:
+                jsr terminal.readDefaults3
+                bit #2
+                bne LFE13
+                lda #$F0        ; ''
+
+LFE10:
+                sta bellSound
+
+LFE13:
+                ldx softKeyConsistencyFlag
+                beq LFE1B
+
+LFE18:
+                jsr osbyte12
+
+LFE1B:
+                lda lastBREAKType
+                beq LFE73
+
+LFE20:
+                txa
+
+LFE21:
+                tay
+                jsr isROMValid
+                bcc LFE53
+                ldx $f4
+                ldy $f4
+LFE2B:
+                iny
+                cpy #$10
+                bcs LFE57
+                stz SEIWKA
+                lda #$80        ; ''
+                sta SEIWKA+1
+
+LFE36:
+                sty ROMSEL
+                lda (SEIWKA)
+                stx ROMSEL
+                cmp (SEIWKA)
+
+LFE40:
+                bne LFE2B
+
+LFE42:
+                inc SEIWKA
+
+LFE44:
+                bne LFE36
+
+LFE46:
+                inc SEIWKA+1
+                lda SEIWKA+1
+
+LFE4A:
+                cmp #$84        ; ''
+
+LFE4C:
+                bcc LFE36
+
+LFE4E:
+                lda #1
+                sta $2A1,x
+
+LFE53:
+                ldx $F4
+                bra LFE6B
+
+;-------------------------------------------------------------------------
+
+LFE57:
+                txa
+                tay
+                jsr LE398
+                bcc LFE6B
+                lda $8006
+
+LFE61:
+                sta romInformationTable,x
+                and #$8F        ; ''
+                bne LFE6B
+                stx basicROMNumber
+
+LFE6B:
+                inx
+
+LFE6C:
+                cpx #$10
+
+LFE6E:
+                bcc LFE20
+                jsr selectTerminalROM
+
+LFE73:
+                lda startupOptions
+                jsr setStartupMODE
+                lda lastBREAKType
+                dec a
+                bne LFEB2
+                lda firstKeyPressedInternal
+                cmp #key_r
+                bne LFEB2
+                ldx #$31        ; '1'
+
+LFE87:
+                phx
+                ldy #0
+                cpx #$11
+                bcs LFE91
+                ldy $FEA1,x
+
+LFE91:
+                jsr terminal.writeCMOSByte
+                plx
+                dex
+                bne LFE87
+                jsr LE525
+                lda #3
+                sta breakAndESCAPEEffect
+
+LFEA0:
+                bra LFEA0
+
+;-------------------------------------------------------------------------
+
+                inc $EB00,x
+                brk
+
+;-------------------------------------------------------------------------
+
+                .byte $CD
+                .byte $FF
+                .byte $FF
+                .byte $15
+                .byte 0
+                .byte $17
+                .byte $60       ; `
+                .byte $32       ; 2
+                .byte 8
+                .byte $A
+                .byte $2D       ; -
+                .byte $82
+
+;-------------------------------------------------------------------------
+
+LFEB2:
+                lda #8
+                jsr terminal.tsbACCCON
+                stz hazel.moveSrcHandle
+                stz hazel.moveDestHandle
+                ldy #$CA        ; ''
+                jsr insertCharacterIntoKeyboardBuffer
+                jsr osbyte247EntryPoint
+                lda lastBREAKType
+                beq LFECD
+                jsr LEDD0
+
+LFECD:
+                jsr terminal.setTSTAndReadDefaults2
+                lsr a
+                bcc LFEF2
+                jsr terminal.readDefaults3
+                lsr a
+                lsr a
+                lsr a
+                lda #$10
+                jsr terminal.trbACCCON
+                bcs LFEE3
+
+LFEE0:
+                jsr terminal.tsbACCCON
+
+LFEE3:
+                jsr terminal.LE375
+
+LFEE6:
+                bcs LFEF2
+
+LFEE8:
+                lda $FC
+                eor #$10
+                jsr staSEIWKAAndACCCON
+                jsr terminal.LE375
+
+LFEF2:
+                jmp terminal.reset
+
+;-------------------------------------------------------------------------
+
+LFEF5:       .block
+                ldx #8
+
+LFEF7:
+                dex
+                jsr LF3BC
+                cpx #4
+                bne LFEF7
+                rts
+                .endblock
+
+;-------------------------------------------------------------------------
+
+                .else                
+
 ;-------------------------------------------------------------------------
 ;
 ; Credits - normally hidden by the I/O region.
@@ -13951,6 +14445,10 @@ LFB0A:       .block
                 .endif
                 .else
                 .align 256
+                .endif
+
+;-------------------------------------------------------------------------
+
                 .endif
                 
 ;-------------------------------------------------------------------------

@@ -37,7 +37,6 @@ LF545=$f545
 ;LF6D3=$f6d3
 L885F=$885f
 ;L8952=$8bac
-LFC00=$fc00
 
 osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
 osbyte14=terminal.osbyte14

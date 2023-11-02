@@ -1,8 +1,9 @@
-Rebuildable, partially-commented version of Acorn MOS for the Master
-series. The following versions are covered, as they all seem to be
-quite closely related:
+Rebuildable, partially-commented version of Acorn MOS for Acorn's
+8-bit BBC Master series and derivatives. The following versions are
+covered:
 
 - MOS 3.20 (Master 128, UK)
+- MOS 3.50 (Master 128, UK)
 - MOS 4.00 (Master ET, UK)
 - MOS 5.00, MOS 5.10 (Master Compact, UK)
 - MOS 5.11 (Master Compact, International)
@@ -33,6 +34,8 @@ simplify following along when looking at an unadorned disassembly
 (e.g., on the Master itself), looking at MOS ROM addresses, and so on.
 That's the sort of situation where I've personally most missed having
 an annotated disassembly.
+
+(Readable source code is not an initial goal. Sorry!)
 
 The 64tass listing file is relatively easy to read, but not ideal. I
 intend to add a postprocessing step to transform it into something a
@@ -73,9 +76,9 @@ On Unix:
 
 Type `make` from the root of the working copy.
 
-The build process is supposed to be silent when there are no errors,
-but some versions of make might print a load of stuff about entering
-and leaving the directory.
+The build process is supposed to be silent when there are no errors
+and when the output matches the original ROMs. Some versions of make
+might print a load of stuff about entering and leaving the directory.
 
 ## build output
 
@@ -83,6 +86,7 @@ The build output is assembler listing files that you can use for
 reference:
 
 - `build/mos320.lst` - MOS 3.20
+- `build/mos320.lst` - MOS 3.50
 - `build/mos400.lst` - MOS 4.00
 - `build/mos500.lst` - MOS 5.00
 - `build/mos510.lst` - MOS 5.10
@@ -140,13 +144,19 @@ Registers are referred to using their names. `RL` and `RH` are the low
 and high bytes of the return address. Other things get an English
 description.
 
-# the other MOS 3.20 parts
+# the other MOS parts
+
+There are disassemblies or source code available for Some versions of
+some of the non-MOS parts of the various iterations of the Master
+ROMs.
 
 ## BASIC
 
-Original code: https://github.com/stardot/AcornCmosBasic
+https://github.com/stardot/AcornCmosBasic
 
-Commented disassembly: http://8bs.com/basic/basic4.htm
+https://github.com/stardot/AcornDmosBasic
+
+http://8bs.com/basic/basic4.htm
 
 ## ADFS
 
@@ -164,13 +174,7 @@ https://github.com/SteveFosdick/edit4/blob/master/edit110.asm
 
 Nobody appears to have disassembled View.
 
-There's 1.5 KB of MOS code at the end, which is included in this repo.
-
 ## ViewSheet
 
 Nobody appears to have disassembled ViewSheet.
 
-# the other MOS versions
-
-I haven't done MOS 3.50 yet - it looked rather different from the
-others.

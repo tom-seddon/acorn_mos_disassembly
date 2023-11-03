@@ -14051,18 +14051,18 @@ LFDB7:
                 dex
                 bpl LFDB7
                 ldx #$D2
-                stx LFE4E
+                stx systemVIA.ier
                 ldx #4
-                stx LFE4C
+                stx systemVIA.pcr
                 lda #$40        ; '@'
-                sta LFE4A+1
+                sta systemVIA.acr
                 lda #$E
-                sta LFE46
-                sta LFE6C
+                sta systemVIA.t1lL
+                sta userVIA.pcr
                 sta HADC.status
                 lda #$27        ; '''
-                sta LFE46+1
-                sta LFE44+1
+                sta systemVIA.t1lH
+                sta systemVIA.t1cH
                 jsr LFEF5
                 jsr setTSTAndOSBYTE7A
                 stx firstKeyPressedInternal
@@ -14115,23 +14115,13 @@ LFE36:
                 cmp (SEIWKA)
                 bne LFE2B
                 inc SEIWKA
-LFE44:
                 bne LFE36
-
-LFE46:
                 inc SEIWKA+1
                 lda SEIWKA+1
-
-LFE4A:
                 cmp #$84        ; ''
-
-LFE4C:
                 bcc LFE36
-
-LFE4E:
                 lda #1
-                sta $2A1,x
-
+                sta romInformationTable,x
 LFE53:
                 ldx $F4
                 bra LFE6B
@@ -14202,17 +14192,25 @@ LFEA2:
                 .byte $00
                 .byte $eb
                 .byte $00
+                .if CFA3000
+                .byte $7d
+                .else
                 .byte $CD
+                .endif
                 .byte $FF
                 .byte $FF
                 .byte $15
                 .byte 0
                 .byte $17
-                .byte $60       ; `
-                .byte $32       ; 2
+                .byte $60
+                .byte $32
                 .byte 8
                 .byte $A
-                .byte $2D       ; -
+                .if CFA3000
+                .byte $38
+                .else
+                .byte $2D
+                .endif
                 .byte $82
 
 ;-------------------------------------------------------------------------

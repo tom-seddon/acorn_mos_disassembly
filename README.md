@@ -1,13 +1,18 @@
 Rebuildable, partially-commented version of Acorn MOS for Acorn's
-8-bit BBC Master series and derivatives. The following versions are
-covered:
+8-bit BBC Master series and derivatives. The following versions for
+Acorn systems are covered (version numbers as reported by `*FX0`):
 
 - MOS 3.20 (Master 128, UK)
 - MOS 3.50 (Master 128, UK)
 - MOS 4.00 (Master ET, UK)
-- MOS 5.00, MOS 5.10 (Master Compact, UK)
+- MOS 5.00 (Master Compact, UK)
+- MOS 5.10 (Master Compact, UK)
 - MOS 5.11 (Master Compact, International)
-- PC128S MOS (Olivetti PC128S)
+
+The following non-Acorn systems are also covered:
+
+- MOS I5.10C (Olivetti PC128S)
+- MOS 3.5a (Henson CFA3000)
 
 The starting point was JGH's MOS 3.20 disassembly here:
 http://mdfs.net/Info/Comp/Acorn/Source/MOS.htm - this provided

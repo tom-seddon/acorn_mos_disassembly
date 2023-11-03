@@ -94,17 +94,24 @@ might print a load of stuff about entering and leaving the directory.
 ## build output
 
 The build output is assembler listing files that you can use for
-reference:
+reference. Released versions:
 
 - `build/mos320.lst` - MOS 3.20
-- `build/mos320.lst` - MOS 3.50
+- `build/mos350.lst` - MOS 3.50
 - `build/mos400.lst` - MOS 4.00
 - `build/mos500.lst` - MOS 5.00
 - `build/mos510.lst` - MOS 5.10
 - `build/mos511.lst` - MOS 5.11
+
+Unreleased versions:
+
+- `build/mos329.st` - MOS 3.29
+
+Non-Acorn versions:
+
 - `build/mosPC128S.lst` - MOS I5.10C
 - `build/mosCFA3000.lst` - MOS 3.5a
-- `build/mosautocue.lst` - 
+- `build/mosautocue.lst` - MOS 5.10i
 
 # code notes
 

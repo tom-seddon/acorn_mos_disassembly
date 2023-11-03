@@ -7407,7 +7407,7 @@ LE4A3:
                 cpx #$10                     ; <16, normal ROM number, use it
                 .endif
                 bcc LE4C2
-                .if version==350
+                .if version==350&&!finmos329
                 cmp #$1f
                 .else
                 cpx #$1F                     ; 16+UTILS ROM, re-enter Supervisor or Tube CLI
@@ -9146,7 +9146,7 @@ readFromInputBufferX:
                 and rs423InputInterpretationStatus
                 bne LEC29
                 .endif
-                .if version==350
+                .if version==350&&!finmos329
                 jsr LEB75
                 .else
                 jsr osbyte91
@@ -9663,7 +9663,7 @@ LED14:
                 ldx #$f7
                 .elsif version==500||version==510
                 ldx #$f5
-                .elsif version==511
+                .elsif version==511||finmos329
                 ldx #$f4
                 .elsif version==350
                 ldx #$fd
@@ -10496,6 +10496,8 @@ osbyte00:                       ;ef6f
                 .elsif version==350
                 .if CFA3000
                 .text "MOS 3.5a"
+                .elsif finmos329
+                .text "MOS 3.29"
                 .else
                 .text "MOS 3.50"
                 .endif
@@ -13587,7 +13589,11 @@ LF9FE:
                 lda (0),y
                 ldx $4F9
                 beq LFA18
+                .if finmos329
+                cmp #$80
+                .else
                 cmp #$7F        ; ''
+                .endif
                 bcc LFA18
                 cmp #$C0        ; ''
                 bcs LFA18

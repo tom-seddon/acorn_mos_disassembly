@@ -1,6 +1,6 @@
-                .include "hardware.s65"
-                .include "mos_workspace.s65"
-                .include "terminal_workspace.s65"
+                .include "src/hardware.s65"
+                .include "src/mos_workspace.s65"
+                .include "src/terminal_workspace.s65"
 
 version=510
                 
@@ -24,9 +24,9 @@ osbyte14=mos.osbyte14
 ;-------------------------------------------------------------------------
 
                 .section utils
-                .include "terminal.s65"
+                .include "src/terminal.s65"
                 .endsection
 
                 .section mos
-                .include "mos.s65"
+                .include "src/mos.s65"
                 .endsection

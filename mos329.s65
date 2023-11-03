@@ -1,6 +1,6 @@
-                .include "hardware.s65"
-                .include "mos_workspace.s65"
-                .include "terminal_workspace.s65"
+                .include "src/hardware.s65"
+                .include "src/mos_workspace.s65"
+                .include "src/terminal_workspace.s65"
 
 ; Maybe this should have its own version number? But I put "350" in
 ; the code so many times that it'd be a pain to sort it out.
@@ -29,15 +29,15 @@ osbyte14=terminal.osbyte14
 ;-------------------------------------------------------------------------
 
                 .section ext
-                .include "sound_stuff.s65"
+                .include "src/sound_stuff.s65"
                 .fill 7,255
-                .include "ext.s65"
+                .include "src/ext.s65"
                 .endsection
 
                 .section utils
-                .include "terminal.s65"
+                .include "src/terminal.s65"
                 .endsection
 
                 .section mos
-                .include "mos.s65"
+                .include "src/mos.s65"
                 .endsection

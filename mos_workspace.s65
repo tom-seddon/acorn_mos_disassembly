@@ -19,6 +19,10 @@ CFA3000=false
 
                 ; Set if building Autocue 1500 MOS, a variant of 5.11.
 autocue=false
+
+                ; Set if building MOS 3.29 (Acorn FinMOS), a variant
+                ; of 3.50.
+finmos329=false
                 .endweak
                 
 ;-------------------------------------------------------------------------

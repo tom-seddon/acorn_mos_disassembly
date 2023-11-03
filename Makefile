@@ -32,6 +32,7 @@ all:
 	$(_V)$(MAKE) _build_with_ext VERSION=350
 	$(_V)$(MAKE) _build_with_ext VERSION=CFA3000
 	$(_V)$(MAKE) _build VERSION=autocue
+	$(_V)$(MAKE) _build_with_ext VERSION=329
 
 .PHONY:_build_with_ext
 _build_with_ext:

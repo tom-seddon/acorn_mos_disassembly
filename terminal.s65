@@ -4399,7 +4399,11 @@ L9EFC:
                 .text "MOS 5.10"
                 .endif
                 .elsif version==511
+                .if autocue
+                .text "MOS 5.10i"
+                .else
                 .text "MOS 5.11i"
+                .endif
                 .else
                 .warn "unexpected version"
                 .endif

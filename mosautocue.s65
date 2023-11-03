@@ -1,0 +1,33 @@
+                .include "hardware.s65"
+                .include "mos_workspace.s65"
+                .include "terminal_workspace.s65"
+
+version=511
+autocue=true
+                
+*=$8000
+                .dsection utils
+                .cwarn *>$c000,'utils ROM is too large'
+                
+*=$c000
+                .dsection mos
+                ; there's no need for a size check here - 64tass gives
+                ; you an error if the code would go past the 64 K
+                ; barrier.
+
+;-------------------------------------------------------------------------
+
+; Is there a better way of doing this?
+osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
+ext=terminal.ext
+osbyte14=mos.osbyte14
+
+;-------------------------------------------------------------------------
+
+                .section utils
+                .include "terminal.s65"
+                .endsection
+
+                .section mos
+                .include "mos.s65"
+                .endsection

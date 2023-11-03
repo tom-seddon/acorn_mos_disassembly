@@ -5954,7 +5954,7 @@ handleCopyKey:
                 bne ldaim00_rts_DF3E      ;taken if VDU5
                 .if version==350
                 jsr LFB0A
-                .elsif version<511
+                .elsif version<511||autocue
                 jsr readCharacterAtTextCursor
                 .else
                 lda #$87
@@ -6106,11 +6106,11 @@ plotSolidEllipse:
 
                 .align 16
 startupMessages: .block
-                .if version==500||version==510
+                .if version==500||version==510||autocue
                 .fill 16,0
                 .endif
 
-                .if version>=511
+                .if version>=511&&!autocue
                 .byte 0
                 .endif
 acornMOS:
@@ -10484,7 +10484,11 @@ osbyte00:                       ;ef6f
                 .text "MOS 5.10"
                 .endif
                 .elsif version==511
+                .if autocue
+                .text "MOS 5.10i"
+                .else
                 .text "MOS 5.11i"
+                .endif
                 .elsif version==350
                 .if CFA3000
                 .text "MOS 3.5a"

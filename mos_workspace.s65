@@ -16,6 +16,9 @@ olivetti=false
 
                 ; Set if building CFA3000 MOS, a variant of 3.50.
 CFA3000=false
+
+                ; Set if building Autocue 1500 MOS, a variant of 5.11.
+autocue=false
                 .endweak
                 
 ;-------------------------------------------------------------------------

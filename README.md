@@ -11,8 +11,9 @@ Acorn systems are covered (version numbers as reported by `*FX0`):
 
 The following non-Acorn systems are also covered:
 
-- MOS I5.10C (Olivetti PC128S)
-- MOS 3.5a (Henson CFA3000)
+- MOS I5.10C (variant of MOS 5.10) ([Olivetti PC128S](https://it.wikipedia.org/wiki/Olivetti_Prodest_PC_128_S))
+- MOS 3.5a (variant of MOS 3.50) ([Henson CFA3000](https://stardot.org.uk/forums/viewtopic.php?t=20676))
+- MOS 5.10i (variant of MOS 5.11) ([Autocue 1500 teleprompter](https://stardot.org.uk/forums/viewtopic.php?t=7179))
 
 The starting point was JGH's MOS 3.20 disassembly here:
 http://mdfs.net/Info/Comp/Acorn/Source/MOS.htm - this provided
@@ -96,7 +97,9 @@ reference:
 - `build/mos500.lst` - MOS 5.00
 - `build/mos510.lst` - MOS 5.10
 - `build/mos511.lst` - MOS 5.11
-- `build/mosPC128S.lst` - PC128S MOS
+- `build/mosPC128S.lst` - MOS I5.10C
+- `build/mosCFA3000.lst` - MOS 3.5a
+- `build/mosautocue.lst` - 
 
 # code notes
 

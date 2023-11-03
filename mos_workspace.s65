@@ -29,6 +29,15 @@ finmos329=false
 
 
 tubeHostAddr=$400
+
+                .if version==350
+                ; MOS 3.50 parasite language relocation workspace?
+L04F5=$04f5
+L04F6=$04f6
+L04F7=$04f7
+L04F8=$04f8
+L04F9=$04f9
+                .endif
                 
 ;-------------------------------------------------------------------------
 

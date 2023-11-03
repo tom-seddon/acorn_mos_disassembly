@@ -13587,7 +13587,7 @@ LF9FA:
 
 LF9FE:
                 lda (0),y
-                ldx $4F9
+                ldx L04F9
                 beq LFA18
                 .if finmos329
                 cmp #$80
@@ -13639,7 +13639,7 @@ LFA22:
                 lda @w tubeLanguageParasiteAddr+1
                 sec
                 sbc #$80        ; ''
-                sta $04F9
+                sta L04F9
                 stz @w tubeLanguageParasiteAddr+3
                 stz @w tubeLanguageParasiteAddr+2
                 txa
@@ -13649,7 +13649,7 @@ LFA22:
 
 LFA6A:
                 and #$F
-                sta $04F8
+                sta L04F8
                 ldx $f4
                 phx
                 jsr selectROMA
@@ -13659,11 +13659,11 @@ LFA6A:
                 jsr LFAAF
                 eor #$C0        ; ''
                 bne LFA97
-                sta $04F7
+                sta L04F7
                 jsr LFAAF
-                sta $04F6
+                sta L04F6
                 jsr LFAAF
-                sta $04F5
+                sta L04F5
                 pla
                 jsr selectROMA
                 rts
@@ -13685,7 +13685,7 @@ LFA9D:
                 stz @w tubeLanguageParasiteAddr+3
 
 LFAAB:
-                stz $04F9
+                stz L04F9
                 rts
 
 ;-------------------------------------------------------------------------
@@ -13701,7 +13701,7 @@ LFAAF:       .block
 LFABC:
                 lda $f4
                 pha
-                lda $04F8
+                lda L04F8
                 jsr selectROMA
                 lda (2)
                 tax
@@ -13714,13 +13714,13 @@ LFABC:
 ;-------------------------------------------------------------------------
 
 LFACE:       .block
-                asl $04F7
+                asl L04F7
                 bne locret_FADD
                 jsr LFADE
                 clc
                 beq locret_FADD
                 sec
-                rol $04F7
+                rol L04F7
 
 locret_FADD:
                 rts
@@ -13730,16 +13730,16 @@ locret_FADD:
 
 LFADE:       .block
                 jsr LFAAF
-                sta $04F7
-                lda $04F5
+                sta L04F7
+                lda L04F5
                 php
-                dec $04F5
+                dec L04F5
                 plp
                 bne LFAF1
-                dec $04F6
+                dec L04F6
 
 LFAF1:
-                lda $04F6
+                lda L04F6
                 eor #$80        ; ''
                 and #$80        ; ''
                 rts
@@ -13757,7 +13757,7 @@ LFAF9:
 ;-------------------------------------------------------------------------
 
 LFB02:
-                jsr $04C8
+                jsr terminal.tubeHost.getLanguageParasiteAddr
                 lda #$40        ; '@'
                 trb $f4
                 rts

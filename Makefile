@@ -7,16 +7,19 @@ else
 PYTHON:=/usr/bin/python3
 TASSCMD:=64tass
 endif
-SHELLCMD:=$(PYTHON) submodules/shellcmd.py/shellcmd.py
-MKDIR:=$(SHELLCMD) mkdir
-TASS:=$(TASSCMD) --m65c02 --nostart -Wall -q --case-sensitive --line-numbers --verbose-list
-BUILD:=build
 
 ifeq ($(VERBOSE),1)
 _V:=
+_TASSQ:=
 else
 _V:=@
+_TASSQ:=-q
 endif
+
+SHELLCMD:=$(PYTHON) submodules/shellcmd.py/shellcmd.py
+MKDIR:=$(SHELLCMD) mkdir
+TASS:=$(TASSCMD) --m65c02 --nostart -Wall $(_TASSQ) --case-sensitive --line-numbers --verbose-list
+BUILD:=build
 
 ##########################################################################
 ##########################################################################

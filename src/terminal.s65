@@ -2699,7 +2699,7 @@ starDELETE:
 ;-------------------------------------------------------------------------
 
                 .if version==350
-                .include "rtc_clock_stuff.s65"
+                .include "rtc.s65"
                 .include "restore_font.s65"
                 .endif
 
@@ -3093,7 +3093,7 @@ printEscapeChar:
 ;-------------------------------------------------------------------------
 
                 .if version!=350
-                .include "rtc_clock_stuff.s65"
+                .include "rtc.s65"
                 .endif
                 
 ;-------------------------------------------------------------------------

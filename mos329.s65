@@ -26,8 +26,6 @@ finmos329=true
 osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
 osbyte14=terminal.osbyte14
 
-LEB75=$eb75
-                
 ;-------------------------------------------------------------------------
 
                 .section ext

@@ -4385,6 +4385,8 @@ L9EFC:
                 .elsif version==350
                 .if CFA3000
                 .text "MOS 3.5a"
+                .elsif finmos329
+                .text "MOS 3.29"
                 .else
                 .text "MOS 3.50"
                 .endif

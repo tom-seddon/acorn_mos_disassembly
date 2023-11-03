@@ -5952,9 +5952,9 @@ handleCopyKey:
                 bit STATE
                 bvc ldaim00_rts_DF3E      ;taken if not cursor editing
                 bne ldaim00_rts_DF3E      ;taken if VDU5
-                .if version==350
+                .if version==350&&!finmos329
                 jsr LFB0A
-                .elsif version<511||autocue
+                .elsif (version<511||autocue)&&!finmos329
                 jsr readCharacterAtTextCursor
                 .else
                 lda #$87
@@ -6104,7 +6104,9 @@ plotSolidEllipse:
 
 ; Pretty sure I have the logic for this all wrong...
 
+                .if !finmos329
                 .align 16
+                .endif
 startupMessages: .block
                 .if version==500||version==510||autocue
                 .fill 16,0
@@ -6120,6 +6122,8 @@ acornMOS:
                 .elsif version==350
                 .if CFA3000
                 .text "ACORN MOS (Tinsley 64K)"
+                .elsif finmos329
+                .text "Acorn FinMOS"
                 .else
                 .text "ACORN MOS"
                 .endif
@@ -7395,7 +7399,7 @@ LE4A3:
                 lda lastBREAKType ; If not Soft Break, select default language
                 bne LE4BB
                 ldx currentLanguageROM      ; Get current language ROM
-                .if version==350
+                .if version==350&&!finmos329
                 txa
                 and #$bf
                 cmp #$10
@@ -9321,7 +9325,7 @@ handleCopyKeyThunk:
 
 ;-------------------------------------------------------------------------
 
-                .if version==350
+                .if version==350&&!finmos329
 LEB75:
                 jsr osbyte91
                 bcc LEB7E
@@ -13754,6 +13758,8 @@ LFB02:
 
 ;-------------------------------------------------------------------------
 
+                .if !finmos329
+                
 LFB0A:       .block
                 php
                 sei
@@ -13788,6 +13794,9 @@ LFB3B:
                 .endif
 
                 .endif
+
+                .endif
+
 
 ;-------------------------------------------------------------------------
 

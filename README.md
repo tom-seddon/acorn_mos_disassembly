@@ -1,6 +1,7 @@
 Rebuildable, partially-commented version of Acorn MOS for Acorn's
-8-bit BBC Master series and derivatives. The following versions for
-Acorn systems are covered (version numbers as reported by `*FX0`):
+8-bit BBC Master series and derivatives. The following released
+versions for Acorn systems are covered (version numbers as reported by
+`*FX0`):
 
 - MOS 3.20 (Master 128, UK)
 - MOS 3.50 (Master 128, UK)
@@ -8,6 +9,10 @@ Acorn systems are covered (version numbers as reported by `*FX0`):
 - MOS 5.00 (Master Compact, UK)
 - MOS 5.10 (Master Compact, UK)
 - MOS 5.11 (Master Compact, International)
+
+The following unreleased versions for Acorn systems are covered:
+
+- MOS 3.29 (looks to be a pre-release version of MOS 3.50)
 
 The following non-Acorn systems are also covered:
 
@@ -24,11 +29,11 @@ https://tobylobster.github.io/mos/ has provided most comments and
 symbol names for the bits that haven't changed (or haven't changed
 much) since OS 1.20.
 
-**This project is extremely WIP.** A lot of it isn't actually
+**This project is a work in progress.** A lot of it isn't actually
 commented, and many of the label names fail to meet even the low bar
-of "not actively misleading". But I think I've found all the bits that
-are code, and all the bits that are data, and many of the
-data-dependent constants.
+of "not actively misleading". But I think I've found all (or near
+enough) the bits that are code, and likewise the bits that are data,
+and many of the data-dependent constants.
 
 # project goals
 

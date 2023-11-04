@@ -12,15 +12,29 @@ byte2: .macro value,value350
                 
                 ;   7   6   5   4   3   2   1   0
                 ; +---+---+---+---+---+---+---+---+
-                ; |   |   |MaskCount  |   |   |   |
+                ; |   |V0 |MaskCount  |MatchValue |
                 ; +---+---+---+---+---+---+---+---+
+
+                ; If V0 is clear, this field is actually the address
+                ; of a routine.
+                ; 
+                ; V0 is set if MatchValue is to be used.
+                ; 
+                ; MatchValue is used when processing *STATUS - if the
+                ; configuration byte's bottom 3 bits match the
+                ; MatchValue, 
+                ;
+                ; MaskCount 
+                ;
 
                 ; +1
                 
                 ;   7   6   5   4   3   2   1   0
                 ; +---+---+---+---+---+---+---+---+
-                ; |   |RTCByteIndex   |ShiftCount |
+                ; |N1 |RTCByteIndex   |ShiftCount |
                 ; +---+---+---+---+---+---+---+---+
+                ;
+                ; N1 = tested by L8ADF
 
                 ; The RTC byte indexes in the table are actually
                 ; offset.
@@ -30,13 +44,17 @@ rtcByteIndexOffset=cmosBytesOffset+CMOSBytes.fileServerStationNumber
 rtcByteIndexOffset=cmosBytesOffset+CMOSBytes.defaultROMs
                 .endif
 
+                
+
 configureTable: .block
                 .text "."
-                .beword printConfigureHeader-1
+                .beword printConfigureOrStatusHeader-1
+baud:
                 .text "Baud"
 baudMetadata:
                 .byte $D0
                 .byte2 $d2,$d2|$20
+boot:
                 .text "Boot"
                 .byte $C1
                 .byte2 $5c,$5c|$20
@@ -85,16 +103,7 @@ fileMetadata:
                 .endif
 ignore:
                 .text "Ignore"
-                .byte2 $89,$86
-                .if version<510
-                .byte2 $12,$df
-                .else
-                .if olivetti
-                .byte $63
-                .else
-                .byte $4f
-                .endif
-                .endif
+                .beword handlePrinterIgnoreChar-1
                 .if version==350
                 .text "In"
 lastInChar=*-1
@@ -190,6 +199,7 @@ lastShChar=*-1
                 .endif
                 .endif
                 .byte 0
+L8603:
                 .if version==350
                 .byte $00
                 .byte $71
@@ -240,6 +250,9 @@ textSnippetOffsets:
 starCONFIGUREOrStarSTATUS:
                 asl a
                 adc #$80
+
+                ; *STATUS: A=1 V=1 C=1
+                ; *CONFIGURE: A=0 V=0 C=1
                 php
                 lda #<configureTable
                 sta oscliWorkspace.tablePtr+0
@@ -272,7 +285,7 @@ foundCONFIGOrSTATUSTopic:
 L8884:
                 lda configureTable,x
                 bit #$40
-                bne L8895
+                bne L8895       ;taken if V0 clear
                 pha
                 lda configureTable+1,x
                 pha
@@ -290,10 +303,10 @@ L8895:
                 inc configureTable+1,x
                 .endif
                 bvs L88D9
-                bcs L88CE
+                bcs print1NumberHelp
                 bmi L88A5
                 jsr L895D
-                bra L88CB
+                bra jmpL88EE
 
 ;-------------------------------------------------------------------------
 
@@ -322,16 +335,16 @@ L88B4:
 L88C1:
                 jsr getMaskCount
                 cmp maskByBitCount,y
-                beq L88CB
+                beq jmpL88EE
                 bcs L88EB
 
 
-L88CB:
+jmpL88EE:
                 jmp L88EE
 
 ;-------------------------------------------------------------------------
 
-L88CE:
+print1NumberHelp:
                 bpl L88D8
                 jsr alwaysPrintFollowingMessage
                 .text "<D>",13,0
@@ -341,18 +354,18 @@ L88D8:
 ;-------------------------------------------------------------------------
 
 L88D9:
-                bmi L88E2
+                bmi printDecimalConfigurationByte
                 lda configureTable+1,x
                 clc
                 jmp L8ADA
 
 ;-------------------------------------------------------------------------
 
-L88E2:
-                jsr L8A64
+printDecimalConfigurationByte:
+                jsr readConfigurationByte
 
-L88E5:
-                jsr L8BAA
+printDecimalByteAThenNewLine:
+                jsr printDecimalByteA
                 jmp OSNEWL
 
 ;-------------------------------------------------------------------------
@@ -362,22 +375,19 @@ L88EB:
 
 ;-------------------------------------------------------------------------
 
-L88EE:
+L88EE: .block
                 sta $B0
                 jsr getMaskCount
                 lda maskByBitCount,y
                 jsr getShiftCount
-                bra L88FE
-
-;-------------------------------------------------------------------------
-
-L88FB:
+                bra shift
+shiftLoop:
                 asl a
                 asl $B0
 
-L88FE:
+shift:
                 dey
-                bpl L88FB
+                bpl shiftLoop
                 sta $B1
                 jsr getRTCByteIndex
                 jsr readRTCByte
@@ -385,14 +395,16 @@ L88FE:
                 eor $B1
                 ora $B0
                 tay
-
-L8910:
+                .endblock
+                
+jmpWriteRTCByte:
                 jmp writeRTCByte
 
 ;-------------------------------------------------------------------------
 
-                bvs printDefaultPrinterIgnoreChar
-                bcs L8948
+handlePrinterIgnoreChar:
+                bvs printDefaultPrinterIgnoreChar ;taken if *STATUS
+                bcs print1OptionalNumberHelp
                 beq L8927
                 jsr L89B5
                 phx
@@ -400,7 +412,7 @@ L8910:
                 jsr L8929
                 ply
                 ldx #$E+cmosBytesOffset
-                bra L8910
+                bra jmpWriteRTCByte
 
 ;-------------------------------------------------------------------------
 
@@ -410,17 +422,9 @@ L8927:
 ;-------------------------------------------------------------------------
 
 L8929:
-                ; offset of end of last entry in table??
-                .if version==350
-                ldx #$c7
-                .elsif olivetti
-                ldx #$c3
-                .else
-                ldx #$BA
-                .endif
-
+                ldx #configureTable.L8603-configureTable
 L892B:
-                bra L88CB
+                bra jmpL88EE
 
 ;-------------------------------------------------------------------------
 
@@ -436,13 +440,12 @@ printDefaultPrinterIgnoreChar:
 gotPrinterIgnoreChar:
                 ldx #CMOSBytes.printerIgnoreChar+cmosBytesOffset
                 jsr readRTCByte
-
 L8946:
-                bra L88E5
+                bra printDecimalByteAThenNewLine
 
 ;-------------------------------------------------------------------------
 
-L8948:
+print1OptionalNumberHelp:
                 jsr alwaysPrintFollowingMessage
                 .text "[<D>]",13,0
                 rts
@@ -473,7 +476,7 @@ L8961:
 ;-------------------------------------------------------------------------
 
                 bvs L8996
-                bcs L89A4
+                bcs printTVHelp
                 beq L8992
                 jsr parseNumberFromString
                 bcc L8956
@@ -499,13 +502,7 @@ L898B:
                 ora $B1
 
 L898E:
-                .if version==350
-                ldx #$c9
-                .elsif olivetti
-                ldx #$c5
-                .else
-                ldx #$BC
-                .endif
+                ldx #configureTable.L8605-configureTable
                 bra L892B
 
 ;-------------------------------------------------------------------------
@@ -518,7 +515,7 @@ L8992:
 
 L8996:
                 jsr L8BD6
-                jsr L8BA9
+                jsr printDecimalByteY
                 lda #','
                 jsr OSWRCH
                 txa
@@ -526,7 +523,7 @@ L8996:
 
 ;-------------------------------------------------------------------------
 
-L89A4:
+printTVHelp:
                 jsr alwaysPrintFollowingMessage
                 .text "[<D>[,<D>]]",13,0
                 rts
@@ -542,23 +539,20 @@ L89B5:
 
 ;-------------------------------------------------------------------------
 
-printConfigureHeader:
+printConfigureOrStatusHeader: .block
                 bne L8961
                 php
                 phy
                 jsr alwaysPrintFollowingMessage
                 .text "Configuration ",0
-                bvs L89E4
+                bvs printStatusHeader ;taken if *STATUS
                 jsr alwaysPrintFollowingMessage
                 .text "options:",13,0
-                bra L89F0
-
-;-------------------------------------------------------------------------
-
-L89E4:
+                bra printItems
+printStatusHeader:
                 jsr alwaysPrintFollowingMessage
                 .text "status:",13,0
-L89F0:
+printItems:
                 sec
                 jsr L8ADA
                 ply
@@ -566,16 +560,17 @@ L89F0:
                 php
                 jsr unknownCONFIGOrStatus
                 plp
-                bvs L8A63
+                bvs done        ;taken if *STATUS
                 jsr alwaysPrintFollowingMessage
                 .text "Where:",13
                 .text "D is a decimal number, or",13
                 .text "a hexadecimal number preceded by &",13
                 .text "Items within [ ] are optional",13
                 .byte 0
-L8A63:
+done:
                 rts
-
+                .endblock
+                
 ;-------------------------------------------------------------------------
 ;
 ; Read configuration byte, given offset of metadata in the configure
@@ -592,10 +587,10 @@ L8A63:
 ; Preserves: X/Y/P
 
                 .if version==350
-setTSTAndL8A64:
+setTSTAndReadConfigurationByte:
                 jsr mos.callWithTST
                 .endif
-L8A64: .block
+readConfigurationByte: .block
                 php
                 phy
                 phx
@@ -621,11 +616,13 @@ shift:
                 inc a
 
 gotMaskedByte:
+                ; If retrieving the MODE value, rearrange things so
+                ; the shadow modes are 128-135.
                 cpx #configureTable.modeMetadata-configureTable
-                bne done
-                bit #8
-                beq done
-                eor #$88
+                bne done        ;taken if not MODE
+                bit #CMOSBytes.defaults0.defaultSHADOWMask ;test shadow bit
+                beq done                                   ;taken if not shadow mode
+                eor #$80|CMOSBytes.defaults0.defaultSHADOWMask ;turn mode|flag into mode|$80
 
 done:
                 ply
@@ -736,64 +733,77 @@ L8AD8:
                 rts
 
 ;-------------------------------------------------------------------------
-
-L8ADA:
+;
+; Print configure table items.
+;
+; Entry:
+;
+; C = ???
+;
+; V=0 if *CONFIGURE; V=1 if *STATUS
+; 
+L8ADA: .block
                 pha
-                ldy #3
-                ldx #2
+                ldy #configureTable.baud-configureTable
+                ldx #(configureTable.baud-configureTable)-1
 
-L8ADF:
+loop:
                 inx
-                lda configureTable,x; "."
-                beq L8B3F
-                bpl L8ADF
-                bvc L8B08
+                lda configureTable,x ;get name byte
+                beq done            ;all done if 0
+                bpl loop            ;keep going until end of name
+                                     ;reached
+                bvc L8B08            ;taken if *CONFIGURE
+
+                ; A = metadata byte 0
                 and #$40
-                beq L8AFD
-                lda configureTable+1,x
-                bmi L8AFD
-                jsr L8A64
-                eor configureTable,x; "."
-                and #7
-                bne L8B39
-                dec a
+                beq L8AFD       ;taken if V0 clear
+                
+                lda configureTable+1,x ;A = metadata byte 1
+                bmi L8AFD              ;taken if N1 set
+
+                jsr readConfigurationByte ;Read the actual value
+                eor configureTable,x      ;eor with MatchValue
+                and #7                    ;A=0 if value matches MatchValue
+                bne next                  ;taken if value isn't MatchValue
+                dec a                     ;A=$ff
 
 L8AFD:
-                bcs L8B08
-                bpl L8B39
+                bcs L8B08       ;
+                bpl next        ;
                 pla
                 pha
                 eor configureTable+1,x
-                bne L8B39
+                bne next
 
 L8B08:
                 php
                 phx
-                bvc L8B15
-                cpy #configureTable.ignore-configureTable;$4b
-                bne L8B15
+                bvc printOrdinaryItem
+                cpy #configureTable.ignore-configureTable
+                bne printOrdinaryItem
                 jsr readUsePrinterIgnoreChar
                 bcs L8B30
 
-L8B15:
+printOrdinaryItem:
                 ldx #9
                 jsr printConfigureTableString
                 and #$40
-                beq L8B2D
+                beq printSpaces       ;taken if V0 clear
                 lda configureTable+1,y
-                bmi L8B2D
+                bmi printSpaces ;taken if N1 set
+
+                ; V0 set, N1 clear = newline and next item
                 jsr OSNEWL
-                bra L8B37
+                bra next2
 
-;-------------------------------------------------------------------------
-
-L8B28:
+printSpacesLoop:
                 lda #' '
                 jsr OSWRCH
 
-L8B2D:
+printSpaces:
                 dex
-                bpl L8B28
+                bpl printSpacesLoop
 
 L8B30:
                 plx
@@ -802,23 +812,21 @@ L8B30:
                 phx
                 jsr L8884
 
-L8B37:
+next2:
                 plx
                 plp
 
-L8B39:
-                inx
+next:
+                inx             ;point X just before next item
                 txa
                 tay
-                iny
-                bra L8ADF
+                iny             ;point Y at next item
+                bra loop
 
-;-------------------------------------------------------------------------
-
-L8B3F:
+done:
                 pla
                 rts
-
+                .endblock
 
 ;-------------------------------------------------------------------------
 
@@ -857,7 +865,23 @@ nextSnippetInsertPoint
                 lda #' '
                 jsr OSWRCH
                 dex
+                .cerror *!=printConfigureTableString
 
+;-------------------------------------------------------------------------
+;
+; Print string from configure table, with snippets inserted as
+; required.
+;
+; Entry:
+;
+; X = column counter start value
+; Y = configure table offset
+;
+; Exit:
+; 
+; A = item's metadata byte 0
+; X decremented for each char printed
+; 
 printConfigureTableString:
                 lda configureTable,y
                 bpl printConfigureTableStringLoop
@@ -969,6 +993,14 @@ maskByBitCount:
                 .byte %11111111
 
 ;-------------------------------------------------------------------------
+;
+; Read the use printer ignore char flag.
+;
+; Exit:
+;
+; C=0 if using printer ignore char; C=1 if not.
+;
+; Preserves: Y
 
                 .if version==350
 setTSTAndReadUsePrinterIgnoreChar:
@@ -983,48 +1015,58 @@ readUsePrinterIgnoreChar:
                 rts
 
 ;-------------------------------------------------------------------------
-
-L8BA9:
+;
+; Print decimal byte.
+;
+; Entry:
+;
+; (printDecimalByteA) A = value to print
+;
+; (printDecimalByteY) Y = value to print
+; 
+printDecimalByteY:
                 tya
-L8BAA:
-                sec
-                ldy #$FF
-                php
+printDecimalByteA:
+                sec             ;set leading zeros flag
+                ldy #$FF        ;reset digit counter
+                php             ;save leading zeros flag
 
-L8BAE:
+countHundredsLoop:
                 iny
-                sbc #$64
-                bcs L8BAE
-                adc #$64
-                plp
-                jsr L8BCA
-                ldy #$FF
-                php
+                sbc #100
+                bcs countHundredsLoop
+                
+                adc #100        ;put 0 back in the hundreds column
+                plp             ;restore leading zeros flag
+                jsr maybePrintHexDigit
+                
+                ldy #$FF        ;reset digit counter
+                php             ;save leading zeros flag
                 sec
 
-L8BBD:
+countTensLoop:
                 iny
-                sbc #$A
-                bcs L8BBD
-                adc #$A
-                plp
-                jsr L8BCA
-                clc
-                tay
-L8BCA:
+                sbc #10
+                bcs countTensLoop
+                
+                adc #10         ;put 0 back in the tens column
+                plp             ;restore leading zeros flag
+                jsr maybePrintHexDigit
+                clc             ;always clear leading zeros flag for
+                                ;units
+                tay             ;Y=3rd digit
+                
+maybePrintHexDigit:
                 pha
                 tya
-                bne L8BD0
-                bcs L8BD4
-
+                bne L8BD0       ;always print if non-zero
+                bcs L8BD4       ;print non-leading zeros
 L8BD0:
                 jsr printHexDigit
-                clc
-
+                clc             ;indicate non-zero digit printed
 L8BD4:
                 pla
                 rts
-
 
 ;-------------------------------------------------------------------------
 
@@ -1034,18 +1076,16 @@ setTSTAndL8BD6:
                 .endif
 L8BD6:
                 ldx #configureTable.L8605-configureTable
-                jsr L8A64
+                jsr readConfigurationByte
                 lsr a
-                bit #4
+                bit #%00000100
                 beq L8BE2
-                ora #$FC
-
+                ora #%11111100
 L8BE2:
                 tay
                 lda #0
                 rol a
                 tax
                 rts
-
 
 ;-------------------------------------------------------------------------

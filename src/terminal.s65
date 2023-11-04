@@ -279,7 +279,7 @@ L80AD:
                 .elsif version>=500
                 jsr L9E58
                 ldx #configureTable.modeMetadata-configureTable;$56
-                jsr L8A64
+                jsr readConfigurationByte
                 .endif
 L80B4:
                 ora #$08    ; Store in OSBYTE 255 with boot off (b3=1)
@@ -431,7 +431,7 @@ gotKeyboardStatusByte:
                 jsr readDefaultFX5Settings
                 .elsif version>=500
                 ldx #configureTable.printMetadata-configureTable
-                jsr L8A64
+                jsr readConfigurationByte
                 .endif
                 sta printerDriverType
 L8196:
@@ -440,7 +440,7 @@ L8196:
                 jsr readDefaultSerialDataFormat
                 .elsif version>=500
                 ldx #configureTable.dataMetadata-configureTable
-                jsr L8A64
+                jsr readConfigurationByte
                 .endif
                 asl a                        ;
                 asl a       ;shift into the control registerword field
@@ -549,7 +549,7 @@ L81DD:
                 jsr readDefaultSerialBaudRateIndex
                 .elsif version>=500
                 ldx #configureTable.baudMetadata-configureTable
-                jsr L8A64
+                jsr readConfigurationByte
                 .endif
                 pha
                 tax

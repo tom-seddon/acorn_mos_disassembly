@@ -12,7 +12,7 @@ byte2: .macro value,value350
                 
                 ;   7   6   5   4   3   2   1   0
                 ; +---+---+---+---+---+---+---+---+
-                ; |   |V0 |MaskCount  |MatchValue |
+                ; | 1 |V0 |MaskCount  |MatchValue |
                 ; +---+---+---+---+---+---+---+---+
 
                 ; If V0 is clear, this field is actually the address
@@ -44,53 +44,82 @@ rtcByteIndexOffset=cmosBytesOffset+CMOSBytes.fileServerStationNumber
 rtcByteIndexOffset=cmosBytesOffset+CMOSBytes.defaultROMs
                 .endif
 
-                
+itemWithAddress: .macro name,addr
+                .text \name
+metadata:
+                .cerror (\addr&$c000)!=$8000
+                .beword \addr-1
+                .endmacro
+
+countLS0s: .function value
+                .if (value&%11111111)==0
+n=8
+                .elsif (value&%01111111)==0
+n=7
+                .elsif (value&%00111111)==0
+n=6
+                .elsif (value&%00011111)==0
+n=5
+                .elsif (value&%00001111)==0
+n=4
+                .elsif (value&%00000111)==0
+n=3
+                .elsif (value&%00000011)==0
+n=2
+                .elsif (value&%00000001)==0
+n=1
+                .else
+n=0
+                .endif
+                .endfunction n
+
+itemMaskInfo: .macro value
+shift=countLS0s(\value)
+unshiftedMask=\value>>shift
+                .cerror (unshiftedMask&(unshiftedMask+1))!=0,format("bad mask: $%02x",\value)
+maskWidth=countLS0s(~unshiftedMask)
+                .cerror !(maskWidth>=1&&maskWidth<=8),format("bad mask: $%02x",\value)
+                .endmacro
+
+itemMetadata: .macro rtcByteIndex,mask,matchValue,n1
+                ; constants need some rationalisation here...
+                .cerror \rtcByteIndex<rtcByteIndexOffset-cmosBytesOffset
+                .cerror \rtcByteIndex>=rtcByteIndexOffset+16-cmosBytesOffset
+                .cerror !(\matchValue>=0&&\matchValue<8)
+                .cerror \mask<0||\mask>256,format("Bad mask: $%02x",\mask)
+
+info: .itemMaskInfo \mask
+
+                .byte $c0|((info.maskWidth-1)<<3)|\matchValue
+                .byte (\n1?$80:$00)|((\rtcByteIndex-(rtcByteIndexOffset-cmosBytesOffset))<<3)|info.shift
+                .endmacro
+
+itemWithMetadata: .macro name,rtcByteIndex,mask,matchValue,n1
+                .text \name
+metadata:
+                .itemMetadata \rtcByteIndex,\mask,\matchValue,\n1
+                .endmacro
 
 configureTable: .block
                 .text "."
                 .beword printConfigureOrStatusHeader-1
-baud:
-                .text "Baud"
-baudMetadata:
-                .byte $D0
-                .byte2 $d2,$d2|$20
-boot:
-                .text "Boot"
-                .byte $C1
-                .byte2 $5c,$5c|$20
-                .text "Caps"
-                .byte $D4
-                .byte2 $33,$33^$60
+
+baud: .itemWithMetadata "Baud",CMOSBytes.defaults2,CMOSBytes.defaults2.serialBaudRateIndexMask<<CMOSBytes.defaults2.serialBaudRateIndexShift,0,true
+boot: .itemWithMetadata "Boot",CMOSBytes.defaults3,CMOSBytes.defaults3.autoBootMask,1,false
+                .itemWithMetadata "Caps",CMOSBytes.defaults1,(CMOSBytes.defaults1.defaultCapsLockMask|CMOSBytes.defaults1.defaultShiftLockMask|CMOSBytes.defaults1.defaultNoLockMask),4,false
                 .if olivetti
-                .text "Country"
-                .byte $f8
-                .byte $f0
+                .itemWithMetadata "Country",CMOSBytes.country,$ff,0,true
                 .endif
-                .text "Data"
-dataMetadata:
-                .byte $D0
-                .byte2 $dd,$dd|$20
-                .text "Delay"
-                .byte $F8
-                .byte2 $b8,$b8^$60
-                .text "Dir"
-lastDirChar=*-1
-                .byte $C0
-                .byte2 $36,$36^$60
+data: .itemWithMetadata "Data",CMOSBytes.defaults3,CMOSBytes.defaults3.defaultSerialDataFormatMask<<CMOSBytes.defaults3.defaultSerialDataFormatShift,0,true
+                .itemWithMetadata "Delay",CMOSBytes.keyboardAutoRepeatDelay,$ff,0,true
+dir: .itemWithMetadata "Dir",CMOSBytes.defaults1,CMOSBytes.defaults1.defaultADFSLoadDirMask,0,false
+lastDirChar=dir.metadata-1
                 .if version==350
-                .text "Ex"
-lastExChar=*-1
-                .text "Tube"
-                .byte $c1
-                .byte $7a
+extube: .itemWithMetadata "ExTube",CMOSBytes.defaults3,CMOSBytes.defaults3.extTubeMask,1,false
+lastExChar=extube+1
                 .endif
-                .text "Fdrive"
-                .byte $D0
-                .byte2 $b0,$b0^$60
-                .text "File"
-fileMetadata:
-                .byte $D8
-                .byte2 $80,$80|$20
+                .itemWithMetadata "Fdrive",CMOSBytes.defaults1,CMOSBytes.defaults1.defaultFDRIVEMask,0,true
+file: .itemWithMetadata "File",CMOSBytes.defaultROMs,$f<<CMOSBytes.defaultROMs.fsShift,0,true
                 .if version==350
                 .text "Floppy"
                 .byte $c1
@@ -101,9 +130,7 @@ fileMetadata:
                 .byte $c0
                 .byte $57
                 .endif
-ignore:
-                .text "Ignore"
-                .beword handlePrinterIgnoreChar-1
+ignore: .itemWithAddress "Ignore",handlePrinterIgnoreChar
                 .if version==350
                 .text "In"
 lastInChar=*-1
@@ -182,22 +209,7 @@ lastShChar=*-1
                 .byte $D8
                 .byte $E8
                 .endif
-                .text "TV"
-                .if version==350
-                .byte $87
-                .byte $31
-                .else
-                .byte $89
-                .if version<510
-                .byte $64; d
-                .else
-                .if olivetti
-                .byte $b5
-                .else
-                .byte $a1
-                .endif
-                .endif
-                .endif
+                .itemWithAddress "TV",handleTV
                 .byte 0
 L8603:
                 .if version==350
@@ -269,7 +281,7 @@ L886C:
                 bcs foundCONFIGOrSTATUSTopic
                 plp
                 jsr unknownCONFIGOrStatus
-                bne L88EB
+                bne jmpBadCommandError
                 rts
 
 ;-------------------------------------------------------------------------
@@ -327,7 +339,7 @@ L88B4:
                 cpx #configureTable.modeMetadata-configureTable
                 bne L88C1
                 bit #$78
-                bne L88EB
+                bne jmpBadCommandError
                 tay
                 bpl L88C1
                 eor #$88
@@ -336,7 +348,7 @@ L88C1:
                 jsr getMaskCount
                 cmp maskByBitCount,y
                 beq jmpL88EE
-                bcs L88EB
+                bcs jmpBadCommandError
 
 
 jmpL88EE:
@@ -370,7 +382,7 @@ printDecimalByteAThenNewLine:
 
 ;-------------------------------------------------------------------------
 
-L88EB:
+jmpBadCommandError:
                 jmp mos.badCommandError
 
 ;-------------------------------------------------------------------------
@@ -457,24 +469,25 @@ L8953:
                 jsr parseNumberFromString
 
 L8956:
-                bcc L88EB
+                bcc jmpBadCommandError
                 txa
                 cmp #$10
 
 L895B:
-                bcs L88EB
+                bcs jmpBadCommandError
 
 L895D:
                 pha
                 jsr mos.skipSpacesAndCheckForCRInStringInput
 
 L8961:
-                bne L88EB
+                bne jmpBadCommandError
                 pla
                 rts
 
 ;-------------------------------------------------------------------------
 
+handleTV:
                 bvs L8996
                 bcs printTVHelp
                 beq L8992
@@ -611,7 +624,7 @@ shift:
                 
                 jsr getMaskCount
                 and maskByBitCount,y
-                cpx #configureTable.baudMetadata-configureTable
+                cpx #configureTable.baud.metadata-configureTable
                 bne gotMaskedByte
                 inc a
 

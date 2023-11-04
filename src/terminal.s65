@@ -439,7 +439,7 @@ L8196:
                 .if version<500
                 jsr readDefaultSerialDataFormat
                 .elsif version>=500
-                ldx #configureTable.dataMetadata-configureTable
+                ldx #configureTable.data.metadata-configureTable
                 jsr readConfigurationByte
                 .endif
                 asl a                        ;
@@ -548,7 +548,7 @@ L81DD:
                 .if version<500
                 jsr readDefaultSerialBaudRateIndex
                 .elsif version>=500
-                ldx #configureTable.baudMetadata-configureTable
+                ldx #configureTable.baud.metadata-configureTable
                 jsr readConfigurationByte
                 .endif
                 pha

@@ -1504,6 +1504,24 @@ autoBootMask=16
 defaultSerialDataFormatMask=7
 defaultSerialDataFormatShift=5
                 .endblock
+
+                ; Purpose currently unknown, though presumably it's
+                ; used. None of the named configure table entries
+                ; refer to it. Could be some undiscovered reference
+                ; somewhere, or possibly used by MOS 4.00.
+unknown11:
+                .fill 1
+
+                .if version>=500
+joystickSettings: .block
+                .fill 1
+                .endblock
+                .endif
+
+                .if olivetti
+country:
+                .fill 1
+                .endif
                 
                 .endstruct
 

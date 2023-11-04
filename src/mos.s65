@@ -7328,7 +7328,7 @@ LE431:
                 and #$0F                     ;get default FS ROM
                 ply
                 .else
-                ldx #terminal.configureTable.fileMetadata-terminal.configureTable
+                ldx #terminal.configureTable.file.metadata-terminal.configureTable
                 jsr terminal.readConfigurationByte
                 .endif
                 
@@ -14042,7 +14042,7 @@ LFD83:
                 sta printerDriverType
 
 LFDA4:
-                ldx #terminal.configureTable.dataMetadata-terminal.configureTable
+                ldx #terminal.configureTable.data.metadata-terminal.configureTable
                 jsr terminal.setTSTAndReadConfigurationByte
                 asl a
                 asl a
@@ -14078,7 +14078,7 @@ LFDB7:
                 lda serialULARegister
                 and #$7F        ; ''
                 jsr LEC89
-                ldx #terminal.configureTable.baudMetadata-terminal.configureTable
+                ldx #terminal.configureTable.baud.metadata-terminal.configureTable
                 jsr terminal.setTSTAndReadConfigurationByte
                 pha
                 tax

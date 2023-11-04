@@ -278,11 +278,7 @@ L80AD:
                 jsr readDefaultMODE          ; Read configured MODE
                 .elsif version>=500
                 jsr L9E58
-                .if olivetti
-                ldx #$56
-                .else
-                ldx #$4d
-                .endif
+                ldx #configureTable.modeMetadata-configureTable;$56
                 jsr L8A64
                 .endif
 L80B4:
@@ -399,7 +395,7 @@ L8164:
                 .if version<500
                 jsr readDefaults1
                 .elsif version>=500
-                ldx #$0b
+                ldx #cmosBytesOffset+CMOSBytes.defaults1
                 jsr terminal.readRTCByte
                 .endif
                 ldx #keyboardStatusByte.shiftLockDisengaged
@@ -419,7 +415,7 @@ gotKeyboardStatusByte:
                 .if version<500
                 jsr readDefaultPrinterIgnoreChar
                 .elsif version>=500
-                ldx #$0e
+                ldx #cmosBytesOffset+CMOSBytes.printerIgnoreChar
                 jsr terminal.readRTCByte
                 .endif
                 sta printerIgnoreChar
@@ -434,11 +430,7 @@ gotKeyboardStatusByte:
                 .if version<500
                 jsr readDefaultFX5Settings
                 .elsif version>=500
-                .if olivetti
-                ldx #$7E
-                .else
-                ldx #$75
-                .endif
+                ldx #configureTable.printMetadata-configureTable
                 jsr L8A64
                 .endif
                 sta printerDriverType
@@ -447,11 +439,7 @@ L8196:
                 .if version<500
                 jsr readDefaultSerialDataFormat
                 .elsif version>=500
-                .if olivetti
-                ldx #$22
-                .else
-                ldx #$19
-                .endif
+                ldx #configureTable.dataMetadata-configureTable
                 jsr L8A64
                 .endif
                 asl a                        ;
@@ -560,7 +548,7 @@ L81DD:
                 .if version<500
                 jsr readDefaultSerialBaudRateIndex
                 .elsif version>=500
-                ldx #$7
+                ldx #configureTable.baudMetadata-configureTable
                 jsr L8A64
                 .endif
                 pha
@@ -872,9 +860,21 @@ defaultFsInfoBlocks: .block
 ; MOS command table
 
 mos_command .macro name,routine,byte1,byte2
+                ; Name of command, compared case-insensitively.
                 .text \name
+
+                ; Address of command routine, big-endian so that the
+                ; first byte always has bit 7 set.
                 .beword \routine
+
+                ; If bit 7 set, reset the tempFS flag before
+                ; starting.
                 .byte \byte1
+
+                ; If bit 7 set, update string input buffer address
+                ; before starting.
+                ;
+                ; A is set to this value on entry to the routine.
                 .byte \byte2
                 .endm
                 
@@ -961,8 +961,20 @@ mosCommandTable:
                 .byte $00
 
 ;-------------------------------------------------------------------------
-
-L84EE:
+;
+; Get string input buffer address tail according to table byte.
+;
+; Entry:
+;
+; oscliWorkspace.tablePtr; = pointer to table byte
+; (stringInputBufferAddress),y = pointer to input
+;
+; Exit:
+;
+; A = table byte
+;
+; if table byte bit 7 set: Y/X points to command line tail
+maybeGetStringInputBufferAddress:
                 lda (oscliWorkspace.tablePtr)
                 bmi rts84FE
 getStringInputBufferAddressWithYOffset:
@@ -1026,7 +1038,7 @@ L8542:
                 bra L8558
                 .else
                 clv
-                jsr utils_8A8F
+                jsr findCommand
                 bcc passStarCommandThrough
                 .endif
 
@@ -1036,7 +1048,7 @@ L854E:
                 and #$DF
                 bne L8569
                 jsr fetchCommandTableByte
-                iny                          ; 8557= C8          H
+                iny
 L8558:
                 lda (stringInputBufferAddress),y
                 jsr mos.isLetter
@@ -1044,23 +1056,23 @@ L8558:
                 lda (oscliWorkspace.tablePtr)
                 bmi L8582                ;taken if end of command name
                 lda (stringInputBufferAddress),y
-                cmp #'.'                     
+                cmp #'.'
                 beq L856D                    ;taken if input abbreviated
 L8569:
-                clc                          ; 8569= 18          .
-                ldy $E6                      ; 856A= A4 E6       $f
-                dey                          ; 856C= 88          .
+                clc
+                ldy $E6
+                dey
 L856D:
-                iny                          ; 856D= C8          H
+                iny
 L856E:
                 jsr fetchCommandTableByte ; Get byte from table, update pointer
                 beq passStarCommandThrough   ; Zero byte
                 bpl L856E                    ; Loop until b7 set
-                bcs L8585                    ; 8575= B0 0E       0.
-                jsr fetchCommandTableByte    
-                jsr fetchCommandTableByte    
-                jsr fetchCommandTableByte    
-                bra L8558                    
+                bcs L8585
+                jsr fetchCommandTableByte
+                jsr fetchCommandTableByte
+                jsr fetchCommandTableByte
+                bra L8558
                 
 L8582:
                 jsr fetchCommandTableByte
@@ -1076,7 +1088,7 @@ L8592:
                 jsr mos.skipSpacesAndCheckForCRInStringInput
                 clc                          
                 php                          
-                jsr L84EE                    
+                jsr maybeGetStringInputBufferAddress
                 rti                          
 
                 .if version<500&&version!=350

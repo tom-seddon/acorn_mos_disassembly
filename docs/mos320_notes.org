@@ -290,3 +290,69 @@ Related to MOS 3.50?
 The ext part of DFS looks very similar.
 
 This does have the reset code behind the I/O area.
+
+* Status/Configure output
+
+** ~*STATUS~ (MOS 3.50)
+
+#+begin_example
+  Configuration status:
+  Baud     1
+  Data     0
+  Delay    55
+  Fdrive   0
+  File     9
+  Floppy
+  Ignore   0
+  Internal Tube
+  Lang     12
+  Loud
+  Mode     7
+  No Boot
+  No Directory
+  Print    0
+  Repeat   3
+  Scroll
+  Tube
+  TV       0,1
+  View setup 
+#+end_example
+
+** ~*CONFIGURE~ (MOS 3.50)
+
+#+begin_example
+  Configuration options:
+  Baud     <D>
+  Boot
+  Caps
+  Data     <D>
+  Delay    <D>
+  Directory
+  External Tube
+  Fdrive   <D>
+  File     <D>
+  Floppy
+  Hard
+  Ignore   [<D>]
+  Internal Tube
+  Lang     <D>
+  Loud
+  Mode     <D>
+  No Boot
+  No Caps
+  No Directory
+  No Scroll
+  No Tube
+  Print    <D>
+  Quiet
+  Repeat   <D>
+  Scroll
+  Shift Caps
+  Tube
+  TV       [<D>[,<D>]]
+  View setup [F],[J],[I]
+  Where:
+  D is a decimal number, or
+  a hexadecimal number preceded by &
+  Items within [ ] are optional
+#+end_example

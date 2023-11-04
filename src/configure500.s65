@@ -6,20 +6,35 @@ byte2: .macro value,value350
                 .endif
                 .endmacro
 
-configureTable: .text "."
-                .if olivetti
-                .byte $8a,$0d
-                .elsif version==350
-                .byte $87,$89
+                ; Metadata layout
+
+                ; +0
+                
+                ;   7   6   5   4   3   2   1   0
+                ; +---+---+---+---+---+---+---+---+
+                ; |   |   |MaskCount  |   |   |   |
+                ; +---+---+---+---+---+---+---+---+
+
+                ; +1
+                
+                ;   7   6   5   4   3   2   1   0
+                ; +---+---+---+---+---+---+---+---+
+                ; |   |RTCByteIndex   |ShiftCount |
+                ; +---+---+---+---+---+---+---+---+
+
+                ; The RTC byte indexes in the table are actually
+                ; offset.
+                .if version==350
+rtcByteIndexOffset=cmosBytesOffset+CMOSBytes.fileServerStationNumber
                 .else
-                .byte $89
-                .if version<510
-                .byte $BC
-                .else
-                .byte $f9
+rtcByteIndexOffset=cmosBytesOffset+CMOSBytes.defaultROMs
                 .endif
-                .endif
+
+configureTable: .block
+                .text "."
+                .beword printConfigureHeader-1
                 .text "Baud"
+baudMetadata:
                 .byte $D0
                 .byte2 $d2,$d2|$20
                 .text "Boot"
@@ -34,16 +49,20 @@ configureTable: .text "."
                 .byte $f0
                 .endif
                 .text "Data"
+dataMetadata:
                 .byte $D0
                 .byte2 $dd,$dd|$20
                 .text "Delay"
                 .byte $F8
                 .byte2 $b8,$b8^$60
                 .text "Dir"
+lastDirChar=*-1
                 .byte $C0
                 .byte2 $36,$36^$60
                 .if version==350
-                .text "ExTube"
+                .text "Ex"
+lastExChar=*-1
+                .text "Tube"
                 .byte $c1
                 .byte $7a
                 .endif
@@ -51,6 +70,7 @@ configureTable: .text "."
                 .byte $D0
                 .byte2 $b0,$b0^$60
                 .text "File"
+fileMetadata:
                 .byte $D8
                 .byte2 $80,$80|$20
                 .if version==350
@@ -63,6 +83,7 @@ configureTable: .text "."
                 .byte $c0
                 .byte $57
                 .endif
+ignore:
                 .text "Ignore"
                 .byte2 $89,$86
                 .if version<510
@@ -75,17 +96,21 @@ configureTable: .text "."
                 .endif
                 .endif
                 .if version==350
-                .text "InTube"
+                .text "In"
+lastInChar=*-1
+                .text "Tube"
                 .byte2 $b8,$c0
                 .byte2 $a4,$7a
                 .endif
                 .text "Lang"
+langMetadata:
                 .byte $D8
                 .byte2 $84,$84|$20
                 .text "Loud"
                 .byte $C1
                 .byte2 $59,$59|$20
                 .text "Mode"
+modeMetadata:
                 .byte $D8
                 .byte2 $A8,$a8^$60
                 .text "NoBoot"
@@ -95,6 +120,7 @@ configureTable: .text "."
                 .byte $D2
                 .byte2 $33,$33^$60
                 .text "NoDir"
+lastNoDirChar=*-1
                 .byte $C1
                 .byte2 $36,$36^$60
                 .text "NoScroll"
@@ -106,6 +132,7 @@ configureTable: .text "."
                 .byte $70
                 .endif
                 .text "Print"
+printMetadata:
                 .byte $D0
                 .byte2 $D5,$d5|$20
                 .text "Quiet"
@@ -117,7 +144,9 @@ configureTable: .text "."
                 .text "Scroll"
                 .byte $C0
                 .byte2 $5B,$5b|$20
-                .text "ShCaps"
+                .text "Sh"
+lastShChar=*-1
+                .text "Caps"
                 .byte $D1
                 .if version==350
                 .byte $53
@@ -168,34 +197,44 @@ configureTable: .text "."
                 .byte 8
                 .byte $51; Q
                 .endif
+L8605:
                 .byte $18
                 .if version==350
                 .byte $4C
                 .else
                 .byte $2C; ,
                 .endif
+ectory:
                 .text "ectory",$ff
                 .if version==350
-                .text "ternal",255
+ternal:
+                .text "ternal",$ff
                 .endif
+ift:
                 .text "ift",$ff
-L8850:
+                
+textSnippetInsertPointOffsets:
+                .text lastDirChar-configureTable   ;"Directory"
+                .byte lastNoDirChar-configureTable ;"NoDirectory"
                 .if version==350
-                .text $24,$81,$28,$54,$b5
-                .elsif olivetti
-                .text $2d,$6c,$98
-                .else
-                .text $24,$63,$8f
+                .byte lastExChar-configureTable    ;"External"
+                .byte lastInChar-configureTable    ;"Internal"
                 .endif
-L8853:
+                .byte lastShChar-configureTable    ;"Shift"
+textSnippetsCount=*-textSnippetInsertPointOffsets
+                
+textSnippetOffsets:
+                .byte configureTable.ectory-configureTable
+                .byte configureTable.ectory-configureTable
                 .if version==350
-                .byte $cb,$cb,$d2,$d2,$d9
-                .elsif olivetti
-                .byte $c7,$c7,$ce
-                .else
-                .byte $be,$be,$c5
+                .byte configureTable.ternal-configureTable
+                .byte configureTable.ternal-configureTable
                 .endif
+                .byte configureTable.ift-configureTable
+                .cerror *-textSnippetOffsets!=textSnippetsCount
 
+                .endblock
+                
 ;-------------------------------------------------------------------------
 
 starCONFIGUREOrStarSTATUS:
@@ -203,18 +242,18 @@ starCONFIGUREOrStarSTATUS:
                 adc #$80
                 php
                 lda #<configureTable
-                sta $B0
+                sta oscliWorkspace.tablePtr+0
                 lda #>configureTable
-                sta $B1
+                sta oscliWorkspace.tablePtr+1
                 ldx #$FF
                 jsr mos.skipSpacesAndCheckForCRInStringInput
                 bne L886C
                 jsr fetchCommandTableByte
 
 L886C:
-                bit mos.valueFF     ; V=1 to indicate 2-byte metadata
-                jsr utils_8A8F
-                bcs L887B    ; taken if something valid found
+                bit mos.valueFF ; V=1 to indicate 2-byte metadata
+                jsr findCommand
+                bcs foundCONFIGOrSTATUSTopic
                 plp
                 jsr unknownCONFIGOrStatus
                 bne L88EB
@@ -222,7 +261,7 @@ L886C:
 
 ;-------------------------------------------------------------------------
 
-L887B:
+foundCONFIGOrSTATUSTopic:
                 jsr mos.skipSpacesAndCheckForCRInStringInput
                 plp
                 bvc L8884
@@ -231,8 +270,7 @@ L887B:
 ;-------------------------------------------------------------------------
 
 L8884:
-
-                lda configureTable,x; "."
+                lda configureTable,x
                 bit #$40
                 bne L8895
                 pha
@@ -273,13 +311,7 @@ L88B3:
                 dec a
 
 L88B4:
-                .if olivetti
-                cpx #$56
-                .elsif version==350
-                cpx #$6b
-                .else
-                cpx #$4D
-                .endif
+                cpx #configureTable.modeMetadata-configureTable
                 bne L88C1
                 bit #$78
                 bne L88EB
@@ -288,8 +320,8 @@ L88B4:
                 eor #$88
 
 L88C1:
-                jsr L8B8D
-                cmp word_8B99,y
+                jsr getMaskCount
+                cmp maskByBitCount,y
                 beq L88CB
                 bcs L88EB
 
@@ -302,15 +334,7 @@ L88CB:
 L88CE:
                 bpl L88D8
                 jsr alwaysPrintFollowingMessage
-
-;-------------------------------------------------------------------------
-
-                .text "<D>"
-                .byte $D
-                .byte 0
-
-;-------------------------------------------------------------------------
-
+                .text "<D>",13,0
 L88D8:
                 rts
 
@@ -340,9 +364,9 @@ L88EB:
 
 L88EE:
                 sta $B0
-                jsr L8B8D
-                lda word_8B99,y
-                jsr L8B84
+                jsr getMaskCount
+                lda maskByBitCount,y
+                jsr getShiftCount
                 bra L88FE
 
 ;-------------------------------------------------------------------------
@@ -355,7 +379,7 @@ L88FE:
                 dey
                 bpl L88FB
                 sta $B1
-                jsr L8B78
+                jsr getRTCByteIndex
                 jsr readRTCByte
                 ora $B1
                 eor $B1
@@ -367,7 +391,7 @@ L8910:
 
 ;-------------------------------------------------------------------------
 
-                bvs L892D
+                bvs printDefaultPrinterIgnoreChar
                 bcs L8948
                 beq L8927
                 jsr L89B5
@@ -386,7 +410,7 @@ L8927:
 ;-------------------------------------------------------------------------
 
 L8929:
-
+                ; offset of end of last entry in table??
                 .if version==350
                 ldx #$c7
                 .elsif olivetti
@@ -400,25 +424,17 @@ L892B:
 
 ;-------------------------------------------------------------------------
 
-L892D:
+printDefaultPrinterIgnoreChar:
                 jsr readUsePrinterIgnoreChar
-                bcc L8941
+                bcc gotPrinterIgnoreChar
                 jsr alwaysPrintFollowingMessage
-
-;-------------------------------------------------------------------------
-
-                .text "No Ignore"
-                .byte $D
-                .byte 0
-
-;-------------------------------------------------------------------------
-
+                .text "No Ignore",13,0
                 rts
 
 ;-------------------------------------------------------------------------
 
-L8941:
-                ldx #$E+cmosBytesOffset
+gotPrinterIgnoreChar:
+                ldx #CMOSBytes.printerIgnoreChar+cmosBytesOffset
                 jsr readRTCByte
 
 L8946:
@@ -428,15 +444,7 @@ L8946:
 
 L8948:
                 jsr alwaysPrintFollowingMessage
-
-;-------------------------------------------------------------------------
-
-                .text "[<D>]"
-                .byte $D
-                .byte 0
-
-;-------------------------------------------------------------------------
-
+                .text "[<D>]",13,0
                 rts
 
 ;-------------------------------------------------------------------------
@@ -520,15 +528,7 @@ L8996:
 
 L89A4:
                 jsr alwaysPrintFollowingMessage
-
-;-------------------------------------------------------------------------
-
-                .text "[<D>[,<D>]]"
-                .byte $D
-                .byte 0
-
-;-------------------------------------------------------------------------
-
+                .text "[<D>[,<D>]]",13,0
                 rts
 
 ;-------------------------------------------------------------------------
@@ -542,44 +542,22 @@ L89B5:
 
 ;-------------------------------------------------------------------------
 
+printConfigureHeader:
                 bne L8961
                 php
                 phy
                 jsr alwaysPrintFollowingMessage
-
-;-------------------------------------------------------------------------
-
-                .text "Configuration "
-                .byte 0
-
-;-------------------------------------------------------------------------
-
+                .text "Configuration ",0
                 bvs L89E4
                 jsr alwaysPrintFollowingMessage
-
-;-------------------------------------------------------------------------
-
-                .text "options:"
-                .byte $D
-                .byte 0
-
-;-------------------------------------------------------------------------
-
+                .text "options:",13,0
                 bra L89F0
 
 ;-------------------------------------------------------------------------
 
 L89E4:
                 jsr alwaysPrintFollowingMessage
-
-;-------------------------------------------------------------------------
-
-                .text "status:"
-                .byte $D
-                .byte 0
-
-;-------------------------------------------------------------------------
-
+                .text "status:",13,0
 L89F0:
                 sec
                 jsr L8ADA
@@ -590,144 +568,172 @@ L89F0:
                 plp
                 bvs L8A63
                 jsr alwaysPrintFollowingMessage
-
-;-------------------------------------------------------------------------
-
-                .text "Where:"
-                .byte $D
-                .text "D is a decimal number, or"
-                .byte $D
-                .text "a hexadecimal number preceded by &"
-                .byte $D
-                .text "Items within [ ] are optional"
-                .byte $D
+                .text "Where:",13
+                .text "D is a decimal number, or",13
+                .text "a hexadecimal number preceded by &",13
+                .text "Items within [ ] are optional",13
                 .byte 0
-
-;-------------------------------------------------------------------------
-
 L8A63:
                 rts
 
 ;-------------------------------------------------------------------------
+;
+; Read configuration byte, given offset of metadata in the configure
+; table.
+;
+; Entry:
+;
+; X = offset of metadata in the configure table
+;
+; Exit:
+;
+; A = value read
+;
+; Preserves: X/Y/P
 
                 .if version==350
-L8831_350:
+setTSTAndL8A64:
                 jsr mos.callWithTST
                 .endif
-
-;-------------------------------------------------------------------------
-
-L8A64:
+L8A64: .block
                 php
                 phy
                 phx
-                jsr L8B78
+                jsr getRTCByteIndex ;
                 jsr readRTCByte
                 plx
-                jsr L8B84
-                bra L8A74
+                jsr getShiftCount
+                bra shift
 
 ;-------------------------------------------------------------------------
 
-L8A73:
+shiftLoop:
                 lsr a
 
-L8A74:
+shift:
                 dey
-                bpl L8A73
-                jsr L8B8D
-                and word_8B99,y
-                cpx #7
-                bne L8A82
+                bpl shiftLoop
+                
+                jsr getMaskCount
+                and maskByBitCount,y
+                cpx #configureTable.baudMetadata-configureTable
+                bne gotMaskedByte
                 inc a
 
-L8A82:
-                .if version==350
-                cpx #$6b
-                .elsif olivetti
-                cpx #$56
-                .else
-                cpx #$4D
-                .endif
-                bne L8A8C
+gotMaskedByte:
+                cpx #configureTable.modeMetadata-configureTable
+                bne done
                 bit #8
-                beq L8A8C
+                beq done
                 eor #$88
 
-L8A8C:
+done:
                 ply
                 plp
                 rts
-
-
+                .endblock
+                
 ;-------------------------------------------------------------------------
+;
+; Find command in command table.
+;
+; Entry:
+;
+; (stringInputBufferAddress),y = input
+; oscliWorkspace.tablePtr; = address of command table
+; V = 0 if commands have 4 bytes of metadata
+;     1 if commands have 2 bytes of metadata
+;
+; Exit:
+;
+; C=0 = no match
+; 
+; C=1 = match;
+;       A holds 1st byte of metadata
+;       oscliWorkspace.tablePtr; = address of 2nd and following metadata bytes
+;       (stringInputBufferAddress),y = input following command
+;
+; Preserves: X/V
 
-utils_8A8F:
-                sty $E6
-                bra L8A9D
+findCommand: .block
+                sty $E6         ;save Y
+                bra checkInput       ;get going...
 
-;-------------------------------------------------------------------------
-
-L8A93:
-                eor ($B0)
+checkLetter:
+                eor (oscliWorkspace.tablePtr)
                 and #$DF
-                bne L8AAE    ; taken if char didn't match
+                bne noMatch    ; taken if char didn't match
                 jsr fetchCommandTableByte
                 iny
 
-L8A9D:
+checkInput:
                 lda (stringInputBufferAddress),y
                 jsr mos.isLetter
-                bcc L8A93    ; taken if letter
-                lda ($B0)   ; next table byte
-                bmi L8AC9
+                bcc checkLetter ; taken if letter
+                
+                ; Non-letter input means potentially end of command
+                ; name.
+                lda (oscliWorkspace.tablePtr) ; next table byte
+                bmi commandMatch ; taken if end of string - a match
                 lda (stringInputBufferAddress),y
-                cmp #'.'
-                beq L8AB2    ; taken if abbreviated
+                cmp #'.'        ; '.' is the abbreviation char
+                beq abbreviationMatch ;taken with C=1 if match
 
-L8AAE:
-                clc
-                ldy $E6
-                dey
+noMatch:
+                clc             ;indicate no match
+                ldy $E6         ;restore Y
+                dey             ;compensate for upcoming iny
 
-L8AB2:
+abbreviationMatch:
                 iny             ; skip the '.'
 
-L8AB3:
+findCommandMetadataLoop:
                 jsr fetchCommandTableByte
-                beq L8ACD
-                bpl L8AB3    ; keep looping through chars if necessary
-                bcs L8ACD
-                jsr fetchCommandTableByte
-                bvs L8A9D    ; if V=1, 2-byte metadata; if V=0, 4-byte metadata
-                jsr fetchCommandTableByte
-                jsr fetchCommandTableByte
-                bra L8A9D
+                beq rts8ACD
+                bpl findCommandMetadataLoop ; keep looping through chars if necessary
+                bcs rts8ACD                 ;taken if it was a match
+                jsr fetchCommandTableByte   ;discard 2nd metadata byte
+                bvs checkInput ; if V=1, 2-byte metadata; if V=0, 4-byte metadata
+                jsr fetchCommandTableByte ;discard 3rd metadata byte
+                jsr fetchCommandTableByte ;discard 4th metadata byte
+                bra checkInput
 
 ;-------------------------------------------------------------------------
 
-L8AC9:
+commandMatch:
                 jsr fetchCommandTableByte
                 sec
 
-L8ACD:
+rts8ACD:
                 rts
-
+                .endblock
 
 ;-------------------------------------------------------------------------
+;
+; Fetch byte from command table with postincrement.
+;
+; Entry:
+;
+; oscliWorkspace.tablePtr; = address of byte to fetch
+;
+; Exit:
+;
+; A = byte fetched
+; oscliWorkspace.tablePtr; incremented
+; 
+; Preserves: X/Y/C/V
 
 fetchCommandTableByte:
                 inx
-                lda ($B0)
+                lda (oscliWorkspace.tablePtr)
                 pha
-                inc $B0
+                inc oscliWorkspace.tablePtr+0
                 bne L8AD8
-                inc $B1
+                inc oscliWorkspace.tablePtr+1
 
 L8AD8:
                 pla
                 rts
-
 
 ;-------------------------------------------------------------------------
 
@@ -764,20 +770,14 @@ L8B08:
                 php
                 phx
                 bvc L8B15
-                .if version==350
-                cpy #$4b
-                .elsif olivetti
-                cpy #$3e
-                .else
-                cpy #$35
-                .endif
+                cpy #configureTable.ignore-configureTable;$4b
                 bne L8B15
                 jsr readUsePrinterIgnoreChar
                 bcs L8B30
 
 L8B15:
                 ldx #9
-                jsr L8B6B
+                jsr printConfigureTableString
                 and #$40
                 beq L8B2D
                 lda configureTable+1,y
@@ -822,88 +822,132 @@ L8B3F:
 
 ;-------------------------------------------------------------------------
 
-L8B41:
-                jsr OSWRCH
-                pha
-                phy
-                tya
-                .if version==350
-                ldy #4
-                .else
-                ldy #2
-                .endif
+printConfigureTableStringLoop:
+                jsr OSWRCH      ;print char
+                pha             ;save A (char to print)
+                phy             ;save Y (table offset)
+                tya             ;get table offset in A
 
-L8B49:
-                cmp L8850,y
-                bne L8B55
-                lda L8853,y
+                ; If we're at a snippet insert point, insert the
+                ; snippet, recursively.
+                ldy #configureTable.textSnippetsCount-1
+findSnippetInsertPointLoop:
+                cmp configureTable.textSnippetInsertPointOffsets,y
+                bne nextSnippetInsertPoint
+
+                ; Insert a snippet here. Load the new snippet's offset
+                ; in Y and repeat.
+                lda configureTable.textSnippetOffsets,y
                 tay
-                jsr L8B6B
-
-L8B55:
+                jsr printConfigureTableString
+nextSnippetInsertPoint
                 dey
-                bpl L8B49
-                ply
-                pla
-                iny
-                dex
+                bpl findSnippetInsertPointLoop
+                ply             ;restore Y (table offset)
+                pla             ;restore A (char to print)
+                iny             ;next byte in table
+                dex             ;
                 eor #$20
-                ora configureTable,y; "."
-                and #$A0
-                bne L8B6B
+                ora configureTable,y
+                and #%10100000
+                bne printConfigureTableString
+
+                ; if char case changed, but it wasn't the end of the
+                ; string, pop a space in.
                 lda #' '
                 jsr OSWRCH
                 dex
 
-;-------------------------------------------------------------------------
-
-L8B6B:
-
-                lda configureTable,y; "."
-                bpl L8B41
+printConfigureTableString:
+                lda configureTable,y
+                bpl printConfigureTableStringLoop
                 rts
 
 
 ;-------------------------------------------------------------------------
-
+;
+; Issue ROM service call romServiceCallUnknownCONFIG ($28) or
+; romServiceCallUnknownSTATUS ($29).
+;
+; Entry:
+;
+; C=1 for unknown CONFIG, or C=0 for unknown STATUS
+;
+; Exit:
+;
+; as per appropriate ROM service call
+; 
 unknownCONFIGOrStatus:
                 lda #$14
-                rol a
+                rol a           ;form $28 or $29 according to C
                 tax
                 jmp mos.makeROMServiceCall
 
-
 ;-------------------------------------------------------------------------
+;
+; Get actual RTC byte index for configure item, given offset in
+; configure table to its metadata.
+;
+; Entry:
+;
+; X = offset into configure table for item's metadata
+;
+; Exit:
+;
+; X = index of byte read
+;
+; Preserves: Y/C
 
-L8B78:
+getRTCByteIndex:
                 lda configureTable+1,x
-                and #$78
+                and #%01111000
                 lsr a
                 lsr a
                 lsr a
-                .if version==350
-                adc #$f
-                .else
-                adc #5
-                .endif
+                adc #rtcByteIndexOffset
                 tax
                 rts
 
-
 ;-------------------------------------------------------------------------
-
-L8B84:
+;
+; Get shift count for configure item's data, given offset in configure
+; table for its metadata.
+;
+; Entry:
+;
+; X = offset into configure table for item's metadata
+;
+; Exit:
+;
+; Y = shift count
+;
+; Preserves: A/X/C
+; 
+getShiftCount:
                 pha
                 lda configureTable+1,x
-                and #7
+                and #%00000111
                 tay
                 pla
                 rts
 
 
 ;-------------------------------------------------------------------------
-
-L8B8D:
+;
+; Get mask bit count for configure item's data, given offset in
+; configure table for its metadata.
+;
+; Entry:
+;
+; X = offset into configure table for item's metadata
+;
+; Exit:
+;
+; Y = mask bit count, -1 (0 = 1 bits ... 7 = 8 bits)
+;
+; Preserves: A/X
+; 
+getMaskCount:
                 pha
                 lda configureTable,x; "."
                 lsr a
@@ -914,15 +958,15 @@ L8B8D:
                 pla
                 rts
 
-
-;-------------------------------------------------------------------------
-
-word_8B99:      .word %1100000001
-                .word %111100000111
-                .word %11111100011111
-                .word %1111111101111111
-
-;-------------------------------------------------------------------------
+maskByBitCount:
+                .byte %00000001
+                .byte %00000011
+                .byte %00000111
+                .byte %00001111
+                .byte %00011111
+                .byte %00111111
+                .byte %01111111
+                .byte %11111111
 
 ;-------------------------------------------------------------------------
 
@@ -938,15 +982,10 @@ readUsePrinterIgnoreChar:
                 ply
                 rts
 
-
 ;-------------------------------------------------------------------------
 
 L8BA9:
                 tya
-
-
-;-------------------------------------------------------------------------
-
 L8BAA:
                 sec
                 ldy #$FF
@@ -972,10 +1011,6 @@ L8BBD:
                 jsr L8BCA
                 clc
                 tay
-
-
-;-------------------------------------------------------------------------
-
 L8BCA:
                 pha
                 tya
@@ -998,13 +1033,7 @@ setTSTAndL8BD6:
                 jsr mos.callWithTST
                 .endif
 L8BD6:
-                .if version==350
-                ldx #$c9
-                .elsif olivetti
-                ldx #$c5
-                .else
-                ldx #$BC
-                .endif
+                ldx #configureTable.L8605-configureTable
                 jsr L8A64
                 lsr a
                 bit #4

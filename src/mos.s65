@@ -7328,13 +7328,7 @@ LE431:
                 and #$0F                     ;get default FS ROM
                 ply
                 .else
-                .if version==350
-                ldx #$3b
-                .elsif olivetti
-                ldx #$3c
-                .else
-                ldx #$33
-                .endif
+                ldx #terminal.configureTable.fileMetadata-terminal.configureTable
                 jsr terminal.L8A64
                 .endif
                 
@@ -7418,13 +7412,7 @@ LE4BB:
                 .if version<500&&version!=350
                 jsr terminal.readDefaultLanguageROM        ; Read configured LANG
                 .else
-                .if version==350
-                ldx #$5f
-                .elsif olivetti
-                ldx #$4A
-                .else
-                ldx #$41
-                .endif
+                ldx #terminal.configureTable.langMetadata-terminal.configureTable
                 jsr terminal.L8A64
                 .endif
                 tax
@@ -13922,8 +13910,8 @@ LFCB2:
                 jsr LFB2F
 LFCBF:
                 .endif
-                ldx #$6B
-                jsr terminal.L8831_350
+                ldx #terminal.configureTable.modeMetadata-terminal.configureTable
+                jsr terminal.setTSTAndL8A64
                 ora #8
                 sta startupOptions
                 jsr terminal.readDefaults3
@@ -14049,13 +14037,13 @@ LFD83:
                 sta printerIgnoreChar
                 jsr terminal.setTSTAndReadUsePrinterIgnoreChar
                 ror noignoreState
-                ldx #$9B
-                jsr terminal.L8831_350
+                ldx #terminal.configureTable.printMetadata-terminal.configureTable
+                jsr terminal.setTSTAndL8A64
                 sta printerDriverType
 
 LFDA4:
-                ldx #$19
-                jsr terminal.L8831_350
+                ldx #terminal.configureTable.dataMetadata-terminal.configureTable
+                jsr terminal.setTSTAndL8A64
                 asl a
                 asl a
                 ora #$42
@@ -14090,8 +14078,8 @@ LFDB7:
                 lda serialULARegister
                 and #$7F        ; ''
                 jsr LEC89
-                ldx #7
-                jsr terminal.L8831_350
+                ldx #terminal.configureTable.baudMetadata-terminal.configureTable
+                jsr terminal.setTSTAndL8A64
                 pha
                 tax
                 jsr osbyte08

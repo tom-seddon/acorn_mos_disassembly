@@ -167,3 +167,31 @@ nonPowerOnReset:
                 .endif
                 lda #$0F
                 sta numericKeypadShiftEffect
+                .if version<500&&version!=350
+-
+                dec a                        
+                sta systemVIA.orb
+                cmp #$09                     
+                bcs -
+                .endif
+                ldx #key_ctrl
+                .if version==350
+                jsr setTSTAndInterrogateKeyboard
+                .else
+                jsr mos.interrogateKeyboard
+                .endif
+                cpx #$80        ;Z=0 C=1 if CTRL+BREAK
+                jsr mos.updateKeyboardLEDs
+                stz lastBREAKType            ;softBREAK
+                ror a
+                ldx #$9c                     ;what is this?
+                ldy #$8D                     ;what is this?
+                pla
+                beq L80AD
+                ldy #$7E                     ;what is this?
+                bcc L80DF
+                ldy #$87                     ;what is this?
+                inc lastBREAKType
+L80AD:
+                inc lastBREAKType
+                phy

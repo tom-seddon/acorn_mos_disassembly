@@ -13803,24 +13803,6 @@ LFB3B:
 
 LFC00:
                 .include "reset.s65"
-                ldx #1
-                jsr setTSTAndInterrogateKeyboard
-                cpx #$80
-                jsr updateKeyboardLEDs
-                stz lastBREAKType
-                ror a
-                ldx #$9C
-                ldy #$8D
-                pla
-                beq LFCB2
-                ldy #$7E
-                bcc LFCE6
-                ldy #$87
-                inc lastBREAKType
-
-LFCB2:
-                inc lastBREAKType
-                phy
                 .if CFA3000
                 lda lastBREAKType
                 dec a
@@ -13853,7 +13835,7 @@ LFCDB:
 
 ;-------------------------------------------------------------------------
 
-LFCE6:
+L80DF:
                 lda #$87
                 trb startupOptions
                 lda vduv.currentScreenMODE

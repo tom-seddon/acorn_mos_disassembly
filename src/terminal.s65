@@ -158,30 +158,6 @@ L809F:
                 .else                        ;stripped_out_reset
                 .include "reset.s65"
                 .if version<500
--
-                dec a                        ; 8088= 8D 40 FE    .@~
-                sta systemVIA.orb
-                cmp #$09                     ; 808D= B0 F8       0x
-                bcs -
-                .endif
-                ldx #key_ctrl
-                jsr mos.interrogateKeyboard
-                cpx #$80        ;Z=0 C=1 if CTRL+BREAK
-                jsr mos.updateKeyboardLEDs
-                stz lastBREAKType            ;softBREAK
-                ror a
-                ldx #<intervalTimer ; TODO - $9C - is this right?
-                ldy #$8D
-                pla
-                beq L80AD
-                ldy #$7E
-                bcc L80DF
-                ldy #$87
-                inc lastBREAKType
-L80AD:
-                inc lastBREAKType
-                phy
-                .if version<500
                 jsr readDefaultMODE          ; Read configured MODE
                 .elsif version>=500
                 jsr L9E58

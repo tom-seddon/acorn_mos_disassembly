@@ -7412,7 +7412,7 @@ LE4BB:
                 .if version<500&&version!=350
                 jsr terminal.readDefaultLanguageROM        ; Read configured LANG
                 .else
-                ldx #terminal.configureTable.langMetadata-terminal.configureTable
+                ldx #terminal.configureTable.lang.metadata-terminal.configureTable
                 jsr terminal.readConfigurationByte
                 .endif
                 tax
@@ -13910,12 +13910,12 @@ LFCB2:
                 jsr LFB2F
 LFCBF:
                 .endif
-                ldx #terminal.configureTable.modeMetadata-terminal.configureTable
+                ldx #terminal.configureTable.mode.metadata-terminal.configureTable
                 jsr terminal.setTSTAndReadConfigurationByte
-                ora #8
+                ora #CMOSBytes.defaults0.defaultSHADOWMask
                 sta startupOptions
                 jsr terminal.readDefaults3
-                and #$10
+                and #CMOSBytes.defaults3.autoBootMask
                 lsr a
                 trb startupOptions
                 jsr terminal.setTSTAndL8BD6
@@ -14037,7 +14037,7 @@ LFD83:
                 sta printerIgnoreChar
                 jsr terminal.setTSTAndReadUsePrinterIgnoreChar
                 ror noignoreState
-                ldx #terminal.configureTable.printMetadata-terminal.configureTable
+                ldx #terminal.configureTable.print.metadata-terminal.configureTable
                 jsr terminal.setTSTAndReadConfigurationByte
                 sta printerDriverType
 

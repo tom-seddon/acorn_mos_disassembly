@@ -278,7 +278,7 @@ L80AD:
                 jsr readDefaultMODE          ; Read configured MODE
                 .elsif version>=500
                 jsr L9E58
-                ldx #configureTable.modeMetadata-configureTable;$56
+                ldx #configureTable.mode.metadata-configureTable;$56
                 jsr readConfigurationByte
                 .endif
 L80B4:
@@ -430,7 +430,7 @@ gotKeyboardStatusByte:
                 .if version<500
                 jsr readDefaultFX5Settings
                 .elsif version>=500
-                ldx #configureTable.printMetadata-configureTable
+                ldx #configureTable.print.metadata-configureTable
                 jsr readConfigurationByte
                 .endif
                 sta printerDriverType

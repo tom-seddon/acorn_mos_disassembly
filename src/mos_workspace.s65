@@ -1513,7 +1513,9 @@ unknown11:
                 .fill 1
 
                 .if version>=500
-joystickSettings: .block
+joystick: .block
+stickMask=$f
+isSwitchedMask=32
                 .fill 1
                 .endblock
                 .endif

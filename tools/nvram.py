@@ -49,10 +49,25 @@ def main2(options):
                 addr+=1
 
             m=Metadata(m0=rb(addr+0),m1=rb(addr+1))
-
             addr+=2
 
-            pr('%-*s: %s:'%(max_version_width,version.name,name))
+            if name not in items_by_name: items_by_name[name]=Item(metadata_by_version={})
+
+            assert version not in items_by_name[name].metadata_by_version,(version,name)
+
+            items_by_name[name].metadata_by_version[version]=m
+
+    max_name_width=max([len(name) for name in items_by_name.keys()])
+
+    for name in sorted(items_by_name.keys()):
+        item=items_by_name[name]
+
+        for version in all_versions:
+            m=item.metadata_by_version.get(version)
+            if m is None: continue
+
+            pr('%-*s: %-*s: '%(max_name_width,name,
+                               max_version_width,version.name))
 
             if (m.m0&0x40)==0:
                 pr(' routine address: $%02x%02x\n'%(m.m0,m.m1))
@@ -74,20 +89,10 @@ def main2(options):
                 pr(' value=%d'%value)
                 pr(' n1=%s'%str(n1).lower())
                 pr('\n')
-                
+
                 # pr('mask=$%02x value=%d n1=%s index=$%x shift=%d\n'%
                 #    (mask,value,n1,index,shift))
-
-            # print('%s: %s: $%02x $%02x'%(version.name,
-            #                              name,
-            #                              rb(addr+0),
-            #                              rb(addr+1)))
-
-            if name not in items_by_name: items_by_name[name]=Item(metadata_by_version={})
-
-            assert version.name not in items_by_name[name].metadata_by_version,(version,name)
-
-            items_by_name[name].metadata_by_version[version.name]=m
+        
 
 def main(argv):
     p=argparse.ArgumentParser()

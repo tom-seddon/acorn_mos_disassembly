@@ -7083,7 +7083,7 @@ resetEntryPoint:                ;e364
                 .endif
                 .if version==350
                 jsr staSEIWKAAndACCCON
-                jmp LFC00
+                jmp reset
                 .else
                 jsr selectTerminalROM ; Page in ROM 15 and continue
                 jmp terminal.reset
@@ -13694,7 +13694,7 @@ LFB31:
                 ldy #0
                 cpx #size(CMOSBytes)
                 bcs LFB3B
-                ldy LFC00.LFEA2-1,x
+                ldy reset.LFEA2-1,x
 LFB3B:
                 jsr terminal.writeCMOSByte
                 plx
@@ -13718,12 +13718,11 @@ LFB3B:
 ;
 ; Some init code - normally hidden by the I/O region
 
-LFC00: .block
+reset: .block
                 .include "reset.s65"
-
 foundTube:
 continueSoftReset:
-                jmp terminal.reset
+                jmp terminal.softResetPart2
                 .endblock
 
 ;-------------------------------------------------------------------------

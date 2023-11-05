@@ -140,34 +140,28 @@ L8081:
 
 ; STARTUP
 ; =======
-reset:                          ;8020
+
 
                 .if version==350             ;stripped_out_reset
-
+softResetPart2:
                 jsr mos.callWithTST
                 pla
                 pla
                 pla
-                bcc L809F
-                ldx #romServiceCallTubeMainInitialisation
-                jsr mos.makeROMServiceCall   ;
-                bne L809F
-                dec tubePresence ; Tube PreInit claimed, set TubeFlag to &FF, Tube present
-L809F:
-
                 .else                        ;stripped_out_reset
+reset:                          ;8020
                 .include "reset.s65"
+                .endif
 
                 .if version<500
-                bcc continueSoftReset
+                bcc continueSoftReset        ;taken if Tube not found
 foundTube:
                 ldx #romServiceCallTubeMainInitialisation
                 jsr mos.makeROMServiceCall   ;
                 bne continueSoftReset        ; Not claimed, step past
                 dec tubePresence ; Tube PreInit claimed, set TubeFlag to &FF, Tube present
-continueSoftReset:
                 .endif
-                .endif                       ;stripped_out_reset
+continueSoftReset:
                 lda lastBREAKType ; Soft Break, don't ask about workspace
                 beq L82FC
                 ldy #$DC                     ; Start high workspace at &DC00 and work downwards

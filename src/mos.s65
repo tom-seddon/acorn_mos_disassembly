@@ -8687,7 +8687,7 @@ LE95A:
                 .if version==350
                 jsr LF3BC
                 .else
-                jsr LF55D
+                jsr clearSoundChannelBuffer
                 .endif
 LE967:
                 sec
@@ -11972,12 +11972,12 @@ LF416:
                 plx
                 jmp selectROMX
 
-LF55D:
+clearSoundChannelBuffer:
                 phx
                 lda $f4
                 pha
                 jsr selectTerminalROM
-                jsr terminal.LF55D
+                jsr terminal.clearSoundChannelBuffer
                 plx
                 jsr selectROMX
                 plx
@@ -11991,7 +11991,7 @@ LF55D:
 LF3BC:
                 jsr selectExtROM
                 phy
-                jsr LF55D
+                jsr clearSoundChannelBuffer
                 bra selectOldROM
                 .endif
 

@@ -162,7 +162,7 @@ L809F:
                 ldx #$08
 L81DD:
                 dex
-                jsr mos.LF55D
+                jsr mos.clearSoundChannelBuffer
                 cpx #$04
                 bne L81DD
                 .elsif version>=400
@@ -458,7 +458,7 @@ L836D:
                 ldx #8
 L836F:
                 dex
-                jsr mos.LF55D
+                jsr mos.clearSoundChannelBuffer
                 cpx #4
                 bne L836F
                 rts

@@ -517,3 +517,42 @@ L81DD:
                 .endif
                 jsr mos.purgeBuffer
                 
+                .if version!=400
+                lda serialULARegister
+                and #$7F
+                jsr mos.LEC89
+                .if version<500&&version!=350
+                jsr readDefaultSerialBaudRateIndex
+                .else
+                ldx #terminal.configureTable.baud.metadata-terminal.configureTable
+                .if version==350
+                jsr terminal.setTSTAndReadConfigurationByte
+                .else
+                jsr readConfigurationByte
+                .endif
+                .endif
+                pha
+                tax
+                jsr mos.osbyte08
+                plx
+                lda #$07
+                jsr mos.osbyte07
+                .endif
+
+                jsr terminal.readDefaults3
+                bit #CMOSBytes.defaults3.loudMask
+                bne L8211
+                lda #$F0
+                sta bellSound
+L8211:
+                .if version!=350
+                jsr mos.selectTerminalROM
+                .endif
+
+                ldx softKeyConsistencyFlag
+                beq scanROMs
+                jsr mos.osbyte12          
+scanROMs:
+                lda lastBREAKType
+                beq romsScanned                    ;taken if soft BREAK
+                

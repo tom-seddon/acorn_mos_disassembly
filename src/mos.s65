@@ -13800,31 +13800,6 @@ LFB3B:
 LFC00:
                 .include "reset.s65"
                 
-                lda serialULARegister
-                and #$7F        ; ''
-                jsr LEC89
-                ldx #terminal.configureTable.baud.metadata-terminal.configureTable
-                jsr terminal.setTSTAndReadConfigurationByte
-                pha
-                tax
-                jsr osbyte08
-                plx
-                lda #7
-                jsr osbyte07
-                jsr terminal.readDefaults3
-                bit #2
-                bne LFE13
-                lda #$F0        ; ''
-                sta bellSound
-LFE13:
-                ldx softKeyConsistencyFlag
-                beq LFE1B
-                jsr osbyte12
-
-LFE1B:
-                lda lastBREAKType
-                beq LFE73
-
 LFE20:
                 txa
                 tay
@@ -13883,7 +13858,7 @@ LFE6E:
                 bcc LFE20
                 jsr selectTerminalROM
 
-LFE73:
+romsScanned:
                 lda startupOptions
                 jsr setStartupMODE
                 lda lastBREAKType

@@ -158,36 +158,6 @@ L809F:
                 .else                        ;stripped_out_reset
                 .include "reset.s65"
                 
-                .if version!=400
-                lda serialULARegister
-                and #$7F
-                jsr mos.LEC89
-                .if version<500
-                jsr readDefaultSerialBaudRateIndex
-                .elsif version>=500
-                ldx #configureTable.baud.metadata-configureTable
-                jsr readConfigurationByte
-                .endif
-                pha
-                tax
-                jsr mos.osbyte08
-                plx
-                lda #$07
-                jsr mos.osbyte07
-                .endif
-                jsr readDefaults3
-                bit #$02
-                bne L8211
-                lda #$F0
-                sta bellSound
-L8211:
-                jsr mos.selectTerminalROM
-                ldx softKeyConsistencyFlag
-                beq scanROMs
-                jsr mos.osbyte12             ;
-scanROMs:
-                lda lastBREAKType
-                beq romsScanned                    ;taken if soft BREAK
                 jmp mos.scanROMs
 romsScanned:
                 lda startupOptions

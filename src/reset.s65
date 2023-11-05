@@ -354,4 +354,22 @@ L8164:
                 bmi gotKeyboardStatusByte
                 ldx #keyboardStatusByte.shiftEnabled|keyboardStatusByte.shiftLockDisengaged
 gotKeyboardStatusByte:
-                
+                stx keyboardStatusByte
+                .if version==350
+                jsr setTSTAndResetKeyRepeat
+                .else
+                jsr mos.selectTerminalROM
+                jsr mos.resetKeyRepeat
+                .endif
+                lda lastBREAKType
+                beq L8196
+                .if version==350
+                ldx #cmosBytesOffset+CMOSBytes.printerIgnoreChar
+                jsr terminal.setTSTAndReadRTCByte
+                .elsif version<500
+                jsr readDefaultPrinterIgnoreChar
+                .elsif version>=500
+                ldx #cmosBytesOffset+CMOSBytes.printerIgnoreChar
+                jsr terminal.readRTCByte
+                .endif
+                sta printerIgnoreChar

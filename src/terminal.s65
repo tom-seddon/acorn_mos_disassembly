@@ -157,18 +157,6 @@ L809F:
 
                 .else                        ;stripped_out_reset
                 .include "reset.s65"
-                stx keyboardStatusByte
-                jsr mos.selectTerminalROM
-                jsr mos.resetKeyRepeat
-                lda lastBREAKType
-                beq L8196
-                .if version<500
-                jsr readDefaultPrinterIgnoreChar
-                .elsif version>=500
-                ldx #cmosBytesOffset+CMOSBytes.printerIgnoreChar
-                jsr terminal.readRTCByte
-                .endif
-                sta printerIgnoreChar
                 .if version<500
                 jsr readDefaults2
                 lsr a                        ;C=tubeOn

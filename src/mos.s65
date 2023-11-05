@@ -13803,20 +13803,13 @@ LFB3B:
 
 LFC00:
                 .include "reset.s65"
-                stx keyboardStatusByte
-                jsr setTSTAndResetKeyRepeat
-                lda lastBREAKType
-                beq LFDA4
-                ldx #$1C
-                jsr terminal.setTSTAndReadRTCByte
-                sta printerIgnoreChar
                 jsr terminal.setTSTAndReadUsePrinterIgnoreChar
                 ror noignoreState
                 ldx #terminal.configureTable.print.metadata-terminal.configureTable
                 jsr terminal.setTSTAndReadConfigurationByte
                 sta printerDriverType
 
-LFDA4:
+L8196:
                 ldx #terminal.configureTable.data.metadata-terminal.configureTable
                 jsr terminal.setTSTAndReadConfigurationByte
                 asl a

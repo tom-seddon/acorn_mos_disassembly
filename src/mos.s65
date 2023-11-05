@@ -12858,13 +12858,12 @@ LF8B4:
                 sta 1
                 stz 0
                 lda #0
-                tay
                 .else
                 ldy #$80
                 sty 1
                 stz 0
-                tay
                 .endif
+                tay
 LF8BE:
                 sta (0),y
                 iny
@@ -13803,85 +13802,17 @@ LFB3B:
 ; Some init code - normally hidden by the I/O region
 
 LFC00:
-                jsr selectTerminalROM
-                stz hazel.hasACCCONChanged
-                cld
-                ldx #$FF
-                txs
-                stx userVIA.ddra;
-                lda #$CF        ; ''
-                sta systemVIA.ddrb
-                jsr enableKeyboardScanning
-                jsr LFEF5
-                ldy #RTC.a.dv32768Hz
-                ldx #RTC.a
-                jsr terminal.writeRTCByte
-                jsr terminal.finishRTCUpdate
-                lda defaultVectorTable+0
-                lda defaultVectorTable+0
-                jsr terminal.ldaSystemVIAIER
-                asl a
-                pha
-                bne LFC79
-                jsr terminal.resetCRTC
-                ldx #7
-
-LFC34:
-                jsr selectROMX
-                ldy #$80        ; ''
-                sty 1
-                stz 0
-                tay
-
-LFC3E:
-                sta (0),y
-                iny
-                bne LFC3E
-                inc 1
-                bit 1
-                bvc LFC3E
-                dex
-                cpx #4
-                bcs LFC34
-                jsr selectTerminalROM
-                tya
-
-LFC52:
-                tay
-
-LFC53:
-                ldx $fc
-                tya
-                stz 1
-                stz 0
-
-LFC5A:
-                sta (0),y
-                iny
-                bne LFC5A
-                inc 1
-                ldy #$40        ; '@'
-                sty $d00
-                ldy 1
-                cpy #$E0        ; ''
-                tay
-                bcc LFC5A
-                stx $FC
-                lda #4
-                jsr terminal.trbACCCON
-                bne LFC53
-                jsr selectTerminalROM
-
-LFC79:
+                .include "reset.s65"
+nonPowerOnReset:
                 lda breakAndESCAPEEffect
                 lsr a
                 dec a
-                beq LFC52
+                beq startClearRAM
                 lda #<mos.emptyCommandLine
                 sta hazel.commandLinePointer+0
                 lda #>mos.emptyCommandLine
                 sta hazel.commandLinePointer+1
-                lda #$C
+                lda #ACCCON.Y|ACCCON.X
                 jsr terminal.trbACCCON
                 lda #$F
                 sta numericKeypadShiftEffect

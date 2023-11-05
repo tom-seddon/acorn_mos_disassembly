@@ -156,85 +156,8 @@ reset:                          ;8020
 L809F:
 
                 .else                        ;stripped_out_reset
-                
-                lda #~ACCCON.D  ;display main RAM
-                trb ACCCON
-                .if version<500
-                stz hazel.hasACCCONChanged
-                .endif
-                trb $0366
-                cld
-                ldx #$FF
-                txs              ;reset stack
-                stx userVIA.ddra ;port A all outputs
-                lda #%11001111
-                sta systemVIA.ddrb ;
-                .if version<500
-                ldy #RTC.a.dv32768Hz
-                ldx #RTC.a
-                jsr writeRTCByte
-                jsr finishRTCUpdate
-                .endif
-                lda #ACCCON.Y|ACCCON.X       ; page in HAZEL+shadow
-                tsb ACCCON
-                .if version>=500
-                stz hazel.hasACCCONChanged
-                jsr L8363
-                .elsif version>=400
-                jsr L836D
-                .endif
-                lda systemVIA.ier
-                asl a
-                pha
-                .if version<400
-                beq startClearRAM       ; branch taken if power on
-                lda breakAndESCAPEEffect                    ; read BREAK action flags
-                                             ; (set by *FX200)
-                lsr a                        ; divide by 2 to get the
-                                             ; break action
-                dec a                        ; Z=1 if it was 1
-                bne L8073                    ; branch taken if break
-                                             ; action says don't clear
-                                             ; RAM
-                .elsif version>=400
-                bne L8073
-                ldx #7
-                jsr mos.LF8B4
-                .if version==400
-                lda #0
-                .else
-                tya
-                .endif
-                .endif                                             
-startClearRAM
-                tay             ;Y=0
-clearRAM:
-                tya             ;A=0
-                stz $01
-                stz $00         ;start at $0000
--
-                sta ($00),y     ;clear RAM
-                iny
-                bne -
-                inc $01
-                ldx #$40          ;$40=RTI
-                stx nmiEntryPoint ;restore the RTI previously written,
-                                  ;as each iteration will potentially
-                                  ;overwrite it
-                ldx $01
-                cpx #$E0        ;hit the end of RAM?
-                bcc -           ;branch taken if still more to go
-                lda #ACCCON.X   ;page out shadow RAM
-                trb ACCCON
-                bne clearRAM    ;branch taken if shadow RAM bit
-                             ;previously set - i.e., that was the
-                             ;first iteration, and we need to go back
-                             ;to do main RAM
-                .if version>=400
-                lda $fe28
-                lda $fe2b
-                .endif
-L8073:
+                .include "reset.s65"
+nonPowerOnReset:
                 .if version>=400
                 lda breakAndESCAPEEffect
                 lsr a

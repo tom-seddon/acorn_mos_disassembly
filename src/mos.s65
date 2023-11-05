@@ -13803,19 +13803,6 @@ LFB3B:
 
 LFC00:
                 .include "reset.s65"
-nonPowerOnReset:
-                lda breakAndESCAPEEffect
-                lsr a
-                dec a
-                beq startClearRAM
-                lda #<mos.emptyCommandLine
-                sta hazel.commandLinePointer+0
-                lda #>mos.emptyCommandLine
-                sta hazel.commandLinePointer+1
-                lda #ACCCON.Y|ACCCON.X
-                jsr terminal.trbACCCON
-                lda #$F
-                sta numericKeypadShiftEffect
                 ldx #1
                 jsr setTSTAndInterrogateKeyboard
                 cpx #$80

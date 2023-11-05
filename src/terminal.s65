@@ -157,22 +157,6 @@ L809F:
 
                 .else                        ;stripped_out_reset
                 .include "reset.s65"
-nonPowerOnReset:
-                .if version>=400
-                lda breakAndESCAPEEffect
-                lsr a
-                dec a
-                beq startClearRAM
-                .endif
-                lda #<mos.emptyCommandLine
-                sta hazel.commandLinePointer+0
-                lda #>mos.emptyCommandLine
-                sta hazel.commandLinePointer+1
-                lda #ACCCON.Y|ACCCON.X ; page in MOS ROM, page in main
-                                       ; RAM
-                trb ACCCON
-                lda #$0F                     ; 8084= 8D 8E 02    ...
-                sta numericKeypadShiftEffect
                 .if version<500
 -
                 dec a                        ; 8088= 8D 40 FE    .@~

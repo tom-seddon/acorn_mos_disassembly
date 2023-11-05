@@ -147,3 +147,23 @@ clearRAMPageLoop:
                 lda $fe2b
                 .endif
                 .endif
+nonPowerOnReset:
+                .if version>=350
+                lda breakAndESCAPEEffect
+                lsr a
+                dec a
+                beq startClearRAM
+                .endif
+                lda #<mos.emptyCommandLine
+                sta hazel.commandLinePointer+0
+                lda #>mos.emptyCommandLine
+                sta hazel.commandLinePointer+1
+                lda #ACCCON.Y|ACCCON.X ; page in MOS ROM, page in main
+                                       ; RAM
+                .if version==350
+                jsr terminal.trbACCCON
+                .else
+                trb ACCCON
+                .endif
+                lda #$0F
+                sta numericKeypadShiftEffect

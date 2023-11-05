@@ -8,6 +8,9 @@ PYTHON:=/usr/bin/python3
 TASSCMD:=64tass
 endif
 
+##########################################################################
+##########################################################################
+
 ifeq ($(VERBOSE),1)
 _V:=
 _TASSQ:=
@@ -16,10 +19,20 @@ _V:=@
 _TASSQ:=-q
 endif
 
+ifeq ($(MUST_MATCH),1)
+_ROM_DIFF_MUST_MATCH:=--must-match
+else
+_ROM_DIFF_MUST_MATCH:=
+endif
+
+##########################################################################
+##########################################################################
+
 SHELLCMD:=$(PYTHON) submodules/shellcmd.py/shellcmd.py
 MKDIR:=$(SHELLCMD) mkdir
 TASS:=$(TASSCMD) --m65c02 --nostart -Wall $(_TASSQ) --case-sensitive --line-numbers --verbose-list
 BUILD:=build
+DIST:=dist
 
 ##########################################################################
 ##########################################################################
@@ -68,7 +81,7 @@ _build:
 
 .PHONY:_check_identical
 _check_identical:
-	@$(PYTHON) bin/romdiffs.py -a orig/$(VERSION) -b $(BUILD)/$(VERSION) mos.rom utils.rom $(EXTRA)
+	@$(PYTHON) bin/romdiffs.py $(_ROM_DIFF_MUST_MATCH) -a orig/$(VERSION) -b $(BUILD)/$(VERSION) mos.rom utils.rom $(EXTRA)
 
 ##########################################################################
 ##########################################################################
@@ -76,6 +89,31 @@ _check_identical:
 .PHONY:clean
 clean:
 	$(_V)$(SHELLCMD) rm-tree $(BUILD)
+
+##########################################################################
+##########################################################################
+
+.PHONY:dist
+dist:
+	$(_V)$(MAKE) clean
+	$(_V)$(MAKE) all MUST_MATCH=1
+	$(_V)$(SHELLCMD) mkdir $(DIST)
+# If shellcmd.py copy-file handled wildcards, this would be a bit
+# simpler.
+	$(_V)$(MAKE) _dist_copy VERSION=320
+	$(_V)$(MAKE) _dist_copy VERSION=500
+	$(_V)$(MAKE) _dist_copy VERSION=510
+	$(_V)$(MAKE) _dist_copy VERSION=511
+	$(_V)$(MAKE) _dist_copy VERSION=400
+	$(_V)$(MAKE) _dist_copy VERSION=PC128S
+	$(_V)$(MAKE) _dist_copy VERSION=350
+	$(_V)$(MAKE) _dist_copy VERSION=CFA3000
+	$(_V)$(MAKE) _dist_copy VERSION=autocue
+	$(_V)$(MAKE) _dist_copy VERSION=329
+
+.PHONY:_dist_copy
+_dist_copy:
+	$(_V)$(SHELLCMD) copy-file $(BUILD)/mos$(VERSION).lst $(DIST)/
 
 ##########################################################################
 ##########################################################################

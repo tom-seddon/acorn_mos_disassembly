@@ -1,9 +1,10 @@
 Rebuildable, partially-commented version of Acorn MOS for Acorn's
 8-bit BBC Master series and derivatives. The following released
 versions for Acorn systems are covered (version numbers as reported by
-`*FX0`):
+`*FX0`). Click each .lst link to get a reasonably recent assembler
+listing file, including assembled code, labels and comments.
 
-- MOS 3.20 (Master 128, UK)
+- MOS 3.20 (Master 128, UK): [./dist/mos320.lst](./dist/mos320.lst)
 - MOS 3.50 (Master 128, UK)
 - MOS 4.00 (Master ET, UK)
 - MOS 5.00 (Master Compact, UK)
@@ -48,9 +49,9 @@ an annotated disassembly.
 
 (Readable source code is not an initial goal. Sorry!)
 
-The 64tass listing file is relatively easy to read, but not ideal. I
-intend to add a postprocessing step to transform it into something a
-bit tidier.
+For these purposes, the 64tass listing files are relatively easy to
+follow along, but not ideal. I intend to add a postprocessing step to
+transform it into something a bit tidier.
 
 My longer term goal is to produce a decent-quality modifiable source
 file, with all label references located, all data-dependent constants

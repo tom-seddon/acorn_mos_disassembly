@@ -13721,15 +13721,9 @@ LFB3B:
 LFC00: .block
                 .include "reset.s65"
 
-romsScanned:
-                lda startupOptions
-                jsr setStartupMODE
-                lda lastBREAKType
-                dec a
-                bne LFEB2
                 lda firstKeyPressedInternal
                 cmp #key_r
-                bne LFEB2
+                bne softReset
                 .if CFA3000
                 jsr LFB2F
                 .else
@@ -13785,7 +13779,7 @@ LFEA2:
 
 ;-------------------------------------------------------------------------
 
-LFEB2:
+softReset:
                 lda #8
                 jsr terminal.tsbACCCON
                 stz hazel.moveSrcHandle

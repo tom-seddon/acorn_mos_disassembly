@@ -559,5 +559,37 @@ checkResetType:
                 .if version==350
 scanROMs:
                 .include "scan_roms.s65"
+                .else
+                jmp mos.scanROMs
+                .endif
+
+romsScanned:
+                lda startupOptions
+                jsr mos.setStartupMODE
+                lda lastBREAKType
+                dec a
+                .if version>=510
+                beq powerOnReset
+                jmp softReset
+                .else
+                bne softReset                    ;taken if not power-on reset
                 .endif
                 
+powerOnReset:
+                .if version>=500
+                ldx #$ff
+                jsr L9ECA
+                bcs checkForResetKey
+                tya
+                and #$7f
+                .if version>=511||olivetti
+                cmp #$32
+                .else
+                cmp #$30
+                .endif
+                beq checkForResetKey
+                ldx #0
+                ldy #0
+                jsr L9E99
+                bra resetCMOSRAM
+                .endif

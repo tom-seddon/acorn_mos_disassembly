@@ -158,43 +158,13 @@ L809F:
                 .else                        ;stripped_out_reset
                 .include "reset.s65"
                 
-                jmp mos.scanROMs
-romsScanned:
-                lda startupOptions
-                jsr mos.setStartupMODE
-                lda lastBREAKType
-                dec a
-                .if version>=510
-                beq L8264
-                jmp L8284
-L8264:
-                .else
-                bne L8284                    ;taken if not power-on reset
-                .endif
-                .if version>=500
-                ldx #$ff
-                jsr L9ECA
-                bcs checkForResetKey
-                tya
-                and #$7f
-                .if version>=511||olivetti
-                cmp #$32
-                .else
-                cmp #$30
-                .endif
-                beq checkForResetKey
-                ldx #0
-                ldy #0
-                jsr L9E99
-                bra resetCMOSRAM
-                .endif
                 
 
                 .if version<500
 checkForResetKey:
                 lda firstKeyPressedInternal
                 cmp #key_r
-                bne L8284                    ;taken if R not pressed
+                bne softReset                    ;taken if R not pressed
                 
                 ; Reset CMOS RAM
 resetCMOSRAM:
@@ -217,7 +187,7 @@ resetCMOSRAMLoop:
 checkForResetKey:
                 lda firstKeyPressedInternal
                 cmp #key_r
-                bne L8284
+                bne softReset
                 .elsif version>=510
 checkForResetKey:
                 lda firstKeyPressedInternal
@@ -239,7 +209,7 @@ L82A9:
                 bra resetCMOSRAM
 L82B7:
                 cmp #key_r
-                bne L8284
+                bne softReset
                 .endif
                 .if version>=500
 resetCMOSRAM:                                ;82bb in MOS 5.10
@@ -290,7 +260,7 @@ hang:
 
 ;-------------------------------------------------------------------------
 
-L8284:
+softReset:
                 jsr mos.selectHAZEL
                 stz hazel.moveSrcHandle
                 stz hazel.moveDestHandle

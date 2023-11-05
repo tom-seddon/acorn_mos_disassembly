@@ -53,13 +53,13 @@ restoreFontPart:
                 sta ($FA),y                  
                 iny                          
                 bne -
-                inc $F1                      ; 9298= E6 F1       fq
-                inc $FB                      ; 929A= E6 FB       f{
-                dex                          ; 929C= CA          J
+                inc $F1
+                inc $FB
+                dex
                 bne -
-                ply                          ; 929F= 7A          z
-                plp                          ; 92A0= 28          (
-                jmp mos.selectTerminalROM    ; 92A1= 4C 90 E5    L.e
+                ply
+                plp
+                jmp mos.selectTerminalROM
 
 ;-------------------------------------------------------------------------
 
@@ -68,7 +68,7 @@ osbyte14:
                 .endif
 restoreFont32To126:
                 ldx #$03                     ;96 chars - 32-126
-                bra restoreFont32ToN         ; 92A6= 80 D5       .U
+                bra restoreFont32ToN
 
 ;-------------------------------------------------------------------------
 ;

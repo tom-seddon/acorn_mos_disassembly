@@ -76,10 +76,10 @@ starCONFIGURE:
                 bcs callSetRoutine           ;taken if known
                 ldx #romServiceCallUnknownCONFIG
 L8881:
-                ldy $E6                      ; 8881= A4 E6       $f
-                jsr mos.makeROMServiceCall   ; 8883= 20 72 EE     rn
-                bne badCommandError88AC                    ; 8886= D0 24       P$
-                rts                          ; 8888= 60          `
+                ldy $E6
+                jsr mos.makeROMServiceCall
+                bne badCommandError88AC
+                rts
 
 callSetRoutine:
                 .if version<400
@@ -218,7 +218,7 @@ setDefaultMODE:
                 ora #CMOSBytes.defaults0.defaultSHADOWMask
 +
                 ldy #~(CMOSBytes.defaults0.defaultSHADOWMask|CMOSBytes.defaults0.defaultMODEMask)&$ff
-                bra writeDefaults0Bits                    ; 8904= 80 25       .%
+                bra writeDefaults0Bits
 
 ;-------------------------------------------------------------------------
 
@@ -392,7 +392,7 @@ parseSingleNumberFromCommandLine:
 ;-------------------------------------------------------------------------
 
 setDefaultKeyboardAutoRepeatDelay:
-                clc                          ; 899F= 18          .
+                clc
                 .byte $24                    ; BIT zp (make SEC mostly
                                              ; a NOP, in effect)
 setDefaultKeyboardAutoRepeatRate:
@@ -543,7 +543,7 @@ setDefaultNoAutoBoot:
                 lda #$00                     ;no boot
 writeDefaultAutoBoot:
                 ldy #(~CMOSBytes.defaults3.autoBootMask)&$ff
-                bra writeDefaults3Bits                    ; 8A34= 80 EE       .n
+                bra writeDefaults3Bits
 
 ;-------------------------------------------------------------------------
 
@@ -581,14 +581,14 @@ writeDefaultExtTube:
 
 setDefaultLanguageROM:
                 jsr parseSingle4BitNumberFromCommandLine
-                asl a                        ; 8A55= 0A          .
-                asl a                        ; 8A56= 0A          .
-                asl a                        ; 8A57= 0A          .
-                asl a                        ; 8A58= 0A          .
+                asl a
+                asl a
+                asl a
+                asl a
                 ldy #~(15<<CMOSBytes.defaultROMs.languageShift)&$ff
 writeDefaultROM:
                 ldx #CMOSBytes.defaultROMs+cmosBytesOffset
-                bra jmpWriteRTCBits8A26                    ; 8A5D= 80 C7       .G
+                bra jmpWriteRTCBits8A26
 
 ;-------------------------------------------------------------------------
 
@@ -723,15 +723,15 @@ printNewLine8B2B:
 
 printDefaultKeyboardAutoRepeatDelay:
                 jsr getDefaultKeyboardAutoRepeatDelay
-                tya                          ; 8B31= 98          .
-                bra printDecimalByteThenNewLine                    ; 8B32= 80 F4       .t
+                tya
+                bra printDecimalByteThenNewLine
 
 ;-------------------------------------------------------------------------
 
 printDefaultKeyboardRepeatRate:
                 jsr getDefaultKeyboardAutoRepeatRate
-                tya                          ; 8B37= 98          .
-                bra printDecimalByteThenNewLine                    ; 8B38= 80 EE       .n
+                tya
+                bra printDecimalByteThenNewLine
 
 ;-------------------------------------------------------------------------
 ;
@@ -771,8 +771,8 @@ printNoIgnore:
 
 showDefaultPrinterIgnoreChar:
                 jsr readDefaultPrinterIgnoreChar
-                jsr printDecimalByte                    ; 8B5D= 20 C4 8B     D.
-                bra printNewLine8B2B         ; 8B60= 80 C9       .I
+                jsr printDecimalByte
+                bra printNewLine8B2B
 
 printDefaultPrinterIgnoreChar2:
                 jsr readDefaults2
@@ -785,8 +785,8 @@ printDefaultPrinterIgnoreChar2:
 ;-------------------------------------------------------------------------
 
 printDefaultFX5Settings:
-                jsr readDefaultFX5Settings                    ; 8B78= 20 8D 8E     ..
-                bra printDecimalByteThenNewLine                    ; 8B7B= 80 AB       .+
+                jsr readDefaultFX5Settings
+                bra printDecimalByteThenNewLine
 
 ;-------------------------------------------------------------------------
 
@@ -850,7 +850,7 @@ printDefaultADFSLoadDir:
 ;
 ; 
 printDecimalByteY:
-                tya                          ; 8BC3= 98          .
+                tya
 printDecimalByte:
                 sec                          ;in leading 0s state
                 ldy #$FF                     ;digit = -1
@@ -862,9 +862,9 @@ hundredsLoop:
                 adc #100                     ;undo the step too far
                 plp                        ;restore leading 0s state
                 jsr printDecimalDigit
-                ldy #$FF                     ; 8BD3= A0 FF        .
-                php                          ; 8BD5= 08          .
-                sec                          ; 8BD6= 38          8
+                ldy #$FF
+                php
+                sec
 tensLoop:
                 iny
                 sbc #10
@@ -873,7 +873,7 @@ tensLoop:
                 plp                          ;restore leading 0s state
                 jsr printDecimalDigit
                 clc                      ;definitely not leading 0 now
-                tay                          ; 8BE3= A8          (
+                tay
 printDecimalDigit:
                 pha
                 tya                          ;A=digit index
@@ -883,8 +883,8 @@ printDecimalDigit:
                 jsr printHexDigit
                 clc                          ;clear leading 0 flag
 +
-                pla                          
-                rts                          
+                pla
+                rts
 
 ;-------------------------------------------------------------------------
 ;

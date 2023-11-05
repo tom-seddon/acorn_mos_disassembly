@@ -388,7 +388,7 @@ maybeConvertToString:
                 bne convertTimeToString                    ;taken if 0 or 2
                 
                 ; Copy year, month, day of month, day of week.
-                ldy #$00                     ; 9808= A0 00        .
+                ldy #$00
                 ldx #RTC.year
 -
                 lda osfileParameterBlock+1,x
@@ -416,7 +416,7 @@ convertTimeToString:
                 lda #13
                 sta (originalX),y
                 ldx #$00
-                dey                          ; 982A= 88          .
+                dey
                 jsr storeRTCDataByteString
                 lda #':'
                 sta (originalX),y
@@ -456,9 +456,9 @@ convertTimeToString:
                 ldy #ClockStringFormat.mmm
 -
                 lda monthStrings,x
-                sta ($F0),y                  ; 9871= 91 F0       .p
-                inx                          ; 9873= E8          h
-                iny                          ; 9874= C8          H
+                sta ($F0),y
+                inx
+                iny
                 cpy #ClockStringFormat.mmm+3
                 bcc -
                 ldx #RTC.year
@@ -466,11 +466,11 @@ convertTimeToString:
                 jsr storeRTCDataByteString
                 lda #$19                     ;it's always 19xx... right?
                 jsr storeBCDByteString
-                lda #$20                     
-                sta ($F0),y                  
+                lda #$20
+                sta ($F0),y
                 ldy #ClockStringFormat.nn+2
-                sta ($F0),y                  
-                dey                          
+                sta ($F0),y
+                dey
                 ldx #RTC.dayOfMonth
 storeRTCDataByteString:
                 lda osfileParameterBlock+1,x

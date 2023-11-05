@@ -1107,8 +1107,8 @@ LB41E:
                 .byte $53
                 .byte $58
                 .byte $68
-                .byte $6C       ; B428= 6C
-                .byte $6E       ; B429= 6E
+                .byte $6C
+                .byte $6E
                 .byte $66
                 .byte $63
 LB42C:
@@ -1365,8 +1365,8 @@ screenDimensionsForMode:
                 .byte 39<<1|0 ;mode 7 - 40 columns, 25 rows
 
 LB5A9:
-                jsr LB2FA                    ; B5A9= 20 FA B2
-                bcs LB606                    ; B5AC= B0 58
+                jsr LB2FA
+                bcs LB606
                 cmp #$05
                 beq LB5D4
                 cmp #$06

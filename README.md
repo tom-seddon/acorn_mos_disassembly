@@ -107,7 +107,7 @@ reference. Released versions:
 
 Unreleased versions:
 
-- `build/mos329.st` - MOS 3.29
+- `build/mos329.lst` - MOS 3.29
 
 Non-Acorn versions:
 

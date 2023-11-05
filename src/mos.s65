@@ -13803,15 +13803,6 @@ LFB3B:
 
 LFC00:
                 .include "reset.s65"
-L8196:
-                ldx #terminal.configureTable.data.metadata-terminal.configureTable
-                jsr terminal.setTSTAndReadConfigurationByte
-                asl a
-                asl a
-                ora #$42
-                sta aciaControlRegister
-                jsr terminal.resetACIAThenRewriteControlRegister
-                ldx #1
                 lda #$7F
 
 LFDB7:

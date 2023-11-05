@@ -393,3 +393,55 @@ gotKeyboardStatusByte:
                 jsr readConfigurationByte
                 .endif
                 sta printerDriverType
+L8196:
+                .if version==400
+                ldx #1
+                .else
+                .if version==350
+                ldx #terminal.configureTable.data.metadata-terminal.configureTable
+                jsr terminal.setTSTAndReadConfigurationByte
+                .elsif version<500
+                jsr readDefaultSerialDataFormat
+                .elsif version>=500
+                ldx #configureTable.data.metadata-configureTable
+                jsr readConfigurationByte
+                .endif
+                asl a                        ;
+                asl a       ;shift into the control registerword field
+                ora #ACIA.control.rtsHighTXInterruptDisabled|ACIA.control.counterDivide64
+                sta aciaControlRegister
+
+                .if version<500
+                jsr terminal.resetACIAThenRewriteControlRegister
+                ldx #$01
+                .elsif version>=500
+                ldx #CMOSBytes.joystick
+                jsr readRTCByte
+                sta adcConversionType
+                .if olivetti
+                ldx #CMOSBytes.country
+                jsr readRTCByte
+                sta countryFlag
+                .endif
+                ldx #$ff
+L81B2:
+                jsr resetACIA
+                lda $fe08
+                bne L81C8
+                lda #$20
+                sta $fe08
+                lda $fe08
+                and #$f7
+                cmp #$82
+                beq L81CF
+L81C8:
+                cmp #8
+                beq L81CF
+                stz rs423InterruptMask
+L81CF:
+                dex
+                bne L81B2
+                jsr resetACIAThenRewriteControlRegister
+                inx
+                .endif
+                .endif

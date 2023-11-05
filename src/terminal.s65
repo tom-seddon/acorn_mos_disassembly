@@ -158,48 +158,14 @@ L809F:
                 .else                        ;stripped_out_reset
                 .include "reset.s65"
 
-softReset:
-                jsr mos.selectHAZEL
-                stz hazel.moveSrcHandle
-                stz hazel.moveDestHandle
-                ldy #$CA
-                jsr mos.insertCharacterIntoKeyboardBuffer
-                jsr mos.osbyte247EntryPoint
-                lda lastBREAKType
-                beq L829D
-                .if version==400
-                jsr mos.LEBBF
-                .else
-                jsr mos.LEDD0
-                .endif
-L829D:
                 .if version<500
-                jsr readDefaults2
-                lsr a
-                bcc L82D0
-                jsr readDefaults3
-                bit #$04
-                php
-                lda #ACCCON.ITU
-                trb ACCCON
-                plp
-                bne L82B4
-                tsb ACCCON
-L82B4:
-                jsr mos.LE375 ; If Tube hardware present, jump to Tube PreInit
-                bcs L82C6
-                lda ACCCON                    ; Toggle Internal/External Tube
-                eor #ACCCON.ITU
-                sta ACCCON
-                jsr mos.LE375        ; No Tube, skip past Tube PreInit
-                
-                bcc L82D0
-L82C6:
+                bcc continueSoftReset
+foundTube:
                 ldx #romServiceCallTubeMainInitialisation
                 jsr mos.makeROMServiceCall   ;
-                bne L82D0                    ; Not claimed, step past
+                bne continueSoftReset        ; Not claimed, step past
                 dec tubePresence ; Tube PreInit claimed, set TubeFlag to &FF, Tube present
-L82D0:
+continueSoftReset:
                 .endif
                 .endif                       ;stripped_out_reset
                 lda lastBREAKType ; Soft Break, don't ask about workspace

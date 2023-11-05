@@ -741,3 +741,79 @@ LFEA2:
 .endif
 
 ;-------------------------------------------------------------------------
+
+softReset:
+                .if version==350
+                lda #ACCCON.Y
+                jsr terminal.tsbACCCON
+                .else
+                jsr mos.selectHAZEL
+                .endif
+                stz hazel.moveSrcHandle
+                stz hazel.moveDestHandle
+                ldy #$CA
+                jsr mos.insertCharacterIntoKeyboardBuffer
+                jsr mos.osbyte247EntryPoint
+                lda lastBREAKType
+                beq L829D
+                .if version==400
+                jsr mos.LEBBF
+                .else
+                jsr mos.LEDD0
+                .endif
+L829D:
+                .if version<500
+                .if version==350
+                jsr terminal.setTSTAndReadDefaults2
+                .else
+                jsr readDefaults2
+                .endif
+                lsr a
+                bcc continueSoftReset
+                jsr terminal.readDefaults3
+
+                .if version==350
+                lsr a
+                lsr a
+                lsr a
+                lda #ACCCON.ITU
+                jsr terminal.trbACCCON
+                bcs L82B4
+                jsr terminal.tsbACCCON
+                .else
+                bit #CMOSBytes.defaults3.extTubeMask
+                php
+                lda #ACCCON.ITU
+                trb ACCCON
+                plp
+                bne L82B4
+                tsb ACCCON
+                .endif
+L82B4:
+                .if version==350
+                jsr terminal.LE375
+                .else
+                jsr mos.LE375
+                .endif
+
+                bcs foundTube
+
+                .if version==350
+                lda $fc
+                .else
+                lda ACCCON                    ; Toggle Internal/External Tube
+                .endif
+                eor #ACCCON.ITU
+                .if version==350
+                jsr staSEIWKAAndACCCON
+                .else
+                sta ACCCON
+                .endif
+                
+                .if version==350
+                jsr terminal.LE375
+                .else
+                jsr mos.LE375
+                .endif
+
+                .endif

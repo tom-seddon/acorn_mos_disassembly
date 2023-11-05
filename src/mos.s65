@@ -13721,46 +13721,8 @@ LFB3B:
 LFC00: .block
                 .include "reset.s65"
 
-softReset:
-                lda #8
-                jsr terminal.tsbACCCON
-                stz hazel.moveSrcHandle
-                stz hazel.moveDestHandle
-                ldy #$CA        ; ''
-                jsr insertCharacterIntoKeyboardBuffer
-                jsr osbyte247EntryPoint
-                lda lastBREAKType
-                beq LFECD
-                jsr LEDD0
-
-LFECD:
-                jsr terminal.setTSTAndReadDefaults2
-                lsr a
-                bcc LFEF2
-                jsr terminal.readDefaults3
-                lsr a
-                lsr a
-                lsr a
-                lda #$10
-                jsr terminal.trbACCCON
-                bcs LFEE3
-
-LFEE0:
-                jsr terminal.tsbACCCON
-
-LFEE3:
-                jsr terminal.LE375
-
-LFEE6:
-                bcs LFEF2
-
-LFEE8:
-                lda $FC
-                eor #$10
-                jsr staSEIWKAAndACCCON
-                jsr terminal.LE375
-
-LFEF2:
+foundTube:
+continueSoftReset:
                 jmp terminal.reset
                 .endblock
 

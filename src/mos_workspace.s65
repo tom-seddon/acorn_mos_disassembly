@@ -1,3 +1,4 @@
+
 ;-------------------------------------------------------------------------
 ;
 ; Disorganized jumble of constants. They'll get tidied up at some
@@ -1505,24 +1506,25 @@ defaultSerialDataFormatMask=7
 defaultSerialDataFormatShift=5
                 .endblock
 
-                ; Purpose currently unknown, though presumably it's
-                ; used. None of the named configure table entries
-                ; refer to it. Could be some undiscovered reference
-                ; somewhere, or possibly used by MOS 4.00.
+                .if version>=500
+                ; Purpose currently unknown. Is it even used?
 unknown11:
                 .fill 1
 
-                .if version>=500
 joystick: .block
 stickMask=$f
 isSwitchedMask=32
                 .fill 1
                 .endblock
-                .endif
 
-                .if olivetti
+                .if version>=511||olivetti
+                ; 5.11 doesn't appear to use this byte, but it does
+                ; get cleared as part of the CMOS reset loop. So
+                ; presumably there was space booked for it somewhere
+                ; in the original code.
 country:
                 .fill 1
+                .endif
                 .endif
                 
                 .endstruct

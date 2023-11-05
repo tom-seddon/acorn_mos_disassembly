@@ -451,11 +451,11 @@ L8196:
                 jsr resetACIAThenRewriteControlRegister
                 ldx #$01
                 .elsif version>=500
-                ldx #$12
+                ldx #CMOSBytes.joystick
                 jsr readRTCByte
                 sta adcConversionType
                 .if olivetti
-                ldx #$13
+                ldx #CMOSBytes.country
                 jsr readRTCByte
                 sta countryFlag
                 .endif
@@ -647,11 +647,7 @@ L82A9:
                 jsr writeCMOSByte
                 plx
                 dex
-                .if version>=511||olivetti
-                cpx #$14
-                .else
-                cpx #$13
-                .endif
+                cpx #size(CMOSBytes)
                 bcs L82A9
                 bra resetCMOSRAM
 L82B7:
@@ -3722,7 +3718,7 @@ L9D71:
 
                 .if version>=500
 readDefaults2:
-                ldx #$0f
+                ldx #CMOSBytes.defaults2
                 bra readRTCByte
                 .endif
 
@@ -3730,7 +3726,7 @@ readDefaults2:
 
                 .if version>=500
 readDefaults3:
-                ldx #$10
+                ldx #CMOSBytes.defaults3
                 bra readRTCByte
                 .endif
 

@@ -408,7 +408,7 @@ setDefaultKeyboardAutoRepeatRate:
                 adc #$00             ;pick appropriate byte based on C
                 tax                  ;X=RTC address
 jmpWriteRTCByte:
-                jmp writeRTCByte                    ; 89B1= 4C E4 98    Ld.
+                jmp writeRTCByte
 
 ;-------------------------------------------------------------------------
 

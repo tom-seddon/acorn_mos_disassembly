@@ -358,5 +358,6 @@ uf=$10
 d: .block
                 .fill 1
                 .endblock
-ram: .fill 50
+ram_size=50
+ram: .fill ram_size
                 .endstruct

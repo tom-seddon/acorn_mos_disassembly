@@ -10929,10 +10929,10 @@ resetKeyRepeat:
                 sty keyboardAutoRepeatDelay
                 jsr terminal.getDefaultKeyboardAutoRepeatRate
                 .else
-                ldx #$0c+cmosBytesOffset
+                ldx #CMOSBytes.keyboardAutoRepeatDelay+cmosBytesOffset
                 jsr terminal.readRTCByte
                 sta keyboardAutoRepeatDelay
-                ldx #$0d+cmosBytesOffset
+                ldx #CMOSBytes.keyboardAutoRepeatRate+cmosBytesOffset
                 jsr terminal.readRTCByte
                 tay
                 .endif
@@ -13813,8 +13813,8 @@ LFC00:
                 sta systemVIA.ddrb
                 jsr enableKeyboardScanning
                 jsr LFEF5
-                ldy #$20        ; ' '
-                ldx #$A
+                ldy #RTC.a.dv32768Hz
+                ldx #RTC.a
                 jsr terminal.writeRTCByte
                 jsr terminal.finishRTCUpdate
                 lda defaultVectorTable+0
@@ -14170,12 +14170,12 @@ LFE73:
                 .if CFA3000
                 jsr LFB2F
                 .else
-                ldx #$31        ; '1'
+                ldx #RTC.ram_size-1
 
 LFE87:
                 phx
                 ldy #0
-                cpx #$11
+                cpx #size(CMOSBytes)
                 bcs LFE91
                 ldy LFEA2-1,x
 

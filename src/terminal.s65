@@ -157,54 +157,7 @@ L809F:
 
                 .else                        ;stripped_out_reset
                 .include "reset.s65"
-                .if version<500
-                jsr readDefaultMODE          ; Read configured MODE
-                .elsif version>=500
-                jsr L9E58
-                ldx #configureTable.mode.metadata-configureTable;$56
-                jsr readConfigurationByte
-                .endif
-L80B4:
-                ora #$08    ; Store in OSBYTE 255 with boot off (b3=1)
-                sta startupOptions
-L80B9:
-                jsr readDefaults3            ; Read configured BOOT
-                and #CMOSBytes.defaults3.autoBootMask
-                lsr a         ; Reset OSBYTE 255 boot bit (b3) if BOOT
-                trb startupOptions
-                .if version<500
-                jsr readDefaultTVSettings
-                .elsif version>=500
-                jsr L8BD6
-                .endif
-                sty tvOffset
-                stx tvInterlace
-L80CB:
-                jsr readDefaults3
-                and #CMOSBytes.defaults3.protectedScrollingMask
-                beq L80D4
-                lda #VDUVariables.cursorFlags.scrollProtect
-L80D4:
-                sta vduv.cursorFlags
-                jsr restoreFont32To255
-                ply
-                ldx #<timer0 ; $92
-                bra initializePage2Loop
 
-L80DF:
-                .if version>=500
-                jsr L9E58
-                .endif
-                lda #$87             ; Clear MODE bits from OSBYTE 255
-                trb startupOptions
-                lda vduv.currentScreenMODE ; Get current screen MODE b0-b2
-                and #$07
-                tsb startupOptions           ; Copy to OSBYTE 255
-                lda #STATE.isShadowMode ; Test shadow screen bit in VDU flags
-                bit STATE                      ; Not shadow screen
-                beq initializePage2Loop
-                lda #$80                     ; Set shadow screen bit in OSBYTE 255
-                tsb startupOptions
 initializePage2Loop:
                 lda lastBREAKType
                 bne clearPage2Byte           ;taken unless soft BREAK

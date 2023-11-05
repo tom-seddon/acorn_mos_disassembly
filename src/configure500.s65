@@ -471,7 +471,7 @@ L8992:
 ;-------------------------------------------------------------------------
 
 L8996:
-                jsr L8BD6
+                jsr readDefaultTVSettings
                 jsr printDecimalByteY
                 lda #','
                 jsr OSWRCH
@@ -1028,10 +1028,10 @@ L8BD4:
 ;-------------------------------------------------------------------------
 
                 .if version==350
-setTSTAndL8BD6:
+setTSTAndReadDefaultTVSettings
                 jsr mos.callWithTST
                 .endif
-L8BD6:
+readDefaultTVSettings:
                 ldx #configureTable.L8605-configureTable
                 jsr readConfigurationByte
                 lsr a

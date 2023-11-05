@@ -195,3 +195,57 @@ nonPowerOnReset:
 L80AD:
                 inc lastBREAKType
                 phy
+                .if version==350&&CFA3000
+                lda lastBREAKType
+                dec a
+                bne LFCBF
+                jsr LFB2F
+LFCBF:
+                .endif
+                .if version==350
+                ldx #terminal.configureTable.mode.metadata-terminal.configureTable
+                jsr terminal.setTSTAndReadConfigurationByte
+                .elsif version<500
+                jsr readDefaultMODE          ; Read configured MODE
+                .else
+                jsr L9E58
+                ldx #configureTable.mode.metadata-configureTable;$56
+                jsr readConfigurationByte
+                .endif
+                ora #CMOSBytes.defaults0.defaultSHADOWMask
+                sta startupOptions
+                jsr terminal.readDefaults3 ; Read configured BOOT
+                and #CMOSBytes.defaults3.autoBootMask
+                lsr a         ; Reset OSBYTE 255 boot bit (b3) if BOOT
+                trb startupOptions
+                .if version==350
+                jsr terminal.setTSTAndReadDefaultTVSettings
+                .else
+                jsr terminal.readDefaultTVSettings
+                .endif
+                sty tvOffset
+                stx tvInterlace
+                jsr terminal.readDefaults3
+                and #CMOSBytes.defaults3.protectedScrollingMask
+                beq L80D4
+                lda #VDUVariables.cursorFlags.scrollProtect
+L80D4:
+                sta vduv.cursorFlags
+                jsr terminal.restoreFont32To255
+                ply
+                ldx #$92
+                bra initializePage2Loop
+L80DF:
+                .if version>=500
+                jsr L9E58
+                .endif
+                lda #$87             ; Clear MODE bits from OSBYTE 255
+                trb startupOptions
+                lda vduv.currentScreenMODE ; Get current screen MODE b0-b2
+                and #$07
+                tsb startupOptions           ; Copy to OSBYTE 255
+                lda #STATE.isShadowMode ; Test shadow screen bit in VDU flags
+                bit STATE                      ; Not shadow screen
+                beq initializePage2Loop
+                lda #$80                     ; Set shadow screen bit in OSBYTE 255
+                tsb startupOptions

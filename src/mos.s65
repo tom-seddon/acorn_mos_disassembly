@@ -13803,51 +13803,7 @@ LFB3B:
 
 LFC00:
                 .include "reset.s65"
-                .if CFA3000
-                lda lastBREAKType
-                dec a
-                bne LFCBF
-                jsr LFB2F
-LFCBF:
-                .endif
-                ldx #terminal.configureTable.mode.metadata-terminal.configureTable
-                jsr terminal.setTSTAndReadConfigurationByte
-                ora #CMOSBytes.defaults0.defaultSHADOWMask
-                sta startupOptions
-                jsr terminal.readDefaults3
-                and #CMOSBytes.defaults3.autoBootMask
-                lsr a
-                trb startupOptions
-                jsr terminal.setTSTAndL8BD6
-                sty tvOffset
-                stx tvInterlace
-                jsr terminal.readDefaults3
-                and #8
-                beq LFCDB
-                lda #1
-
-LFCDB:
-                sta vduv.cursorFlags
-                jsr terminal.restoreFont32To255
-                ply
-                ldx #$92
-                bra LFCFE
-
-;-------------------------------------------------------------------------
-
-L80DF:
-                lda #$87
-                trb startupOptions
-                lda vduv.currentScreenMODE
-                and #7
-                tsb startupOptions
-                lda #$10
-                bit STATE
-                beq LFCFE
-                lda #$80
-                tsb startupOptions
-
-LFCFE:
+initializePage2Loop:
                 lda lastBREAKType
                 bne LFD0B
                 cpx #$B1
@@ -13863,7 +13819,7 @@ LFD0B:
 
 LFD15:
                 inx
-                bne LFCFE
+                bne initializePage2Loop
                 lda $fc
                 ldx #$CF
 

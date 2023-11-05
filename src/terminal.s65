@@ -157,15 +157,15 @@ L809F:
 
                 .else                        ;stripped_out_reset
                 .include "reset.s65"
-                
-                
 
-                .if version<500
-checkForResetKey:
+                .if version<510
                 lda firstKeyPressedInternal
+                .endif
+checkForResetKey:
                 cmp #key_r
                 bne softReset                    ;taken if R not pressed
-                
+
+                .if version<500
                 ; Reset CMOS RAM
 resetCMOSRAM:
                 ldx #size(RTC.ram)-1
@@ -183,33 +183,6 @@ resetCMOSRAMLoop:
                 jsr writeCMOSByte
                 ldx #CMOSBytes.insertedROMs+1
                 jsr writeCMOSByte
-                .elsif version==500
-checkForResetKey:
-                lda firstKeyPressedInternal
-                cmp #key_r
-                bne softReset
-                .elsif version>=510
-checkForResetKey:
-                lda firstKeyPressedInternal
-                cmp #key_delete
-                bne L82B7
-                jsr alwaysPrintFollowingMessage
-                .byte 22,7
-                .byte 13,10
-                .text "Clearing options...please wait",0
-                ldx #$ff
-L82A9:
-                phx
-                ldy #0
-                jsr writeCMOSByte
-                plx
-                dex
-                cpx #size(CMOSBytes)
-                bcs L82A9
-                bra resetCMOSRAM
-L82B7:
-                cmp #key_r
-                bne softReset
                 .endif
                 .if version>=500
 resetCMOSRAM:                                ;82bb in MOS 5.10

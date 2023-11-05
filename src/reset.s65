@@ -579,7 +579,7 @@ powerOnReset:
                 .if version>=500
                 ldx #$ff
                 jsr L9ECA
-                bcs checkForResetKey
+                bcs checkForNVRAMReset
                 tya
                 and #$7f
                 .if version>=511||olivetti
@@ -587,9 +587,32 @@ powerOnReset:
                 .else
                 cmp #$30
                 .endif
-                beq checkForResetKey
+                beq checkForNVRAMReset
                 ldx #0
                 ldy #0
                 jsr L9E99
                 bra resetCMOSRAM
                 .endif
+checkForNVRAMReset:
+                
+                .if version>=510
+checkForEraseKey:
+                lda firstKeyPressedInternal
+                cmp #key_delete
+                bne checkForResetKey
+                jsr alwaysPrintFollowingMessage
+                .byte 22,7
+                .byte 13,10
+                .text "Clearing options...please wait",0
+                ldx #$ff
+L82A9:
+                phx
+                ldy #0
+                jsr writeCMOSByte
+                plx
+                dex
+                cpx #size(CMOSBytes)
+                bcs L82A9
+                bra resetCMOSRAM
+                .endif
+                

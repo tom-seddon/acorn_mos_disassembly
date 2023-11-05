@@ -13803,23 +13803,6 @@ LFB3B:
 
 LFC00:
                 .include "reset.s65"
-initializePage2Loop:
-                lda lastBREAKType
-                bne LFD0B
-                cpx #$B1
-                bcs LFD0B
-                cpx #$A1
-                bcs LFD15
-
-LFD0B:
-                stz $200,x
-                cpx #$CD
-                bcc LFD15
-                dec $200,x
-
-LFD15:
-                inx
-                bne initializePage2Loop
                 lda $fc
                 ldx #$CF
 

@@ -158,24 +158,6 @@ L809F:
                 .else                        ;stripped_out_reset
                 .include "reset.s65"
 
-initializePage2Loop:
-                lda lastBREAKType
-                bne clearPage2Byte           ;taken unless soft BREAK
-
-                ; leave the ROM information table alone on a soft
-                ; BREAK.
-                cpx #<romInformationTable+16
-                bcs clearPage2Byte
-                cpx #<romInformationTable
-                bcs nextPage2Byte
-clearPage2Byte:
-                stz $0200,x
-                cpx #$CD
-                bcc nextPage2Byte
-                dec $0200,x                  ;initialize later values to $ff
-nextPage2Byte:
-                inx
-                bne initializePage2Loop
 
                 ldx #$CF                     
 initializeZeroPageLoop:

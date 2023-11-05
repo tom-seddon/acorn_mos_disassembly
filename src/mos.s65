@@ -7164,20 +7164,7 @@ LE389:
 ;
                 .if version!=350
 scanROMs: .proc
-                txa               ;A = ROM of interest
-                tay               ;Y = ROM of interest
-                .if version<500
-                jsr LE389         ;select ROM and check insertion flag
-                bcc currentROMInvalid ;taken if ROM not actually inserted
-                .endif
-                jsr isROMValid
-                bcc currentROMInvalid        ;taken if ROM invalid
-                ldx $F4                      ;start from current ROM
-                ldy $F4                      ;start from current ROM
-nextOtherROM:
-                iny                          ;next other ROM
-                cpy #$10                     ;out of other ROMs?
-                bcs currentROMValid       ;taken if no more other ROMs
+                .include "scan_roms.s65"
                 .if version<500
                 jsr LE389   ;select other ROM and check insertion flag
                 bcc nextOtherROM ;taken if other ROM not actually inserted
@@ -13799,18 +13786,7 @@ LFB3B:
 
 LFC00:
                 .include "reset.s65"
-                
-LFE20:
-                txa
-                tay
-                jsr isROMValid
-                bcc LFE53
-                ldx $f4
-                ldy $f4
-LFE2B:
-                iny
-                cpy #$10
-                bcs LFE57
+
                 stz SEIWKA
                 lda #$80        ; ''
                 sta SEIWKA+1
@@ -13820,7 +13796,7 @@ LFE36:
                 lda (SEIWKA)
                 stx ROMSEL
                 cmp (SEIWKA)
-                bne LFE2B
+                bne nextOtherROM
                 inc SEIWKA
                 bne LFE36
                 inc SEIWKA+1
@@ -13829,13 +13805,13 @@ LFE36:
                 bcc LFE36
                 lda #1
                 sta romInformationTable,x
-LFE53:
+currentROMInvalid:
                 ldx $F4
                 bra LFE6B
 
 ;-------------------------------------------------------------------------
 
-LFE57:
+currentROMValid:
                 txa
                 tay
                 jsr LE398
@@ -13855,7 +13831,7 @@ LFE6C:
                 cpx #$10
 
 LFE6E:
-                bcc LFE20
+                bcc scanROMs
                 jsr selectTerminalROM
 
 romsScanned:

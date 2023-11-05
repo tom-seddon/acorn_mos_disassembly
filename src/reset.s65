@@ -550,9 +550,15 @@ L8211:
                 .endif
 
                 ldx softKeyConsistencyFlag
-                beq scanROMs
+                beq checkResetType
                 jsr mos.osbyte12          
-scanROMs:
+checkResetType:
                 lda lastBREAKType
                 beq romsScanned                    ;taken if soft BREAK
+
+                .if version==350
+scanROMs:
+                .include "scan_roms.s65"
+                .else
+                .endif
                 

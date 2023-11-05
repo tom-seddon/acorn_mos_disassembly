@@ -1,0 +1,15 @@
+                txa               ;A = ROM of interest
+                tay               ;Y = ROM of interest
+                .if version<500&&version!=350
+                jsr LE389         ;select ROM and check insertion flag
+                bcc currentROMInvalid ;taken if ROM not actually inserted
+                .endif
+                jsr isROMValid
+                bcc currentROMInvalid        ;taken if ROM invalid
+                ldx $F4                      ;start from current ROM
+                ldy $F4                      ;start from current ROM
+nextOtherROM:
+                iny                          ;next other ROM
+                cpy #$10                     ;out of other ROMs?
+                bcs currentROMValid       ;taken if no more other ROMs
+                

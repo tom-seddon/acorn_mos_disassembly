@@ -7165,19 +7165,6 @@ LE389:
                 .if version!=350
 scanROMs: .proc
                 .include "scan_roms.s65"
-                
-                ; A bogus ROM type means this ROM is the BASIC ROM.
-                .if version>=500
-                bit basicROMNumber
-                bpl nextROM
-                .endif
-
-                stx basicROMNumber
-nextROM:
-                inx                          
-                cpx #16                      
-                bcc scanROMs                 ;taken if not out of ROMs yet.
-                jsr selectTerminalROM
                 jmp terminal.romsScanned     ;not sure why not RTS.
                 .endproc
                 .endif
@@ -13733,18 +13720,6 @@ LFB3B:
 
 LFC00: .block
                 .include "reset.s65"
-
-                stx basicROMNumber
-
-nextROM:
-                inx
-
-LFE6C:
-                cpx #$10
-
-LFE6E:
-                bcc scanROMs
-                jsr selectTerminalROM
 
 romsScanned:
                 lda startupOptions

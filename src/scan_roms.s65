@@ -82,4 +82,18 @@ currentROMValid:
                 sta romInformationTable,x 
                 and #$8F
                 bne nextROM       ;taken if any mandatory bits are set
+
+                ; A bogus ROM type means this ROM is the BASIC ROM.
+                .if version>=500&&version!=350
+                bit basicROMNumber
+                bpl nextROM
+                .endif
+
+                stx basicROMNumber
+
+nextROM:
+                inx
+                cpx #$10
+                bcc scanROMs
+                jsr selectTerminalROM
                 

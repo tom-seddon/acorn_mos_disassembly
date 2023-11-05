@@ -5,21 +5,28 @@ versions for Acorn systems are covered (version numbers as reported by
 listing file, including assembled code, labels and comments.
 
 - MOS 3.20 (Master 128, UK): [./dist/mos320.lst](./dist/mos320.lst)
-- MOS 3.50 (Master 128, UK)
-- MOS 4.00 (Master ET, UK)
-- MOS 5.00 (Master Compact, UK)
-- MOS 5.10 (Master Compact, UK)
-- MOS 5.11 (Master Compact, International)
+- MOS 3.50 (Master 128, UK): [./dist/mos350.lst](./dist/mos350.lst)
+- MOS 4.00 (Master ET, UK): [./dist/mos400.lst](./dist/mos400.lst)
+- MOS 5.00 (Master Compact, UK): [./dist/mos500.lst](./dist/mos500.lst)
+- MOS 5.10 (Master Compact, UK): [./dist/mos510.lst](./dist/mos510.lst)
+- MOS 5.11 (Master Compact, International):  [./dist/mos511.lst](./dist/mos511.lst)
 
 The following unreleased versions for Acorn systems are covered:
 
-- MOS 3.29 (looks to be a pre-release version of MOS 3.50)
+- MOS 3.29 (looks to be a pre-release version of MOS 3.50):  [./dist/mos329.lst](./dist/mos329.lst)
 
 The following non-Acorn systems are also covered:
 
-- MOS I5.10C (variant of MOS 5.10) ([Olivetti PC128S](https://it.wikipedia.org/wiki/Olivetti_Prodest_PC_128_S))
-- MOS 3.5a (variant of MOS 3.50) ([Henson CFA3000](https://stardot.org.uk/forums/viewtopic.php?t=20676))
-- MOS 5.10i (variant of MOS 5.11) ([Autocue 1500 teleprompter](https://stardot.org.uk/forums/viewtopic.php?t=7179))
+- MOS I5.10C (variant of MOS 5.10) ([Olivetti PC128S](https://it.wikipedia.org/wiki/Olivetti_Prodest_PC_128_S)):  [./dist/mosPC128S.lst](./dist/mosPC128S.lst)
+- MOS 3.5a (variant of MOS 3.50) ([Henson CFA3000](https://stardot.org.uk/forums/viewtopic.php?t=20676)):  [./dist/mosCFA3000.lst](./dist/mosCFA3000.lst)
+- MOS 5.10i (variant of MOS 5.11) ([Autocue 1500 teleprompter](https://stardot.org.uk/forums/viewtopic.php?t=7179)):  [./dist/mosautocue.lst](./dist/mosautocue.lst)
+
+**This project is a work in progress.** A lot of it isn't actually
+commented, some of the OS workspace references haven't been turned
+into labels, and many of the label names fail to meet even the low bar
+of "not actively misleading". I've concentrated so far on finding the
+bits that are code, the bits that are data, any obfuscated references
+to addresses in the ROM, and any obvious data-dependent constants.
 
 The starting point was JGH's MOS 3.20 disassembly here:
 http://mdfs.net/Info/Comp/Acorn/Source/MOS.htm - this provided
@@ -29,12 +36,6 @@ convinced me that this sort of project might actually be feasible.
 https://tobylobster.github.io/mos/ has provided most comments and
 symbol names for the bits that haven't changed (or haven't changed
 much) since OS 1.20.
-
-**This project is a work in progress.** A lot of it isn't actually
-commented, and many of the label names fail to meet even the low bar
-of "not actively misleading". But I think I've found all (or near
-enough) the bits that are code, and likewise the bits that are data,
-and many of the data-dependent constants.
 
 # project goals
 
@@ -47,7 +48,7 @@ simplify following along when looking at an unadorned disassembly
 That's the sort of situation where I've personally most missed having
 an annotated disassembly.
 
-(Readable source code is not an initial goal. Sorry!)
+(Readable source code is not an initial goal. Sorry! )
 
 For these purposes, the 64tass listing files are relatively easy to
 follow along, but not ideal. I intend to add a postprocessing step to

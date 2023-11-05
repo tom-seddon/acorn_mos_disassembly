@@ -13721,15 +13721,13 @@ LFB3B:
 LFC00: .block
                 .include "reset.s65"
 
-                lda firstKeyPressedInternal
-                cmp #key_r
-                bne softReset
                 .if CFA3000
                 jsr LFB2F
                 .else
+resetCMOSRAM:
                 ldx #RTC.ram_size-1
 
-LFE87:
+resetCMOSRAMLoop:
                 phx
                 ldy #0
                 cpx #size(CMOSBytes)
@@ -13740,7 +13738,7 @@ LFE91:
                 jsr terminal.writeCMOSByte
                 plx
                 dex
-                bne LFE87
+                bne resetCMOSRAMLoop
                 .endif
                 jsr LE525
                 lda #3

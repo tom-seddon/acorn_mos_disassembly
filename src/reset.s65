@@ -615,4 +615,11 @@ L82A9:
                 bcs L82A9
                 bra resetCMOSRAM
                 .endif
+
+                .if version<510
+                lda firstKeyPressedInternal
+                .endif
+checkForResetKey:
+                cmp #key_r
+                bne softReset                    ;taken if R not pressed
                 

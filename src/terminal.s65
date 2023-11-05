@@ -158,13 +158,6 @@ L809F:
                 .else                        ;stripped_out_reset
                 .include "reset.s65"
 
-                .if version<510
-                lda firstKeyPressedInternal
-                .endif
-checkForResetKey:
-                cmp #key_r
-                bne softReset                    ;taken if R not pressed
-
                 .if version<500
                 ; Reset CMOS RAM
 resetCMOSRAM:
@@ -186,19 +179,15 @@ resetCMOSRAMLoop:
                 .endif
                 .if version>=500
 resetCMOSRAM:                                ;82bb in MOS 5.10
-                .if version>=511||olivetti
-                ldx #$14
-                .else
-                ldx #$13
-                .endif
-L8280:
+                ldx #size(CMOSBytes)
+resetCMOSRAMLoop:
                 phx
                 dex
                 jsr L9DE1
                 jsr writeCMOSByte
                 plx
                 dex
-                bne L8280
+                bne resetCMOSRAMLoop
                 ldx #$7f
                 jsr L9ECA
                 tya

@@ -157,21 +157,6 @@ L809F:
 
                 .else                        ;stripped_out_reset
                 .include "reset.s65"
-                .if version<500
-                jsr readDefaults2
-                lsr a                        ;C=tubeOn
-                lsr a                        ;C=usePrinterIgnoreChar
-                .elsif version>=500
-                jsr readUsePrinterIgnoreChar
-                .endif
-                ror noignoreState
-                .if version<500
-                jsr readDefaultFX5Settings
-                .elsif version>=500
-                ldx #configureTable.print.metadata-configureTable
-                jsr readConfigurationByte
-                .endif
-                sta printerDriverType
 L8196:
                 .if version!=400
                 .if version<500

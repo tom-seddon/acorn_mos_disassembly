@@ -13803,12 +13803,6 @@ LFB3B:
 
 LFC00:
                 .include "reset.s65"
-                jsr terminal.setTSTAndReadUsePrinterIgnoreChar
-                ror noignoreState
-                ldx #terminal.configureTable.print.metadata-terminal.configureTable
-                jsr terminal.setTSTAndReadConfigurationByte
-                sta printerDriverType
-
 L8196:
                 ldx #terminal.configureTable.data.metadata-terminal.configureTable
                 jsr terminal.setTSTAndReadConfigurationByte

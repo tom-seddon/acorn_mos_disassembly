@@ -373,3 +373,23 @@ gotKeyboardStatusByte:
                 jsr terminal.readRTCByte
                 .endif
                 sta printerIgnoreChar
+                .if version==350
+                jsr terminal.setTSTAndReadUsePrinterIgnoreChar
+                .elsif version<500
+                jsr readDefaults2
+                lsr a                        ;C=tubeOn
+                lsr a                        ;C=usePrinterIgnoreChar
+                .elsif version>=500
+                jsr readUsePrinterIgnoreChar
+                .endif
+                ror noignoreState
+                .if version==350
+                ldx #terminal.configureTable.print.metadata-terminal.configureTable
+                jsr terminal.setTSTAndReadConfigurationByte
+                .elsif version<500
+                jsr readDefaultFX5Settings
+                .elsif version>=500
+                ldx #configureTable.print.metadata-configureTable
+                jsr readConfigurationByte
+                .endif
+                sta printerDriverType

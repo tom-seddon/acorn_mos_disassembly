@@ -117,6 +117,24 @@ Non-Acorn versions:
 
 # code notes
 
+## code layout ##
+
+The listing file includes up to 3 parts of the MOS, in this order:
+
+- ext part - any code squeezed into an additional sideways ROM bank
+  (the `extROM` constant indicates which bank it is)
+- utils/terminal part - the MOS code in sideways ROM bank 15
+- mos part - the MOS code in the OS area
+
+For some versions, the utils/terminal part includes the Terminal
+application, the disassembly for which is pretty sparse. I've done
+little more than simply identify which bits of the ROM are specific to
+it.
+
+(Because I started with one of those versions, there are lots of
+references to `terminal` in the code. Sorry. These will get tidied
+up.)
+
 ## symbol names ##
 
 The Master Reference Manual (part 1) mentions a few names, presumably

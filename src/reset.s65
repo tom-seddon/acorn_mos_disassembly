@@ -268,4 +268,90 @@ clearPage2Byte:
 nextPage2Byte:
                 inx
                 bne initializePage2Loop
+
+                .if version==350
+                lda $fc
+                .endif
+                ldx #$CF
+initializeZeroPageLoop:
+                stz $00,x                    
+                inx                          
+                bne initializeZeroPageLoop
+                .if version==350
+                sta $fc
+                jsr selectTerminalROM
+                .endif
+
+                lda lastBREAKType
+                bne L813D                    ;taken if not soft BREAK
+
+                .if version!=400
+                lda noignoreState
+                pha
+                .endif
+                lda basicROMNumber
+                pha
+                lda oshwm
+                pha
+                lda spoolFileHandle
+                pha
+                ldx execFileHandle
+                
+L8130:
+                lda mos.defaultVectorTable-1,y
+                sta vectors-1,y       
+                dey                   
+                cpy #EVENTV+1-vectors 
+                bcs L8130             
+
+                ldy #FILEV-vectors
+                
+L813D:
+                lda mos.defaultVectorTable-1,y
+                sta vectors-1,y
+                dey
+                bne L813D
+
+                lda lastBREAKType
+                bne L8164
+                stx execFileHandle
+                pla                          ;restore *SPOOL file handle
+                cmp #$04                     ;is it a TAPE or ROM handle?
+                bcs L8155                    ;taken if no - keep it
+
+                .if version==350
+                tya
+                .else
+                lda #$00          ;auto-close it if TAPE or ROM handle
+                .endif
+L8155:
+                sta spoolFileHandle
+                pla
+                sta oshwm
+                pla
+                sta basicROMNumber
+                .if version!=400
+                pla
+                sta noignoreState
+                .endif
+
+L8164:
+                .if version==350
+                ldx #$19
+                jsr terminal.setTSTAndReadRTCByte
+                .elsif version<500
+                jsr readDefaults1
+                .elsif version>=500
+                ldx #cmosBytesOffset+CMOSBytes.defaults1
+                jsr terminal.readRTCByte
+                .endif
+                ldx #keyboardStatusByte.shiftLockDisengaged
+                asl a
+                asl a                        ;N=defaultCapsLockMask
+                bmi gotKeyboardStatusByte                    ;taken if defaultCapsLock
+                ldx #keyboardStatusByte.shiftLockDisengaged|keyboardStatusByte.capsLockDisengaged
+                asl a                        ;N=defaultNoLockMask
+                bmi gotKeyboardStatusByte
+                ldx #keyboardStatusByte.shiftEnabled|keyboardStatusByte.shiftLockDisengaged
+gotKeyboardStatusByte:
                 

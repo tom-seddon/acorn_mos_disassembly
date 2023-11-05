@@ -158,23 +158,6 @@ L809F:
                 .else                        ;stripped_out_reset
                 .include "reset.s65"
                 
-                .if version<400
-                ldx #$08
-L81DD:
-                dex
-                jsr mos.clearSoundChannelBuffer
-                cpx #$04
-                bne L81DD
-                .elsif version>=400
-                jsr L836D
-                .endif
-                jsr mos.osbyte7A             
-                stx firstKeyPressedInternal
-                ldx #$00
-                .if version>=500
-                stx userVIA.ddrb
-                .endif
-                jsr mos.purgeBuffer
                 .if version!=400
                 lda serialULARegister
                 and #$7F
@@ -454,7 +437,7 @@ L8365:
                 bcs L8365
                 .endif
                 .if version>=400
-L836D:
+clearAllSoundChannelBuffers:
                 ldx #8
 L836F:
                 dex

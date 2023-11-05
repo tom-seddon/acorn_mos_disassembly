@@ -8684,11 +8684,7 @@ LE95A:
                 txa
                 and #$04                     ;buffer 4-7?
                 beq LE967                    ;taken if not sound buffer
-                .if version==350
-                jsr LF3BC
-                .else
                 jsr clearSoundChannelBuffer
-                .endif
 LE967:
                 sec
                 ror bufferEmptyFlags,x
@@ -11988,10 +11984,10 @@ clearSoundChannelBuffer:
 ;-------------------------------------------------------------------------
 
                 .if version==350
-LF3BC:
+clearSoundChannelBuffer:
                 jsr selectExtROM
                 phy
-                jsr clearSoundChannelBuffer
+                jsr clearSoundChannelBufferInternal
                 bra selectOldROM
                 .endif
 
@@ -13804,11 +13800,6 @@ LFB3B:
 LFC00:
                 .include "reset.s65"
                 
-                jsr LFEF5
-                jsr setTSTAndOSBYTE7A
-                stx firstKeyPressedInternal
-                ldx #0
-                jsr purgeBuffer
                 lda serialULARegister
                 and #$7F        ; ''
                 jsr LEC89
@@ -14000,14 +13991,13 @@ LFEF2:
 
 ;-------------------------------------------------------------------------
 
-LFEF5:       .block
+clearAllSoundChannelBuffers: .block
                 ldx #8
-
-LFEF7:
+loop:
                 dex
-                jsr LF3BC
+                jsr clearSoundChannelBuffer
                 cpx #4
-                bne LFEF7
+                bne loop
                 rts
                 .endblock
 

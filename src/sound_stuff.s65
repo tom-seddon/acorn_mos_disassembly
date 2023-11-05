@@ -183,8 +183,15 @@ LF55A:
 ; Entry:
 ;
 ; X = buffer number (must be a sound channel buffer)
-; 
-clearSoundChannelBuffer: .block
+;
+                .if version==350
+                ; All this stuff is in the top-level namespace in
+                ; 3.50. Needs a rethink!
+clearSoundChannelBufferInternal:
+                .else
+clearSoundChannelBuffer:
+                .endif
+                .block
                 jsr LF592
                 tya
                 stz $0818,x

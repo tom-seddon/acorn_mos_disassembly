@@ -19,7 +19,7 @@
                 sta systemVIA.ddrb
                 .if version==350
                 jsr enableKeyboardScanning
-                jsr LFEF5
+                jsr clearAllSoundChannelBuffers
                 .endif
                 .if version<500
                 ldy #RTC.a.dv32768Hz
@@ -34,7 +34,7 @@
                 stz hazel.hasACCCONChanged
                 jsr L8363
                 .elsif version>=400
-                jsr L836D
+                jsr clearAllSoundChannelBuffers
                 .endif
                 .else
                 lda defaultVectorTable+0 ;what is this.
@@ -493,3 +493,27 @@ initializeVIAInterruptsLoop:
                 lda #$27
                 sta systemVIA.t1lH
                 sta systemVIA.t1cH
+
+                .if version==350||version>=400
+                jsr clearAllSoundChannelBuffers
+                .else
+                ldx #$08
+L81DD:
+                dex
+                jsr mos.clearSoundChannelBuffer
+                cpx #$04
+                bne L81DD
+                .endif
+
+                .if version==350
+                jsr setTSTAndOSBYTE7A
+                .else
+                jsr mos.osbyte7A             
+                .endif
+                stx firstKeyPressedInternal
+                ldx #$00
+                .if version>=500
+                stx userVIA.ddrb
+                .endif
+                jsr mos.purgeBuffer
+                

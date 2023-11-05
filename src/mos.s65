@@ -7460,7 +7460,7 @@ LE520:
 
                 .if version==350
 LE525:
-                ldx #$2c
+                ldx #$2c                     ;???
                 ldy #$03
                 jsr terminal.writeCMOSByte
                 jmp terminal.printCMOSRamResetMessage
@@ -13688,11 +13688,11 @@ LFB0A:       .block
 
                 .if CFA3000
 LFB2F:
-                ldx #$31
+                ldx #size(RTC.ram)-1
 LFB31:
                 phx
                 ldy #0
-                cpx #$11
+                cpx #size(CMOSBytes)
                 bcs LFB3B
                 ldy LFC00.LFEA2-1,x
 LFB3B:
@@ -13720,62 +13720,6 @@ LFB3B:
 
 LFC00: .block
                 .include "reset.s65"
-
-                .if CFA3000
-                jsr LFB2F
-                .else
-resetCMOSRAM:
-                ldx #RTC.ram_size-1
-
-resetCMOSRAMLoop:
-                phx
-                ldy #0
-                cpx #size(CMOSBytes)
-                bcs LFE91
-                ldy LFEA2-1,x
-
-LFE91:
-                jsr terminal.writeCMOSByte
-                plx
-                dex
-                bne resetCMOSRAMLoop
-                .endif
-                jsr LE525
-                lda #3
-                sta breakAndESCAPEEffect
-
-LFEA0:
-                bra LFEA0
-
-;-------------------------------------------------------------------------
-
-LFEA2:
-                .byte $fe
-                .byte $00
-                .byte $eb
-                .byte $00
-                .if CFA3000
-                .byte $7d
-                .else
-                .byte $CD
-                .endif
-                .byte $FF
-                .byte $FF
-                .byte $15
-                .byte 0
-                .byte $17
-                .byte $60
-                .byte $32
-                .byte 8
-                .byte $A
-                .if CFA3000
-                .byte $38
-                .else
-                .byte $2D
-                .endif
-                .byte $82
-
-;-------------------------------------------------------------------------
 
 softReset:
                 lda #8

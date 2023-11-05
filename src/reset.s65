@@ -622,4 +622,122 @@ L82A9:
 checkForResetKey:
                 cmp #key_r
                 bne softReset                    ;taken if R not pressed
+
+                .if version<500
+                .if CFA3000
+                jsr LFB2F
+                .else
+                ; Reset CMOS RAM
+resetCMOSRAM:
+                ldx #size(RTC.ram)-1
+resetCMOSRAMLoop:
+                phx                          
+                ldy #$00                     
+                .if version==350
+                cpx #size(CMOSBytes)
+                bcs LFE91
+                ldy LFEA2-1,x
+LFE91:
+                .endif
+                jsr terminal.writeCMOSByte
+                plx
+                dex
+                .if version==350
+                bne resetCMOSRAMLoop
+                .else
+                bpl resetCMOSRAMLoop
+                .endif
+
+                .if version!=350
+                ; Initialize ROM insertion flags.                
+                ldy #$FF
+                ldx #CMOSBytes.insertedROMs+0
+                jsr writeCMOSByte
+                ldx #CMOSBytes.insertedROMs+1
+                jsr writeCMOSByte
+                .endif
                 
+                .endif
+                .else
+resetCMOSRAM:                                ;82bb in MOS 5.10
+                ldx #size(CMOSBytes)
+resetCMOSRAMLoop:
+                phx
+                dex
+                jsr L9DE1
+                jsr writeCMOSByte
+                plx
+                dex
+                bne resetCMOSRAMLoop
+                .endif
+
+                .if version==350
+                jsr LE525
+                .else
+                
+                .if version>=500
+                ldx #$7f
+                jsr L9ECA
+                tya
+                and #$80
+                .if version>=511||olivetti
+                eor #$b2
+                .else
+                eor #$b0
+                .endif
+                tay
+                ldx #$ff
+                jsr L9E99
+                .endif
+                
+                jsr alwaysPrintFollowingMessage
+                .if version>=500
+                .byte 22,7
+                .endif
+                .text 13,10
+                .if version<500
+                .text "CMOS RAM reset"
+                .elsif version>=500
+                .text "Options reset"
+                .endif
+                .text 13,10,"Press break to continue"
+                .text 13,10,0
+                .endif
+                
+                lda #$03
+                sta breakAndESCAPEEffect
+hang:
+                bra hang
+
+;-------------------------------------------------------------------------
+
+                .if version==350
+LFEA2:
+                .byte $fe
+                .byte $00
+                .byte $eb
+                .byte $00
+                .if CFA3000
+                .byte $7d
+                .else
+                .byte $CD
+                .endif
+                .byte $FF
+                .byte $FF
+                .byte $15
+                .byte 0
+                .byte $17
+                .byte $60
+                .byte $32
+                .byte 8
+                .byte $A
+                .if CFA3000
+                .byte $38
+                .else
+                .byte $2D
+                .endif
+                .byte $82
+
+.endif
+
+;-------------------------------------------------------------------------

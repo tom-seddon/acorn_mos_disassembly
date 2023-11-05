@@ -12,4 +12,74 @@ nextOtherROM:
                 iny                          ;next other ROM
                 cpy #$10                     ;out of other ROMs?
                 bcs currentROMValid       ;taken if no more other ROMs
+                .if version<500&&version!=350
+                jsr LE389   ;select other ROM and check insertion flag
+                bcc nextOtherROM ;taken if other ROM not actually inserted
+                .endif
+                .if version==350
+                stz SEIWKA
+                lda #$80        ; ''
+                sta SEIWKA+1
+                .else
+                ; Start address is $8000-Y, so that there's no need to
+                ; save Y.
+                tya            
+                eor #$FF
+                sta SEIWKA+0
+                lda #$7F
+                sta SEIWKA+1
+                .endif
+compareLoop:
+                sty ROMSEL                   ;select other ROM
+                .if version==350
+                lda (SEIWKA)
+                .else
+                lda (SEIWKA),y               ;get byte from other ROM
+                .endif
+                stx ROMSEL                   ;select ROM
+                .if version==350
+                cmp (SEIWKA)
+                .else
+                cmp (SEIWKA),y               ;same as other ROM?
+                .endif
+                bne nextOtherROM             ;taken if other ROM is good
+                inc SEIWKA+0
+                bne compareLoop
+                inc SEIWKA+1
+                lda SEIWKA+1
+                .if version>=500
+                cpx #8
+                bcc +
+                adc #2
++
+                .endif
+                cmp #$84                  ;compare only the first 1 KB
+                bcc compareLoop
+                ; The first 1 KB of the current ROM matches the first
+                ; 1 KB of some higher-priority ROM, so the current ROM
+                ; is invalid.
+                .if version>=500||version==350
+                lda #1
+                sta romInformationTable,x
+                .endif
+
+currentROMInvalid:
+                ldx $F4
+                bra nextROM
+
+currentROMValid:
+                .if version>=500||version==350
+                txa
+                tay
+                .if version==350
+                jsr setTSTAndLE389
+                .else
+                jsr LE389
+                .endif
+                bcc nextROM
+                .endif 
+                lda $8006
+                sta romInformationTable,x 
+                and #$8F
+                bne nextROM       ;taken if any mandatory bits are set
                 

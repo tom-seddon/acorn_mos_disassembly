@@ -7100,11 +7100,6 @@ staSEIWKAAndACCCON:
                 rts
                 .endif
 
-                .if version==350
-LE398:
-                jsr callWithTST
-                .endif
-
 ;-------------------------------------------------------------------------
 ; 
 ; Check if a coprocessor is attached to the Tube
@@ -7132,6 +7127,11 @@ LE375:
 ;
 ; 
 ; 
+                .if version==350
+setTSTAndLE389:
+                jsr callWithTST
+                .endif
+
 LE389:
                 phy
                 phx
@@ -7165,60 +7165,7 @@ LE389:
                 .if version!=350
 scanROMs: .proc
                 .include "scan_roms.s65"
-                .if version<500
-                jsr LE389   ;select other ROM and check insertion flag
-                bcc nextOtherROM ;taken if other ROM not actually inserted
-                .endif
                 
-                ; Start address is $8000-Y, so that there's no need to
-                ; save Y.
-                tya            
-                eor #$FF
-                sta SEIWKA+0
-                lda #$7F
-                sta SEIWKA+1
-compareLoop:
-                sty ROMSEL                   ;select other ROM
-                lda (SEIWKA),y               ;get byte from other ROM
-                stx ROMSEL                   ;select ROM
-                cmp (SEIWKA),y               ;same as other ROM?
-                bne nextOtherROM             ;taken if other ROM is good
-                inc SEIWKA+0
-                bne compareLoop
-                inc SEIWKA+1
-                lda SEIWKA+1
-                .if version>=500
-                cpx #8
-                bcc +
-                adc #2
-+
-                .endif
-                cmp #$84                  ;compare only the first 1 KB
-                bcc compareLoop
-                ; The first 1 KB of the current ROM matches the first
-                ; 1 KB of some higher-priority ROM, so the current ROM
-                ; is invalid.
-                .if version>=500
-                lda #1
-                sta romInformationTable,x
-                .endif
-currentROMInvalid:
-                ldx $F4
-                bra nextROM
-
-currentROMValid:
-                .if version>=500
-                txa
-                tay
-                jsr LE389
-                bcc nextROM
-                .endif
-                
-                lda $8006
-                sta romInformationTable,x 
-                and #$8F
-                bne nextROM       ;taken if any mandatory bits are set
-
                 ; A bogus ROM type means this ROM is the BASIC ROM.
                 .if version>=500
                 bit basicROMNumber
@@ -13760,7 +13707,7 @@ LFB31:
                 ldy #0
                 cpx #$11
                 bcs LFB3B
-                ldy LFEA2-1,x
+                ldy LFC00.LFEA2-1,x
 LFB3B:
                 jsr terminal.writeCMOSByte
                 plx
@@ -13784,47 +13731,12 @@ LFB3B:
 ;
 ; Some init code - normally hidden by the I/O region
 
-LFC00:
+LFC00: .block
                 .include "reset.s65"
 
-                stz SEIWKA
-                lda #$80        ; ''
-                sta SEIWKA+1
-
-LFE36:
-                sty ROMSEL
-                lda (SEIWKA)
-                stx ROMSEL
-                cmp (SEIWKA)
-                bne nextOtherROM
-                inc SEIWKA
-                bne LFE36
-                inc SEIWKA+1
-                lda SEIWKA+1
-                cmp #$84        ; ''
-                bcc LFE36
-                lda #1
-                sta romInformationTable,x
-currentROMInvalid:
-                ldx $F4
-                bra LFE6B
-
-;-------------------------------------------------------------------------
-
-currentROMValid:
-                txa
-                tay
-                jsr LE398
-                bcc LFE6B
-                lda $8006
-
-LFE61:
-                sta romInformationTable,x
-                and #$8F        ; ''
-                bne LFE6B
                 stx basicROMNumber
 
-LFE6B:
+nextROM:
                 inx
 
 LFE6C:
@@ -13939,6 +13851,7 @@ LFEE8:
 
 LFEF2:
                 jmp terminal.reset
+                .endblock
 
 ;-------------------------------------------------------------------------
 

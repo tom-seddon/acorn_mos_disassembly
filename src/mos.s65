@@ -13803,26 +13803,7 @@ LFB3B:
 
 LFC00:
                 .include "reset.s65"
-                lda #$7F
-
-LFDB7:
-                sta systemVIA.ifr,x
-                sta userVIA.ifr,x
-                dex
-                bpl LFDB7
-                ldx #$D2
-                stx systemVIA.ier
-                ldx #4
-                stx systemVIA.pcr
-                lda #$40        ; '@'
-                sta systemVIA.acr
-                lda #$E
-                sta systemVIA.t1lL
-                sta userVIA.pcr
-                sta HADC.status
-                lda #$27        ; '''
-                sta systemVIA.t1lH
-                sta systemVIA.t1cH
+                
                 jsr LFEF5
                 jsr setTSTAndOSBYTE7A
                 stx firstKeyPressedInternal

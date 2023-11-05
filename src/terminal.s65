@@ -158,46 +158,6 @@ L809F:
                 .else                        ;stripped_out_reset
                 .include "reset.s65"
                 
-                lda #$7F
-initializeVIAInterruptsLoop:
-                sta systemVIA.ifr,x          
-                sta userVIA.ifr,x            
-                dex                          
-                bpl initializeVIAInterruptsLoop
-
-                ; Let through 1 IRQ.
-                cli                          
-                sei
-
-                ; $FC was cleared above, so if bit 6 is set, there
-                ; must have been an IRQ (as A=$7f). 
-                bit $FC
-                bvc +
-                jsr mos.call1MHzBusHook
-+
-                .if version!=400
-                ldx #$80|VIA.irq.t1|VIA.irq.cb1|VIA.irq.ca1
-                .else
-                ldx #$80|VIA.irq.t1|VIA.irq.ca1
-                .endif
-                stx systemVIA.ier
-                .if version>=500
-                ldx #$80|VIA.irq.cb1|VIA.irq.cb2
-                stx userVIA.ier
-                .endif
-                ldx #VIA.pcr.cb2InputNegativeActiveEdge|VIA.pcr.cb1NegativeActiveEdge|VIA.pcr.ca2InputPositiveEdge|VIA.pcr.ca1NegativeActiveEdge
-                stx systemVIA.pcr
-                lda #VIA.acr.t1Continuous|VIA.acr.t2Timer|VIA.acr.srDisabled|VIA.acr.pbLatchDisabled|VIA.acr.paLatchDisabled
-                sta systemVIA.acr
-                lda #$0E
-                sta systemVIA.t1lL
-                sta userVIA.pcr              ;VIA.pcr.cb2InputNegativeActiveEdge|VIA.pcr.cb1NegativeActiveEdge|VIA.pcr.ca2HighOutput|VIA.pcr.ca1NegativeActiveEdge
-                .if version<400
-                sta HADC.latch               ;looks benign
-                .endif
-                lda #$27
-                sta systemVIA.t1lH
-                sta systemVIA.t1cH
                 .if version<400
                 ldx #$08
 L81DD:

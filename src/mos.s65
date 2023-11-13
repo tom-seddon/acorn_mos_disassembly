@@ -6926,36 +6926,36 @@ LE2F3:
 ; Default vector table
 ; ====================
 defaultVectorTable: .block
-                .word badCommandError ; USERV=$200
-                .word defaultBRKHandler ; BRKV=$202
-                .word irq1EntryPoint ; IRQ1V=$204
-                .word irq2EntryPoint ; IRQ2V=$206
-                .word oscliEntryPoint ; CLIV=$208
-                .word osbyteEntryPoint ; BYTEV=$20a
-                .word oswordEntryPoint ; WORDV=$20c
-                .word oswrchEntryPoint ; WRCHV=$20e
-                .word osrdchEntryPoint ; RDCHV=$210
+                .word badCommandError        ; USERV=$200
+                .word defaultBRKHandler      ; BRKV=$202
+                .word irq1EntryPoint         ; IRQ1V=$204
+                .word irq2EntryPoint         ; IRQ2V=$206
+                .word oscliEntryPoint        ; CLIV=$208
+                .word osbyteEntryPoint       ; BYTEV=$20a
+                .word oswordEntryPoint       ; WORDV=$20c
+                .word oswrchEntryPoint       ; WRCHV=$20e
+                .word osrdchEntryPoint       ; RDCHV=$210
 fsVectors: .block
-                .word E_FILEV ; FILEV=$212
-                .word E_ARGSV ; ARGSV=$214
-                .word E_BGETV ; BGETV=$216
-                .word E_BPUTV ; BPUTV=$218
-                .word E_GBPBV ; GBPBV=$21a
-                .word E_FINDV ; FINDV=$21c
-                .word E_FSCV ; FSCV=$21e
+                .word E_FILEV                ; FILEV=$212
+                .word E_ARGSV                ; ARGSV=$214
+                .word E_BGETV                ; BGETV=$216
+                .word E_BPUTV                ; BPUTV=$218
+                .word E_GBPBV                ; GBPBV=$21a
+                .word E_FINDV                ; FINDV=$21c
+                .word E_FSCV                 ; FSCV=$21e 
 end:
                 .bend
-                .word rtsFFAA ; EVENTV=$220
-                .word rtsFFAA ; UPTV=$222
-                .word rtsFFAA ; NETV=$224
-                .word rtsFFAA ; VDUV=$226
-                .word keyEntryPoint ; KEYV=$228
-                .word insEntryPoint ; INSV=$22a
-                .word remEntryPoint ; REMV=$22c
-                .word cnpEntryPoint ; CNPV=$22e
-                .word rtsFFAA ; IND1V=$230
-                .word rtsFFAA ; IND2V=$232
-                .word rtsFFAA ; IND3V=$234
+                .word rtsFFAA                ; EVENTV=$220
+                .word rtsFFAA                ; UPTV=$222
+                .word rtsFFAA                ; NETV=$224
+                .word rtsFFAA                ; VDUV=$226
+                .word keyEntryPoint          ; KEYV=$228
+                .word insEntryPoint          ; INSV=$22a
+                .word remEntryPoint          ; REMV=$22c
+                .word cnpEntryPoint          ; CNPV=$22e
+                .word rtsFFAA                ; IND1V=$230
+                .word rtsFFAA                ; IND2V=$232
+                .word rtsFFAA                ; IND3V=$234
 end:
                 .bend
 

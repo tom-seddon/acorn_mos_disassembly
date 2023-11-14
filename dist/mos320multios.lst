@@ -1,50 +1,13 @@
 
 ; 64tass Turbo Assembler Macro V1.59.3120+ listing file
-; 64tass --m65c02 --nostart -Wall -q --case-sensitive --line-numbers --verbose-list -Lbuild/mos320.lst --output-section mos -o build/320/mos.rom --output-section utils -o build/320/utils.rom --output-section ext -o build/320/ext.rom mos320.s65
-; Tue Nov 14 23:52:47 2023
+; 64tass --m65c02 --nostart -Wall -q --case-sensitive --line-numbers --verbose-list -Lbuild/mos320multios.lst --output-section mos -o build/320multios/mos.rom --output-section utils -o build/320multios/utils.rom --output-section ext -o build/320multios/ext.rom mos320multios.s65
+; Tue Nov 14 23:52:50 2023
 
 ;Line	;Offset	;PC	;Hex		;Monitor	;Source
 
-:1	;******  Processing input file: mos320.s65
+:1	;******  Processing input file: mos320multios.s65
 
-1							;-------------------------------------------------------------------------
-2							;
-3							; I started out trying to match up the names with
-4							; https://tobylobster.github.io/mos/mos/index.html - but I didn't keep
-5							; up with this after a while. I found it quite time-consuming.
-6							;
-7							; Maybe a second pass will fix this...
-8							;
-9							;-------------------------------------------------------------------------
-10							;
-11							; Reference material, in approx order of preference:
-12							;
-13							; MasRef - Master Reference Manual (pretty complete, up to date,
-14							; official)
-15							;
-16							; AUG - Advanced User Guide (very complete for what it covers: model B
-17							; hardware, OS 1.20)
-18							;
-19							; NAUG - New Advanced User Guide (has some Master info, but not
-20							; as thorough as AUG on some topics)
-21							;
-22							; AdvRef - Advanced Reference Manual for the BBC Master (has the odd
-23							; useful item)
-24							;
-25							; Tube - Tube Application Note (Acorn App Note 004)
-26							;
-27							;-------------------------------------------------------------------------
-28							;
-29							; Some notes:
-30							;
-31							; . there are some parseFromString/parseFromCommandLine pairs of
-32							; routines - the FromString ones indicate error silently (e.g., by
-33							; returning with C=0), and the FromCommandLine ones issue a BRK if
-34							; there's a problem
-35							;
-36							;-------------------------------------------------------------------------
-
-38							                .include "src/hardware.s65"
+1							                .include "src/hardware.s65"
 
 :2	;******  Processing file: src/hardware.s65
 
@@ -604,9 +567,9 @@
 362	>000e						ram: .fill ram_size
 363							                .endstruct
 
-:1	;******  Return to file: mos320.s65
+:1	;******  Return to file: mos320multios.s65
 
-39							                .include "src/mos_workspace.s65"
+2							                .include "src/mos_workspace.s65"
 
 :3	;******  Processing file: src/mos_workspace.s65
 
@@ -2589,9 +2552,9 @@
 
 1586							;-------------------------------------------------------------------------
 
-:1	;******  Return to file: mos320.s65
+:1	;******  Return to file: mos320multios.s65
 
-40							                .include "src/terminal_workspace.s65"
+3							                .include "src/terminal_workspace.s65"
 
 :4	;******  Processing file: src/terminal_workspace.s65
 
@@ -2618,35 +2581,36 @@
 23							                .endstruct
 
 
-:1	;******  Return to file: mos320.s65
+:1	;******  Return to file: mos320multios.s65
 
 
-42	=320						version=320
+5	=320						version=320
+6	=true						multios=true
 
-44							; The number of sections will probably increase, as a longer term goal
-45							; is to have a bit of flexibility here. Stuff that's got documented
-46							; addresses ($FFxx, default font, VDU driver entry points, etc.) needs
-47							; to stay fixed, but, space permitting, other stuff could be
-48							; rearranged.
+8							; The number of sections will probably increase, as a longer term goal
+9							; is to have a bit of flexibility here. Stuff that's got documented
+10							; addresses ($FFxx, default font, VDU driver entry points, etc.) needs
+11							; to stay fixed, but, space permitting, other stuff could be
+12							; rearranged.
 
-50							*=$ba00
-51							                .dsection ext
-52							                .cwarn *>$c000,'Ext ROM is too large'
+14							*=$ba00
+15							                .dsection ext
+16							                .cwarn *>$c000,'Ext ROM is too large'
 
-54							*=$8000
-55							                .dsection utils
-56							                .cwarn *>$c000,'Terminal ROM is too large'
+18							*=$8000
+19							                .dsection utils
+20							                .cwarn *>$c000,'Terminal ROM is too large'
 
-58							*=$c000
-59							                .dsection mos
-60							                ; there's no need for a size check here - 64tass gives
-61							                ; you an error if the code would go past the 64 K
-62							                ; barrier.
+22							*=$c000
+23							                .dsection mos
+24							                ; there's no need for a size check here - 64tass gives
+25							                ; you an error if the code would go past the 64 K
+26							                ; barrier.
 
-64							;-------------------------------------------------------------------------
+28							;-------------------------------------------------------------------------
 
-66							                .section ext
-67							                .include "src/ext.s65"
+30							                .section ext
+31							                .include "src/ext.s65"
 
 :5	;******  Processing file: src/ext.s65
 
@@ -3573,12 +3537,12 @@
 
 978							                .endblock
 
-:1	;******  Return to file: mos320.s65
+:1	;******  Return to file: mos320multios.s65
 
-68							                .endsection
+32							                .endsection
 
-70							                .section utils
-71							                .include "src/terminal.s65"
+34							                .section utils
+35							                .include "src/terminal.s65"
 
 :6	;******  Processing file: src/terminal.s65
 
@@ -8870,9 +8834,9 @@
 465	.987b		a0 0e		ldy #$0e	                ldy #ClockStringFormat.yyyy+3
 466	.987d		20 90 98	jsr $9890	                jsr storeRTCDataByteString
 467							                .if multios
-471							                .else
-472	.9880		a9 19		lda #$19	                lda #$19                     ;it's always 19xx... right?
-473	.9882		20 93 98	jsr $9893	                jsr storeBCDByteString
+468	.9880		20 e0 b8	jsr $b8e0	                jsr fixUpYear
+469	.9883		ea		nop		                nop
+470	.9884		ea		nop		                nop
 474							                .endif
 475	.9885		a9 20		lda #$20	                lda #$20
 476	.9887		91 f0		sta ($f0),y	                sta ($F0),y
@@ -14991,15 +14955,22 @@
 6830							;-------------------------------------------------------------------------
 
 6832							                .if version==320&&multios
+6833	>b8df		ff				                .align 16,255
+6834	.b8e0						fixUpYear:
+6835	.b8e0		c9 38		cmp #$38	                cmp #$38
+6836	.b8e2		a9 19		lda #$19	                lda #$19
+6837	.b8e4		b0 02		bcs $b8e8	                bcs gotYear
+6838	.b8e6		a9 20		lda #$20	                lda #$20
+6839	.b8e8						gotYear:
+6840	.b8e8		4c 93 98	jmp $9893	                jmp storeBCDByteString
 6841							                .endif
 
 6843							;-------------------------------------------------------------------------
 
 6845							; Unused space
 6846							; ============
-6847	>b8df		ff ff ff ff ff ff ff ff		                .fill $b900-*,$ff
-	>b8e7		ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
-	>b8f7		ff ff ff ff ff ff ff ff ff
+6847	>b8eb		ff ff ff ff ff ff ff ff		                .fill $b900-*,$ff
+	>b8f3		ff ff ff ff ff ff ff ff ff ff ff ff ff
 
 6849							; Default font
 6850							; ============
@@ -17289,12 +17260,12 @@
 
 
 
-:1	;******  Return to file: mos320.s65
+:1	;******  Return to file: mos320multios.s65
 
-72							                .endsection
+36							                .endsection
 
-74							                .section mos
-75							                .include "src/mos.s65"
+38							                .section mos
+39							                .include "src/mos.s65"
 
 :13	;******  Processing file: src/mos.s65
 
@@ -31219,9 +31190,8 @@
 14138	>fffe		9e e5				                .word mos.irqEntryPoint
 
 
-:1	;******  Return to file: mos320.s65
+:1	;******  Return to file: mos320multios.s65
 
-76							                .endsection
-
+40							                .endsection
 
 ;******  End of listing

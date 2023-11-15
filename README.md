@@ -128,6 +128,21 @@ Versions for non-Acorn hardware:
 - `build/mosCFA3000.lst` - MOS 3.5a
 - `build/mosautocue.lst` - MOS 5.10i
 
+## **experimental** new MOS builds
+
+There are also experimental new builds of the OS that may be of
+interest.
+
+### MOS 3.20(NT)
+
+A build of MOS 3.20 with Terminal stripped out and all MOS code
+confined to the MOS ROM (`build/320nt/mos.rom`) and sideways bank 15
+(`build/320nt/utils.rom`). You can put anything you like in the other
+6 sideways banks.
+
+In all other respects this is (supposed to be) identical to MOS 3.20,
+warts and all.
+
 # code notes
 
 ## code layout ##

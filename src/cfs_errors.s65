@@ -1,3 +1,17 @@
+                ; The MOS code assumes all these error routines have
+                ; the same MSB of their start address. (There's a
+                ; .cerror that checks for this.) They all just fit
+                ; into 32 bytes, so 32-byte alignment will do the
+                ; trick.
+                ;
+                ; (The alignment directive doesn't take effect in any
+                ; of the default MOS builds. It springs into action to
+                ; accommodate modifications to other parts of the
+                ; code.)
+                .if (>*)!=(>blockError)
+                .align 32
+                .endif
+                
 dataError:
                 jsr doFollowingError
                 .text $d8,13,"Data?",0

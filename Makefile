@@ -50,6 +50,9 @@ all:
 	$(_V)$(MAKE) _build_orig VERSION=autocue
 	$(_V)$(MAKE) _build_orig_with_ext VERSION=329
 
+# New versions.
+	$(_V)$(MAKE) _build VERSION=320nt
+
 ##########################################################################
 ##########################################################################
 

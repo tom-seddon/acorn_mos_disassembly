@@ -1,7 +1,7 @@
 ; -*- comment-column:45; -*-
 
 terminal: .block
-                .if version==320||version==350
+                .if (version==320||version==350)&&includeTerminalROM
                 
                 jmp terminalLanguageEntryPoint ; Language entry point
                 jmp utilsServiceEntryPoint  ; Service entry point
@@ -18,7 +18,7 @@ copyrightText:
                 .endif
                 .byte 0
 
-                .elsif version==400
+                .elsif version==400||!includeTerminalROM
 
                 brk
                 brk
@@ -3663,9 +3663,9 @@ L9E2C:
 
 L9E38:
                 cmp #romServiceCallHelp
-                .if version<400
+                .if version<400&&includeTerminalROM
                 bne L9E8F
-                .elsif version>=400
+                .else
                 bne LA304
                 .endif
                 phy
@@ -3675,7 +3675,7 @@ L9E38:
                 jsr L9EFC
                 jsr alwaysPrintFollowingMessage
                 .text "  MOS",13
-                .if version<400
+                .if version<400&&includeTerminalROM
                 .text 13,"TERMINAL 1.20",13
                 .elsif version==500
                 .text 13,"UTILS 1.00",13
@@ -3720,7 +3720,7 @@ L9E8B:
 LA304:
                 rts
 
-                .if version<400
+                .if version<400&&includeTerminalROM
 L9E8F:
                 jmp terminalServiceEntryPoint
                 .endif
@@ -6789,11 +6789,11 @@ LAE0F:
 ;-------------------------------------------------------------------------
                 .endif
 
-                .if version<400
+                .if version<400&&includeTerminalROM
                 .include "terminal_code.s65"
                 .endif
 
-                .if version>=500
+                .if version>=500||!includeTerminalROM
                 .include "ext.s65"
                 .endif
 

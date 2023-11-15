@@ -8,8 +8,8 @@
 
 ; These variant flags are applicable to the stated versions only, and
 ; may or may not be separable from the various .if/.endif constructs
-; for that version. If they're set for any other version, the output
-; may not make sense.
+; for that version. If they're changed from these defaults for any
+; other version, the output may not make sense.
 
                 .weak
                 ; Set if building Olivetti MOS, a variant of 5.10.
@@ -24,6 +24,10 @@ autocue=false
                 ; Set if building MOS 3.29 (Acorn FinMOS), a variant
                 ; of 3.50.
 finmos329=false
+
+                ; Clear if stripping out the terminal ROM. Applicable
+                ; to 3.20 or 3.50.
+includeTerminalROM=true
                 .endweak
                 
 ;-------------------------------------------------------------------------
@@ -1428,7 +1432,12 @@ terminalHELPWorkspace: .dstruct TerminalHELPWorkspace
 terminalROM=15
 
 ; ROM number containing the extXXXX entry points
-                .if version==320
+                .if !includeTerminalROM
+                ; If no terminal ROM, the ext part is automatically in
+                ; the utils bank. (Yes, the naming here is bad.
+                ; Sorry.)
+extROM=terminalROM
+                .elsif version==320
 extROM=14
                 .elsif version==350
 extROM=9

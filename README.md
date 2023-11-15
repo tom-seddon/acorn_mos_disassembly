@@ -60,6 +60,15 @@ identified, and all current assumptions (page alignment, routines that
 share pages, variables that must be together, etc.) checked. Then, in
 theory, code can be added or removed fairly freely.
 
+## patches
+
+This project only covers MOS builds that look like they were created
+from the original source. I've found some versions that have been
+patched with the following binary patches:
+
+* Y2K fixes: http://www.adsb.co.uk/bbc/bbc_master.html
+* Fix for OSBYTE &6B never selecting the external 2 MHz bus: https://github.com/tom-seddon/acorn_mos_disassembly/blob/ac672c5201fc65644731a07c9c2065abcefd1e24/dist/mos320.lst#L27565 
+
 # build
 
 This repo has submodules. Clone it with `--recursive`:

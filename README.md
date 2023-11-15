@@ -16,6 +16,7 @@ systems are covered:
 
 - MOS 3.20 with Y2K fix (included with the RetroClinic Multi-OS
   adapter): [./dist/mos320multios.lst](./dist/mos320multios.lst)
+- MOS 3.50 with Y2K fix (included with the RetroClinic Multi-OS adapter): [./dist/mos350multios.lst](./dist/mos350multios.lst)
 
 The following unreleased versions for Acorn systems are covered:
 

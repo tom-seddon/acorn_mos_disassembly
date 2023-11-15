@@ -1,0 +1,7 @@
+fixUpYear:
+                cmp #$38
+                lda #$19
+                bcs gotYear
+                lda #$20
+gotYear:
+                jmp terminal.storeBCDByteString

@@ -6830,14 +6830,8 @@ LAE0F:
 ;-------------------------------------------------------------------------
 
                 .if version==320&&multios
-                .align 16,255
-fixUpYear:
-                cmp #$38
-                lda #$19
-                bcs gotYear
-                lda #$20
-gotYear:
-                jmp storeBCDByteString
+                .align 16,$ff
+                .include "fixUpYear.s65"
                 .endif
 
 ;-------------------------------------------------------------------------

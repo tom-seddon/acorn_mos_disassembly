@@ -3,6 +3,7 @@
                 .include "src/terminal_workspace.s65"
 
 version=400
+versionString="MOS 4.00"
                 
 *=$8000
                 .dsection utils

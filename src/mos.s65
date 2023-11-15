@@ -10379,35 +10379,7 @@ osbyte00:                       ;ef6f
 ; do a BRK and print MOS version number.
 
                 brk
-                .byte $f7
-                .if version==320
-                .text "OS 3.20"
-                .elsif version==400
-                .text "MOS 4.00"
-                .elsif version==500
-                .text "MOS 5.00"
-                .elsif version==510
-                .if olivetti
-                .text "MOS I5.10C"
-                .else
-                .text "MOS 5.10"
-                .endif
-                .elsif version==511
-                .if autocue
-                .text "MOS 5.10i"
-                .else
-                .text "MOS 5.11i"
-                .endif
-                .elsif version==350
-                .if CFA3000
-                .text "MOS 3.5a"
-                .elsif finmos329
-                .text "MOS 3.29"
-                .else
-                .text "MOS 3.50"
-                .endif
-                .endif
-                .byte 0
+                .text $f7,versionString,0
 
 ;-------------------------------------------------------------------------
 ;

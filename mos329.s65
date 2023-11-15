@@ -6,6 +6,7 @@
 ; the code so many times that it'd be a pain to sort it out.
 version=350
 finmos329=true
+versionString="MOS 3.29"
                 
 *=$af00
                 .dsection ext

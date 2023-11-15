@@ -3,6 +3,7 @@
                 .include "src/terminal_workspace.s65"
 
 version=510
+versionString="MOS I5.10C"
 olivetti=true
                 
 *=$8000

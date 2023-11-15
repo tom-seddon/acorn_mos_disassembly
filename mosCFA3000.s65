@@ -3,6 +3,7 @@
                 .include "src/terminal_workspace.s65"
 
 version=350
+versionString="MOS 3.5a"
 CFA3000=true
                 
 *=$af00

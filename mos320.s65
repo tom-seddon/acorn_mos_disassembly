@@ -40,6 +40,7 @@
                 .include "src/terminal_workspace.s65"
 
 version=320
+versionString="OS 3.20"
                 
 ; The number of sections will probably increase, as a longer term goal
 ; is to have a bit of flexibility here. Stuff that's got documented

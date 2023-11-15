@@ -11,13 +11,6 @@ listing file, including assembled code, labels and comments.
 - MOS 5.10 (Master Compact, UK): [./dist/mos510.lst](./dist/mos510.lst)
 - MOS 5.11 (Master Compact, International):  [./dist/mos511.lst](./dist/mos511.lst)
 
-The following modified versions of the official releases for Acorn
-systems are covered:
-
-- MOS 3.20 with Y2K fix (included with the RetroClinic Multi-OS
-  adapter): [./dist/mos320multios.lst](./dist/mos320multios.lst)
-- MOS 3.50 with Y2K fix (included with the RetroClinic Multi-OS adapter): [./dist/mos350multios.lst](./dist/mos350multios.lst)
-
 The following unreleased versions for Acorn systems are covered:
 
 - MOS 3.29 (looks to be a pre-release version of MOS 3.50):  [./dist/mos329.lst](./dist/mos329.lst)

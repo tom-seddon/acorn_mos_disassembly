@@ -24,10 +24,6 @@ autocue=false
                 ; Set if building MOS 3.29 (Acorn FinMOS), a variant
                 ; of 3.50.
 finmos329=false
-
-                ; Set if building the Y2K-fixed version found in the
-                ; RetroClinic multi-OS adapter, a variant of 3.20.
-multios=false
                 .endweak
                 
 ;-------------------------------------------------------------------------

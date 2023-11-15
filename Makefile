@@ -49,8 +49,6 @@ all:
 	$(_V)$(MAKE) _build_orig_with_ext VERSION=CFA3000
 	$(_V)$(MAKE) _build_orig VERSION=autocue
 	$(_V)$(MAKE) _build_orig_with_ext VERSION=329
-	$(_V)$(MAKE) _build_orig_with_ext VERSION=320multios
-	$(_V)$(MAKE) _build_orig_with_ext VERSION=350multios
 
 ##########################################################################
 ##########################################################################
@@ -112,8 +110,6 @@ dist:
 	$(_V)$(MAKE) _dist_copy VERSION=CFA3000
 	$(_V)$(MAKE) _dist_copy VERSION=autocue
 	$(_V)$(MAKE) _dist_copy VERSION=329
-	$(_V)$(MAKE) _dist_copy VERSION=320multios
-	$(_V)$(MAKE) _dist_copy VERSION=350multios
 
 .PHONY:_dist_copy
 _dist_copy:

@@ -6793,6 +6793,10 @@ LAE0F:
                 .include "terminal_code.s65"
                 .endif
 
+                .if version==350&&!includeTerminalROM
+                .include "sound_stuff.s65"
+                .endif
+
                 .if version>=500||!includeTerminalROM
                 .include "ext.s65"
                 .endif

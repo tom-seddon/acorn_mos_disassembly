@@ -130,18 +130,44 @@ Versions for non-Acorn hardware:
 
 ## **experimental** new MOS builds
 
-There are also experimental new builds of the OS that may be of
-interest.
+The build output also includes two new experimental builds of MOS
+3.xx, that strip out the Terminal ROM and confine all MOS code to the
+MOS ROM and sideways bank 15. This is intended to simplify producing
+new MegaROM images with alternative utility or language ROMs.
+
+Producing new versions of the OS is not a goal of this project, but
+these two particular new versions seemed like a useful effort/reward
+tradeoff.
+
+**The experimental new builds of the OS are experimental.**
 
 ### MOS 3.20(NT)
 
-A build of MOS 3.20 with Terminal stripped out and all MOS code
-confined to the MOS ROM (`build/320nt/mos.rom`) and sideways bank 15
-(`build/320nt/utils.rom`). You can put anything you like in the other
-6 sideways banks.
+The MOS part is `build/320nt/mos.rom`, and sideways bank 15 is
+`build/320nt/utils.rom`. No need to worry about the View ROM any more!
+You can put anything you like in banks 9-14.
 
 In all other respects this is (supposed to be) identical to MOS 3.20,
-warts and all.
+warts and all. In particular, there are still no sideways RAM
+utilities built in the MOS.
+
+(For testing purposes, `orig/320nt/view.rom` is a version of the MOS
+3.20 View ROM with the MOS code zereod out.)
+
+### MOS 3.50(NT)
+
+The MOS part is `build/350nt/mos.rom`, and sideways bank 15 is
+`build/350nt/utils.rom`. No need to worry (quite as much) about the
+DFS ROM any more - you can put anything you like in banks 9-14.
+
+(If wanting to use the MOS 3.50 DFS and ADFS, note that they depend on
+one another, and can't be put in just any old banks. For more info,
+see here: https://mdfs.net/Info/Comp/BBC/SROMs/MegaROM.htm)
+
+In all other respects this is (supposed to be) identical to MOS 3.50.
+
+(For testing purposes, `orig/350nt/dfs.rom` is a version of the MOS
+3.50 DFS ROM with the MOS code zeroed out.)
 
 # code notes
 

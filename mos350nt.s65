@@ -1,0 +1,35 @@
+                .include "src/hardware.s65"
+                .include "src/mos_workspace.s65"
+                .include "src/terminal_workspace.s65"
+
+version=350
+versionString="MOS 3.50(NT)"
+                
+*=$8000
+                .dsection utils
+                .cwarn *>$c000,'Terminal ROM is too large'
+                
+*=$c000
+                .dsection mos
+                ; there's no need for a size check here - 64tass gives
+                ; you an error if the code would go past the 64 K
+                ; barrier.
+
+;-------------------------------------------------------------------------
+
+osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
+osbyte14=terminal.osbyte14
+includeTerminalROM=false
+ext=terminal.ext
+clearSoundChannelBufferInternal=terminal.clearSoundChannelBufferInternal
+LF416=terminal.LF416
+                
+;-------------------------------------------------------------------------
+
+                .section utils
+                .include "src/terminal.s65"
+                .endsection
+
+                .section mos
+                .include "src/mos.s65"
+                .endsection

@@ -1,1 +1,1 @@
-@"%~dp0\bin\gmake.exe" %*
+@"%~dp0\bin\gmake.exe" --no-print-directory %*

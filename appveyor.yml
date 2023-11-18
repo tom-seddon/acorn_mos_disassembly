@@ -16,12 +16,11 @@ install:
   - svn checkout -r 3120 https://svn.code.sf.net/p/tass64/code/trunk tass64-code
   - cd ~/tass64-code && make -j$(nproc)
   - popd
-  - ps: $env:SUFFIX = $(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
-  - ps: $env:TIMESTAMP = $(git log -1 --format=%cd --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
+  - ps: $env:RELEASE_NAME = $(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
 
 build_script:
-  - ps: $env:OUTPUT_LST_ARCHIVE="acorn-mos-disassembly-lst."+$env:SUFFIX+".zip"
-  - ps: $env:OUTPUT_NT_ARCHIVE="acorn-mos-disassembly-NT."+$env:SUFFIX+".zip"
+  - ps: $env:OUTPUT_LST_ARCHIVE="acorn-mos-disassembly-lst."+$env:RELEASE_NAME+".zip"
+  - ps: $env:OUTPUT_NT_ARCHIVE="acorn-mos-disassembly-NT."+$env:RELEASE_NAME+".zip"
   - ps: make VERBOSE=1 TASSCMD=$HOME/tass64-code/64tass
   - pushd build
   - zip -9r "../$OUTPUT_NT_ARCHIVE" 320nt 350nt

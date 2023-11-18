@@ -7206,11 +7206,7 @@ isROMValid: .proc ;e3f7
 ; ===================
 LE40E:
                 sec                      ; Call Break Intercept Vector
-                .if version==350
-                jsr osbyte247EntryPointWithTST
-                .else
                 jsr osbyte247EntryPoint
-                .endif
                 ldx #romServiceCallInformReset
                 jsr makeROMServiceCall
                 ldy execFileHandle ; Get Exec handle, skip past if closed
@@ -8940,11 +8936,11 @@ isLetter: .proc                 ;EA71
 ; OSBYTE 153 (&99) Insert character code into buffer, checking for
 ; ESCAPE [MasRef D.2-46]
 ;
-insertCharacterIntoKeyboardBuffer:
                 .if version==350
+setTSTAndInsertCharacterIntoKeyboardBuffer:
                 jsr callWithTST
-insertCharacterIntoKeyboardBufferWithTST:
                 .endif
+insertCharacterIntoKeyboardBuffer:
                 ldx #$00
 osbyte99:
                 .if version!=400
@@ -11563,11 +11559,11 @@ LF40C:
 
 ;-------------------------------------------------------------------------
 
-osbyte247EntryPoint:
                 .if version==350
+setTSTAndOSBYTE247EntryPoint:
                 jsr callWithTST
-osbyte247EntryPointWithTST:
                 .endif
+osbyte247EntryPoint:
                 lda breakVectorByte0
                 eor #$4C                     ; JMP abs
                 bne rtsF363
@@ -12253,7 +12249,7 @@ LF54F:
 LF555:
                 lda keyboardStatus
                 bne LF55D_350
-                jsr insertCharacterIntoKeyboardBufferWithTST
+                jsr insertCharacterIntoKeyboardBuffer
 LF55D_350:
                 jsr enableKeyboardScanningFlippingInterrupts
 
@@ -12836,7 +12832,7 @@ LF6E2:
                 ldy keyboardStatus
                 clc
                 bne LF6EC
-                jsr insertCharacterIntoKeyboardBufferWithTST
+                jsr insertCharacterIntoKeyboardBuffer
                 sec
 LF6EC:
                 pla

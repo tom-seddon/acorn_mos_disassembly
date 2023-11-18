@@ -512,11 +512,11 @@ readDefaults2:
 ;-------------------------------------------------------------------------
 
                 .if version<500
-readDefaults3:
                 .if version==350
+setTSTAndReadDefaults3:
                 jsr mos.callWithTST
-readDefaults3WithTST:
                 .endif
+readDefaults3:
                 ldx #CMOSBytes.defaults3+cmosBytesOffset
                 bra readRTCByte
                 .endif

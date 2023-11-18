@@ -214,7 +214,11 @@ LFCBF:
                 .endif
                 ora #CMOSBytes.defaults0.defaultSHADOWMask
                 sta startupOptions
+                .if version==350
+                jsr terminal.setTSTAndReadDefaults3
+                .else
                 jsr terminal.readDefaults3 ; Read configured BOOT
+                .endif
                 and #CMOSBytes.defaults3.autoBootMask
                 lsr a         ; Reset OSBYTE 255 boot bit (b3) if BOOT
                 trb startupOptions
@@ -225,7 +229,11 @@ LFCBF:
                 .endif
                 sty tvOffset
                 stx tvInterlace
+                .if version==350
+                jsr terminal.setTSTAndReadDefaults3
+                .else
                 jsr terminal.readDefaults3
+                .endif
                 and #CMOSBytes.defaults3.protectedScrollingMask
                 beq L80D4
                 lda #VDUVariables.cursorFlags.scrollProtect
@@ -539,7 +547,11 @@ L81DD:
                 jsr mos.osbyte07
                 .endif
 
+                .if version==350
+                jsr terminal.setTSTAndReadDefaults3
+                .else
                 jsr terminal.readDefaults3
+                .endif
                 bit #CMOSBytes.defaults3.loudMask
                 bne L8211
                 lda #$F0
@@ -752,8 +764,16 @@ softReset:
                 stz hazel.moveSrcHandle
                 stz hazel.moveDestHandle
                 ldy #$CA
+                .if version==350
+                jsr mos.setTSTAndInsertCharacterIntoKeyboardBuffer
+                .else
                 jsr mos.insertCharacterIntoKeyboardBuffer
+                .endif
+                .if version==350
+                jsr mos.setTSTAndOSBYTE247EntryPoint
+                .else
                 jsr mos.osbyte247EntryPoint
+                .endif
                 lda lastBREAKType
                 beq L829D
                 .if version==400
@@ -770,7 +790,12 @@ L829D:
                 .endif
                 lsr a
                 bcc continueSoftReset
+
+                .if version==350
+                jsr terminal.setTSTAndReadDefaults3
+                .else
                 jsr terminal.readDefaults3
+                .endif
 
                 .if version==350
                 lsr a

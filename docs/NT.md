@@ -2,10 +2,10 @@
 
 The NT builds of the MOS strip out the Terminal ROM, and replace it
 with the MOS code previously hidden in one of the other sideways ROM
-banks. Now the MOS code is confined entirely to the MOS ROM and
-sideways ROM 15, and you can put anything you like in the other banks.
-This is intended to simplify producing new MegaROM images with
-alternative utility or language ROMs.
+banks. (NT = No Terminal.) Now the MOS code is confined entirely to
+the MOS ROM and sideways ROM 15, and you can put anything you like in
+the other banks. This is intended to simplify producing new MegaROM
+images with alternative utility or language ROMs.
 
 You can get a build from the latest release page:
 https://github.com/tom-seddon/acorn_mos_disassembly/releases/latest -

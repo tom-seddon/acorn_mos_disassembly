@@ -1226,11 +1226,24 @@ resultEOR: .fill 1
 
 MoveOrCopyRectangleWorkspaceVDUVariables: .struct
 src: .dstruct VDUAABB
+L30:
                 .fill 4
 dest: .dstruct VDUAABB
-                .fill 9
+L3C:
+                .fill 4
+L40:
+                .fill 2
+shiftToNextByte:
+                .fill 2
+L44:
+                .fill 1
 copy:
                 .fill 1         ;0=move, 2=copy
+L46:
+                .fill 1
+L47:
+                .fill 1
+                
                 .endstruct
                 
 HorizontalLineFillWorkspaceVDUVariables: .struct
@@ -1313,31 +1326,41 @@ L8803=$8803
 L8804=$8804
 L881E=$881E
 L8820=$8820
+multiplicand=$8830              ; 3 bytes
 L8830=$8830
 L8831=$8831
 L8832=$8832
 L8833=$8833
+multiplier=$8834                ; 3 bytes
+product=$8834                   ; 6 bytes
+sqrtNumber=$8834                ; 6 bytes
 L8834=$8834
 L8835=$8835
 L8836=$8836
 L8837=$8837
 L8838=$8838
 L8839=$8839
+;dividend=$883a                  ; 3 bytes
 L883A=$883a
 L883B=$883b
 L883C=$883C
 L883D=$883D
+;divisor=$883e                   ; 3 bytes
 L883E=$883e
 L883F=$883f
 L8840=$8840
+ellipseSignFlag=$8841           ; 1 byte
 L8841=$8841
+ellipseAccumulatedShear=$8842   ; 3 bytes
 L8842=$8842
 L8843=$8843
 L8844=$8844
+ellipseCountOddNumbers=$8845    ; 4 bytes
 L8845=$8845
 L8846=$8846
 L8847=$8847
 L8848=$8848
+ellipseCountSquares=$8849       ; 4 bytes
 L8849=$8849
 L884A=$884a
 L884B=$884b

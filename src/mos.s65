@@ -5092,10 +5092,10 @@ LDAE2:
 LDAE3:
                 rts
 
-LDAE4:
+LDAE4:                                       ; fillRow?
                 ldx #$42
                 ldy #$46
-LDAE8:
+LDAE8:                                       ; fillRowInternal?
                 jsr sortVDUVariableWords
                 stx $DE
                 sty $DF
@@ -6089,10 +6089,10 @@ LDFF1:
 ; 200–207 = Plot solid ellipse [MasRef E.3-32]
 ;
                 .if version!=400
-plotSolidEllipse:
+plotEllipseFilled:
                 ldx #$80|extROM
                 jsr selectROMX
-                jsr ext.plotSolidEllipse
+                jsr ext.plotEllipseFilled
                 bra LDFF1
                 .endif
 
@@ -6293,7 +6293,7 @@ plotEntryPointTable:
                 .word terminal.L9923 ;176–183 = Plot filled sector [MasRef E.3-30]
                 .word plotMoveOrCopyRectangle ;184–191 = Move/copy rectangle [MasRef E.3-31]
                 .word plotEllipseOutline ;192–199 = Plot ellipse outline [MasRef E.3-32]
-                .word plotSolidEllipse ;200–207 = Plot solid ellipse [MasRef E.3-32]
+                .word plotEllipseFilled ;200–207 = Plot solid ellipse [MasRef E.3-32]
 
 ; Times 40 lookup table, high bytes
 multiplyBy40TableHigh:

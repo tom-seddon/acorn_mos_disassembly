@@ -21,7 +21,7 @@ versionString="MOS 4.00"
 ext=terminal.ext
 plotMoveOrCopyRectangle=ext.plotMoveOrCopyRectangle
 plotEllipseOutline=ext.plotEllipseOutline
-plotSolidEllipse=ext.plotSolidEllipse
+plotEllipseFilled=ext.plotEllipseFilled
                 
 ;-------------------------------------------------------------------------
 

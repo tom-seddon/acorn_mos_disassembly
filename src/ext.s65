@@ -46,6 +46,7 @@ ellipseOutlineContinueRowLoop:
                 lda     vduv.ew.currentOffsetX+1
                 sbc     vduv+1,y
                 bmi     ellipseOutlineContinueRowLoop
+                
                 .if version<500&&version!=350
                 ldx     #VDUVariables.ew.pointD
                 ldy     #VDUVariables.ew.pointB
@@ -125,20 +126,22 @@ LAF47:
 
                 .endif
 
-plotSolidEllipse:
+;-------------------------------------------------------------------------
+
+plotEllipseFilled:
                 jsr     ellipseInitialisation
-                bra     LBA6F
+                bra     startFilledEllipse
 
 
-LBA6C:
+filledEllipseLoop:
                 jsr     updateEllipseIncrementally
 
-LBA6F:
+startFilledEllipse:
                 ldx     #VDUVariables.ew.rightPoint
                 ldy     #VDUVariables.ew.leftPoint
-                jsr     LBA87
+                jsr     fillEllipseOneRowAndReflection
                 lda     vduv.workspace._2F
-                bpl     LBA6C
+                bpl     filledEllipseLoop
 
 LBA7B:
                 inc     ellipseCountHeight+0
@@ -149,13 +152,7 @@ LBA83:
                 ldx     #VDUVariables.ew.pointB
                 ldy     #VDUVariables.ew.pointA
 
-
-
-
-LBA87:
-
-
-
+fillEllipseOneRowAndReflection:
                 phx
                 phy
                 clc
@@ -204,12 +201,7 @@ LBA87:
                 tay
                 lda     vduv.oldGraphicsCursorPixelsY+1
                 sbc     ellipseCountHeight+1
-
-
-
-
-
-
+                
 LBAFE:
                 sty     vduv.workspace._46
                 sty     vduv.ew.currentOffsetX+0
@@ -236,17 +228,13 @@ LBB12:
                 stz     ellipseCountHeight+1
                 ldx     #VDUVariables.workspace._29
                 ldy     #VDUVariables.ew.pointE
-                jsr     LBDFA
+                jsr     negateVDUVariableXIntoY
                 ldx     #VDUVariables.workspace._29
                 ldy     #VDUVariables.ew.pointF
                 jsr     mos.copyTwoBytesWithinVDUVariables
                 ldx     #VDUVariables.ew.pointF
                 ldy     #VDUVariables.ew.pointE
-                jmp     LBA87
-
-
-
-
+                jmp     fillEllipseOneRowAndReflection
 
 ellipseInitialisation:
                 ; https://tobylobster.github.io/GXR-pages/gxr/S-s23.html#SP5
@@ -254,13 +242,13 @@ ellipseInitialisation:
                 ldx     #VDUVariables.oldGraphicsCursorPixelsX
                 lda     #VDUVariables.workspace._29
                 jsr     mos.LD678
-                stz     vduv.workspace._28
+                stz     vduv.ew.aspectRatio+0
                 ldy     #VDUVariables.queueEnd-2
                 ldx     #VDUVariables.oldGraphicsCursorPixelsY
                 lda     #VDUVariables.ew.halfHeightCounter
                 jsr     mos.LD678
-                lda     vduv.workspace._2E
-                ora     vduv.workspace._2F
+                lda     vduv.ew.halfHeightCounter+0
+                ora     vduv.ew.halfHeightCounter+1
                 beq     LBB12
                 rol     a
                 sta     L8841
@@ -268,11 +256,11 @@ ellipseInitialisation:
                 ldx     #VDUVariables.oldGraphicsCursorPixelsX
                 lda     #VDUVariables.ew.shear+1
                 jsr     mos.LD678
-                stz     vduv.workspace._2B
+                stz     vduv.ew.shear+0
                 rol     a
-                eor     L8841
+                eor     ellipseSignFlag
                 and     #1
-                sta     L8841
+                sta     ellipseSignFlag
                 ldx     #VDUVariables.ew.aspectRatio
                 ldy     #VDUVariables.ew.halfHeightCounter
                 jsr     LBD83
@@ -316,10 +304,10 @@ LBB9F:
                 stz     ellipseCountHeight+1
                 ldx     #VDUVariables.ew.pointA
                 ldy     #VDUVariables.ew.pointD
-                jsr     LBDFA
+                jsr     negateVDUVariableXIntoY
                 ldx     #VDUVariables.ew.pointB
                 ldy     #VDUVariables.ew.pointC
-                jsr     LBDFA
+                jsr     negateVDUVariableXIntoY
                 ldx     #VDUVariables.ew.pointA
                 ldy     #VDUVariables.ew.rightPoint
                 jsr     mos.compareVDUVariableWords
@@ -388,106 +376,104 @@ updateEllipse:
                 
                 sec
                 lda     vduv.ew.halfHeightSquared+0
-                sbc     L8849
-                sta     L8836
+                sbc     ellipseCountSquares+0
+                sta     sqrtNumber+2
                 lda     vduv.ew.halfHeightSquared+1
-                sbc     L884A
-                sta     L8837
+                sbc     ellipseCountSquares+1
+                sta     sqrtNumber+3
                 lda     vduv.ew.halfHeightSquared+2
-                sbc     L884B
-                sta     L8838
+                sbc     ellipseCountSquares+2
+                sta     sqrtNumber+4
                 lda     vduv.ew.halfHeightSquared+3
-                sbc     L884C
-                sta     L8839
-                stz     L8835
-                stz     L8834
+                sbc     ellipseCountSquares+3
+                sta     sqrtNumber+5
+                stz     sqrtNumber+1
+                stz     sqrtNumber+0
                 jsr     LBE4B
-                lda     vduv.workspace._28
-                sta     L8834
-                lda     vduv.workspace._29
-                sta     L8835
-                lda     vduv.workspace._2A
-                sta     L8836
-                jsr     LBE0C
+                
+                lda     vduv.ew.aspectRatio+0
+                sta     multiplier+0
+                lda     vduv.ew.aspectRatio+1
+                sta     multiplier+1
+                lda     vduv.ew.aspectRatio+2
+                sta     multiplier+2
+                jsr     multiply24x24
+                
                 clc
-                lda     L8842
-                adc     L8835
+                lda     ellipseAccumulatedShear+0
+                adc     product+1
                 php
-                lda     L8843
-                adc     L8836
-                sta     vduv.workspace._3E
-                lda     L8844
-                adc     L8837
-                sta     vduv.workspace._3F
+                lda     ellipseAccumulatedShear+1
+                adc     product+2
+                sta     vduv.ew.pointB+0
+                lda     ellipseAccumulatedShear+2
+                adc     product+3
+                sta     vduv.ew.pointB+1
                 plp
-                bpl     LBC8E
-                inc     vduv.workspace._3E
-                bne     LBC8E
-                inc     vduv.workspace._3F
-
-LBC8E:
+                bpl     +
+                inc     vduv.ew.pointB+0
+                bne     +
+                inc     vduv.ew.pointB+1
++
                 sec
-                lda     L8842
-                sbc     L8835
+                lda     ellipseAccumulatedShear+0
+                sbc     product+1
                 php
-                lda     L8843
-                sbc     L8836
-                sta     vduv.workspace._3C
-                lda     L8844
-                sbc     L8837
-                sta     vduv.workspace._3D
+                lda     ellipseAccumulatedShear+1
+                sbc     product+2
+                sta     vduv.ew.pointA+0
+                lda     ellipseAccumulatedShear+2
+                sbc     product+3
+                sta     vduv.ew.pointA+1
                 plp
-                bpl     LBCB3
-                inc     vduv.workspace._3C
-                bne     LBCB3
-                inc     vduv.workspace._3D
-
-LBCB3:
+                bpl     +
+                inc     vduv.ew.pointA+0
+                bne     +
+                inc     vduv.ew.pointA+1
++
+                
                 clc
-                lda     L8845
-                adc     L8849
-                sta     L8849
-                lda     L8846
-                adc     L884A
-                sta     L884A
-                lda     L8847
-                adc     L884B
-                sta     L884B
-                lda     L8848
-                adc     L884C
-                sta     L884C
+                lda     ellipseCountOddNumbers+0
+                adc     ellipseCountSquares+0
+                sta     ellipseCountSquares+0
+                lda     ellipseCountOddNumbers+1
+                adc     ellipseCountSquares+1
+                sta     ellipseCountSquares+1
+                lda     ellipseCountOddNumbers+2
+                adc     ellipseCountSquares+2
+                sta     ellipseCountSquares+2
+                lda     ellipseCountOddNumbers+3
+                adc     ellipseCountSquares+3
+                sta     ellipseCountSquares+3
                 clc
                 lda     #2
-                adc     L8845
-                sta     L8845
-                bcc     LBCF0
-                inc     L8846
-                bne     LBCF0
-                inc     L8847
-                bne     LBCF0
-                inc     L8848
-
-LBCF0:
+                adc     ellipseCountOddNumbers+0
+                sta     ellipseCountOddNumbers+0
+                bcc     +
+                inc     ellipseCountOddNumbers+1
+                bne     +
+                inc     ellipseCountOddNumbers+2
+                bne     +
+                inc     ellipseCountOddNumbers+3
++
                 clc
-                lda     L8842
-                adc     vduv.workspace._2B
-                sta     L8842
-                lda     L8843
-                adc     vduv.workspace._2C
-                sta     L8843
-                lda     L8844
-                adc     vduv.workspace._2D
-                sta     L8844
+                lda     ellipseAccumulatedShear+0
+                adc     vduv.ew.shear+0
+                sta     ellipseAccumulatedShear+0
+                lda     ellipseAccumulatedShear+1
+                adc     vduv.ew.shear+1
+                sta     ellipseAccumulatedShear+1
+                lda     ellipseAccumulatedShear+2
+                adc     vduv.ew.shear+2
+                sta     ellipseAccumulatedShear+2
                 inc     ellipseCountHeight+0
-                bne     LBD14
+                bne     +
                 inc     ellipseCountHeight+1
-
-LBD14:
++
                 lda     vduv.workspace._2E
-                bne     LBD1C
+                bne     +
                 dec     vduv.workspace._2F
-
-LBD1C:
++
                 dec     vduv.workspace._2E
                 rts
 
@@ -615,9 +601,12 @@ LBDF8:
 
 
 
+;-------------------------------------------------------------------------
+;
+; https://tobylobster.github.io/GXR-pages/gxr/S-s24.html#SP3
+; 
 
-
-LBDFA:
+negateVDUVariableXIntoY:
                 sec
                 lda     #0
                 sbc     vduv+0,x
@@ -627,49 +616,43 @@ LBDFA:
                 sta     vduv+1,y
                 rts
 
+;-------------------------------------------------------------------------
 
-
-
-
-
-LBE0C:
-                ldy     #$17
-                stz     L8839
-                stz     L8838
-                stz     L8837
-                lsr     L8836
-                ror     L8835
-                ror     L8834
+multiply24x24:
+                ldy     #23
+                stz     product+5
+                stz     product+4
+                stz     product+3
+                lsr     multiplier+2
+                ror     multiplier+1
+                ror     multiplier+0
 
 LBE20:
                 bcc     LBE3E
                 clc
-                lda     L8830
-                adc     L8837
-                sta     L8837
-                lda     L8831
-                adc     L8838
-                sta     L8838
-                lda     L8832
-                adc     L8839
-                sta     L8839
+                lda     multiplicand+0
+                adc     product+3
+                sta     product+3
+                lda     multiplicand+1
+                adc     product+4
+                sta     product+4
+                lda     multiplicand+2
+                adc     product+5
+                sta     product+5
 
 LBE3E:
                 clc
                 ldx     #5
 
 LBE41:
-                ror     $8834,x
+                ror     product,x
                 dex
                 bpl     LBE41
                 dey
                 bpl     LBE20
                 rts
 
-
-
-
-
+;-------------------------------------------------------------------------
 
 LBE4B:
                 ldx     #3
@@ -801,7 +784,7 @@ LBEF1:
 LBEF3:
                 pla
 
-                ldy     #VDUVariables.ew.halfHeightSquared+0
+                ldy     #VDUVariables.mocr.L30
                 sty     ZTEMP+0
                 ldy     #VDUVariables.mocr.src.min
                 jsr     mos.addRegionDimensionToVDUVariableCoordinate
@@ -826,16 +809,16 @@ LBEF3:
 
 LBF18:
                 pla
-                ldy     #VDUVariables.ew.pointE
+                ldy     #VDUVariables.mocr.L40
                 sty     ZTEMP+0
-                ldy     #VDUVariables.ew.leftPoint
+                ldy     #VDUVariables.mocr.dest.max.x
                 jsr     mos.addRegionDimensionToVDUVariableCoordinate
-                lda     vduv.workspace._40
-                cmp     vduv.workspace._3C
-                lda     vduv.workspace._41
-                sbc     vduv.workspace._3D
+                lda     vduv.mocr.L40
+                cmp     vduv.mocr.L3C
+                lda     vduv.mocr.L40+1
+                sbc     vduv.mocr.L3C+1
                 bpl     LBF40
-                lda     vduv.workspace._45
+                lda     vduv.mocr.copy
                 bne     LBF38
                 jsr     mos.LC420
 
@@ -846,16 +829,16 @@ LBF38:
 
 
 LBF40:
-                stz     vduv.workspace._47
-                lda     vduv.ew.halfHeightSquared+0
+                stz     vduv.mocr.L47
+                lda     vduv.mocr.L30
                 and     vduv.pixelsPerByteMinusOne
                 sta     ZTEMP+0
-                lda     vduv.workspace._3C
+                lda     vduv.mocr.L3C
                 and     vduv.pixelsPerByteMinusOne
                 sec
                 sbc     ZTEMP+0
                 bpl     LBF5C
-                dec     vduv.workspace._47
+                dec     vduv.mocr.L47
                 and     vduv.pixelsPerByteMinusOne
 
 LBF5C:
@@ -864,28 +847,28 @@ LBF5C:
                 eor     #$ff
                 inc     a
                 and     vduv.pixelsPerByteMinusOne
-                sta     vduv.ew.currentOffsetX+0
+                sta     vduv.mocr.shiftToNextByte
                 pla
                 clc
                 adc     vduv.pixelsPerByteMinusOne
                 tax
                 lda     mos.LE120,x
                 sta     ZTEMPD+1
-                ldx     #VDUVariables.ew.pointA
-                ldy     #VDUVariables.ew.pointE
+                ldx     #VDUVariables.mocr.L3C
+                ldy     #VDUVariables.mocr.L40
                 jsr     mos.LDA9C
-                sta     vduv.workspace._44
+                sta     vduv.mocr.L44
                 lda     ZMASK
-                sta     vduv.workspace._46
+                sta     vduv.mocr.L46
                 lda     ZTEMPB+0
                 sta     ZTEMPD+0
                 ldx     #0
                 jsr     LBFE6
                 beq     LBFCE
-                lda     vduv.workspace._2A
-                cmp     vduv.workspace._36
-                lda     vduv.workspace._2B
-                sbc     vduv.workspace._37
+                lda     vduv.mocr.src.min.y+0
+                cmp     vduv.mocr.dest.min.y+0
+                lda     vduv.mocr.src.min.y+1
+                sbc     vduv.mocr.dest.min.y+1
                 bvc     LBF9E
                 eor     #$80
 
@@ -921,39 +904,25 @@ LBFBF:
 LBFCE:
                 jmp     mos.LDB62
 
-
-
-
 LBFD1:
-                inc     vduv.workspace._2A,x
+                inc     vduv.mocr.src.min.y+0,x
                 bne     LBFE6
-                inc     vduv.workspace._2B,x
+                inc     vduv.mocr.src.min.y+1,x
                 bra     LBFE6
 
-
-
-
-
-
 LBFDB:
-                lda     vduv.workspace._2A,x
+                lda     vduv.mocr.src.min.y+0,x
                 bne     LBFE3
-                dec     vduv.workspace._2B,x
+                dec     vduv.mocr.src.min.y+1,x
 
 LBFE3:
-                dec     vduv.workspace._2A,x
-
-
-
-
-
-
+                dec     vduv.mocr.src.min.y+0,x
 LBFE6:
-                lda     vduv.workspace._2A,x
-                cmp     vduv.workspace._2E,x
+                lda     vduv.mocr.src.min.y+0,x
+                cmp     vduv.mocr.src.max.y+0,x
                 bne     rtsBFF4
-                lda     vduv.workspace._2B,x
-                cmp     vduv.workspace._2F,x
+                lda     vduv.mocr.src.min.y+1,x
+                cmp     vduv.mocr.src.max.y+1,x
 
 rtsBFF4:
                 rts

@@ -27,7 +27,7 @@ build_script:
   - zip -9 "../$OUTPUT_LST_ARCHIVE" *.lst
   - popd
   - zip -9j "$OUTPUT_NT_ARCHIVE" "docs/README.txt"
-  - zip- 9j "$OUTPUT_LST_ARCHIVE" "docs/README.txt"
+  - zip -9j "$OUTPUT_LST_ARCHIVE" "docs/README.txt"
   - env
     
 artifacts:

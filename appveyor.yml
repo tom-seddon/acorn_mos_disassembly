@@ -21,10 +21,12 @@ install:
 
 build_script:
   - ps: $env:OUTPUT_LST_ARCHIVE="acorn-mos-disassembly-lst."+$env:SUFFIX+".zip"
-  - ps: $env:OUTPUT_NT_ARCHIVE="acorn-mos-disassembly-NT."+$env:SUFFIX$+".zip"
+  - ps: $env:OUTPUT_NT_ARCHIVE="acorn-mos-disassembly-NT."+$env:SUFFIX+".zip"
   - ps: make VERBOSE=1 TASSCMD=$HOME/tass64-code/64tass
-  - cd build && zip -9r "../$OUTPUT_NT_ARCHIVE" 320nt 350nt
-  - cd build && zip -9r "../$OUTPUT_LST_ARCHIVE" *.lst
+  - pushd build
+  - zip -9r "../$OUTPUT_NT_ARCHIVE" 320nt 350nt
+  - zip -9r "../$OUTPUT_LST_ARCHIVE" *.lst
+  - popd
   - env
     
 artifacts:

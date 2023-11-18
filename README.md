@@ -57,6 +57,9 @@ https://tobylobster.github.io/mos/ has provided most comments and
 symbol names for the bits that haven't changed (or haven't changed
 much) since OS 1.20.
 
+https://tobylobster.github.io/GXR-pages/index.html has provided symbol
+names for some of the bits similar to the the GXR ROM.
+
 # the other MOS parts?
 
 There are disassemblies or source code available for some versions of

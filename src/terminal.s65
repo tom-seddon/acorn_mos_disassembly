@@ -2626,7 +2626,7 @@ L99D6:
                 jsr mos.LD280
                 plx
 L99DB:
-                jmp mos.LDB4C
+                jmp mos.plotPointInternal
 
 L99DE:
                 ldx #$03

@@ -984,6 +984,7 @@ graphicsCursorPixelsX: .fill 2
 graphicsCursorPixelsY: .fill 2
 ; &28–&49 Workspace. But variable &38 must not be used in a Teletext mode (mode 7 or 135).
                 .union
+ew: .dstruct EllipseWorkspaceVDUVariables
 hlfw: .dstruct HorizontalLineFillWorkspaceVDUVariables
 mocr: .dstruct MoveOrCopyRectangleWorkspaceVDUVariables
 workspace: .dstruct GenericWorkspaceVDUVariables
@@ -1179,6 +1180,39 @@ _48:
 _49:
                 .fill 1
                 .endstruct
+
+EllipseWorkspaceVDUVariables: .struct
+                ; https://tobylobster.github.io/GXR-pages/gxr/S-s3.html#SP4
+aspectRatio:
+                .fill 3
+shear:
+                .fill 3
+halfHeightCounter:
+                .fill 2
+halfHeightSquared:
+                .fill 4
+pointC:
+                .fill 2
+pointD:
+                .fill 2
+leftPoint:
+                .fill 2
+rightPoint:
+                .fill 2
+pointA:
+                .fill 2
+pointB:
+                .fill 2
+pointE:
+                .fill 2
+currentOffsetX:
+                .fill 2
+plotPointX:
+pointF:
+                .fill 2
+plotPointY:
+                .fill 2
+                .endstruct
                 
 HorizontalLineFillWorkspaceZP: .struct
 notByteMatch: .fill 1
@@ -1308,8 +1342,7 @@ L8849=$8849
 L884A=$884a
 L884B=$884b
 L884C=$884c
-L884D=$884d
-L884E=$884e
+ellipseCountHeight=$884d
 
                 ; written to during startup
 LFE8E=$fe8e

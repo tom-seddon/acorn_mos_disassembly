@@ -3,122 +3,120 @@
 ext: .block
 
 plotEllipseOutline:
-                jsr     LBB2F
+                ; https://tobylobster.github.io/GXR-pages/gxr/S-s23.html#SP1
+                jsr     ellipseInitialisation
                 .if version<500
-                bra     LBA08
+                bra     startEllipseOutline
                 .elsif version>=500
-                jmp LBA08
+                jmp startEllipseOutline
                 .endif
 
-LBA05:
-                jsr     LBBE9
+ellipseOutlineLoop:
+                jsr     updateEllipseIncrementally
 
-LBA08:
-                ldx     #VDUVariables.workspace._34
-                ldy     #VDUVariables.workspace._3C
+startEllipseOutline:
+                ldx     #VDUVariables.ew.pointC
+                ldy     #VDUVariables.ew.pointA
                 jsr     mos.sortVDUVariableWords
                 .if version!=350
-                ldx     #VDUVariables.workspace._38
+                ldx     #VDUVariables.ew.leftPoint
                 .endif
                 .if version<500&&version!=350
                 lda     vduv+1,x
                 .else
-                lda vduv.workspace._39
+                lda vduv.ew.leftPoint+1
                 .endif
-                sta     vduv.workspace._43
+                sta     vduv.ew.currentOffsetX+1
                 .if version<500&&version!=350
                 lda     vduv+0,x
                 tax
                 .else
-                ldx vduv.workspace._38
+                ldx vduv.ew.leftPoint+0
                 .endif
 
-LBA1B:
-                stx     vduv.workspace._42
-                jsr     LBD20
+ellipseOutlineContinueRowLoop:
+                stx     vduv.ew.currentOffsetX+0
+                jsr     outlineEllipsePlotOnePointAndReflection
                 inx
-                bne     LBA27
-                inc     vduv.workspace._43
-
-LBA27:
+                bne     +
+                inc     vduv.ew.currentOffsetX+1
++
                 txa
                 cmp     vduv+0,y
-                lda     vduv.workspace._43
+                lda     vduv.ew.currentOffsetX+1
                 sbc     vduv+1,y
-                bmi     LBA1B
+                bmi     ellipseOutlineContinueRowLoop
                 .if version<500&&version!=350
-                ldx     #VDUVariables.workspace._36
-                ldy     #VDUVariables.workspace._3E
+                ldx     #VDUVariables.ew.pointD
+                ldy     #VDUVariables.ew.pointB
                 jsr     mos.sortVDUVariableWords
-                ldy     #VDUVariables.workspace._3A
+                ldy     #VDUVariables.ew.rightPoint
                 lda     vduv+1,y
-                sta     vduv.workspace._43
+                sta     vduv.ew.currentOffsetX+1
                 lda     vduv+0,y
                 tay
 
 LBA46:
-                sty     vduv.workspace._42
-                jsr     LBD20
+                sty     vduv.ew.currentOffsetX+0
+                jsr     outlineEllipsePlotOnePointAndReflection
                 tya
-                bne     LBA52
-                dec     vduv.workspace._43
-
-LBA52:
+                bne     +
+                dec     vduv.ew.currentOffsetX+1
++
                 dey
                 clc
                 tya
                 sbc     vduv+0,x
-                lda     vduv.workspace._43
+                lda     vduv.ew.currentOffsetX+1
                 sbc     vduv+1,x
                 bpl     LBA46
                 lda     vduv.workspace._2F
-                bpl     LBA05
+                bpl     ellipseOutlineLoop
                 bra     LBA7B
 
                 .else
 
-                ldy vduv.workspace._43
+                ldy vduv.ew.currentOffsetX+1
                 txa
-                bne LAF06
+                bne +
                 dey
-LAF06:
++
                 dex
-                stx vduv.workspace._34
-                sty vduv.workspace._35
+                stx vduv.ew.pointC+0
+                sty vduv.ew.pointC+1
                 txa
-                cmp vduv.workspace._3A
+                cmp vduv.ew.rightPoint+0
                 tya
-                sbc vduv.workspace._3B
+                sbc vduv.ew.rightPoint+1
                 bpl LAF47
-                ldx #VDUVariables.workspace._36
-                ldy #VDUVariables.workspace._3E
+                ldx #VDUVariables.ew.pointD
+                ldy #VDUVariables.ew.pointB
                 jsr mos.sortVDUVariableWords
-                ldy #VDUVariables.workspace._34
+                ldy #VDUVariables.ew.pointC
                 jsr mos.sortVDUVariableWords
-                lda vduv.workspace._3B
-                sta vduv.workspace._43
-                lda vduv.workspace._3A
+                lda vduv.ew.rightPoint+1
+                sta vduv.ew.currentOffsetX+1
+                lda vduv.ew.rightPoint+0
                 tax
 LAF2D:
-                stx vduv.workspace._42
+                stx vduv.ew.currentOffsetX+0
 LAF30:
-                jsr LBD20
+                jsr outlineEllipsePlotOnePointAndReflection
                 txa
-                bne LAF39
-                dec vduv.workspace._43
-
-LAF39:
+                bne +
+                dec vduv.ew.currentOffsetX+1
++
                 dex
                 clc
                 txa
                 sbc vduv+0,y
-                lda vduv.workspace._43
+                lda vduv.ew.currentOffsetX+1
                 sbc vduv+1,y
                 bpl LAF2D
 
 LAF47:
                 lda vduv.workspace._2F
-                bpl LBA05
+                bpl ellipseOutlineLoop
                 .if version==350
                 bra LBA7B
                 .else
@@ -128,28 +126,28 @@ LAF47:
                 .endif
 
 plotSolidEllipse:
-                jsr     LBB2F
+                jsr     ellipseInitialisation
                 bra     LBA6F
 
 
 LBA6C:
-                jsr     LBBE9
+                jsr     updateEllipseIncrementally
 
 LBA6F:
-                ldx     #VDUVariables.workspace._3A
-                ldy     #VDUVariables.workspace._38
+                ldx     #VDUVariables.ew.rightPoint
+                ldy     #VDUVariables.ew.leftPoint
                 jsr     LBA87
                 lda     vduv.workspace._2F
                 bpl     LBA6C
 
 LBA7B:
-                inc     L884D
+                inc     ellipseCountHeight+0
                 bne     LBA83
-                inc     L884E
+                inc     ellipseCountHeight+1
 
 LBA83:
-                ldx     #VDUVariables.workspace._3E
-                ldy     #VDUVariables.workspace._3C
+                ldx     #VDUVariables.ew.pointB
+                ldy     #VDUVariables.ew.pointA
 
 
 
@@ -176,15 +174,15 @@ LBA87:
                 sta     vduv.workspace._45
                 clc
                 lda     vduv.oldGraphicsCursorPixelsY+0
-                adc     L884D
+                adc     ellipseCountHeight+0
                 tay
                 lda     vduv.oldGraphicsCursorPixelsY+1
-                adc     L884E
+                adc     ellipseCountHeight+1
                 jsr     LBAFE
                 ply
                 plx
-                lda     L884D
-                ora     L884E
+                lda     ellipseCountHeight+0
+                ora     ellipseCountHeight+1
                 beq     rtsBB11
                 sec
                 lda     vduv.oldGraphicsCursorPixelsX+0
@@ -202,10 +200,10 @@ LBA87:
                 sta     vduv.workspace._45
                 sec
                 lda     vduv.oldGraphicsCursorPixelsY+0
-                sbc     L884D
+                sbc     ellipseCountHeight+0
                 tay
                 lda     vduv.oldGraphicsCursorPixelsY+1
-                sbc     L884E
+                sbc     ellipseCountHeight+1
 
 
 
@@ -214,11 +212,11 @@ LBA87:
 
 LBAFE:
                 sty     vduv.workspace._46
-                sty     vduv.workspace._42
+                sty     vduv.ew.currentOffsetX+0
                 sta     vduv.workspace._47
-                sta     vduv.workspace._43
-                ldx     #VDUVariables.workspace._44
-                ldy     #VDUVariables.workspace._40
+                sta     vduv.ew.currentOffsetX+1
+                ldx     #VDUVariables.ew.pointF
+                ldy     #VDUVariables.ew.pointE
                 jmp     mos.LDAE8
 
 
@@ -234,26 +232,24 @@ rtsBB11:
 LBB12:
                 pla
                 pla
-                stz     L884D
-                stz     L884E
+                stz     ellipseCountHeight+0
+                stz     ellipseCountHeight+1
                 ldx     #VDUVariables.workspace._29
-                ldy     #VDUVariables.workspace._40
+                ldy     #VDUVariables.ew.pointE
                 jsr     LBDFA
                 ldx     #VDUVariables.workspace._29
-                ldy     #VDUVariables.workspace._44
+                ldy     #VDUVariables.ew.pointF
                 jsr     mos.copyTwoBytesWithinVDUVariables
-                ldx     #VDUVariables.workspace._44
-                ldy     #VDUVariables.workspace._40
+                ldx     #VDUVariables.ew.pointF
+                ldy     #VDUVariables.ew.pointE
                 jmp     LBA87
 
 
 
 
 
-LBB2F:
-
-
-
+ellipseInitialisation:
+                ; https://tobylobster.github.io/GXR-pages/gxr/S-s23.html#SP5
                 ldy     #VDUVariables.graphicsCursorPixelsX
                 ldx     #VDUVariables.oldGraphicsCursorPixelsX
                 lda     #VDUVariables.workspace._29
@@ -261,7 +257,7 @@ LBB2F:
                 stz     vduv.workspace._28
                 ldy     #VDUVariables.queueEnd-2
                 ldx     #VDUVariables.oldGraphicsCursorPixelsY
-                lda     #VDUVariables.workspace._2E
+                lda     #VDUVariables.ew.halfHeightCounter
                 jsr     mos.LD678
                 lda     vduv.workspace._2E
                 ora     vduv.workspace._2F
@@ -270,18 +266,18 @@ LBB2F:
                 sta     L8841
                 ldy     #VDUVariables.queueEnd-4
                 ldx     #VDUVariables.oldGraphicsCursorPixelsX
-                lda     #VDUVariables.workspace._2C
+                lda     #VDUVariables.ew.shear+1
                 jsr     mos.LD678
                 stz     vduv.workspace._2B
                 rol     a
                 eor     L8841
                 and     #1
                 sta     L8841
-                ldx     #VDUVariables.workspace._28
-                ldy     #VDUVariables.workspace._2E
+                ldx     #VDUVariables.ew.aspectRatio
+                ldy     #VDUVariables.ew.halfHeightCounter
                 jsr     LBD83
-                ldx     #VDUVariables.workspace._2B
-                ldy     #VDUVariables.workspace._2E
+                ldx     #VDUVariables.ew.shear
+                ldy     #VDUVariables.ew.halfHeightCounter
                 jsr     LBD83
                 lda     L8841
                 beq     LBB86
@@ -314,94 +310,93 @@ LBB9F:
                 dex
                 bpl     LBB9F
                 inc     L8845
-                jsr     LBC18
-                jsr     LBC18
-                stz     L884D
-                stz     L884E
-                ldx     #VDUVariables.workspace._3C
-                ldy     #VDUVariables.workspace._36
+                jsr     updateEllipse
+                jsr     updateEllipse
+                stz     ellipseCountHeight+0
+                stz     ellipseCountHeight+1
+                ldx     #VDUVariables.ew.pointA
+                ldy     #VDUVariables.ew.pointD
                 jsr     LBDFA
-                ldx     #VDUVariables.workspace._3E
-                ldy     #VDUVariables.workspace._34
+                ldx     #VDUVariables.ew.pointB
+                ldy     #VDUVariables.ew.pointC
                 jsr     LBDFA
-                ldx     #VDUVariables.workspace._3C
-                ldy     #VDUVariables.workspace._3A
+                ldx     #VDUVariables.ew.pointA
+                ldy     #VDUVariables.ew.rightPoint
                 jsr     mos.compareVDUVariableWords
                 bpl     LBBD2
                 jsr     mos.copyTwoBytesWithinVDUVariables
-                ldx     #VDUVariables.workspace._36
+                ldx     #VDUVariables.ew.pointD
                 bra     LBBE4
 
 
 LBBD2:
-                ldx     #VDUVariables.workspace._38
-                ldy     #VDUVariables.workspace._3E
+                ldx     #VDUVariables.ew.leftPoint
+                ldy     #VDUVariables.ew.pointB
                 jsr     mos.compareVDUVariableWords
                 bpl     rtsBC17
-                ldx     #VDUVariables.workspace._34
-                ldy     #VDUVariables.workspace._3A
+                ldx     #VDUVariables.ew.pointC
+                ldy     #VDUVariables.ew.rightPoint
                 jsr     mos.copyTwoBytesWithinVDUVariables
-                ldx     #VDUVariables.workspace._3E
+                ldx     #VDUVariables.ew.pointB
 
 LBBE4:
-                ldy     #VDUVariables.workspace._38
+                ldy     #VDUVariables.ew.leftPoint
                 jmp     mos.copyTwoBytesWithinVDUVariables
 
+;-------------------------------------------------------------------------
+;
+; https://tobylobster.github.io/GXR-pages/gxr/S-s23.html#SP6
+;
 
-
-
-
-
-LBBE9:
-
-                jsr     LBC18
-                ldy     #VDUVariables.workspace._3A
-                ldx     #VDUVariables.workspace._3C
+updateEllipseIncrementally:
+                jsr     updateEllipse
+                ldy     #VDUVariables.ew.rightPoint
+                ldx     #VDUVariables.ew.pointA
                 jsr     mos.compareVDUVariableWords
                 bpl     LBC02
-                lda     vduv.workspace._3C
-                sta     vduv.workspace._3A
-                lda     vduv.workspace._3D
-                sta     vduv.workspace._3B
+                lda     vduv.ew.pointA+0
+                sta     vduv.ew.rightPoint+0
+                lda     vduv.ew.pointA+1
+                sta     vduv.ew.rightPoint+1
                 rts
 
-
 LBC02:
-                ldx     #VDUVariables.workspace._38
-                ldy     #VDUVariables.workspace._3E
+                ldx     #VDUVariables.ew.leftPoint
+                ldy     #VDUVariables.ew.pointB
                 jsr     mos.compareVDUVariableWords
                 bpl     rtsBC17
-                lda     vduv.workspace._3E
-                sta     vduv.workspace._38
-                lda     vduv.workspace._3F
-                sta     vduv.workspace._39
+                lda     vduv.ew.pointB+0
+                sta     vduv.ew.leftPoint+0
+                lda     vduv.ew.pointB+1
+                sta     vduv.ew.leftPoint+1
 
 rtsBC17:
                 rts
 
+;-------------------------------------------------------------------------
+;
+; https://tobylobster.github.io/GXR-pages/gxr/S-s23.html#SP7
+;
 
-
-
-
-
-LBC18:
-                ldx     #VDUVariables.workspace._38
-                ldy     #VDUVariables.workspace._34
+updateEllipse:
+                ldx     #VDUVariables.ew.leftPoint
+                ldy     #VDUVariables.ew.pointC
                 jsr     mos.copyFourBytesWithinVDUVariables
-                ldx     #VDUVariables.workspace._3C
-                ldy     #VDUVariables.workspace._38
+                ldx     #VDUVariables.ew.pointA
+                ldy     #VDUVariables.ew.leftPoint
                 jsr     mos.copyFourBytesWithinVDUVariables
+                
                 sec
-                lda     vduv.workspace._30
+                lda     vduv.ew.halfHeightSquared+0
                 sbc     L8849
                 sta     L8836
-                lda     vduv.workspace._31
+                lda     vduv.ew.halfHeightSquared+1
                 sbc     L884A
                 sta     L8837
-                lda     vduv.workspace._32
+                lda     vduv.ew.halfHeightSquared+2
                 sbc     L884B
                 sta     L8838
-                lda     vduv.workspace._33
+                lda     vduv.ew.halfHeightSquared+3
                 sbc     L884C
                 sta     L8839
                 stz     L8835
@@ -483,9 +478,9 @@ LBCF0:
                 lda     L8844
                 adc     vduv.workspace._2D
                 sta     L8844
-                inc     L884D
+                inc     ellipseCountHeight+0
                 bne     LBD14
-                inc     L884E
+                inc     ellipseCountHeight+1
 
 LBD14:
                 lda     vduv.workspace._2E
@@ -496,59 +491,62 @@ LBD1C:
                 dec     vduv.workspace._2E
                 rts
 
-
-
-
-
-
-LBD20:
+;-------------------------------------------------------------------------
+; 
+; https://tobylobster.github.io/GXR-pages/gxr/S-s23.html#SP8
+; 
+outlineEllipsePlotOnePointAndReflection: .block
                 phx
                 phy
-                clc
-                lda     vduv.oldGraphicsCursorPixelsX+0
-                adc     vduv.workspace._42
-                sta     vduv.workspace._44
-                lda     vduv.oldGraphicsCursorPixelsX+1
-                adc     vduv.workspace._43
-                sta     vduv.workspace._45
-                clc
-                lda     vduv.oldGraphicsCursorPixelsY+0
-                adc     L884D
-                sta     vduv.workspace._46
-                lda     vduv.oldGraphicsCursorPixelsY+1
-                adc     L884E
-                sta     vduv.workspace._47
-                ldx     #VDUVariables.workspace._44
-                jsr     mos.LDB4C
-                lda     L884D
-                ora     L884E
-                beq     LBD80
-                sec
-                lda     vduv.oldGraphicsCursorPixelsX+0
-                sbc     vduv.workspace._42
-                sta     vduv.workspace._44
-                lda     vduv.oldGraphicsCursorPixelsX+1
-                sbc     vduv.workspace._43
-                sta     vduv.workspace._45
-                sec
-                lda     vduv.oldGraphicsCursorPixelsY+0
-                sbc     L884D
-                sta     vduv.workspace._46
-                lda     vduv.oldGraphicsCursorPixelsY+1
-                sbc     L884E
-                sta     vduv.workspace._47
-                ldx     #VDUVariables.workspace._44
-                jsr     mos.LDB4C
 
-LBD80:
+                clc
+                lda     vduv.oldGraphicsCursorPixelsX+0
+                adc     vduv.ew.currentOffsetX+0
+                sta     vduv.ew.plotPointX+0
+                lda     vduv.oldGraphicsCursorPixelsX+1
+                adc     vduv.ew.currentOffsetX+1
+                sta     vduv.ew.plotPointX+1
+                
+                clc
+                lda     vduv.oldGraphicsCursorPixelsY+0
+                adc     ellipseCountHeight+0
+                sta     vduv.ew.plotPointY+0
+                lda     vduv.oldGraphicsCursorPixelsY+1
+                adc     ellipseCountHeight+1
+                sta     vduv.ew.plotPointY+1
+                
+                ldx     #VDUVariables.ew.plotPointX
+                jsr     mos.plotPointInternal
+                
+                lda     ellipseCountHeight+0
+                ora     ellipseCountHeight+1
+                beq     done
+                
+                sec
+                lda     vduv.oldGraphicsCursorPixelsX+0
+                sbc     vduv.ew.currentOffsetX+0
+                sta     vduv.ew.plotPointX+0
+                lda     vduv.oldGraphicsCursorPixelsX+1
+                sbc     vduv.ew.currentOffsetX+1
+                sta     vduv.ew.plotPointX+1
+                
+                sec
+                lda     vduv.oldGraphicsCursorPixelsY+0
+                sbc     ellipseCountHeight+0
+                sta     vduv.ew.plotPointY+0
+                lda     vduv.oldGraphicsCursorPixelsY+1
+                sbc     ellipseCountHeight+1
+                sta     vduv.ew.plotPointY+1
+                
+                ldx     #VDUVariables.ew.plotPointX
+                jsr     mos.plotPointInternal
+done:
                 ply
                 plx
                 rts
+                .endblock
 
-
-
-
-
+;-------------------------------------------------------------------------
 
 LBD83:
                 phx
@@ -803,12 +801,12 @@ LBEF1:
 LBEF3:
                 pla
 
-                ldy     #VDUVariables.workspace._30
+                ldy     #VDUVariables.ew.halfHeightSquared+0
                 sty     ZTEMP+0
                 ldy     #VDUVariables.mocr.src.min
                 jsr     mos.addRegionDimensionToVDUVariableCoordinate
 
-                ldy     #VDUVariables.workspace._3C
+                ldy     #VDUVariables.ew.pointA
                 sty     ZTEMP+0
 
                 ldy     #VDUVariables.mocr.dest.min
@@ -828,9 +826,9 @@ LBEF3:
 
 LBF18:
                 pla
-                ldy     #VDUVariables.workspace._40
+                ldy     #VDUVariables.ew.pointE
                 sty     ZTEMP+0
-                ldy     #VDUVariables.workspace._38
+                ldy     #VDUVariables.ew.leftPoint
                 jsr     mos.addRegionDimensionToVDUVariableCoordinate
                 lda     vduv.workspace._40
                 cmp     vduv.workspace._3C
@@ -849,7 +847,7 @@ LBF38:
 
 LBF40:
                 stz     vduv.workspace._47
-                lda     vduv.workspace._30
+                lda     vduv.ew.halfHeightSquared+0
                 and     vduv.pixelsPerByteMinusOne
                 sta     ZTEMP+0
                 lda     vduv.workspace._3C
@@ -861,20 +859,20 @@ LBF40:
                 and     vduv.pixelsPerByteMinusOne
 
 LBF5C:
-                sta     vduv.workspace._43
+                sta     vduv.ew.currentOffsetX+1
                 pha
                 eor     #$ff
                 inc     a
                 and     vduv.pixelsPerByteMinusOne
-                sta     vduv.workspace._42
+                sta     vduv.ew.currentOffsetX+0
                 pla
                 clc
                 adc     vduv.pixelsPerByteMinusOne
                 tax
                 lda     mos.LE120,x
                 sta     ZTEMPD+1
-                ldx     #VDUVariables.workspace._3C
-                ldy     #VDUVariables.workspace._40
+                ldx     #VDUVariables.ew.pointA
+                ldy     #VDUVariables.ew.pointE
                 jsr     mos.LDA9C
                 sta     vduv.workspace._44
                 lda     ZMASK

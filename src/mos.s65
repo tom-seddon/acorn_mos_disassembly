@@ -5176,7 +5176,7 @@ LDB44:
 ;
 plotPoint:
                 ldx #VDUVariables.queueEnd-4
-LDB4C:
+plotPointInternal:
                 jsr windGADDR
                 bne rtsDB61                  ;taken if point outside window
 plbyteEntryPoint:

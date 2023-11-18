@@ -25,8 +25,8 @@ build_script:
   - pushd build
   - zip -9r "../$OUTPUT_NT_ARCHIVE" 320nt 350nt
   - popd
-  - zip -9j "$OUTPUT_NT_ARCHIVE" "docs/README.txt" "lst/mos320nt.lst" "lst/mos350nt.lst"
-  - rm "lst/mos320nt.lst" "lst/mos350nt.lst"
+  - zip -9j "$OUTPUT_NT_ARCHIVE" "docs/README.txt" "build/mos320nt.lst" "build/mos350nt.lst"
+  - rm "build/mos320nt.lst" "build/mos350nt.lst"
   - pushd build
   - zip -9 "../$OUTPUT_LST_ARCHIVE" *.lst
   - popd

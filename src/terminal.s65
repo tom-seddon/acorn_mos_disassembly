@@ -523,7 +523,7 @@ starBASIC:
                 ldx basicROMNumber           ; Get BASIC ROM number
                 bmi passStarCommandThrough ; If no BASIC ROM, jump to pass to ROMs and filing system
                 .if version==350
-                jmp mos.LFAF9
+                jmp mos.osbyte8EWithoutRelocation
                 .elsif version<500
                 sec                          ;
                 jmp mos.osbyte8E             ; Enter ROM as a language
@@ -6231,7 +6231,7 @@ enterNewLanguage: .proc
                 
 transferPage:
                 .if version==350
-                jsr mos.LF9FA
+                jsr mos.relocateNextLanguageROMPage
                 .endif
                 php
                 sei
@@ -6244,7 +6244,7 @@ transferPage:
                 ldy #$00
                 .if version==350
 transferPageLoop:
-                lda $700,y
+                lda tubeRelocationBuffer,y
                 sta tube.data3
                 pha
                 pla
@@ -6278,7 +6278,7 @@ transferPageLoop:
 
                 ; copy done - execute language in parasite
                 .if version==350
-                jsr mos.LFB02
+                jsr mos.getLanguageParasiteAddrAndAssumeRelocatable
                 .else
                 jsr getLanguageParasiteAddr
                 .endif
@@ -6328,8 +6328,10 @@ getLanguageParasiteAddr: .proc
                 ldy $8000+3,x                  
                 lda $8000+4,x
 LAC60:
+                ; Y = parasite address bits 16-23
+                ; A = parasite address bits 24-31
                 .if version==350
-                jmp mos.LFA22
+                jmp mos.checkForTubeRelocationBitmap
                 .else
                 sta tubeLanguageParasiteAddr+3
                 sty tubeLanguageParasiteAddr+2

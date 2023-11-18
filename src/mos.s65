@@ -13453,189 +13453,202 @@ badCommandError:
                 .include "sram_access_helpers.s65"
                 .include "sram_access_helpers_2.s65"
 LF8D1: .LF8D1Macro
+                .endif
 
-LF9FA:
+;-------------------------------------------------------------------------
+;
+; Tube 6502 language ROM relocation
+;
+
+                .if version==350
+relocateNextLanguageROMPage: .block
                 ; TODO - all the 0/1/2/3 references here are
                 ; presumably tubeLanguageHostAddr
 
                 ldy #0
-                sty 0
+                sty tubeLanguageHostAddr+0
 
-LF9FE:
-                lda (0),y
-                ldx L04F9
-                beq LFA18
+loop:
+                lda (tubeLanguageHostAddr),y ; fetch byte from language ROM
+                ldx tubeRelocationPageOffset
+                beq gotByte                  ; taken if not relocating
                 .if finmos329
                 cmp #$80
                 .else
-                cmp #$7F        ; ''
+                ; Presumably somebody found at least one ROMs that
+                ; does lda $7fff,X (or similar), and so references to
+                ; page $7f also need accounting for.
+                cmp #$7F
                 .endif
-                bcc LFA18
-                cmp #$C0        ; ''
-                bcs LFA18
+                bcc gotByte ; taken if not potentially-relocatable byte
+                cmp #$C0
+                bcs gotByte ; taken if not potentially-relocatable byte
                 pha
-                jsr LFACE
+                jsr fetchTubeRelocationBitmapBit
                 pla
-                bcc LFA18
+                bcc gotByte ; taken if byte isn't actually to be relocated
                 clc
-                adc $4F9
-
-LFA18:
-                sta $700,y
+                adc tubeRelocationPageOffset ; adjust for relocation offset
+gotByte:
+                sta tubeRelocationBuffer,y
                 iny
-                bne LF9FE
-                inc @w 1
-                rts
-
-;-------------------------------------------------------------------------
-
-LFA22:
-                sta @w tubeLanguageParasiteAddr+3
-                sty @w tubeLanguageParasiteAddr+2
-                bit $f4
-                bvs LFA9D
-                lda $8006
-                and #$D
-                bne LFAAB
-                lda @w tubeLanguageParasiteAddr+3
-                sta @w 3
-                ora @w tubeLanguageParasiteAddr+2
-                beq LFAAB
-                lda @w tubeLanguageParasiteAddr+2
-                sta @w 2
-                ldy #2
-                lda (2),y
-                tax
-                dey
-                lda (2),y
-                tay
-                lda (2)
-                sta @w 2
-                sty @w 3
-                lda @w tubeLanguageParasiteAddr+1
-                sec
-                sbc #$80        ; ''
-                sta L04F9
-                stz @w tubeLanguageParasiteAddr+3
-                stz @w tubeLanguageParasiteAddr+2
-                txa
-                bpl LFA6A
-                clc
-                adc $f4
-
-LFA6A:
-                and #$F
-                sta L04F8
-                ldx $f4
-                phx
-                jsr selectROMA
-                jsr LFAAF
-                eor #$DE        ; ''
-                bne LFA97
-                jsr LFAAF
-                eor #$C0        ; ''
-                bne LFA97
-                sta L04F7
-                jsr LFAAF
-                sta L04F6
-                jsr LFAAF
-                sta L04F5
-                pla
-                jsr selectROMA
-                rts
-
-;-------------------------------------------------------------------------
-
-LFA97:
-                pla
-                jsr selectROMA
-                bra LFAAB
-
-;-------------------------------------------------------------------------
-
-LFA9D:
-                lda #$80        ; ''
-                sta @w tubeLanguageParasiteAddr+1
-                stz @w tubeLanguageParasiteAddr+0
-                stz @w tubeLanguageParasiteAddr+2
-                stz @w tubeLanguageParasiteAddr+3
-
-LFAAB:
-                stz L04F9
-                rts
-
-;-------------------------------------------------------------------------
-
-LFAAF:       .block
-                lda @w 2
-                php
-                dec @w 2
-                plp
-                bne LFABC
-                dec @w 3
-
-LFABC:
-                lda $f4
-                pha
-                lda L04F8
-                jsr selectROMA
-                lda (2)
-                tax
-                pla
-                jsr selectROMA
-                txa
+                bne loop
+                inc @w tubeLanguageHostAddr+1
                 rts
                 .endblock
 
 ;-------------------------------------------------------------------------
 
-LFACE:       .block
-                asl L04F7
-                bne locret_FADD
-                jsr LFADE
-                clc
-                beq locret_FADD
+checkForTubeRelocationBitmap:
+                sta @w tubeLanguageParasiteAddr+3 ; parasite address bits 24-31
+                sty @w tubeLanguageParasiteAddr+2 ; parasite address bits 16-23
+                bit $f4
+                bvs setTubeLanguageParasiteAddr00008000 ; taken if don't-relocate bit set
+                lda sidewaysROMType
+                and #~%0010&$0f              ; Z=1 if 6502 code
+                bne noTubeRelocationBitmap                    ; taken if not 6502 code
+                lda @w tubeLanguageParasiteAddr+3 ; parasite address bits 24-31
+                sta @w tubeRelocationBitmapPtr+1
+                ora @w tubeLanguageParasiteAddr+2 ; parasite address bits 16-31
+                beq noTubeRelocationBitmap     ; taken if parasite address is $0000xxxx
+                lda @w tubeLanguageParasiteAddr+2
+                sta @w tubeRelocationBitmapPtr+0
+                ; (2) is address of bitmap descriptor table
+                ldy #2
+                lda (tubeRelocationBitmapPtr),y ; get bitmap ROM number
+                tax                          ; X = bitmap ROM number
+                dey                          
+                lda (tubeRelocationBitmapPtr),y ; get pointer to byte after bitmap, MSB
+                tay            ; Y = pointer to byte after bitmap, MSB
+                lda (tubeRelocationBitmapPtr) ; get pointer to byte after bitmap, LSB
+                ; (tubeRelocationBitmapPtr) = pointer to byte after bitmap
+                sta @w tubeRelocationBitmapPtr+0
+                sty @w tubeRelocationBitmapPtr+1
+                lda @w tubeLanguageParasiteAddr+1
                 sec
-                rol L04F7
+                sbc #$80 ; $80 is of course the base page for a language ROM
+                sta tubeRelocationPageOffset
+                stz @w tubeLanguageParasiteAddr+3
+                stz @w tubeLanguageParasiteAddr+2
+                txa                     ; A = bitmap ROM number
+                bpl gotRelocationBitmapROMBank ; taken if absolute ROM number
+                clc
+                adc $f4     ; form ROM number from relative ROM number
+gotRelocationBitmapROMBank:
+                and #$F                      ; ROM numbers are 4 bits
+                sta tubeRelocationBitmapROMBank ; store ROM number containing relocation bitmap
+                ldx $f4
+                phx
+                jsr selectROMA          ; select ROM containing bitmap
+                jsr fetchTubeRelocationBitmapByte ; fetch hopefully $DE
+                eor #$DE                  ; check for $CODE identifier
+                bne invalidTubeRelocationBitmap                 ; taken if $CODE not found
+                jsr fetchTubeRelocationBitmapByte ;fetch hopefully $C0
+                eor #$C0                  ; check for $CODE identifier
+                bne invalidTubeRelocationBitmap ; taken if $CODE not found
+                sta tubeRelocationBitmapByte    ; A=0
+                jsr fetchTubeRelocationBitmapByte ; fetch bitmap size MSB
+                sta tubeRelocationBitmapSizeBytes+1
+                jsr fetchTubeRelocationBitmapByte ; fetch bitmap size LSB
+                sta tubeRelocationBitmapSizeBytes+0
+                pla
+                jsr selectROMA
+                rts
 
-locret_FADD:
+;-------------------------------------------------------------------------
+
+invalidTubeRelocationBitmap:
+                pla
+                jsr selectROMA
+                bra noTubeRelocationBitmap
+
+;-------------------------------------------------------------------------
+
+setTubeLanguageParasiteAddr00008000:
+                lda #$80
+                sta @w tubeLanguageParasiteAddr+1
+                stz @w tubeLanguageParasiteAddr+0
+                stz @w tubeLanguageParasiteAddr+2
+                stz @w tubeLanguageParasiteAddr+3
+noTubeRelocationBitmap:
+                stz tubeRelocationPageOffset
+                rts
+
+;-------------------------------------------------------------------------
+
+fetchTubeRelocationBitmapByte: .block
+                ; decrement (2)
+                lda @w tubeRelocationBitmapPtr+0
+                php
+                dec @w tubeRelocationBitmapPtr+0
+                plp
+                bne +
+                dec @w tubeRelocationBitmapPtr+1
++
+                lda $f4
+                pha
+                lda tubeRelocationBitmapROMBank ; get ROM number containing relocation bitmap
+                jsr selectROMA ; select ROM containing relocation bitmap
+                lda (tubeRelocationBitmapPtr)        ; get bitmap byte
+                tax            ; X = bitmap byte
+                pla            ; 
+                jsr selectROMA ; restore old ROM
+                txa            ; A = bitmap byte
+                rts
+                .endblock
+
+;-------------------------------------------------------------------------
+
+fetchTubeRelocationBitmapBit: .block
+                asl tubeRelocationBitmapByte ; put next bit in carry, possibly the terminator
+                bne +                        ; taken if bit was valid
+                ; the bit shifted out was the terminator, so fetch
+                ; next one.
+                jsr LFADE                   ; fetch next byte
+                clc                         ; report bit clear
+                beq +                       ; taken if end of table??
+                ; fetch next bit into carry, and set shifted-in bit 0
+                ; by way of terminator.
+                sec
+                rol tubeRelocationBitmapByte
++
                 rts
                 .endblock
 
 ;-------------------------------------------------------------------------
 
 LFADE:       .block
-                jsr LFAAF
-                sta L04F7
-                lda L04F5
+                jsr fetchTubeRelocationBitmapByte ; fetch next byte from bitmap
+                sta tubeRelocationBitmapByte      ; store it
+                ; decrement (tubeRelocationBitmapSizeBytes)
+                lda tubeRelocationBitmapSizeBytes+0
                 php
-                dec L04F5
+                dec tubeRelocationBitmapSizeBytes+0
                 plp
-                bne LFAF1
-                dec L04F6
-
-LFAF1:
-                lda L04F6
-                eor #$80        ; ''
-                and #$80        ; ''
+                bne +
+                dec tubeRelocationBitmapSizeBytes+1
++
+                lda tubeRelocationBitmapSizeBytes+1 ; ?
+                eor #$80                            ; ?
+                and #$80                            ; ?
                 rts
                 .endblock
 
 ;-------------------------------------------------------------------------
 
-LFAF9:
+osbyte8EWithoutRelocation:
                 txa
-                ora #$40        ; '@'
+                ora #$40                  ; set the don't-relocate bit
                 tax
-                lda #$8E        ; ''
+                lda #$8E                     ; enter language ROM
                 jmp OSBYTE
 
 ;-------------------------------------------------------------------------
 
-LFB02:
+getLanguageParasiteAddrAndAssumeRelocatable:
                 jsr terminal.tubeHost.getLanguageParasiteAddr
-                lda #$40        ; '@'
-                trb $f4
+                lda #$40
+                trb $f4                 ; clear the don't-relocate bit
                 rts
 
 ;-------------------------------------------------------------------------

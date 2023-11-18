@@ -1,0 +1,48 @@
+version: '{build}'
+
+branches:
+  only:
+    - master
+
+image:
+  - Ubuntu2004
+
+install:
+  - ps: git submodule init
+  - ps: git submodule update
+  - ps: nproc
+  - ps: pwd
+  - pushd ~
+  - svn checkout -r 3120 https://svn.code.sf.net/p/tass64/code/trunk tass64-code
+  - cd ~/tass64-code && make -j$(nproc)
+  - popd
+  - ps: $env:SUFFIX = $(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
+  - ps: $env:TIMESTAMP = $(git log -1 --format=%cd --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
+
+build_script:
+  - ps: $env:OUTPUT_LST_ARCHIVE="acorn-mos-disassembly-lst."+$env:SUFFIX+".zip"
+  - ps: $env:OUTPUT_NT_ARCHIVE="acorn-mos-disassembly-NT."+$env:SUFFIX$+".zip"
+  - ps: make VERBOSE=1 TASSCMD=$HOME/tass64-code/64tass
+  - cd build && zip -9r "../$OUTPUT_NT_ARCHIVE" 320nt 350nt
+  - cd build && zip -9r "../$OUTPUT_LST_ARCHIVE" *.lst
+  - env
+    
+artifacts:
+  - path: $(OUTPUT_LST_ARCHIVE)
+    name: lst_archive
+  - path: $(OUTPUT_NT_ARCHIVE)
+    name: nt_archive
+
+# deploy:
+#   - release: $(RELEASE_NAME)
+#     description: |
+#       $(APPVEYOR_REPO_COMMIT_MESSAGE)
+      
+#       $(APPVEYOR_REPO_COMMIT_MESSAGE_EXTENDED)
+      
+#     provider: GitHub
+#     auth_token:
+#       secure: 4W5gLh9wP/h+mqHPWAnfkq+TdLFmrzC926Z1KZSM8A4HSkZ2bzS+cP/RAUkm9Qao
+#     artifact: zip,ssd
+#     draft: false
+#     prerelease: false

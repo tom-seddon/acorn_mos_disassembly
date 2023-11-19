@@ -246,6 +246,19 @@ t1=64
                 .endblock
                 .ends
 
+; System VIA port B bits for Master Compact
+i2cClock=$20
+i2cData=$10
+
+; PCD8572 command codes
+
+;   7   6   5   4   3   2   1   0
+; +---+---+---+---+---+---+---+---+
+; | 1 | 0 | 1 | 0 |A2 |A1 |A0 |RnW|
+; +---+---+---+---+---+---+---+---+
+
+eepromRead=$a1
+eepromWrite=$a0
                                 .virtual $fe40
 systemVIA: .dstruct VIA
                 .endv

@@ -122,6 +122,16 @@ romServiceCallTubeMainInitialisation=$FF    ;
 
 ;-------------------------------------------------------------------------
 
+fsNone=0
+fs1200BaudTape=1
+fs300BaudTape=2
+fsROM=3
+
+; max FS number for all tape/ROM FS types
+fsTapeOrROMMax=3
+                
+;-------------------------------------------------------------------------
+
 ; [MasRef D.2-24]
                 
 eventOutputBufferEmpty=0

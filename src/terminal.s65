@@ -3135,11 +3135,22 @@ readDefaults3:
                 .endif
 
 ;-------------------------------------------------------------------------
+;
+; Read byte from EEPROM by 0-based CMOS RAM offset (readCMOSByte) or
+; RTC register index (readRTCByte).
+;
+; entry:
+;
+; X = address to read from
+;
+; exit:
+;
+; A = byte read
 
                 .if version>=500
 readCMOSByte:
-                cpx #$ff
-                bne readRTCByte
+                cpx #$ff                     ; 
+                bne readRTCByte              ; 
                 jsr L907E
                 ldy #0
                 bcs L9DE0
@@ -3163,11 +3174,7 @@ readRTCByte:
                 bcc L9DDB
 L9DD0:
                 ldy #0
-                .if version>=511||olivetti
-                cpx #$14
-                .else
-                cpx #$13
-                .endif
+                cpx #size(CMOSBytes)
                 bcs L9DDE
                 ldy L9DE4,x
                 bra L9DDE
@@ -3186,7 +3193,8 @@ L9DE1:
                 bra L9DD0
 
 L9DE4:
-                ; Default CMOS contents?
+                ; Default CMOS RAM contents? For use if the EEPROM
+                ; runs out of write cycles?
                 .byte 0  
                 .byte $FE
                 .byte 0
@@ -3244,13 +3252,13 @@ writeRTCByte:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-L9E0A:
+i2cTransmitBit:
                 php
                 sei
-                jsr L9E27
-                jsr L9E80
-                jsr L9E1A
-                jsr L9E27
+                jsr i2cSetClockLow
+                jsr i2cSetData
+                jsr i2cSetClockHigh
+                jsr i2cSetClockLow
                 plp
                 rts
                 .endif
@@ -3258,11 +3266,11 @@ L9E0A:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-L9E1A:
+i2cSetClockHigh:
                 pha
                 lda systemVIA.irb
-                and #$df
-                ora #$20
+                and #~i2cClock               ; seems needless?
+                ora #i2cClock
                 sta systemVIA.orb
                 pla
                 rts
@@ -3271,29 +3279,32 @@ L9E1A:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-L9E27:
+i2cSetClockLow:
                 pha
                 lda systemVIA.irb
-                and #$df
+                and #~i2cClock
                 sta systemVIA.orb
                 pla
                 rts
                 .endif
 
 ;-------------------------------------------------------------------------
+;
+; "A change in the state of the data line, from HIGH to LOW, while the
+; clock is HIGH, defines the START condition."
 
                 .if version>=500
-L9E32:
+i2cStartDataTransfer:
                 php
                 sei
                 lda systemVIA.ddrb
-                ora #$30
+                ora #i2cClock|i2cData        ; I2C lines are outputs
                 sta systemVIA.ddrb
-                jsr L9E27
-                jsr L9E82
-                jsr L9E1A
-                jsr L9E4D
-                jsr L9E27
+                jsr i2cSetClockLow
+                jsr i2cSetDataHigh
+                jsr i2cSetClockHigh
+                jsr i2cSetDataLow
+                jsr i2cSetClockLow
                 plp
                 rts
                 .endif
@@ -3301,10 +3312,10 @@ L9E32:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-L9E4D:
+i2cSetDataLow:
                 pha
                 lda systemVIA.irb
-                and #$ef
+                and #~i2cData
                 sta systemVIA.orb
                 pla
                 rts
@@ -3314,21 +3325,28 @@ L9E4D:
 
                 .if version>=500
 L9E58:
-                jsr L9E32
-                lda #0
-                jsr L9F23
-                lda #6
-                jsr L9F23
-L9E65:
+                jsr i2cStartDataTransfer
+                lda #0                       ; What is this value?
+                jsr i2cTransmitByteAndReceiveBit
+                lda #6                       ; What is this value?
+                jsr i2cTransmitByteAndReceiveBit
+                .cerror *!=i2cStopDataTransfer
+
+;-------------------------------------------------------------------------
+;
+; "A change in the state of the data line, from LOW to HIGH, while the
+; clock is HIGH, defines the STOP condition."
+; 
+i2cStopDataTransfer:
                 php
                 sei
-                jsr L9E27
-                jsr L9E4D
-                jsr L9E1A
-                jsr L9E82
-                jsr L9E27
+                jsr i2cSetClockLow
+                jsr i2cSetDataLow
+                jsr i2cSetClockHigh
+                jsr i2cSetDataHigh
+                jsr i2cSetClockLow
                 lda systemVIA.ddrb
-                and #$cf
+                and #~(i2cData|i2cClock)     ; I2C lines are inputs
                 sta systemVIA.ddrb
                 plp
                 rts
@@ -3337,12 +3355,12 @@ L9E65:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-L9E80:
-                bcc L9E4D
-L9E82:
+i2cSetData:
+                bcc i2cSetDataLow
+i2cSetDataHigh:
                 pha
                 lda systemVIA.irb
-                ora #$10
+                ora #i2cData
                 sta systemVIA.orb
                 pla
                 rts
@@ -3351,31 +3369,32 @@ L9E82:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-L9E8D:
+i2cTransmitByte: .block
                 php
                 sei
                 sec
                 rol a
-L9E91:
-                jsr L9E0A
+loop:
+                jsr i2cTransmitBit
                 asl a
-                bne L9E91
+                bne loop
                 plp
                 rts
+                .endblock
                 .endif
 
 ;-------------------------------------------------------------------------
 
                 .if version>=500
 L9E99:
-                phx
-                phy
+                phx                          ; X
+                phy                          ; Y X
                 jsr L9ECA
                 bcs L9EA7
                 tya
-                tsx
-                eor $101,x
-                cmp #1
+                tsx                          ; | Y X
+                eor $101,x                   ; Y^(old Y)
+                cmp #1                       ; C set if any difference
 L9EA7:
                 ply
                 plx
@@ -3383,53 +3402,51 @@ L9EA7:
                 rts
 
 L9EAC_500:
-                jsr L9E32
-                lda #$a0
-                jsr L9F23
+                jsr i2cStartDataTransfer
+                lda #eepromWrite
+                jsr i2cTransmitByteAndReceiveBit ; initiate write mode
                 txa
-                jsr L9F23
+                jsr i2cTransmitByteAndReceiveBit ; send address
                 tya
-                jsr L9F23
-                jsr L9E65
+                jsr i2cTransmitByteAndReceiveBit ; send value
+                jsr i2cStopDataTransfer
+
+                ; ~100 ms delay
                 ldy #$a0
                 ldx #0
-L9EC3:
+delayLoop:
                 dex
-                bne L9EC3
+                bne delayLoop
                 dey
-                bne L9EC3
+                bne delayLoop
                 rts
 
 L9ECA:
-                jsr L9E32
-                .if version<500
-                lda #$0a
-                .elsif version>=500
+                jsr i2cStartDataTransfer
                 lda #$a0
-                .endif
-                jsr L9F23
+                jsr i2cTransmitByteAndReceiveBit
                 txa
-                jsr L9F23
+                jsr i2cTransmitByteAndReceiveBit
                 bcs L9F0E_500
-                jsr L9E32
+                jsr i2cStartDataTransfer
                 lda #$a1
-                jsr L9F23
+                jsr i2cTransmitByteAndReceiveBit
                 bcs L9F0E_500
-                jsr L9E27
+                jsr i2cSetClockLow
                 lda systemVIA.ddrb
                 pha
-                and #$ef
+                and #~i2cData
                 sta systemVIA.ddrb
                 lda #1
 L9EF0:
                 pha
-                jsr L9E1A
+                jsr i2cSetClockHigh
                 nop
                 nop
                 lda systemVIA.irb
-                and #$10
+                and #i2cData
                 cmp #1
-                jsr L9E27
+                jsr i2cSetClockLow
                 pla
                 rol a
                 bcc L9EF0
@@ -3437,23 +3454,23 @@ L9EF0:
                 pla
                 sta systemVIA.ddrb
                 sec
-                jsr L9E0A
+                jsr i2cTransmitBit
                 clc
 L9F0E_500:
-                jmp L9E65
+                jmp i2cStopDataTransfer
                 .endif
 
 ;-------------------------------------------------------------------------
 
                 .if version>=500
 L9F11:
-                jsr L9E32
+                jsr i2cStartDataTransfer
                 lda #$a0
-                jsr L9F23
+                jsr i2cTransmitByteAndReceiveBit
                 txa
-                jsr L9F23
+                jsr i2cTransmitByteAndReceiveBit
                 php
-                jsr L9E65
+                jsr i2cStopDataTransfer
                 plp
                 rts
                 .endif
@@ -3461,22 +3478,22 @@ L9F11:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-L9F23:
+i2cTransmitByteAndReceiveBit:
                 php
                 sei
-                jsr L9E8D
-                jsr L9E27
+                jsr i2cTransmitByte
+                jsr i2cSetClockLow
                 lda systemVIA.ddrb
                 pha
-                and #$ef
-                sta systemVIA.ddrb
-                jsr L9E1A
+                and #~i2cData
+                sta systemVIA.ddrb           ; set data line as input
+                jsr i2cSetClockHigh
                 nop
                 nop
                 lda systemVIA.irb
-                and #$10
-                cmp #1
-                jsr L9E27
+                and #i2cData
+                cmp #1                       ; C=bit read
+                jsr i2cSetClockLow
                 pla
                 sta systemVIA.ddrb
                 bcs L9F4C
@@ -3511,18 +3528,18 @@ utilsServiceEntryPoint:
                 .if version==400
                 ; this is the same as the MOS 5.00 code, but I didn't
                 ; get the if arrangement right. This needs improving.
-                cpx #15
+                cpx #terminalROM
                 beq utilsInCorrectBank
                 rts
 utilsInCorrectBank:
                 .endif
                 .if version<500
                 cmp #romServiceCallTubeSystemPostInitialisation
-                bcc L9DCC        ;taken if definitely not Tube-related
+                bcc handleNonTube
                 bne handleTubeMainInitialisation
 handleTubeSystemPostInitialisation:
                 cpy #$00           
-                beq L9DCC
+                beq handleNonTube
 
                 ; [Tube p28] - write out the startup message that the
                 ; second processor has been stuck trying to write out.
@@ -3571,66 +3588,67 @@ handleTubeMainInitialisation:
 L9DCA:
                 lda #$00                     ; Claim call and return
 
-L9DCC:
+handleNonTube:
                 .elsif version>=500
-                cpx #15
+                cpx #terminalROM
                 beq utilsInCorrectBank
                 rts
 utilsInCorrectBank:
-                bra LA245
+                bra handleInitialiseFilingSystem
 L9DCA:
                 lda #$00
-LA245:
+handleInitialiseFilingSystem:
                 .endif
                 cmp #romServiceCallInitialiseFilingSystem
-                bne L9DEA
+                bne handleBreakInstruction
                 .if version==400
-                cpy #3
+                cpy #fsROM
                 bne L9E16
                 .else
-                cpy #$04                     ; Exit if not TAPE/ROM
-                bcs L9E16
-                cpy #$00                     ; Exit if Y=0, no FS
-                beq L9E16
-                ldx #$03                     ; X=ROMFS, A=FS number
-                tya
-                cmp #$02                     ; If A=2, ROMFS, jump to select it
-                bcs L9DE3
-                ldx #$00                     ; X=TAPE, A=speed+2
-                adc #$02
+                cpy #fsTapeOrROMMax+1
+                bcs L9E16                    ; taken if not tape/rom
+                cpy #fsNone
+                beq L9E16                    ; taken if no FS
+                ldx #3                       ; assume tape, 300 baud tape
+                tya                          ; Y = FS number
+                cmp #fs300BaudTape
+                bcs L9DE3              ; taken if 300 baud tape or ROM
+                ldx #$00               ; X=0 for 1200 baud
+                adc #$02            ; adjust so that the result of the
+                                    ; following adc will be $8c
 L9DE3:
                 adc #$89                     ; Convert to TAPE/ROM select value
                 .endif
                 jsr mos.selectROMOrTAPEByOSBYTE
                 bra L9DCA                    ; Jump to claim and return
 
-L9DEA:
+handleBreakInstruction:
                 cmp #romServiceCallBreakInstruction
-                bne L9E17
+                bne handleCloseAllOpenFiles
                 lda hazel.hasACCCONChanged ; Skip if ACCCON not changed
-                beq L9DFC
+                beq closeMoveSrcHandle
                 stz hazel.hasACCCONChanged ; Clear ACCCON changed flag
                 lda hazel.oldACCCON        ; Restore ACCCON
                 sta ACCCON
-L9DFC:
+closeMoveSrcHandle:
                 phy
                 ldy hazel.moveSrcHandle
-                beq L9E08
+                beq closeMoveDestHandle
                 stz hazel.moveSrcHandle
                 jsr closeFile
-L9E08:
+closeMoveDestHandle:
                 ldy hazel.moveDestHandle
                 beq L9E13
                 stz hazel.moveDestHandle
                 jsr closeFile
 L9E13:
                 ply
-                lda #$06
+                lda #romServiceCallBreakInstruction ; restore A
 L9E16:
                 rts
-L9E17:
+handleCloseAllOpenFiles:
                 cmp #romServiceCallCloseAllOpenFiles
-                bne L9E38
+                bne handleHelp
                 .if version!=400
                 lda #$8D
                 jsr L9E2C
@@ -3650,10 +3668,10 @@ L9E2C:
                 lda #$26
                 rts
 
-L9E38:
+handleHelp
                 cmp #romServiceCallHelp
                 .if version<400&&includeTerminalROM
-                bne L9E8F
+                bne handleTerminal
                 .else
                 bne LA304
                 .endif
@@ -3710,7 +3728,7 @@ LA304:
                 rts
 
                 .if version<400&&includeTerminalROM
-L9E8F:
+handleTerminal:
                 jmp terminalServiceEntryPoint
                 .endif
 
@@ -3888,28 +3906,36 @@ L9F60:
                 lda $0395
                 bra L9F5B
 
+;-------------------------------------------------------------------------
+
 ; TAPE/ROM FSC dispatch table
 ; ---------------------------
-
-_:=[]
-_..=[LA422]          ;0 - *OPT
-_..=[LA4F1]          ;1 - EOF
-_..=[LA110]          ;2 - */
-_..=[LA129]          ;3 - unknown * command
-_..=[LA110]          ;4 - *RUN
-_..=[LA168]          ;5 - *CAT
-_..=[L9F3A]          ;6 - shut down FS
-_..=[L9F9E]          ;7 - obtain file handle range
-_..=[L9F3A]          ;8 - OS command
-_..=[LA155]          ;9 - *EX
-_..=[L9F3A]          ;10 - *INFO
-_..=[LA113]          ;11 - *RUN command for library
-tape_and_rom_dispatch_fsc_routines=_
+                
+tapeAndROMFSCRoutine: .macro addr,shift
+                .byte ((\addr)-1)>>(\shift)&$ff
+                .endmacro
+                
+tapeAndROMFSCRoutinesTable: .macro shift
+                .tapeAndROMFSCRoutine LA422,\shift ;0 - *OPT
+                .tapeAndROMFSCRoutine LA4F1,\shift ;1 - EOF
+                .tapeAndROMFSCRoutine LA110,\shift ;2 - */
+                .tapeAndROMFSCRoutine LA129,\shift ;3 - unknown * command
+                .tapeAndROMFSCRoutine LA110,\shift ;4 - *RUN
+                .tapeAndROMFSCRoutine LA168,\shift ;5 - *CAT
+                .tapeAndROMFSCRoutine L9F3A,\shift ;6 - shut down FS
+                .tapeAndROMFSCRoutine L9F9E,\shift ;7 - obtain file handle range
+                .tapeAndROMFSCRoutine L9F3A,\shift ;8 - OS command
+                .tapeAndROMFSCRoutine LA155,\shift ;9 - *EX
+                .tapeAndROMFSCRoutine L9F3A,\shift ;10 - *INFO
+                .tapeAndROMFSCRoutine LA113,\shift ;11 - *RUN command for library
+                .endmacro
                 
 L9F74:
-                .byte <tape_and_rom_dispatch_fsc_routines-1
+                .tapeAndROMFSCRoutinesTable 0
 L9F80:
-                .byte >tape_and_rom_dispatch_fsc_routines-1
+                .tapeAndROMFSCRoutinesTable 8
+
+;-------------------------------------------------------------------------
 
 ; TAPE/ROM FSC
 ; ============

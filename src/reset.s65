@@ -76,7 +76,7 @@ startClearRAM:
                 tay
 
 LFC53:
-                ldx $fc
+                ldx TEMPA
                 tya
                 stz 1
                 stz 0
@@ -92,8 +92,8 @@ LFC5A:
                 cpy #$E0        ; ''
                 tay
                 bcc LFC5A
-                stx $FC
-                lda #4
+                stx TEMPA
+                lda #ACCCON.X
                 jsr terminal.trbACCCON
                 bne LFC53
                 jsr selectTerminalROM
@@ -278,7 +278,7 @@ nextPage2Byte:
                 bne initializePage2Loop
 
                 .if version==350
-                lda $fc
+                lda TEMPA
                 .endif
                 ldx #$CF
 initializeZeroPageLoop:
@@ -286,7 +286,7 @@ initializeZeroPageLoop:
                 inx                          
                 bne initializeZeroPageLoop
                 .if version==350
-                sta $fc
+                sta TEMPA
                 jsr selectTerminalROM
                 .endif
 
@@ -466,9 +466,9 @@ initializeVIAInterruptsLoop:
                 cli                          
                 sei
 
-                ; $FC was cleared above, so if bit 6 is set, there
+                ; TEMPA was cleared above, so if bit 6 is set, there
                 ; must have been an IRQ (as A=$7f). 
-                bit $FC
+                bit TEMPA
                 bvc +
                 jsr mos.call1MHzBusHook
 +
@@ -824,13 +824,13 @@ L82B4:
                 bcs foundTube
 
                 .if version==350
-                lda $fc
+                lda TEMPA
                 .else
                 lda ACCCON                    ; Toggle Internal/External Tube
                 .endif
                 eor #ACCCON.ITU
                 .if version==350
-                jsr staSEIWKAAndACCCON
+                jsr staTEMPAAndACCCON
                 .else
                 sta ACCCON
                 .endif

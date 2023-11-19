@@ -1563,7 +1563,7 @@ vdu22EntryPoint:
 ;
 setStartupMODE:
                 .if version==350
-                jsr callWithTST
+                jsr withTST
                 .endif
                 sta ZTEMP+0                  ;save MODE
                 lda $F4
@@ -7082,7 +7082,7 @@ resetEntryPoint:                ;e364
                 ora #ACCCON.TST|ACCCON.Y|ACCCON.X
                 .endif
                 .if version==350
-                jsr staSEIWKAAndACCCON
+                jsr staTEMPAAndACCCON
                 jmp reset
                 .else
                 jsr selectTerminalROM ; Page in ROM 15 and continue
@@ -7092,10 +7092,8 @@ resetEntryPoint:                ;e364
 ;-------------------------------------------------------------------------
 
                 .if version==350
-                ; D'oh! I got confused, and gave this completely the
-                ; wrong name.
-staSEIWKAAndACCCON:
-                sta $fc
+staTEMPAAndACCCON:
+                sta TEMPA
                 sta ACCCON
                 rts
                 .endif
@@ -7129,7 +7127,7 @@ LE375:
 ;
                 .if version==350
 setTSTAndLE389:
-                jsr callWithTST
+                jsr withTST
                 .endif
 
 LE389:
@@ -7140,11 +7138,11 @@ LE389:
                 jsr terminal.L873F
                 .elsif version<500
                 jsr getROMInsertedFlagRTCAddressAndMask
-                sta $FC                      ;save mask
+                sta TEMPA                    ;save mask
                 jsr selectTerminalROM
                 jsr terminal.readRTCByte     ;read inserted flag
                 tya                          ;A = byte read
-                and $FC                      ;do mask
+                and TEMPA                    ;do mask
                 .elsif version>=500
                 jsr selectTerminalROM
                 jsr terminal.L873F
@@ -7549,7 +7547,7 @@ selectTerminalROMAndANDY2:
 ;-------------------------------------------------------------------------
 
 irqEntryPoint:
-                sta irqTempA
+                sta TEMPA
                 pla                          ;restore P
                 pha                          ;save P
                 and #$10
@@ -7575,7 +7573,7 @@ brkEntryPoint:
                 ldx currentLanguageROM
                 jsr selectROMX
                 plx
-                lda irqTempA
+                lda TEMPA
                 cli
                 jmp (BRKV)
 
@@ -7612,7 +7610,7 @@ LE5FE:
 ;-------------------------------------------------------------------------
 
 irq1EntryPoint:
-                lda irqTempA
+                lda TEMPA
                 pha
                 phx
                 phy
@@ -7628,7 +7626,7 @@ irq1EntryPoint:
 ;-------------------------------------------------------------------------
 
 irq2EntryPoint:
-                lda irqTempA
+                lda TEMPA
                 rti
 
 ;-------------------------------------------------------------------------
@@ -7711,7 +7709,7 @@ handleUnrecogisedInterrupt:
                 plx
                 pla
                 .if version==350
-                sta $fc
+                sta TEMPA
                 .endif
                 jmp (IRQ2V)
 
@@ -8938,7 +8936,7 @@ isLetter: .proc                 ;EA71
 ;
                 .if version==350
 setTSTAndInsertCharacterIntoKeyboardBuffer:
-                jsr callWithTST
+                jsr withTST
                 .endif
 insertCharacterIntoKeyboardBuffer:
                 ldx #$00
@@ -9813,7 +9811,7 @@ LEDCC:
 
 LEDD0:
                 .if version==350
-                jsr callWithTST
+                jsr withTST
                 .endif
                 jsr LEE64
                 jsr LF1EE
@@ -10805,7 +10803,7 @@ osbyteA0:
 ;
                 .if version==350
 setTSTAndResetKeyRepeat:
-                jsr callWithTST
+                jsr withTST
                 .endif
 resetKeyRepeat:
                 jsr withTerminalROM
@@ -11561,7 +11559,7 @@ LF40C:
 
                 .if version==350
 setTSTAndOSBYTE247EntryPoint:
-                jsr callWithTST
+                jsr withTST
                 .endif
 osbyte247EntryPoint:
                 lda breakVectorByte0
@@ -11662,7 +11660,7 @@ withTerminalROMReturnThunk:
 ;
 withTerminalROM:
                 .if version==350
-                jsr LF381
+                jsr initWithRoutineStack
                 lda $f4
                 sta $109,x
                 lda #>(withTerminalROMReturnThunk-1)
@@ -11701,7 +11699,7 @@ withTerminalROM:
 ;
 withMOSROM:
                 .if version==350
-                jsr LF381
+                jsr initWithRoutineStack
                 lda #>(withMOSROMReturnThunk-1)
                 sta $108,x
                 lda #<(withMOSROMReturnThunk-1)
@@ -11760,13 +11758,16 @@ returnThunkSuffix:
                 rts
 
 ;-------------------------------------------------------------------------
-
+;
+; Set ACCCON TST bit (paging in ROM for reads, rather than I/O, at
+; $fc00...$feff), and restore it on exit from the current routine.
+; 
                 .if version==350
                 ; Should be called something more like runWithTST
-callWithTST:
-                jsr LF381
-                lda $fc
-                and #$bf
+withTST:
+                jsr initWithRoutineStack
+                lda TEMPA
+                and #(~ACCCON.TST)&$ff
                 sta ACCCON
                 lda #<(withTSTReturnThunk-1)
                 sta $107,x
@@ -11781,29 +11782,33 @@ withTSTReturnThunk:
                 tsx
                 sei
                 lda ACCCON
-                ora #$40
-                jsr staSEIWKAAndACCCON
+                ora #ACCCON.TST
+                jsr staTEMPAAndACCCON
                 bra returnThunkSuffix
                 .endif
 
 ;-------------------------------------------------------------------------
-
+;
+; Sort out stack for one of the withXXX routines, that set up some
+; state and then automatically restore the original state on exit from
+; the calling routine.
+; 
                 .if version==350
-LF381:
-                pha
-                php
-                pha
-                phx
-                tsx
-                lda $106,x
-                pha
-                lda $105,x
-                pha
+initWithRoutineStack:
+                pha                          ; A RL RH R^L R^H
+                php                          ; P A RL RH R^L R^H
+                pha                          ; A P A RL RH R^L R^H
+                phx                          ; X A P A RL RH R^L R^H
+                tsx                          ; | X A P A RL RH R^L R^H
+                lda $106,x                   ; get RH
+                pha                          ; RH | X A P A RL RH R^L R^H
+                lda $105,x                   ; get RL
+                pha                          ; RL RH | X A P A RL RH R^L R^H
                 jsr LF392
                 dex
 LF392:
-                lda $108,x
-                sta $105,x
+                lda $108,x                   ; get R^L or R^H
+                sta $105,x                   ; replace RL or RH
                 rts
                 .endif
 
@@ -12403,7 +12408,7 @@ resetAutoRepeatCounters:
 ;
                 .if version==350
 setTSTAndInterrogateKeyboard:
-                jsr callWithTST
+                jsr withTST
                 .endif
 interrogateKeyboard:
                 ldy #$03                     ;write to keyboard
@@ -12571,7 +12576,7 @@ osbyte78:                          ;f90b
 ;
                 .if version==350
 setTSTAndOSBYTE7A:
-                jsr callWithTST
+                jsr withTST
                 .endif
 osbyte7A:
                 ldx #$10

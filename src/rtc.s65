@@ -502,7 +502,7 @@ storeNybbleString:
                 .if version<500
                 .if version==350
 setTSTAndReadDefaults2:
-                jsr mos.callWithTST
+                jsr mos.withTST
                 .endif
 readDefaults2:
                 ldx #CMOSBytes.defaults2+cmosBytesOffset
@@ -514,7 +514,7 @@ readDefaults2:
                 .if version<500
                 .if version==350
 setTSTAndReadDefaults3:
-                jsr mos.callWithTST
+                jsr mos.withTST
                 .endif
 readDefaults3:
                 ldx #CMOSBytes.defaults3+cmosBytesOffset
@@ -547,7 +547,7 @@ readCMOSByte:
                 .endif
                 .if version==350
 setTSTAndReadRTCByte:
-                jsr mos.callWithTST
+                jsr mos.withTST
                 .endif
 readRTCByte:
                 php

@@ -1602,7 +1602,7 @@ country:
 originalA=$ef
 originalX=$f0
 originalY=$f1
-irqTempA=$fc
+TEMPA=$fc
 errPtr=$fd                      ;REPTR in OS 1.20
 escapeFlag=$ff
                 

@@ -545,7 +545,7 @@ done:
 
                 .if version==350
 setTSTAndReadConfigurationByte:
-                jsr mos.callWithTST
+                jsr mos.withTST
                 .endif
 readConfigurationByte: .block
                 php
@@ -961,7 +961,7 @@ maskByBitCount:
 
                 .if version==350
 setTSTAndReadUsePrinterIgnoreChar:
-                jsr mos.callWithTST
+                jsr mos.withTST
                 .endif
 readUsePrinterIgnoreChar:
                 phy
@@ -1029,7 +1029,7 @@ L8BD4:
 
                 .if version==350
 setTSTAndReadDefaultTVSettings
-                jsr mos.callWithTST
+                jsr mos.withTST
                 .endif
 readDefaultTVSettings:
                 ldx #configureTable.L8605-configureTable

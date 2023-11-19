@@ -69,7 +69,7 @@ copyright:
 
                 .if version==350
 trbACCCON:
-                jsr mos.callWithTST
+                jsr mos.withTST
                 trb ACCCON
                 rts
                 .endif
@@ -78,7 +78,7 @@ trbACCCON:
 
                 .if version==350
 tsbACCCON:
-                jsr mos.callWithTST
+                jsr mos.withTST
                 tsb ACCCON
                 rts
                 .endif
@@ -87,7 +87,7 @@ tsbACCCON:
 
                 .if version==350
 ldaSystemVIAIER:
-                jsr mos.callWithTST
+                jsr mos.withTST
                 lda systemVIA.ier
                 rts
                 .endif
@@ -96,7 +96,7 @@ ldaSystemVIAIER:
 
                 .if version==350
 printCMOSRamResetMessage:
-                jsr mos.callWithTST
+                jsr mos.withTST
                 jsr alwaysPrintFollowingMessage
                 .text 13,10
                 .text "CMOS RAM reset",13,10
@@ -110,7 +110,7 @@ printCMOSRamResetMessage:
                 .if version==350
                 ; dup of same routine in non-3.50 MOS
 LE375:
-                jsr mos.callWithTST
+                jsr mos.withTST
                 ldx #$01                     
                 stx tube.status1
                 lda tube.status1                   
@@ -144,7 +144,7 @@ L8081:
 
                 .if version==350             ;stripped_out_reset
 softResetPart2:
-                jsr mos.callWithTST
+                jsr mos.withTST
                 pla
                 pla
                 pla

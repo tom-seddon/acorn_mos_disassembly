@@ -7099,26 +7099,9 @@ staTEMPAAndACCCON:
                 .endif
 
 ;-------------------------------------------------------------------------
-;
-; Check if a coprocessor is attached to the Tube
-;
-; exit:
-;
-; C=0 = no Tube
-;
-; C=1 = Tube
-;
+
                 .if version!=350
-LE375:
-                ldx #$01
-                stx tube.status1
-                lda tube.status1
-                eor #$01
-                ldx #$81
-                stx tube.status1
-                and tube.status1       ; Cy=0 if no Tube, Cy=1 if Tube
-                ror a
-                rts
+                .include "isSecondProcessorPresent.s65"
                 .endif
 
 ;-------------------------------------------------------------------------

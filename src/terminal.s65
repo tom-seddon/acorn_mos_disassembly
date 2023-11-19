@@ -108,18 +108,7 @@ printCMOSRamResetMessage:
 ;-------------------------------------------------------------------------
 
                 .if version==350
-                ; dup of same routine in non-3.50 MOS
-LE375:
-                jsr mos.withTST
-                ldx #$01                     
-                stx tube.status1
-                lda tube.status1                   
-                eor #$01
-                ldx #$81                     
-                stx tube.status1             
-                and tube.status1       ; Cy=0 if no Tube, Cy=1 if Tube
-                ror a
-                rts
+                .include "isSecondProcessorPresent.s65"
                 .endif
 
 ;-------------------------------------------------------------------------

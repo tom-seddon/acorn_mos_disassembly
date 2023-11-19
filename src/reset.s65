@@ -816,9 +816,9 @@ L829D:
                 .endif
 L82B4:
                 .if version==350
-                jsr terminal.LE375
+                jsr terminal.isSecondProcessorPresent
                 .else
-                jsr mos.LE375
+                jsr mos.isSecondProcessorPresent
                 .endif
 
                 bcs foundTube
@@ -836,9 +836,9 @@ L82B4:
                 .endif
                 
                 .if version==350
-                jsr terminal.LE375
+                jsr terminal.isSecondProcessorPresent
                 .else
-                jsr mos.LE375
+                jsr mos.isSecondProcessorPresent
                 .endif
 
                 .endif

@@ -12231,7 +12231,7 @@ LF54A:
                 beq LF54F
                 bpl LF555
 LF54F:
-                jsr LF6D3
+                jsr insertCharacterIntoKeyboardBufferIfPossible
                 bcc LF55D_350
                 tay
 LF555:
@@ -12326,7 +12326,7 @@ LF6A8:
                 bvc LF6AD
                 bne LF6B3
 LF6AD:
-                jsr LF82B
+                jsr insertCharacterIntoKeyboardBufferIfPossible
                 bcc LF6BB
                 tay
 
@@ -12668,26 +12668,7 @@ LF9AD:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-                ; dup of what's called LF6D3 in MOS 3.50
-LF82B:
-                pha
-                ldx #0
-                clv
-                sec
-                jsr countBufferViaCNPV
-                tya
-                bne LF83A
-                cpx #2
-                bcc LF844
-LF83A:
-                ldy keyboardStatus
-                clc
-                bne LF844
-                jsr insertCharacterIntoKeyboardBuffer
-                sec
-LF844:
-                pla
-                rts
+                .include "insertCharacterIntoKeyboardBufferIfPossible.s65"
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -12805,26 +12786,7 @@ osword11:
 ;-------------------------------------------------------------------------
 
                 .if version==350
-                ; dup of what's called LF82B in MOS 5.00+
-LF6D3:
-                pha
-                ldx #0
-                clv
-                sec
-                jsr countBufferViaCNPV
-                tya
-                bne LF6E2
-                cpx #bufferFirstOutput
-                bcc LF6EC
-LF6E2:
-                ldy keyboardStatus
-                clc
-                bne LF6EC
-                jsr insertCharacterIntoKeyboardBuffer
-                sec
-LF6EC:
-                pla
-                rts
+                .include "insertCharacterIntoKeyboardBufferIfPossible.s65"
                 .endif
 
 ;-------------------------------------------------------------------------

@@ -1,0 +1,20 @@
+                ; dup of what's called LF82B in MOS 5.00+
+insertCharacterIntoKeyboardBufferIfPossible:
+                pha
+                ldx #bufferKeyboard          ; buffer number
+                clv                          ; count buffer
+                sec                          ; return space remaining
+                jsr countBufferViaCNPV       ; do the thing...
+                tya                          ; A=MSB of space remaining
+                bne LF6E2              ; taken if >256 bytes remaining
+                cpx #2                 ; X=LSB of space remaining
+                bcc LF6EC            ; taken if 1 or 0 bytes remaining
+LF6E2:
+                ldy keyboardStatus
+                clc                       ; assume char not inserted
+                bne LF6EC                 ; taken if keyboard disabled
+                jsr insertCharacterIntoKeyboardBuffer
+                sec                          ; indicate char inserted
+LF6EC:
+                pla
+                rts

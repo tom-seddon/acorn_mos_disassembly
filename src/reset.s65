@@ -590,7 +590,7 @@ romsScanned:
 powerOnReset:
                 .if version>=500
                 ldx #$ff
-                jsr L9ECA
+                jsr i2cReadEEPROMByte
                 bcs checkForNVRAMReset
                 tya
                 and #$7f
@@ -676,7 +676,7 @@ resetCMOSRAM:                                ;82bb in MOS 5.10
 resetCMOSRAMLoop:
                 phx
                 dex
-                jsr L9DE1
+                jsr readDefaultCMOSByte
                 jsr writeCMOSByte
                 plx
                 dex
@@ -689,7 +689,7 @@ resetCMOSRAMLoop:
                 
                 .if version>=500
                 ldx #$7f
-                jsr L9ECA
+                jsr i2cReadEEPROMByte
                 tya
                 and #$80
                 .if version>=511||olivetti

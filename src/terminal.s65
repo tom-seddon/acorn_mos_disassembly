@@ -928,10 +928,10 @@ L8752:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-L907E:
+i2cTestReadEEPROMByte:
                 phx
                 phy
-                jsr L9ECA
+                jsr i2cReadEEPROMByte
                 ply
                 plx
                 rts
@@ -3139,58 +3139,65 @@ readDefaults3:
 ; Read byte from EEPROM by 0-based CMOS RAM offset (readCMOSByte) or
 ; RTC register index (readRTCByte).
 ;
+; (The number of RTC registers on the Compact is 0, so readRTCByte and
+; readCMOSByte use the same indexes. Nevertheless, the two routines
+; behave differently... presumably I still haven't quite got this bit
+; right.)
+;
 ; entry:
 ;
 ; X = address to read from
 ;
 ; exit:
 ;
-; A = byte read
+; Y = byte read
 
                 .if version>=500
 readCMOSByte:
-                cpx #$ff                     ; 
-                bne readRTCByte              ; 
-                jsr L907E
-                ldy #0
-                bcs L9DE0
-                ldx #$7f
-                jsr L9ECA
-                phy
-                ldx #$ff
-                jsr L9ECA
-                tya
+                cpx #$ff
+                bne readRTCByte              ; taken if address not $ff
+                jsr i2cTestReadEEPROMByte    ; do an experimental read
+                ldy #0                       ; failure result is 0
+                bcs rts9DE0                  ; taken if read failed
+                ldx #$7f                          
+                jsr i2cReadEEPROMByte        ; read the byte at $7f
+                phy                          ; save the byte read
+                ldx #$ff                     
+                jsr i2cReadEEPROMByte        ; read the byte at $ff
+                tya                          ; A = byte from $ff
                 tsx
-                eor $101,x
-                ora #$7f
-                tay
-                bra L9DDF
+                eor $101,x          ; difference between the two reads
+                ora #$7f            ; ?????
+                tay                 ; and... that is the result?????
+                bra plx_rts9DDF
                 .endif
 
                 .if version>=500
-readRTCByte:
+readRTCByte: .block
                 phx
-                jsr L907E
-                bcc L9DDB
-L9DD0:
-                ldy #0
-                cpx #size(CMOSBytes)
-                bcs L9DDE
-                ldy L9DE4,x
-                bra L9DDE
+                jsr i2cTestReadEEPROMByte
+                bcc addressIsValid           ; taken if read succeeded
+readDefaultByte:
+                ldy #0                 ; default failure result is 0
+                cpx #size(CMOSBytes)   ; trying to read a known value?
+                bcs gotResult   ; taken if failed to read an unknown value
+                ldy L9DE4,x      ; use a default value for failed read
+                bra gotResult
 
-L9DDB:
-                jsr L9ECA
-L9DDE:
+addressIsValid:
+                jsr i2cReadEEPROMByte
+gotResult:
                 tya
-L9DDF:
+                .cerror *!=plx_rts9DDF
+                .endblock
+plx_rts9DDF:
                 plx
-L9DE0:
+rts9DE0:
                 rts
 
-L9DE1:
+readDefaultCMOSByte:
                 phx
-                bra L9DD0
+                bra readRTCByte.readDefaultByte
 
 L9DE4:
                 ; Default CMOS RAM contents? For use if the EEPROM
@@ -3226,20 +3233,15 @@ L9DE4:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-L9DF7:
+rts9DF7:
                 rts
-                .endif
-
-;-------------------------------------------------------------------------
-
-                .if version>=500
 writeCMOSByte:
                 txa
                 and #$7f
-                beq L9DF7
+                beq rts9DF7              ; taken if address $00 or $80
                 ora #$80
-                inc a
-                beq L9DF7
+                inc a                    
+                beq rts9DF7              ; taken if address $7f or $ff
 writeRTCByte:
                 phx
                 phy
@@ -3250,7 +3252,11 @@ writeRTCByte:
                 .endif
 
 ;-------------------------------------------------------------------------
-
+;
+; Transmit 1 bit over the I2C bus.
+;
+; preserves: P
+; 
                 .if version>=500
 i2cTransmitBit:
                 php
@@ -3264,7 +3270,11 @@ i2cTransmitBit:
                 .endif
 
 ;-------------------------------------------------------------------------
-
+;
+; Set the I2C clock line high.
+;
+; preserves: A/C
+; 
                 .if version>=500
 i2cSetClockHigh:
                 pha
@@ -3277,7 +3287,11 @@ i2cSetClockHigh:
                 .endif
 
 ;-------------------------------------------------------------------------
-
+;
+; Set the I2C clock line low.
+;
+; preserves: A/C
+; 
                 .if version>=500
 i2cSetClockLow:
                 pha
@@ -3292,7 +3306,8 @@ i2cSetClockLow:
 ;
 ; "A change in the state of the data line, from HIGH to LOW, while the
 ; clock is HIGH, defines the START condition."
-
+;
+; preserves: P
                 .if version>=500
 i2cStartDataTransfer:
                 php
@@ -3310,7 +3325,11 @@ i2cStartDataTransfer:
                 .endif
 
 ;-------------------------------------------------------------------------
-
+;
+; Set the I2C data line low.
+;
+; preserves: A/C
+; 
                 .if version>=500
 i2cSetDataLow:
                 pha
@@ -3353,10 +3372,28 @@ i2cStopDataTransfer:
                 .endif
 
 ;-------------------------------------------------------------------------
+;
+; Set the I2C data line to a particular value.
+;
+; entry:
+;
+; C = state of signal: 1 = high, 0 = low
+;
+; preserves: C
 
                 .if version>=500
 i2cSetData:
                 bcc i2cSetDataLow
+                .cerror *!=i2cSetDataHigh
+                .endif
+
+;-------------------------------------------------------------------------
+;
+; Set the I2C data line high.
+;
+; preserves: A/C
+; 
+                .if version>=500
 i2cSetDataHigh:
                 pha
                 lda systemVIA.irb
@@ -3367,6 +3404,10 @@ i2cSetDataHigh:
                 .endif
 
 ;-------------------------------------------------------------------------
+;
+; Transmits 1 byte/8 bits over the I2C bus.
+;
+; entry: A = byte to transmit
 
                 .if version>=500
 i2cTransmitByte: .block
@@ -3386,22 +3427,26 @@ loop:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-L9E99:
+L9E99: .block
                 phx                          ; X
                 phy                          ; Y X
-                jsr L9ECA
-                bcs L9EA7
+                jsr i2cReadEEPROMByte
+                bcs writeIfCarry ; taken if read failed. Attempt write anyawy
+                
+                ; Compare new value to old value, and write only if
+                ; different. Don't use up the EEPROM write cycles
+                ; unnecessarily.
                 tya
                 tsx                          ; | Y X
                 eor $101,x                   ; Y^(old Y)
-                cmp #1                       ; C set if any difference
-L9EA7:
+                cmp #1  ; C set if new value is different, so attempt write
+writeIfCarry:
                 ply
                 plx
-                bcs L9EAC_500
+                bcs write
                 rts
 
-L9EAC_500:
+write:
                 jsr i2cStartDataTransfer
                 lda #eepromWrite
                 jsr i2cTransmitByteAndReceiveBit ; initiate write mode
@@ -3411,7 +3456,10 @@ L9EAC_500:
                 jsr i2cTransmitByteAndReceiveBit ; send value
                 jsr i2cStopDataTransfer
 
-                ; ~100 ms delay
+                ; After writing 1 or 2 bytes and entering the STOP
+                ; state, the write process begins, Delay ~100 ms to
+                ; wait for it. (The data sheet implies 20 ms/byte is
+                ; sufficient, but surely no harm in waiting longer.)
                 ldy #$a0
                 ldx #0
 delayLoop:
@@ -3420,42 +3468,65 @@ delayLoop:
                 dey
                 bne delayLoop
                 rts
+                .endblock
 
-L9ECA:
+;-------------------------------------------------------------------------
+;
+; Read 1 byte from EEPROM
+;
+; entry:
+;
+; X = address to read from
+;
+; exit:
+;
+; C=0 = success
+;       Y = byte read
+; C=1 = failure
+; 
+i2cReadEEPROMByte:
                 jsr i2cStartDataTransfer
-                lda #$a0
+
+                ; Send %1010, I2C address, and not-write flag
+                lda #eepromWrite
                 jsr i2cTransmitByteAndReceiveBit
+
+                ; Send word address
                 txa
                 jsr i2cTransmitByteAndReceiveBit
-                bcs L9F0E_500
+                bcs L9F0E_500              ; taken if not acknowledged
+
+                ; And again, this time in read mode
                 jsr i2cStartDataTransfer
-                lda #$a1
+                lda #eepromRead
                 jsr i2cTransmitByteAndReceiveBit
-                bcs L9F0E_500
+                bcs L9F0E_500                ; taken if not acknowledged
+                
                 jsr i2cSetClockLow
                 lda systemVIA.ddrb
-                pha
+                pha                          ; save old DDRB
                 and #~i2cData
-                sta systemVIA.ddrb
-                lda #1
+                sta systemVIA.ddrb           ; set I2C data line as input
+                lda #1                 ; add terminating bit to result
 L9EF0:
-                pha
+                pha                          ; save current result
                 jsr i2cSetClockHigh
-                nop
-                nop
+                nop                          ; wait +1 microsecond
+                nop                          ; wait +1 microsecond
                 lda systemVIA.irb
                 and #i2cData
-                cmp #1
-                jsr i2cSetClockLow
-                pla
-                rol a
-                bcc L9EF0
+                cmp #1                       ; C=1 if data received
+                jsr i2cSetClockLow          
+                pla                          ; restore current result
+                rol a                        ; shift new bit in
+                bcc L9EF0                    ; keep going until 8 bits
+                                             ; shifted in
                 tay
-                pla
+                pla                          ; restore old DDRB
                 sta systemVIA.ddrb
-                sec
-                jsr i2cTransmitBit
-                clc
+                sec 
+                jsr i2cTransmitBit           ; transmit acknowledge bit
+                clc                          ; success - clear carry
 L9F0E_500:
                 jmp i2cStopDataTransfer
                 .endif
@@ -3465,7 +3536,7 @@ L9F0E_500:
                 .if version>=500
 L9F11:
                 jsr i2cStartDataTransfer
-                lda #$a0
+                lda #eepromWrite
                 jsr i2cTransmitByteAndReceiveBit
                 txa
                 jsr i2cTransmitByteAndReceiveBit
@@ -3478,7 +3549,7 @@ L9F11:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-i2cTransmitByteAndReceiveBit:
+i2cTransmitByteAndReceiveBit: .block
                 php
                 sei
                 jsr i2cTransmitByte
@@ -3496,16 +3567,16 @@ i2cTransmitByteAndReceiveBit:
                 jsr i2cSetClockLow
                 pla
                 sta systemVIA.ddrb
-                bcs L9F4C
+                bcs returnWithCarrySet
                 plp
                 clc
-L9F4B:
                 rts
 
-L9F4C:
+returnWithCarrySet:
                 plp
                 sec
                 rts
+                .endblock
                 .endif
 
 ;-------------------------------------------------------------------------

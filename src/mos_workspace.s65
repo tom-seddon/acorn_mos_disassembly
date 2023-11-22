@@ -10,6 +10,9 @@
 ; may or may not be separable from the various .if/.endif constructs
 ; for that version. If they're changed from these defaults for any
 ; other version, the output may not make sense.
+;
+; Over time I intend to (try to) turn these into feature flags,
+; according to the actual features they control.
 
                 .weak
                 ; Set if building Olivetti MOS, a variant of 5.10.
@@ -28,6 +31,18 @@ finmos329=false
                 ; Clear if stripping out the terminal ROM. Applicable
                 ; to 3.20 or 3.50.
 includeTerminalROM=true
+                .endweak
+
+;-------------------------------------------------------------------------
+
+; These feature flags can be set fairly independently.
+                .weak
+
+                ; If true, include *X. Not clear what this command
+                ; actually, does, but it's in the original ROMs, so
+                ; there has to be the option...
+includeStarX=version<500
+
                 .endweak
                 
 ;-------------------------------------------------------------------------

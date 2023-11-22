@@ -354,7 +354,7 @@ mosCommandTable:
                 .mos_command "TIME",starTIME,$00,$00   ;
                 .mos_command "TYPE",starTYPE,$80,$00   ; XY=>parameters
                 .mos_command "UNPLUG",starUNPLUG,$00,$FF ;
-                .if version<500
+                .if includeStarX
                 .mos_command "X",mos.starX,$00,$00  ;
                 .endif
                 .mos_command "",mos.callFSCV,$00,$03 ; FSC &03

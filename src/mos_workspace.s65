@@ -43,6 +43,11 @@ includeTerminalROM=true
                 ; there has to be the option...
 includeStarX=version<500
 
+                ; For some reason, *TAPE and *MOTOR have lower-case
+                ; command name entries in MOS 4.00.
+tapeCommandString=version==400?"tape":"TAPE"
+motorCommandString=version==400?"motor":"MOTOR"
+                
                 .endweak
                 
 ;-------------------------------------------------------------------------

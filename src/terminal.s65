@@ -310,12 +310,10 @@ mosCommandTable:
                 .mos_command "LIST",starLIST,$80,$00   ; XY=>parameters
                 .mos_command "LINE",mos.callUSERV,$00,$01 ;
                 .mos_command "LIBFS",mos.starLIBFS,$00,$00    ;
-                .if version<400
-                .mos_command "MOTOR",starCommandThroughOSBYTE,$00,$89 ; X,y=parameters, OSBYTE &89
-                .elsif version==400
-                .mos_command "motor",starCommandThroughOSBYTE,$00,$89
-                .elsif version>=500
-                .mos_command "MOTOR",mos.rtsFFAA,$00,$89 ; X,y=
+                .if version<500
+                .mos_command motorCommandString,starCommandThroughOSBYTE,$00,$89 ; X,y=parameters, OSBYTE &89
+                .else
+                .mos_command motorCommandString,mos.rtsFFAA,$00,$89 ; X,y=
                 .endif
                 .mos_command "MOVE",starMOVE,$80,$00  ; XY=>parameters
                 .mos_command "OPT",starCommandThroughOSBYTE,$80,$8B ; X,y=parameters, OSBYTE &8B
@@ -343,12 +341,10 @@ mosCommandTable:
                 .else
                 .mos_command "STATUS",starCONFIGUREOrStarSTATUS,$00,$c0
                 .endif
-                .if version<400
-                .mos_command "TAPE",starCommandThroughOSBYTE,$00,$8C ; X,y=parameters, OSBYTE &8C
-                .elsif version==400
-                .mos_command "tape",starCommandThroughOSBYTE,$00,$8c
-                .elsif version>=500
-                .mos_command "TAPE",mos.rtsFFAA,$00,$8C ; X,y=parameters, OSBYTE &8C
+                .if version<500
+                .mos_command tapeCommandString,starCommandThroughOSBYTE,$00,$8C ; X,y=parameters, OSBYTE &8C
+                .else
+                .mos_command tapeCommandString,mos.rtsFFAA,$00,$8C ; X,y=parameters, OSBYTE &8C
                 .endif
                 .mos_command "TV",starCommandThroughOSBYTE,$00,$90 ; X,y=parameters, OSBYTE &90
                 .mos_command "TIME",starTIME,$00,$00   ;

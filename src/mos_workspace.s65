@@ -1544,6 +1544,7 @@ telecommsByte: .fill 1
 
 defaults0: .block
                 .fill 1
+modeShift=0
 modeMask=7
 shadowMask=8
 interlaceMask=16
@@ -1553,6 +1554,7 @@ tvShift=5
 
 defaults1: .block
                 .fill 1
+fdriveShift=0
 fdriveMask=7
 shiftLockMask=8
 noLockMask=16

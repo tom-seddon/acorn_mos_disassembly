@@ -3202,32 +3202,33 @@ readDefaultCMOSByte:
 L9DE4:
                 ; Default CMOS RAM contents? For use if the EEPROM
                 ; runs out of write cycles?
-                .byte 0  
-                .byte $FE
-                .byte 0
-                .byte $EB
-                .byte 0
-                .byte $ED
-                .byte $FF
-                .byte $FF
-                .byte 0
-                .byte 0
+                .byte 0                      ; econetStationNumber
+                .byte 254                    ; fileServerStationNumber
+                .byte 0                      ; fileServerNetworkNumber
+                .byte $EB                    ; printerServerStationNumber
+                .byte 0                      ; printerServerNetworkNumber
+                .byte 14<<CMOSBytes.defaultROMs.languageShift|13<<CMOSBytes.defaultROMs.fsShift
+                .byte $FF                    ; insertedROMS 8-15
+                .byte $FF                    ; insertedROMS 0-7
+                .byte 0                      ; editROMBytes
+                .byte 0                      ; telecommsByte
                 .if version>=511||olivetti
-                .byte $f9
+                .byte 1<<CMOSBytes.defaults0.modeShift|CMOSBytes.defaults0.shadowMask|CMOSBytes.defaults0.interlaceMask|7<<CMOSBytes.defaults0.tvShift ; defaults0
                 .else
-                .byte $F7
+                .byte 7<<CMOSBytes.defaults0.modeShift|CMOSBytes.defaults0.interlaceMask|7<<CMOSBytes.defaults0.tvShift ; defaults0
                 .endif
-                .byte $E3
-                .byte $20
-                .byte 8
-                .byte $A
-                .byte $2C
-                .byte $80
-                .byte 0
-                .byte 3
+                .byte 3<<CMOSBytes.defaults1.fdriveShift|CMOSBytes.defaults1.capsLockMask|CMOSBytes.defaults1.adfsLoadDirMask|CMOSBytes.defaults1.floppyDrive ; defaults1
+                .byte 32                     ; keyboardAutoRepeatDelay
+                .byte 8                      ; keyboardAutoRepeatRate
+                .byte $A                     ; printerIgnoreChar
+                .byte 1<<CMOSBytes.defaults2.fx5SettingShift|3<<CMOSBytes.defaults2.serialBaudRateIndexShift ; defaults2
+                .byte 4<<CMOSBytes.defaults3.serialDataFormatShift ; defaults3
+                .byte 0                      ; unknown11
+                .byte 3                      ; joystick
                 .if version>=511||olivetti
-                .byte 4
+                .byte 4                      ; country
                 .endif
+                .cerror *-L9DE4!=size(CMOSBytes)
                 .endif
 
 ;-------------------------------------------------------------------------

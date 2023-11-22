@@ -3200,8 +3200,8 @@ readDefaultCMOSByte:
                 bra readRTCByte.readDefaultByte
 
 L9DE4:
-                ; Default CMOS RAM contents? For use if the EEPROM
-                ; runs out of write cycles?
+                ; Default EEPROM contents? For use if the EEPROM runs
+                ; out of write cycles?
                 .byte 0                      ; econetStationNumber
                 .byte 254                    ; fileServerStationNumber
                 .byte 0                      ; fileServerNetworkNumber
@@ -3212,11 +3212,8 @@ L9DE4:
                 .byte $FF                    ; insertedROMS 0-7
                 .byte 0                      ; editROMBytes
                 .byte 0                      ; telecommsByte
-                .if version>=511||olivetti
-                .byte 1<<CMOSBytes.defaults0.modeShift|CMOSBytes.defaults0.shadowMask|CMOSBytes.defaults0.interlaceMask|7<<CMOSBytes.defaults0.tvShift ; defaults0
-                .else
-                .byte 7<<CMOSBytes.defaults0.modeShift|CMOSBytes.defaults0.interlaceMask|7<<CMOSBytes.defaults0.tvShift ; defaults0
-                .endif
+                .cerror !(defaultMODE>=0&&defaultMODE<=7||defaultMODE>=128&&defaultMODE<=135)
+                .byte (defaultMODE&7)<<CMOSBytes.defaults0.modeShift|((defaultMODE&$80)!=0?CMOSBytes.defaults0.shadowMask:0)|CMOSBytes.defaults0.interlaceMask|7<<CMOSBytes.defaults0.tvShift ; defaults0
                 .byte 3<<CMOSBytes.defaults1.fdriveShift|CMOSBytes.defaults1.capsLockMask|CMOSBytes.defaults1.adfsLoadDirMask|CMOSBytes.defaults1.floppyDrive ; defaults1
                 .byte 32                     ; keyboardAutoRepeatDelay
                 .byte 8                      ; keyboardAutoRepeatRate

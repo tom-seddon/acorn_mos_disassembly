@@ -4,6 +4,7 @@
 
 version=510
 versionString="MOS 5.10"
+defaultMODE=7
                 
 *=$8000
                 .dsection utils

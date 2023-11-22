@@ -5,6 +5,7 @@
 version=510
 versionString="MOS I5.10C"
 olivetti=true
+defaultMODE=129
                 
 *=$8000
                 .dsection utils

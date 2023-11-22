@@ -965,7 +965,7 @@ readDefaultTVSettings:
                 tay
                 pla
                 ldx #$00                     ;X=0 - interlace off
-                bit #CMOSBytes.defaults0.defaultInterlaceMask
+                bit #CMOSBytes.defaults0.interlaceMask
                 beq +
                 inx                          ;X=1 - interlace on
 +
@@ -978,10 +978,10 @@ readDefaultTVSettings:
 readDefaultMODE:
                 ldx #CMOSBytes.defaults0+cmosBytesOffset
                 jsr readRTCByte
-                and #CMOSBytes.defaults0.defaultMODEMask|CMOSBytes.defaults0.defaultSHADOWMask
-                bit #CMOSBytes.defaults0.defaultSHADOWMask
+                and #CMOSBytes.defaults0.modeMask|CMOSBytes.defaults0.shadowMask
+                bit #CMOSBytes.defaults0.shadowMask
                 beq +
-                eor #$80|CMOSBytes.defaults0.defaultSHADOWMask ;reset defaultSHADOWMask bit, set bit 7
+                eor #$80|CMOSBytes.defaults0.shadowMask ;reset defaultSHADOWMask bit, set bit 7
 +
                 rts
 

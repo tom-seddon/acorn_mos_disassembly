@@ -134,9 +134,9 @@ setDefaultHardDrive:
                 .if version<400
 setDefaultFloppyDrive:
                 bne badCommandError88AC
-                lda #CMOSBytes.defaults1.defaultFloppyDrive
+                lda #CMOSBytes.defaults1.floppyDrive
 writeDefaultFloppyDrive:
-                ldy #~(CMOSBytes.defaults1.defaultFloppyDrive)&$ff
+                ldy #~(CMOSBytes.defaults1.floppyDrive)&$ff
                 bra writeDefaults1Bits
                 .endif
                 
@@ -154,9 +154,9 @@ setDefaultADFSLoadDir:
                 .if version<400
 setDefaultADFSNoLoadDir:
                 bne badCommandError88AC
-                lda #CMOSBytes.defaults1.defaultADFSLoadDirMask
+                lda #CMOSBytes.defaults1.adfsLoadDirMask
 writeDefaultADFSLoadDir:
-                ldy #(~CMOSBytes.defaults1.defaultADFSLoadDirMask)&$ff
+                ldy #(~CMOSBytes.defaults1.adfsLoadDirMask)&$ff
                 bra writeDefaults1Bits
                 .endif
                 
@@ -169,7 +169,7 @@ setDefaultFDRIVE:
                 txa
                 cmp #$08                     ;max FDRIVE is 7
                 bcs badCommandError88AC
-                ldy #(~CMOSBytes.defaults1.defaultFDRIVEMask)&$ff
+                ldy #(~CMOSBytes.defaults1.fdriveMask)&$ff
 writeDefaults1Bits:
                 ldx #CMOSBytes.defaults1+cmosBytesOffset
                 bra jmpWriteRTCBits892D
@@ -179,23 +179,23 @@ writeDefaults1Bits:
 
 setDefaultNoLock:
                 bne badCommandError88AC
-                lda #CMOSBytes.defaults1.defaultNoLockMask
+                lda #CMOSBytes.defaults1.noLockMask
                 bra setDefaultLock     
 
 ;-------------------------------------------------------------------------
 
 setDefaultShiftLock:
                 bne badCommandError88AC
-                lda #CMOSBytes.defaults1.defaultShiftLockMask
+                lda #CMOSBytes.defaults1.shiftLockMask
                 bra setDefaultLock
 
 ;-------------------------------------------------------------------------
 
 setDefaultsCapsLock:
                 bne badCommandError88AC
-                lda #CMOSBytes.defaults1.defaultCapsLockMask
+                lda #CMOSBytes.defaults1.capsLockMask
 setDefaultLock:
-                ldy #~(CMOSBytes.defaults1.defaultCapsLockMask|CMOSBytes.defaults1.defaultNoLockMask|CMOSBytes.defaults1.defaultShiftLockMask)&$ff
+                ldy #~(CMOSBytes.defaults1.capsLockMask|CMOSBytes.defaults1.noLockMask|CMOSBytes.defaults1.shiftLockMask)&$ff
                 .if version<400
                 bra writeDefaults1Bits
                 .else
@@ -215,9 +215,9 @@ setDefaultMODE:
                 bcs bcsBadCommandError8911
                 inx    ;set N as per X value - bit 6 is never set, so the result is valid for the original value
                 bpl +
-                ora #CMOSBytes.defaults0.defaultSHADOWMask
+                ora #CMOSBytes.defaults0.shadowMask
 +
-                ldy #~(CMOSBytes.defaults0.defaultSHADOWMask|CMOSBytes.defaults0.defaultMODEMask)&$ff
+                ldy #~(CMOSBytes.defaults0.shadowMask|CMOSBytes.defaults0.modeMask)&$ff
                 bra writeDefaults0Bits
 
 ;-------------------------------------------------------------------------
@@ -248,7 +248,7 @@ bcsBadCommandError8911:
                 asl a                        
                 asl a                        ; shift into place
 writeDefaultTVSettings:
-                ldy #~(CMOSBytes.defaults0.defaultTVMask<<CMOSBytes.defaults0.defaultTVShift|CMOSBytes.defaults0.defaultInterlaceMask)&$ff
+                ldy #~(CMOSBytes.defaults0.tvMask<<CMOSBytes.defaults0.tvShift|CMOSBytes.defaults0.interlaceMask)&$ff
 writeDefaults0Bits:
                 ldx #CMOSBytes.defaults0+cmosBytesOffset
 jmpWriteRTCBits892D:
@@ -518,7 +518,7 @@ setDefaultSerialDataFormat:
                 jsr parseSingleNumberFromCommandLine
                 cmp #$08
                 bcs bcsBadCommandError
-                ldy #~(CMOSBytes.defaults3.defaultSerialDataFormatMask<<CMOSBytes.defaults3.defaultSerialDataFormatShift)&$ff
+                ldy #~(CMOSBytes.defaults3.serialDataFormatMask<<CMOSBytes.defaults3.serialDataFormatShift)&$ff
                 lsr a                        ;%000000ab c
                 ror a                        ;%c000000a b
                 ror a                        ;%bc000000 a
@@ -809,7 +809,7 @@ printDefaultSerialDataFormat:
                 .if version<400
 printDefaultFDRIVE:
                 jsr readDefaults1
-                and #CMOSBytes.defaults1.defaultFDRIVEMask
+                and #CMOSBytes.defaults1.fdriveMask
                 bra printDecimalByteThenNewLine
                 .endif
                 

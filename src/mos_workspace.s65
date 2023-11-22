@@ -1542,24 +1542,23 @@ insertedROMs: .fill 2
 editROMByte: .fill 1
 telecommsByte: .fill 1
 
-                ; TODO - don't need to say "default" so much...
 defaults0: .block
                 .fill 1
-defaultMODEMask=7
-defaultSHADOWMask=8
-defaultInterlaceMask=16
-defaultTVMask=7
-defaultTVShift=5
+modeMask=7
+shadowMask=8
+interlaceMask=16
+tvMask=7
+tvShift=5
                 .endblock
 
 defaults1: .block
                 .fill 1
-defaultFDRIVEMask=7
-defaultShiftLockMask=8
-defaultNoLockMask=16
-defaultCapsLockMask=32
-defaultADFSLoadDirMask=64
-defaultFloppyDrive=128
+fdriveMask=7
+shiftLockMask=8
+noLockMask=16
+capsLockMask=32
+adfsLoadDirMask=64
+floppyDrive=128
                 .endblock
 
 keyboardAutoRepeatDelay: .fill 1
@@ -1582,8 +1581,8 @@ loudMask=2
 extTubeMask=4
 protectedScrollingMask=8
 autoBootMask=16
-defaultSerialDataFormatMask=7
-defaultSerialDataFormatShift=5
+serialDataFormatMask=7
+serialDataFormatShift=5
                 .endblock
 
                 .if version>=500

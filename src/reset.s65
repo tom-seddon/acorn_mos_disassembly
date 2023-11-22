@@ -212,7 +212,7 @@ LFCBF:
                 ldx #configureTable.mode.metadata-configureTable;$56
                 jsr readConfigurationByte
                 .endif
-                ora #CMOSBytes.defaults0.defaultSHADOWMask
+                ora #CMOSBytes.defaults0.shadowMask
                 sta startupOptions
                 .if version==350
                 jsr terminal.setTSTAndReadDefaults3

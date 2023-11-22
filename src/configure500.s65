@@ -105,25 +105,25 @@ configureTable: .block
                 .itemWithAddress ".",printConfigureOrStatusHeader
 baud: .itemWithMetadata "Baud",CMOSBytes.defaults2,CMOSBytes.defaults2.serialBaudRateIndexMask<<CMOSBytes.defaults2.serialBaudRateIndexShift,0,true
 boot: .itemWithMetadata "Boot",CMOSBytes.defaults3,CMOSBytes.defaults3.autoBootMask,1,false
-                .itemWithMetadata "Caps",CMOSBytes.defaults1,(CMOSBytes.defaults1.defaultCapsLockMask|CMOSBytes.defaults1.defaultShiftLockMask|CMOSBytes.defaults1.defaultNoLockMask),4,false
+                .itemWithMetadata "Caps",CMOSBytes.defaults1,(CMOSBytes.defaults1.capsLockMask|CMOSBytes.defaults1.shiftLockMask|CMOSBytes.defaults1.noLockMask),4,false
                 .if olivetti
                 .itemWithMetadata "Country",CMOSBytes.country,$ff,0,true
                 .endif
-data: .itemWithMetadata "Data",CMOSBytes.defaults3,CMOSBytes.defaults3.defaultSerialDataFormatMask<<CMOSBytes.defaults3.defaultSerialDataFormatShift,0,true
+data: .itemWithMetadata "Data",CMOSBytes.defaults3,CMOSBytes.defaults3.serialDataFormatMask<<CMOSBytes.defaults3.serialDataFormatShift,0,true
                 .itemWithMetadata "Delay",CMOSBytes.keyboardAutoRepeatDelay,$ff,0,true
-dir: .itemWithMetadata "Dir",CMOSBytes.defaults1,CMOSBytes.defaults1.defaultADFSLoadDirMask,0,false
+dir: .itemWithMetadata "Dir",CMOSBytes.defaults1,CMOSBytes.defaults1.adfsLoadDirMask,0,false
 lastDirChar=dir.metadata-1
                 .if version==350
 extube: .itemWithMetadata "ExTube",CMOSBytes.defaults3,CMOSBytes.defaults3.extTubeMask,1,false
 lastExChar=extube+1
                 .endif
-                .itemWithMetadata "Fdrive",CMOSBytes.defaults1,CMOSBytes.defaults1.defaultFDRIVEMask,0,true
+                .itemWithMetadata "Fdrive",CMOSBytes.defaults1,CMOSBytes.defaults1.fdriveMask,0,true
 file: .itemWithMetadata "File",CMOSBytes.defaultROMs,$f<<CMOSBytes.defaultROMs.fsShift,0,true
                 .if version==350
-                .itemWithMetadata "Floppy",CMOSBytes.defaults1,CMOSBytes.defaults1.defaultFloppyDrive,1,false
+                .itemWithMetadata "Floppy",CMOSBytes.defaults1,CMOSBytes.defaults1.floppyDrive,1,false
                 .endif
                 .if version==350
-                .itemWithMetadata "Hard",CMOSBytes.defaults1,CMOSBytes.defaults1.defaultFloppyDrive,0,false
+                .itemWithMetadata "Hard",CMOSBytes.defaults1,CMOSBytes.defaults1.floppyDrive,0,false
                 .endif
 ignore: .itemWithAddress "Ignore",handlePrinterIgnoreChar
                 .if version==350
@@ -132,10 +132,10 @@ lastInChar=intube+1
                 .endif
 lang: .itemWithMetadata "Lang",CMOSBytes.defaultROMs,$f<<CMOSBytes.defaultROMs.languageShift,0,true
                 .itemWithMetadata "Loud",CMOSBytes.defaults3,CMOSBytes.defaults3.loudMask,1,false
-mode: .itemWithMetadata "Mode",CMOSBytes.defaults0,CMOSBytes.defaults0.defaultMODEMask|CMOSBytes.defaults0.defaultSHADOWMask,0,true
+mode: .itemWithMetadata "Mode",CMOSBytes.defaults0,CMOSBytes.defaults0.modeMask|CMOSBytes.defaults0.shadowMask,0,true
                 .itemWithMetadata "NoBoot",CMOSBytes.defaults3,CMOSBytes.defaults3.autoBootMask,0,false
-                .itemWithMetadata "NoCaps",CMOSBytes.defaults1,CMOSBytes.defaults1.defaultShiftLockMask|CMOSBytes.defaults1.defaultNoLockMask|CMOSBytes.defaults1.defaultCapsLockMask,2,false
-noDir: .itemWithMetadata "NoDir",CMOSBytes.defaults1,CMOSBytes.defaults1.defaultADFSLoadDirMask,1,false
+                .itemWithMetadata "NoCaps",CMOSBytes.defaults1,CMOSBytes.defaults1.shiftLockMask|CMOSBytes.defaults1.noLockMask|CMOSBytes.defaults1.capsLockMask,2,false
+noDir: .itemWithMetadata "NoDir",CMOSBytes.defaults1,CMOSBytes.defaults1.adfsLoadDirMask,1,false
 lastNoDirChar:=noDir.metadata-1
                 .itemWithMetadata "NoScroll",CMOSBytes.defaults3,CMOSBytes.defaults3.protectedScrollingMask,1,false
                 .if version==350
@@ -145,7 +145,7 @@ print: .itemWithMetadata "Print",CMOSBytes.defaults2,CMOSBytes.defaults2.fx5Sett
                 .itemWithMetadata "Quiet",CMOSBytes.defaults3,CMOSBytes.defaults3.loudMask,0,false
                 .itemWithMetadata "Repeat",CMOSBytes.keyboardAutoRepeatRate,$ff,0,true
                 .itemWithMetadata "Scroll",CMOSBytes.defaults3,CMOSBytes.defaults3.protectedScrollingMask,0,false
-shCaps: .itemWithMetadata "ShCaps",CMOSBytes.defaults1,CMOSBytes.defaults1.defaultShiftLockMask|CMOSBytes.defaults1.defaultNoLockMask|CMOSBytes.defaults1.defaultCapsLockMask,1,false
+shCaps: .itemWithMetadata "ShCaps",CMOSBytes.defaults1,CMOSBytes.defaults1.shiftLockMask|CMOSBytes.defaults1.noLockMask|CMOSBytes.defaults1.capsLockMask,1,false
 lastShChar=shCaps+1
                 .if version==350
                 .itemWithMetadata "Tube",CMOSBytes.defaults2,CMOSBytes.defaults2.tubeOnMask,1,false
@@ -169,7 +169,7 @@ L8603:
                 .itemMetadata $00,CMOSBytes.defaults2,3<<1,0,false
                 .endif
 L8605:
-                .itemMetadata $00,CMOSBytes.defaults0,CMOSBytes.defaults0.defaultInterlaceMask|(CMOSBytes.defaults0.defaultTVMask<<CMOSBytes.defaults0.defaultTVShift),0,false
+                .itemMetadata $00,CMOSBytes.defaults0,CMOSBytes.defaults0.interlaceMask|(CMOSBytes.defaults0.tvMask<<CMOSBytes.defaults0.tvShift),0,false
 ectory:
                 .text "ectory",$ff
                 .if version==350
@@ -577,9 +577,9 @@ gotMaskedByte:
                 ; the shadow modes are 128-135.
                 cpx #configureTable.mode.metadata-configureTable
                 bne done        ;taken if not MODE
-                bit #CMOSBytes.defaults0.defaultSHADOWMask ;test shadow bit
+                bit #CMOSBytes.defaults0.shadowMask ;test shadow bit
                 beq done                                   ;taken if not shadow mode
-                eor #$80|CMOSBytes.defaults0.defaultSHADOWMask ;turn mode|flag into mode|$80
+                eor #$80|CMOSBytes.defaults0.shadowMask ;turn mode|flag into mode|$80
 
 done:
                 ply

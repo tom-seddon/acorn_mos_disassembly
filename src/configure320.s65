@@ -77,7 +77,7 @@ starCONFIGURE:
                 ldx #romServiceCallUnknownCONFIG
 L8881:
                 ldy $E6
-                jsr mos.makeROMServiceCall
+                jsr makeROMServiceCall
                 bne badCommandError88AC
                 rts
 
@@ -94,7 +94,7 @@ callSetRoutine:
                 pha
                 .endif
 L8892:
-                jmp mos.skipSpacesAndCheckForCRInStringInput
+                jmp skipSpacesAndCheckForCRInStringInput
 
 starSTATUS:
                 jsr L8934
@@ -115,7 +115,7 @@ L889E:
                 lda configureTable+3,x
                 pha
                 .endif
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 beq L8892
 badCommandError88AC:
                 jmp badCommandError8976                   
@@ -236,7 +236,7 @@ bcsBadCommandError8911:
                 asl a                   ;make space for interlace flag
                 sta $B1
                 ldx #$00
-                jsr mos.LF30A
+                jsr LF30A
                 beq +                  ;taken if only 1 value supplied
                 jsr parseSingle1BitNumberFromCommandLine ;get interlace flag
                 tax                          ;X=interlace flag
@@ -263,7 +263,7 @@ resetDefaultTVSettings:
 ;
 ; 
 L8934:
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 sty $E6
                 beq L8979                    ;taken if input ends with CR
                 ldx #$00
@@ -283,7 +283,7 @@ L8947:
                 inx
 L894A:
                 lda (stringInputBufferAddress),y
-                jsr mos.isLetter
+                jsr isLetter
                 bcc L893F                    ;taken if letter
 L8951:
                 .if version==400
@@ -340,7 +340,7 @@ parseNumberFromCommandLine:
                 jsr parseNumberFromString
                 bcs rts8970
 badCommandError8976:
-                jmp mos.badCommandError
+                jmp badCommandError
 
 ;-------------------------------------------------------------------------
 
@@ -358,7 +358,7 @@ parseSingle4BitNumberFromCommandLine:
                 bcs badCommandError8976
 ensureCommandLineTailEmpty:
                 pha                          ;save value parsed
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
 bneBadCommandError898B:
                 bne badCommandError8976      ;taken if followed up by anything other than CR
                 pla                          ;restore value parsed
@@ -940,7 +940,7 @@ printCONFIGUREHelp:
                 .byte 0
                 ply
                 ldx #romServiceCallUnknownCONFIG
-                jsr mos.makeROMServiceCall
+                jsr makeROMServiceCall
                 jsr alwaysPrintFollowingMessage
                 .text "Where:",13
                 .text "D is a decimal number, or",13
@@ -1030,5 +1030,5 @@ printSTATUSHelp:
                 
                 ply                          
                 ldx #romServiceCallUnknownSTATUS
-                jmp mos.makeROMServiceCall   
+                jmp makeROMServiceCall   
 

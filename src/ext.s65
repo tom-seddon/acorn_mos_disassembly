@@ -15,7 +15,7 @@ ellipseOutlineLoop:
 startEllipseOutline:
                 ldx     #VDUVariables.ew.pointC
                 ldy     #VDUVariables.ew.pointA
-                jsr     mos.sortVDUVariableWords
+                jsr     sortVDUVariableWords
                 .if version!=350
                 ldx     #VDUVariables.ew.leftPoint
                 .endif
@@ -48,7 +48,7 @@ ellipseOutlineContinueRowLoop:
                 .if version<500&&version!=350
                 ldx     #VDUVariables.ew.pointD
                 ldy     #VDUVariables.ew.pointB
-                jsr     mos.sortVDUVariableWords
+                jsr     sortVDUVariableWords
                 ldy     #VDUVariables.ew.rightPoint
                 lda     vduv+1,y
                 sta     vduv.ew.currentOffsetX+1
@@ -90,9 +90,9 @@ LBA46:
                 bpl LAF47
                 ldx #VDUVariables.ew.pointD
                 ldy #VDUVariables.ew.pointB
-                jsr mos.sortVDUVariableWords
+                jsr sortVDUVariableWords
                 ldy #VDUVariables.ew.pointC
-                jsr mos.sortVDUVariableWords
+                jsr sortVDUVariableWords
                 lda vduv.ew.rightPoint+1
                 sta vduv.ew.currentOffsetX+1
                 lda vduv.ew.rightPoint+0
@@ -207,7 +207,7 @@ LBAFE:
                 sta     vduv.ew.currentOffsetX+1
                 ldx     #VDUVariables.ew.pointF
                 ldy     #VDUVariables.ew.pointE
-                jmp     mos.LDAE8
+                jmp     LDAE8
 
 
 
@@ -229,7 +229,7 @@ LBB12:
                 jsr     negateVDUVariableXIntoY
                 ldx     #VDUVariables.workspace._29
                 ldy     #VDUVariables.ew.pointF
-                jsr     mos.copyTwoBytesWithinVDUVariables
+                jsr     copyTwoBytesWithinVDUVariables
                 ldx     #VDUVariables.ew.pointF
                 ldy     #VDUVariables.ew.pointE
                 jmp     fillEllipseOneRowAndReflection
@@ -239,12 +239,12 @@ ellipseInitialisation:
                 ldy     #VDUVariables.graphicsCursorPixelsX
                 ldx     #VDUVariables.oldGraphicsCursorPixelsX
                 lda     #VDUVariables.workspace._29
-                jsr     mos.LD678
+                jsr     LD678
                 stz     vduv.ew.aspectRatio+0
                 ldy     #VDUVariables.queueEnd-2
                 ldx     #VDUVariables.oldGraphicsCursorPixelsY
                 lda     #VDUVariables.ew.halfHeightCounter
-                jsr     mos.LD678
+                jsr     LD678
                 lda     vduv.ew.halfHeightCounter+0
                 ora     vduv.ew.halfHeightCounter+1
                 beq     LBB12
@@ -253,7 +253,7 @@ ellipseInitialisation:
                 ldy     #VDUVariables.queueEnd-4
                 ldx     #VDUVariables.oldGraphicsCursorPixelsX
                 lda     #VDUVariables.ew.shear+1
-                jsr     mos.LD678
+                jsr     LD678
                 stz     vduv.ew.shear+0
                 rol     a
                 eor     ellipseSignFlag
@@ -281,7 +281,7 @@ LBB86:
                 lda     vduv.workspace._2E
                 sta     L883C
                 lda     vduv.workspace._2F
-                jsr     mos.LD4CE
+                jsr     LD4CE
                 ldy     #3
 
 LBB94:
@@ -308,9 +308,9 @@ LBB9F:
                 jsr     negateVDUVariableXIntoY
                 ldx     #VDUVariables.ew.pointA
                 ldy     #VDUVariables.ew.rightPoint
-                jsr     mos.compareVDUVariableWords
+                jsr     compareVDUVariableWords
                 bpl     LBBD2
-                jsr     mos.copyTwoBytesWithinVDUVariables
+                jsr     copyTwoBytesWithinVDUVariables
                 ldx     #VDUVariables.ew.pointD
                 bra     LBBE4
 
@@ -318,16 +318,16 @@ LBB9F:
 LBBD2:
                 ldx     #VDUVariables.ew.leftPoint
                 ldy     #VDUVariables.ew.pointB
-                jsr     mos.compareVDUVariableWords
+                jsr     compareVDUVariableWords
                 bpl     rtsBC17
                 ldx     #VDUVariables.ew.pointC
                 ldy     #VDUVariables.ew.rightPoint
-                jsr     mos.copyTwoBytesWithinVDUVariables
+                jsr     copyTwoBytesWithinVDUVariables
                 ldx     #VDUVariables.ew.pointB
 
 LBBE4:
                 ldy     #VDUVariables.ew.leftPoint
-                jmp     mos.copyTwoBytesWithinVDUVariables
+                jmp     copyTwoBytesWithinVDUVariables
 
 ;-------------------------------------------------------------------------
 ;
@@ -338,7 +338,7 @@ updateEllipseIncrementally:
                 jsr     updateEllipse
                 ldy     #VDUVariables.ew.rightPoint
                 ldx     #VDUVariables.ew.pointA
-                jsr     mos.compareVDUVariableWords
+                jsr     compareVDUVariableWords
                 bpl     LBC02
                 lda     vduv.ew.pointA+0
                 sta     vduv.ew.rightPoint+0
@@ -349,7 +349,7 @@ updateEllipseIncrementally:
 LBC02:
                 ldx     #VDUVariables.ew.leftPoint
                 ldy     #VDUVariables.ew.pointB
-                jsr     mos.compareVDUVariableWords
+                jsr     compareVDUVariableWords
                 bpl     rtsBC17
                 lda     vduv.ew.pointB+0
                 sta     vduv.ew.leftPoint+0
@@ -367,10 +367,10 @@ rtsBC17:
 updateEllipse:
                 ldx     #VDUVariables.ew.leftPoint
                 ldy     #VDUVariables.ew.pointC
-                jsr     mos.copyFourBytesWithinVDUVariables
+                jsr     copyFourBytesWithinVDUVariables
                 ldx     #VDUVariables.ew.pointA
                 ldy     #VDUVariables.ew.leftPoint
-                jsr     mos.copyFourBytesWithinVDUVariables
+                jsr     copyFourBytesWithinVDUVariables
                 
                 sec
                 lda     vduv.ew.halfHeightSquared+0
@@ -500,7 +500,7 @@ outlineEllipsePlotOnePointAndReflection: .block
                 sta     vduv.ew.plotPointY+1
                 
                 ldx     #VDUVariables.ew.plotPointX
-                jsr     mos.plotPointInternal
+                jsr     plotPointInternal
                 
                 lda     ellipseCountHeight+0
                 ora     ellipseCountHeight+1
@@ -523,7 +523,7 @@ outlineEllipsePlotOnePointAndReflection: .block
                 sta     vduv.ew.plotPointY+1
                 
                 ldx     #VDUVariables.ew.plotPointX
-                jsr     mos.plotPointInternal
+                jsr     plotPointInternal
 done:
                 ply
                 plx
@@ -741,31 +741,31 @@ plotMoveOrCopyRectangle:
                 and     #2
                 sta     vduv.mocr.copy
 
-                jsr     mos.prepareForPlotBackground
+                jsr     prepareForPlotBackground
 
                 ldx     #VDUVariables.oldGraphicsCursorPixels
-                jsr     mos.prepareAABB
+                jsr     prepareAABB
 
                 ; mocr.dest.min = PLOT coordinate
                 ldy     #VDUVariables.mocr.dest.min
-                jsr     mos.copyLastFourVDUQueueBytes
+                jsr     copyLastFourVDUQueueBytes
                 sty     ZTEMP+0              ;Y=VDUVariables.mocr.dest.max
 
                 ; dest.max = dest.min + (src.max - src.min)
                 ldx     #VDUVariables.mocr.dest.min
                 ldy     #VDUVariables.mocr.src.max
                 lda     #VDUVariables.mocr.src.min
-                jsr     mos.addRegionDimensionsToVDUVariableCoordinates
+                jsr     addRegionDimensionsToVDUVariableCoordinates
 
                 ;
                 ldx     #VDUVariables.mocr.src.min
                 ldy     #VDUVariables.mocr.dest
-                jsr     mos.sortVDUVariableWords
+                jsr     sortVDUVariableWords
 
                 phy
                 phx
                 ldy     #0                   ;get outcode for X axis
-                jsr     mos.getOutcodeForAxis
+                jsr     getOutcodeForAxis
                 beq     LBEF3                ;taken if 
                 lsr     a
                 beq     LBEF1
@@ -785,13 +785,13 @@ LBEF3:
                 ldy     #VDUVariables.mocr.L30
                 sty     ZTEMP+0
                 ldy     #VDUVariables.mocr.src.min
-                jsr     mos.addRegionDimensionToVDUVariableCoordinate
+                jsr     addRegionDimensionToVDUVariableCoordinate
 
                 ldy     #VDUVariables.ew.pointA
                 sty     ZTEMP+0
 
                 ldy     #VDUVariables.mocr.dest.min
-                jsr     mos.addRegionDimensionToVDUVariableCoordinate
+                jsr     addRegionDimensionToVDUVariableCoordinate
                 
                 pla
                 clc
@@ -799,7 +799,7 @@ LBEF3:
                 tax
                 phx
                 ldy     #0
-                jsr     mos.getOutcodeForAxis
+                jsr     getOutcodeForAxis
                 beq     LBF18
                 lsr     a
                 beq     LBEEF
@@ -810,7 +810,7 @@ LBF18:
                 ldy     #VDUVariables.mocr.L40
                 sty     ZTEMP+0
                 ldy     #VDUVariables.mocr.dest.max.x
-                jsr     mos.addRegionDimensionToVDUVariableCoordinate
+                jsr     addRegionDimensionToVDUVariableCoordinate
                 lda     vduv.mocr.L40
                 cmp     vduv.mocr.L3C
                 lda     vduv.mocr.L40+1
@@ -818,12 +818,12 @@ LBF18:
                 bpl     LBF40
                 lda     vduv.mocr.copy
                 bne     LBF38
-                jsr     mos.LC420
+                jsr     LC420
 
 LBF38:
                 ldx     #VDUVariables.mocr.dest
-                jsr     mos.copyEightBytesToWorkspace28
-                jmp     mos.LC420
+                jsr     copyEightBytesToWorkspace28
+                jmp     LC420
 
 
 LBF40:
@@ -850,11 +850,11 @@ LBF5C:
                 clc
                 adc     vduv.pixelsPerByteMinusOne
                 tax
-                lda     mos.LE120,x
+                lda     LE120,x
                 sta     ZTEMPD+1
                 ldx     #VDUVariables.mocr.L3C
                 ldy     #VDUVariables.mocr.L40
-                jsr     mos.LDA9C
+                jsr     LDA9C
                 sta     vduv.mocr.L44
                 lda     ZMASK
                 sta     vduv.mocr.L46
@@ -874,7 +874,7 @@ LBF9E:
                 bmi     LBFB1
 
 LBFA0:
-                jsr     mos.LDB62
+                jsr     LDB62
                 ldx     #0
                 jsr     LBFD1
                 ldx     #$c
@@ -886,13 +886,13 @@ LBFA0:
 LBFB1:
                 ldx     #VDUVariables.mocr.src.min.y
                 ldy     #VDUVariables.mocr.src.max.y
-                jsr     mos.exchangeTwoVDUBytes
+                jsr     exchangeTwoVDUBytes
                 ldx     #VDUVariables.mocr.dest.min.y
                 ldy     #VDUVariables.mocr.dest.max.y
-                jsr     mos.exchangeTwoVDUBytes
+                jsr     exchangeTwoVDUBytes
 
 LBFBF:
-                jsr     mos.LDB62
+                jsr     LDB62
                 ldx     #0
                 jsr     LBFDB
                 ldx     #$c
@@ -900,7 +900,7 @@ LBFBF:
                 bne     LBFBF
 
 LBFCE:
-                jmp     mos.LDB62
+                jmp     LDB62
 
 LBFD1:
                 inc     vduv.mocr.src.min.y+0,x

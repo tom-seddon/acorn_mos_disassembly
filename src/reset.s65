@@ -111,7 +111,7 @@ LFC5A:
                 .else
                 bne nonPowerOnReset
                 ldx #7
-                jsr mos.LF8B4
+                jsr LF8B4
                 .if version==400
                 lda #0
                 .else
@@ -154,9 +154,9 @@ nonPowerOnReset:
                 dec a
                 beq startClearRAM
                 .endif
-                lda #<mos.emptyCommandLine
+                lda #<emptyCommandLine
                 sta hazel.commandLinePointer+0
-                lda #>mos.emptyCommandLine
+                lda #>emptyCommandLine
                 sta hazel.commandLinePointer+1
                 lda #ACCCON.Y|ACCCON.X ; page in MOS ROM, page in main
                                        ; RAM
@@ -178,10 +178,10 @@ nonPowerOnReset:
                 .if version==350
                 jsr setTSTAndInterrogateKeyboard
                 .else
-                jsr mos.interrogateKeyboard
+                jsr interrogateKeyboard
                 .endif
                 cpx #$80        ;Z=0 C=1 if CTRL+BREAK
-                jsr mos.updateKeyboardLEDs
+                jsr updateKeyboardLEDs
                 stz lastBREAKType            ;softBREAK
                 ror a
                 ldx #$9c                     ;what is this?
@@ -306,7 +306,7 @@ initializeZeroPageLoop:
                 ldx execFileHandle
                 
 L8130:
-                lda mos.defaultVectorTable-1,y
+                lda defaultVectorTable-1,y
                 sta vectors-1,y       
                 dey                   
                 cpy #EVENTV+1-vectors 
@@ -315,7 +315,7 @@ L8130:
                 ldy #FILEV-vectors
                 
 L813D:
-                lda mos.defaultVectorTable-1,y
+                lda defaultVectorTable-1,y
                 sta vectors-1,y
                 dey
                 bne L813D
@@ -366,8 +366,8 @@ gotKeyboardStatusByte:
                 .if version==350
                 jsr setTSTAndResetKeyRepeat
                 .else
-                jsr mos.selectTerminalROM
-                jsr mos.resetKeyRepeat
+                jsr selectTerminalROM
+                jsr resetKeyRepeat
                 .endif
                 lda lastBREAKType
                 beq L8196
@@ -470,7 +470,7 @@ initializeVIAInterruptsLoop:
                 ; must have been an IRQ (as A=$7f). 
                 bit TEMPA
                 bvc +
-                jsr mos.call1MHzBusHook
+                jsr call1MHzBusHook
 +
                 .endif
 
@@ -508,7 +508,7 @@ initializeVIAInterruptsLoop:
                 ldx #$08
 L81DD:
                 dex
-                jsr mos.clearSoundChannelBuffer
+                jsr clearSoundChannelBuffer
                 cpx #$04
                 bne L81DD
                 .endif
@@ -516,19 +516,19 @@ L81DD:
                 .if version==350
                 jsr setTSTAndOSBYTE7A
                 .else
-                jsr mos.osbyte7A             
+                jsr osbyte7A             
                 .endif
                 stx firstKeyPressedInternal
                 ldx #$00
                 .if version>=500
                 stx userVIA.ddrb
                 .endif
-                jsr mos.purgeBuffer
+                jsr purgeBuffer
                 
                 .if version!=400
                 lda serialULARegister
                 and #$7F
-                jsr mos.LEC89
+                jsr LEC89
                 .if version<500&&version!=350
                 jsr readDefaultSerialBaudRateIndex
                 .else
@@ -541,10 +541,10 @@ L81DD:
                 .endif
                 pha
                 tax
-                jsr mos.osbyte08
+                jsr osbyte08
                 plx
                 lda #$07
-                jsr mos.osbyte07
+                jsr osbyte07
                 .endif
 
                 .if version==350
@@ -558,12 +558,12 @@ L81DD:
                 sta bellSound
 L8211:
                 .if version!=350
-                jsr mos.selectTerminalROM
+                jsr selectTerminalROM
                 .endif
 
                 ldx softKeyConsistencyFlag
                 beq checkResetType
-                jsr mos.osbyte12          
+                jsr osbyte12          
 checkResetType:
                 lda lastBREAKType
                 beq romsScanned                    ;taken if soft BREAK
@@ -572,12 +572,12 @@ checkResetType:
 scanROMs:
                 .include "scan_roms.s65"
                 .else
-                jmp mos.scanROMs
+                jmp scanROMs
                 .endif
 
 romsScanned:
                 lda startupOptions
-                jsr mos.setStartupMODE
+                jsr setStartupMODE
                 lda lastBREAKType
                 dec a
                 .if version>=510
@@ -759,27 +759,27 @@ softReset:
                 lda #ACCCON.Y
                 jsr tsbACCCON
                 .else
-                jsr mos.selectHAZEL
+                jsr selectHAZEL
                 .endif
                 stz hazel.moveSrcHandle
                 stz hazel.moveDestHandle
                 ldy #$CA
                 .if version==350
-                jsr mos.setTSTAndInsertCharacterIntoKeyboardBuffer
+                jsr setTSTAndInsertCharacterIntoKeyboardBuffer
                 .else
-                jsr mos.insertCharacterIntoKeyboardBuffer
+                jsr insertCharacterIntoKeyboardBuffer
                 .endif
                 .if version==350
-                jsr mos.setTSTAndOSBYTE247EntryPoint
+                jsr setTSTAndOSBYTE247EntryPoint
                 .else
-                jsr mos.osbyte247EntryPoint
+                jsr osbyte247EntryPoint
                 .endif
                 lda lastBREAKType
                 beq L829D
                 .if version==400
-                jsr mos.LEBBF
+                jsr LEBBF
                 .else
-                jsr mos.LEDD0
+                jsr LEDD0
                 .endif
 L829D:
                 .if version<500
@@ -818,7 +818,7 @@ L82B4:
                 .if version==350
                 jsr isSecondProcessorPresent
                 .else
-                jsr mos.isSecondProcessorPresent
+                jsr isSecondProcessorPresent
                 .endif
 
                 bcs foundTube
@@ -838,7 +838,7 @@ L82B4:
                 .if version==350
                 jsr isSecondProcessorPresent
                 .else
-                jsr mos.isSecondProcessorPresent
+                jsr isSecondProcessorPresent
                 .endif
 
                 .endif

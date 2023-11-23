@@ -69,7 +69,7 @@ copyright:
 
                 .if version==350
 trbACCCON:
-                jsr mos.withTST
+                jsr withTST
                 trb ACCCON
                 rts
                 .endif
@@ -78,7 +78,7 @@ trbACCCON:
 
                 .if version==350
 tsbACCCON:
-                jsr mos.withTST
+                jsr withTST
                 tsb ACCCON
                 rts
                 .endif
@@ -87,7 +87,7 @@ tsbACCCON:
 
                 .if version==350
 ldaSystemVIAIER:
-                jsr mos.withTST
+                jsr withTST
                 lda systemVIA.ier
                 rts
                 .endif
@@ -96,7 +96,7 @@ ldaSystemVIAIER:
 
                 .if version==350
 printCMOSRamResetMessage:
-                jsr mos.withTST
+                jsr withTST
                 jsr alwaysPrintFollowingMessage
                 .text 13,10
                 .text "CMOS RAM reset",13,10
@@ -135,7 +135,7 @@ L8081:
 
                 .if version==350             ;stripped_out_reset
 softResetPart2:
-                jsr mos.withTST
+                jsr withTST
                 pla
                 pla
                 pla
@@ -150,7 +150,7 @@ reset:                          ;8020
 foundTube:
                 .endif
                 ldx #romServiceCallTubeMainInitialisation
-                jsr mos.makeROMServiceCall   ;
+                jsr makeROMServiceCall   ;
                 bne handleROMWorkspace        ; Not claimed, step past
                 dec tubePresence ; Tube PreInit claimed, set TubeFlag to &FF, Tube present
                 .endif
@@ -162,21 +162,21 @@ handleROMWorkspace:
                 beq L82FC
                 ldy #$DC                     ; Start high workspace at &DC00 and work downwards
                 ldx #romServiceCallCountDynamicHAZELWorkspace ; Ask ROMs how much private high workspace required
-                jsr mos.makeROMServiceCall   ;
+                jsr makeROMServiceCall   ;
                 ldx #romServiceCallAbsoluteHAZELWorkspaceClaim ; Ask ROMs for maximum shared high workspace required
-                jsr mos.makeROMServiceCall   ;
+                jsr makeROMServiceCall   ;
                 phy                          ; Save top of shared workspace
                 ldx #romServiceCallPrivateHAZELWorkspaceClam ; Ask ROMs for private high workspace required
-                jsr mos.makeROMServiceCall   ;
+                jsr makeROMServiceCall   ;
                 ldy #$0E                     ; Start low workspace at &0E00
                 ldx #romServiceCallAbsoluteWorkspaceClaim ; Ask ROMs for maximum shared workspace
-                jsr mos.makeROMServiceCall   ;
+                jsr makeROMServiceCall   ;
                 ldx #romServiceCallPrivateWorkspaceClaim ; Ask ROMs for private workspace
-                jsr mos.makeROMServiceCall   ;
+                jsr makeROMServiceCall   ;
                 sty oshwm                    ; Set OSHWM - default PAGE
                 ply                          ; Get top of shared high workspace
                 ldx #romServiceCallTopOfHAZELWorkspace ; Tell ROMs top of shared high workspace
-                jsr mos.makeROMServiceCall   ;
+                jsr makeROMServiceCall   ;
 L82FC:
                 ldx #size(defaultFsInfoBlocks)
 L82FE:
@@ -190,7 +190,7 @@ L82FE:
                 ; Y=>end of FS Info Blocks
                 ldy #<hazel.fsInfoBlocks+size(defaultFsInfoBlocks)
                 ldx #$25                     ; Ask ROMs for FS Info Blocks
-                jsr mos.makeROMServiceCall   ;
+                jsr makeROMServiceCall   ;
                 lda #$00                     ; Terminate FS Info blocks
                 sta ($F2),y
 
@@ -199,25 +199,25 @@ L82FE:
                 stz spoolFileHandle
                 ldx #romServiceCallTubeSystemPostInitialisation
                 ldy tubePresence
-                jsr mos.makeROMServiceCall   ; Tube PostInit
+                jsr makeROMServiceCall   ; Tube PostInit
                 and startupMessageSuppressionStatus
                 bpl L8340
 
                 ; use +$ff rather than -1 to avoid 64tass warning.
                 ; Only the LSB is used.
-                ldy #((mos.startupMessages.acornMOS-(mos.startupMessages&$ff00))+$ff)&$ff
-                jsr mos.printStartupMessage
+                ldy #((startupMessages.acornMOS-(startupMessages&$ff00))+$ff)&$ff
+                jsr printStartupMessage
                 lda lastBREAKType            ; Skip past if Soft Break
                 beq L833B
-                ldy #((mos.startupMessages.beep-(mos.startupMessages&$ff00))-1)&$ff
-                jsr mos.printStartupMessage
+                ldy #((startupMessages.beep-(startupMessages&$ff00))-1)&$ff
+                jsr printStartupMessage
 L833B:
-                ldy #((mos.startupMessages.twoNewlines-(mos.startupMessages&$ff00))-1)&$ff
-                jsr mos.printStartupMessage
+                ldy #((startupMessages.twoNewlines-(startupMessages&$ff00))-1)&$ff
+                jsr printStartupMessage
 L8340:
                 pla                          ; Restore Spool handle
                 sta spoolFileHandle
-                jmp mos.LE40E                ;
+                jmp LE40E                ;
 
 ;-------------------------------------------------------------------------
 
@@ -235,7 +235,7 @@ clearAllSoundChannelBuffers:
                 ldx #8
 L836F:
                 dex
-                jsr mos.clearSoundChannelBuffer
+                jsr clearSoundChannelBuffer
                 cpx #4
                 bne L836F
                 rts
@@ -286,7 +286,7 @@ mos_command .macro name,routine,byte1,byte2
                 .endm
                 
 mosCommandTable:
-                .mos_command "CAT",mos.callFSCV,$80,$05 ; XY=>parameters, FSC &05
+                .mos_command "CAT",callFSCV,$80,$05 ; XY=>parameters, FSC &05
                 .if version!=400
                 .mos_command "ADFS",passStarCommandThrough,$00,$00   ;
                 .endif
@@ -304,35 +304,35 @@ mosCommandTable:
                 .mos_command "DUMP",starDUMP,$80,$00   ; XY=>parameters
                 .mos_command "DELETE",starDELETE,$80,$00 ; XY=>parameters
                 .mos_command "EXEC",starEXEC,$80,$00   ; XY=>parameters
-                .mos_command "EX",mos.callFSCV,$80,$09 ; XY=>parameters, FSC &09
+                .mos_command "EX",callFSCV,$80,$09 ; XY=>parameters, FSC &09
                 .mos_command "FX",starFX,$00,$FF ;
                 .mos_command "GOIO",starGOIO,$00,$FF ;
                 .mos_command "GO",starGO,$00,$FF   ;
                 .mos_command "HELP",starHELP,$00,$FF ;
-                .mos_command "INFO",mos.callFSCV,$80,$0A ; XY=>parameters, FSC &0A
+                .mos_command "INFO",callFSCV,$80,$0A ; XY=>parameters, FSC &0A
                 .mos_command "IGNORE",starIGNORE,$00,$FF ;
                 .mos_command "INSERT",starINSERT,$00,$FF ;
                 .mos_command "KEY",starKEY,$00,$FF    ;
                 .mos_command "LOAD",starLOAD,$80,$00   ; XY=>parameters
                 .mos_command "LIST",starLIST,$80,$00   ; XY=>parameters
-                .mos_command "LINE",mos.callUSERV,$00,$01 ;
-                .mos_command "LIBFS",mos.starLIBFS,$00,$00    ;
+                .mos_command "LINE",callUSERV,$00,$01 ;
+                .mos_command "LIBFS",starLIBFS,$00,$00    ;
                 .if version<500
                 .mos_command motorCommandString,starCommandThroughOSBYTE,$00,$89 ; X,y=parameters, OSBYTE &89
                 .else
-                .mos_command motorCommandString,mos.rtsFFAA,$00,$89 ; X,y=
+                .mos_command motorCommandString,rtsFFAA,$00,$89 ; X,y=
                 .endif
                 .mos_command "MOVE",starMOVE,$80,$00  ; XY=>parameters
                 .mos_command "OPT",starCommandThroughOSBYTE,$80,$8B ; X,y=parameters, OSBYTE &8B
                 .mos_command "PRINT",starPRINT,$80,$00 ; XY=>parameters
-                .mos_command "RUN",mos.callFSCV,$80,$04 ; XY=>parameters, FSC &04
+                .mos_command "RUN",callFSCV,$80,$04 ; XY=>parameters, FSC &04
                 .mos_command "REMOVE",starREMOVE,$80,$00 ; XY=>parameters
                 .mos_command "ROM",starCommandThroughOSBYTE,$00,$8D ; X,y=parameters, OSBYTE &8D
                 .mos_command "ROMS",starROMS,$00,$FF ;
                 .mos_command "SAVE",starCommandThroughOSFILE,$80,$00 ; XY=>parameters, OSFILE &00
                 .mos_command "SHADOW",starSHADOW,$00,$FF  ;
                 .mos_command "SHOW",starSHOW,$00,$FF    ;
-                .mos_command "SHUT",mos.starSHUT,$00,$00 ;
+                .mos_command "SHUT",starSHUT,$00,$00 ;
                 .mos_command "SPOOL",starSPOOL,$80,$00   ; XY=>parameters
                 .mos_command "SPOOLON",starSPOOLON,$80,$00 ; XY=>parameters
                 .if version>=350
@@ -351,16 +351,16 @@ mosCommandTable:
                 .if version<500
                 .mos_command tapeCommandString,starCommandThroughOSBYTE,$00,$8C ; X,y=parameters, OSBYTE &8C
                 .else
-                .mos_command tapeCommandString,mos.rtsFFAA,$00,$8C ; X,y=parameters, OSBYTE &8C
+                .mos_command tapeCommandString,rtsFFAA,$00,$8C ; X,y=parameters, OSBYTE &8C
                 .endif
                 .mos_command "TV",starCommandThroughOSBYTE,$00,$90 ; X,y=parameters, OSBYTE &90
                 .mos_command "TIME",starTIME,$00,$00   ;
                 .mos_command "TYPE",starTYPE,$80,$00   ; XY=>parameters
                 .mos_command "UNPLUG",starUNPLUG,$00,$FF ;
                 .if includeStarX
-                .mos_command "X",mos.starX,$00,$00  ;
+                .mos_command "X",starX,$00,$00  ;
                 .endif
-                .mos_command "",mos.callFSCV,$00,$03 ; FSC &03
+                .mos_command "",callFSCV,$00,$03 ; FSC &03
                 .byte $00
 
 ;-------------------------------------------------------------------------
@@ -400,24 +400,24 @@ oscli:
                 stx stringInputBufferAddress+0
                 sty stringInputBufferAddress+1
                 lda hazel.currentFS
-                jsr mos.selectFS
+                jsr selectFS
                 lda #fscStarCommand
-                jsr mos.callFSCV
+                jsr callFSCV
                 ldy #$FF
 L8510:
-                jsr mos.incAndSkipSpaces
+                jsr incAndSkipSpaces
                 beq rts84FE
                 cmp #'*'
                 beq L8510
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 beq rts84FE
                 cmp #'|'
                 beq rts84FE
                 stz hazel.tempFSFlag
                 cmp #'-'
                 bne L8535
-                jsr mos.parseFileNameFS
-                jsr mos.selectFS
+                jsr parseFileNameFS
+                jsr selectFS
                 sec
                 ror hazel.tempFSFlag
                 lda (stringInputBufferAddress),y
@@ -427,7 +427,7 @@ L8535:
                 iny
                 jsr getStringInputBufferAddressWithYOffset
                 lda #fscStarSlash
-                jmp mos.callFSCV
+                jmp callFSCV
 
 L8542:
                 .if version<500&&version!=350
@@ -454,7 +454,7 @@ L854E:
                 iny
 L8558:
                 lda (stringInputBufferAddress),y
-                jsr mos.isLetter
+                jsr isLetter
                 bcc L854E                    ;taken if letter
                 lda (oscliWorkspace.tablePtr)
                 bmi L8582                ;taken if end of command name
@@ -488,7 +488,7 @@ L8585:
                 bmi L8592
                 stz hazel.tempFSFlag
 L8592:
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 clc                          
                 php                          
                 jsr maybeGetStringInputBufferAddress
@@ -515,10 +515,10 @@ starBASIC:
                 ldx basicROMNumber           ; Get BASIC ROM number
                 bmi passStarCommandThrough ; If no BASIC ROM, jump to pass to ROMs and filing system
                 .if version==350
-                jmp mos.osbyte8EWithoutRelocation
+                jmp osbyte8EWithoutRelocation
                 .elsif version<500
                 sec                          ;
-                jmp mos.osbyte8E             ; Enter ROM as a language
+                jmp osbyte8E             ; Enter ROM as a language
                 .else
                 lda #$8e
                 jmp OSBYTE
@@ -534,7 +534,7 @@ passStarCommandThrough:
                 stz hazel.tempFSFlag      ; Clear filing system flag
                 ldy $E6
                 ldx #romServiceCallUnrecognisedCommand
-                jsr mos.osbyte8F    ; Service call 4 - Unknown command
+                jsr osbyte8F    ; Service call 4 - Unknown command
                 .if version<500&&version!=350
                 beq rts85A5                    ; Claimed, return
                 .else
@@ -544,7 +544,7 @@ L85C0:
                 lda $E6
                 jsr getStringInputBufferAddressWithAOffset
                 lda #$03
-                jmp mos.callFSCV ; mos.Pass to FSCV,3 - Unknown command
+                jmp callFSCV ; Pass to FSCV,3 - Unknown command
 
 starHELP:
                 ldx #romServiceCallHelp      ;
@@ -552,9 +552,9 @@ starHELP:
                 pha                          ;save STATE
                 lda #14
                 jsr OSWRCH                   ; paged mode ON
-                jsr mos.makeROMServiceCall   ; 
+                jsr makeROMServiceCall   ; 
                 ldx #romServiceCallReserved  ;???
-                jsr mos.makeROMServiceCall
+                jsr makeROMServiceCall
                 pla                          ;restore STATE
                 bit #STATE.isPagedScrolling  ;was paged mode on originally?
                 bne parseDone   ;taken if paged mode was originally on
@@ -580,7 +580,7 @@ starHELP:
 ; Z=1 if CR encountered
 ; 
 parseNumberFromString:
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 cmp #'&'                     ; hex value incoming?
                 bne parseDecimal             ; taken if not hex value
 parseHex:
@@ -656,7 +656,7 @@ readDigitFromString:
                 rts
 
 L8641:
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 .if version!=350
                 cmp #$0D
                 .endif
@@ -716,7 +716,7 @@ commandLineUILoop:
                 ldx #$FF                     
                 txs                          
                 cli                          
-                jsr mos.selectHAZEL          
+                jsr selectHAZEL          
                 lda #'*'                     
                 jsr OSWRCH                   
                 jsr readCommandLine          
@@ -731,12 +731,12 @@ commandLineUILoop:
 commandLineUIBRKHandler:
                 jsr OSNEWL                  
                 ldy #$00                    
-                jsr mos.printBRKMessage
+                jsr printBRKMessage
                 jsr OSNEWL                  
                 bra commandLineUI           
 
 badCommandError869A:
-                jmp mos.badCommandError
+                jmp badCommandError
 
 readCommandLine:
                 lda #$00                     
@@ -749,7 +749,7 @@ readCommandLine:
 ; *ROMS [MasRef C.5-10]
 ; 
 starROMS:
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 bne badCommandError869A
                 ldy #$0F
 printROMsLoop:
@@ -764,7 +764,7 @@ printROMsLoop:
                 tya
                 tax
                 phy
-                jsr mos.LF89A
+                jsr LF89A
                 bcs L86D2
                 jsr alwaysPrintFollowingMessage
                 .text "ROM ",0
@@ -785,7 +785,7 @@ L86DA:
                 .if version<400&&version!=350
                 plx                          ;restore ROM number
                 .endif
-                jsr mos.isROMValidThenSelectTerminalROM
+                jsr isROMValidThenSelectTerminalROM
                 .if version<400&&version!=350
                 dey
                 .endif
@@ -796,7 +796,7 @@ L86DA:
                 beq invalidROM
                 .endif
 printROMNameLoop:
-                jsr mos.osrdscEntryPoint     ;read name byte
+                jsr osrdscEntryPoint     ;read name byte
                 cmp #' '
                 bcc printROMVersion ;taken if non-printable char, including the terminating 0
                 cmp #127
@@ -814,12 +814,12 @@ printROMVersion:
                 sta $F6
                 lda #>sidewaysROMVersion
                 sta $F7
-                jsr mos.osrdscEntryPoint
+                jsr osrdscEntryPoint
                 jsr printSpaceThenPrintHexByte
 printInsertionStatus:
                 phy
                 .if version<500&&version!=350
-                jsr mos.getROMInsertedFlagRTCAddressAndMask
+                jsr getROMInsertedFlagRTCAddressAndMask
                 sta starROMSWorkspace.insertedFlagMask
                 jsr readRTCByte
                 and starROMSWorkspace.insertedFlagMask
@@ -845,7 +845,7 @@ invalidROM:
 
                 .if version>=500||version==350
 L873F:
-                jsr mos.getROMInsertedFlagRTCAddressAndMask
+                jsr getROMInsertedFlagRTCAddressAndMask
                 sta $b0
                 jsr readRTCByte
                 and $b0
@@ -868,14 +868,14 @@ starUNPLUG:
                 clc
 starINSERTOrStarUNPLUG:
                 php
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 .if version<500&&version!=350
                 jsr parseSingle4BitNumberFromCommandLine
                 .else
                 jsr L8953
                 .endif
                 tay                          ;Y=ROM number
-                jsr mos.getROMInsertedFlagRTCAddressAndMask
+                jsr getROMInsertedFlagRTCAddressAndMask
                 pha
                 jsr readRTCByte                    
                 sty starROMSWorkspace.insertedFlagMask
@@ -1191,9 +1191,9 @@ starDUMP:
                 jsr clearOSFILEParameterBlockDWORD
                 ldy #$00
                 lsr hazel.tempFSFlag
-                jsr mos.gsinitForFilenameParsing
+                jsr gsinitForFilenameParsing
 L8F58:
-                jsr mos.gsreadEntryPoint
+                jsr gsreadEntryPoint
                 bcc L8F58
                 beq L8F79
                 ldx #$00
@@ -1206,7 +1206,7 @@ L8F58:
                 dex
                 bpl -
                 
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 beq L8F79
                 ldx #$04
                 jsr parseHexAddressFromCommandLine
@@ -1353,7 +1353,7 @@ L904B:
                 ldy #$00                     
                 ldx #$00                     
 L9055:
-                jsr mos.LF29C
+                jsr LF29C
                 sta hazel.commandLine,x
                 lda #stringInputOptions.goodString
                 bit stringInputOptions
@@ -1437,7 +1437,7 @@ starMOVE:
                 bit #$10                     ; Jump if not shadow screen, spare up to &8000
                 beq L90CE
 ; Shadow screen selected
-                jsr mos.LF1C0                ; Get screen bottom to XY
+                jsr LF1C0                ; Get screen bottom to XY
                 cpy #$30                     ; Screen at &3000, no spare memory, jump to use Hazel
                 beq L90E2
 
@@ -1480,9 +1480,9 @@ L90E9:
                 phx                          ; And save it again
                 phy
                 ldy #$00                     ; Step past first parameter
-                jsr mos.gsinitForFilenameParsing
+                jsr gsinitForFilenameParsing
 L9108:
-                jsr mos.gsreadEntryPoint     ;
+                jsr gsreadEntryPoint     ;
                 bcc L9108
                 tya                          ; Save address of dest filename
                 clc
@@ -1619,7 +1619,7 @@ L91F5:
                 pha                          ;save line number LSB
                 php                          ;save C
                 .if version==350
-                jsr mos.LE520
+                jsr LE520
                 .else
                 lsr a
                 lsr a
@@ -1637,7 +1637,7 @@ printPossiblyLeading0s:
                 pha                          ;save value
                 php                          ;save C
                 .if version==350
-                jsr mos.LE520
+                jsr LE520
                 .else
                 lsr a
                 lsr a
@@ -1758,7 +1758,7 @@ rts94A4:
 ; C=0 if error
 
 parseHexAddressFromString:
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; Skip spaces
+                jsr skipSpacesAndCheckForCRInStringInput ; Skip spaces
                 jsr readHexDigit
                 bcc rts92F4
                 jsr clearOSFILEParameterBlockDWORD
@@ -1790,7 +1790,7 @@ rts92F4:
 ; *GO (<addr>) [MasRef C.5-6]
 ;
 starGO:
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; Skip spaces
+                jsr skipSpacesAndCheckForCRInStringInput ; Skip spaces
                 bne starGOIO             ; Jump to read parameters
                 jmp commandLineUI        ; No parameters, enter CLICOM
 
@@ -1801,7 +1801,7 @@ starGO:
 starGOIO:
                 ldx #$00
                 jsr parseHexAddressFromCommandLine ; Read hex address
-                jsr mos.skipSpacesAndCheckForCRInStringInput ; Skip spaces
+                jsr skipSpacesAndCheckForCRInStringInput ; Skip spaces
                 php  ; Update &F2/3 to point to any further parameters
                 tya
                 clc
@@ -1833,9 +1833,9 @@ L931B:
                 ldy #$FF
                 sty osfileParameterBlock+OSFILEParameterBlock.exec+0 ;by default, load to file's load address
                 iny                                                  ;Y=0
-                jsr mos.gsinitForFilenameParsing
+                jsr gsinitForFilenameParsing
 L9339:
-                jsr mos.gsreadEntryPoint
+                jsr gsreadEntryPoint
                 bcc L9339
                 pla                          ;restore OSFILE reason
                 pha                          ;save OSFILE reason
@@ -1886,7 +1886,7 @@ L9596:
                 lda (stringInputBufferAddress),y
                 cmp #'!'
                 bcs L9596
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 bne badCommandError93E2
                 .endif
                 lda #fileDelete
@@ -1899,7 +1899,7 @@ L9596:
 ; *CLOSE [MasRef G.5-3]
 ; 
 starCLOSE:
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 bne badCommandError93E2
                 lda #$00                     
                 tay                          
@@ -1932,7 +1932,7 @@ L939B:
                 lda (stringInputBufferAddress),y
                 cmp #'+'
                 bne L93A6                    ;taken if "*SAVE START END..."
-                bit mos.valueFF              ;V=1
+                bit valueFF              ;V=1
                 iny
 L93A6:
                 ldx #OSFILEParameterBlock.saveEnd
@@ -1977,7 +1977,7 @@ L93BF:
                 beq L9366
                 
 badCommandError93E2:
-                jmp mos.badCommandError
+                jmp badCommandError
 
 ;-------------------------------------------------------------------------
 
@@ -1992,17 +1992,17 @@ starCommandThroughOSBYTE:
                 pha
                 stz $E5
                 stz $E4
-                jsr mos.LF308
+                jsr LF308
                 beq L9412
                 jsr parseNumberFromString
                 bcc badCommandError93E2
                 stx $E5
-                jsr mos.LF30A
+                jsr LF30A
                 beq L9412
                 jsr parseNumberFromString
                 bcc badCommandError93E2
                 stx $E4
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
 L9625:
                 bne badCommandError93E2
 L9412:
@@ -2034,7 +2034,7 @@ L963A:
 
 L9423:
                 ldx #romServiceCallSpoolExecClosureWarning
-                jsr mos.makeROMServiceCall
+                jsr makeROMServiceCall
                 beq L941F
                 jsr LA58B
                 lda spoolFileHandle
@@ -2082,7 +2082,7 @@ starSHADOW:
 
                 .if version>=510||version==350
 starCLOSE:
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 bne L9625
                 lda #$00                     
                 tay                          
@@ -2163,7 +2163,7 @@ L96BE:
 
 L96BF:
                 jsr parseSoftKeyNumberFromCommandLine
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
 L96C5:
                 bne badKeyError
                 .endif
@@ -2191,7 +2191,7 @@ badKeyError:
                 .if version<510&&version!=350
 starSHOW:
                 jsr parseSoftKeyNumberFromCommandLine
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 bne badKeyError
                 .else
 printKeyDefinition:
@@ -2200,7 +2200,7 @@ printKeyDefinition:
                 jsr OSWRCH
                 lda $F4
                 pha
-                jsr mos.selectTerminalROMAndANDY2
+                jsr selectTerminalROMAndANDY2
                 lda andy.softKeys.stringLSBs,x
                 sta stringInputBufferAddress+0
                 lda andy.softKeys.stringMSBs,x
@@ -2211,7 +2211,7 @@ printKeyDefinition:
                 txa
                 tay
                 .endif
-                jsr mos.getSoftKeyStringLength
+                jsr getSoftKeyStringLength
                 tay                          ;Y = string length
                 beq starSHOWDone                    ;done if length=0
 -
@@ -2225,7 +2225,7 @@ printKeyDefinition:
                 bne -
 starSHOWDone:
                 pla     
-                jsr mos.selectROMA
+                jsr selectROMA
                 lda #'"'
                 jsr OSWRCH        
                 jmp OSNEWL        
@@ -2253,15 +2253,15 @@ starKEY: .proc
                 jsr parseSoftKeyNumberFromCommandLine
                 lda $F4                      
                 pha                          
-                jsr mos.selectTerminalROMAndANDY 
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr selectTerminalROMAndANDY 
+                jsr skipSpacesAndCheckForCRInStringInput
                 stz starKEYWorkspace.newStringLength
                 beq commandLineTailEmpty
                 ldx #$00
                 sec
-                jsr mos.gsinitEntryPoint
+                jsr gsinitEntryPoint
 -
-                jsr mos.gsreadEntryPoint
+                jsr gsreadEntryPoint
                 bcs bneBadKeyError
                 sta hazel.commandLine,x
                 inx
@@ -2276,7 +2276,7 @@ bneBadKeyError:
                 stx starKEYWorkspace.newStringLength
 commandLineTailEmpty:
                 ldy $E6                        ;Y = soft key number
-                jsr mos.getSoftKeyStringLength                
+                jsr getSoftKeyStringLength                
                 sta starKEYWorkspace.counter+0
                 sec                          
                 sbc starKEYWorkspace.newStringLength ;A=existing len-new len
@@ -2451,7 +2451,7 @@ copyNewStringLoop:
 done:
                 inc softKeyConsistencyFlag   ;mark soft keys consistent
                 pla                          
-                jmp mos.selectROMA
+                jmp selectROMA
                 .endproc       
 
 ;-------------------------------------------------------------------------
@@ -2515,38 +2515,38 @@ printEscapeChar:
 
 L9923:
                 lda #$03
-                jsr mos.LD298
+                jsr LD298
                 bcc L993C
                 jsr L9930
-                jsr mos.LD8A9
+                jsr LD8A9
 L9930:
                 ldx #$20
-                jmp mos.LE2B8
+                jmp LE2B8
 
 L9935:
                 lda #$02
-                jsr mos.LD298
+                jsr LD298
                 bcs L99A0
 L993C:
-                jsr mos.LD3D2
+                jsr LD3D2
                 jsr L9ABF
                 bra L994C
 
 L9944:
-                jsr mos.LD41A
+                jsr LD41A
                 beq L99A0
-                jsr mos.LD3D2
+                jsr LD3D2
 L994C:
                 lda $E1
                 bit #$20
                 beq L9957
                 pha
-                jsr mos.LD6A3
+                jsr LD6A3
                 pla
 L9957:
                 bit #$10
                 beq L995E
-                jsr mos.LD698
+                jsr LD698
 L995E:
                 jsr L99FC
                 php
@@ -2565,7 +2565,7 @@ L995E:
                 beq L9992
 L9982:
                 ldx #$37
-                jsr mos.LD24D
+                jsr LD24D
                 ldx #$42
                 clv
 L998A:
@@ -2575,7 +2575,7 @@ L998C:
                 bvc L9992
                 ldx #$37
 L9992:
-                jsr mos.LD24D
+                jsr LD24D
 L9995:
                 plp
                 bcc L994C
@@ -2583,20 +2583,20 @@ L9995:
 
 L9999:
                 lda #$01
-                jsr mos.LD298
+                jsr LD298
                 bcc L99A9
 L99A0:
                 ldx #$24
                 bra L99DB
 
 L99A4:
-                jsr mos.LD41A
+                jsr LD41A
                 beq L99A0
 L99A9:
-                jsr mos.LD3D2
+                jsr LD3D2
                 jsr L99C9
 L99AF:
-                jsr mos.LD5E6
+                jsr LD5E6
                 jsr L99C9
                 lda L8830
                 ora L8831
@@ -2608,17 +2608,17 @@ L99AF:
                 bra L99AF
 
 L99C9:
-                jsr mos.LD334
+                jsr LD334
                 jsr L99DE
                 bit L8848
                 bmi L99FB
                 ldx #$46
 L99D6:
                 phx
-                jsr mos.LD280
+                jsr LD280
                 plx
 L99DB:
-                jmp mos.plotPointInternal
+                jmp plotPointInternal
 
 L99DE:
                 ldx #$03
@@ -2631,7 +2631,7 @@ L99E0:
 L99EC:
                 ldy $0342
                 lda $0343
-                jsr mos.negateAY
+                jsr negateAY
                 sty $0342
                 sta $0343
 L99FB:
@@ -2656,7 +2656,7 @@ L9A0F:
                 lda L8847
                 bne L99EC
 L9A20:
-                jsr mos.LD5E6
+                jsr LD5E6
                 lda L8832
                 cmp $0344
                 beq L9A0F
@@ -2664,7 +2664,7 @@ L9A20:
                 bra L99EC
 
 L9A2E:
-                jsr mos.LD334
+                jsr LD334
                 bit L8848
                 bmi L9A3D
                 php
@@ -2703,7 +2703,7 @@ L9A5A:
                 beq L9A79
                 ldx #$2C
                 ldy #$46
-                jsr mos.copyFourBytesWithinVDUVariables
+                jsr copyFourBytesWithinVDUVariables
 L9A79:
                 lda #$10
                 bit L8849
@@ -2711,13 +2711,13 @@ L9A79:
                 beq L9A89
                 ldx #$37
                 ldy #$42
-                jsr mos.copyFourBytesWithinVDUVariables
+                jsr copyFourBytesWithinVDUVariables
 L9A89:
                 jsr L9ABF
                 lda $E1
                 eor #$3C
                 rol a
-                jsr mos.fixUpVPALETTEFor4Colours
+                jsr fixUpVPALETTEFor4Colours
                 ror a
                 sta $E1
                 bit #$20
@@ -2725,20 +2725,20 @@ L9A89:
                 pha
                 ldx #$2C
                 ldy #$46
-                jsr mos.sortVDUVariableWords
+                jsr sortVDUVariableWords
                 tya
                 tax
                 ldy #$46
-                jsr mos.copyFourBytesWithinVDUVariables
+                jsr copyFourBytesWithinVDUVariables
                 pla
 L9AAB:
                 bit #$10
                 beq L9ABB
                 ldx #$37
                 ldy #$42
-                jsr mos.sortVDUVariableWords
+                jsr sortVDUVariableWords
                 ldy #$42
-                jsr mos.copyFourBytesWithinVDUVariables
+                jsr copyFourBytesWithinVDUVariables
 L9ABB:
                 stz L8849
 L9ABE:
@@ -2754,12 +2754,12 @@ L9AC1:
                 ldx #$1B
                 lda #$2C
                 jsr L9ADF
-                jsr mos.LD6A8
+                jsr LD6A8
                 ldy #$1B
                 ldx #$28
                 lda #$37
                 jsr L9ADF
-                jmp mos.LD69D
+                jmp LD69D
 
 L9ADF:
                 pha
@@ -2874,7 +2874,7 @@ L9B75:
 L9B7F:
                 lda $0305,x
                 ldy $0304,x
-                jsr mos.negateAY
+                jsr negateAY
                 sta $0305,x
                 tya
                 sta $0304,x
@@ -2901,19 +2901,19 @@ plotParallelogram:
                 ldx #$14
                 ldy #$20
                 lda #$24
-                jsr mos.addRegionDimensionsToVDUVariableCoordinates
+                jsr addRegionDimensionsToVDUVariableCoordinates
                 ldy #$14
                 ldx #$24
-                jsr mos.sortVDUVariableCoordinates
+                jsr sortVDUVariableCoordinates
                 stx L8830
                 ldx #$20
-                jsr mos.sortVDUVariableCoordinates
+                jsr sortVDUVariableCoordinates
                 stx L8831
                 ldx #$28
-                jsr mos.sortVDUVariableCoordinates
+                jsr sortVDUVariableCoordinates
                 sty L8833
                 ldy L8831
-                jsr mos.sortVDUVariableCoordinates
+                jsr sortVDUVariableCoordinates
                 sty L8832
                 ldy L8830
                 jsr L9C0F
@@ -2933,20 +2933,20 @@ plotParallelogram:
 L9BF7;
                 ldy #$14
                 ldx #$24
-                jsr mos.sortVDUVariableCoordinates
+                jsr sortVDUVariableCoordinates
                 sty L8832
                 ldy #$20
                 jsr L9C0F
                 lda L8832
                 jsr L9C4D
 L9C0C:
-                jmp mos.LDAE4
+                jmp LDAE4
 
 L9C0F:
-                jsr mos.sortVDUVariableCoordinates
+                jsr sortVDUVariableCoordinates
                 stx L8830
                 ldx L8832
-                jsr mos.sortVDUVariableCoordinates
+                jsr sortVDUVariableCoordinates
                 sty L8832
                 stx L8831
                 ldy L8830
@@ -2988,13 +2988,13 @@ L9C67:
                 jsr L9CC0
                 ldx #$37
                 jsr L9CC0
-                jsr mos.LDAE4
+                jsr LDAE4
                 ldx #$37
-                jsr mos.LD726
+                jsr LD726
                 ldx #$2C
-                jsr mos.LD726
+                jsr LD726
                 ldy #$37
-                jsr mos.sortVDUVariableWords
+                jsr sortVDUVariableWords
                 phx
                 ldx #$FC
 L9C86:
@@ -3032,7 +3032,7 @@ L9CAC:
 L9CBE:
                 ldx $DE
 L9CC0:
-                jsr mos.LD71D
+                jsr LD71D
 L9CC3:
                 lda $0300,x
                 cmp $0342
@@ -3059,12 +3059,12 @@ L9CF8:
                 rts
 
 L9CF9:
-                jsr mos.LDDA1
+                jsr LDDA1
                 stz $0336
                 stz $0337
-                jsr mos.LDCB0
+                jsr LDCB0
                 bne L9D56
-                jsr mos.LDC1C
+                jsr LDC1C
 L9D0A:
                 bit $FF
                 bmi L9D56
@@ -3092,14 +3092,14 @@ L9D0A:
                 beq L9D4B
                 sta $E0
                 inc a
-                jsr mos.LDC48
+                jsr LDC48
                 bcs L9D56
                 lda $E0
 L9D4B:
                 cmp $0302
                 beq L9D0A
                 dec a
-                jsr mos.LDC48
+                jsr LDC48
                 bcc L9D0A
 L9D56:
                 rts
@@ -3691,7 +3691,7 @@ handleInitialiseFilingSystem:
 L9DE3:
                 adc #$89                     ; Convert to TAPE/ROM select value
                 .endif
-                jsr mos.selectROMOrTAPEByOSBYTE
+                jsr selectROMOrTAPEByOSBYTE
                 bra L9DCA                    ; Jump to claim and return
 
 handleBreakInstruction:
@@ -3733,7 +3733,7 @@ L9E2A:
                 lda #$8C
 L9E2C:
                 .endif
-                jsr mos.selectROMOrTAPEByOSBYTE
+                jsr selectROMOrTAPEByOSBYTE
                 lda #$00
                 tay
                 jsr osfindTapeOrROM
@@ -3782,7 +3782,7 @@ L9E63:
                 dex
                 bpl L9E63
                 lda (stringInputBufferAddress),y
-                jsr mos.isLetter
+                jsr isLetter
                 bcs L9E95
 L9E7B:
                 lda (stringInputBufferAddress),y
@@ -3791,7 +3791,7 @@ L9E7B:
                 iny
                 cmp #' '
                 bne L9E7B
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 bne L9E61
 L9E8B:
                 ply
@@ -3844,11 +3844,11 @@ L9EB5:
                 bcc +
                 inc terminalHELPWorkspace.tablePtr+1
 +
-                jsr mos.LE25C
+                jsr LE25C
                 cpx #19
                 beq L9EEF
 L9ECB:
-                jsr mos.getTextCursorPositionWithColumn81
+                jsr getTextCursorPositionWithColumn81
                 txa
                 beq L9EA0
                 cpx #20
@@ -3857,7 +3857,7 @@ L9ECB:
                 cpx #40
                 beq L9EA0
                 bcs L9EE9
-                jsr mos.LE25C
+                jsr LE25C
                 cpx #39
                 beq L9EEF
 L9EE4:
@@ -3873,7 +3873,7 @@ L9EEF:
                 bra L9EA0
 
 L9EF4:
-                jsr mos.getTextCursorPositionWithColumn81
+                jsr getTextCursorPositionWithColumn81
                 txa      
                 beq L9E8B
                 bra L9EEF
@@ -4161,10 +4161,10 @@ LA06B:
                 stx $F2
                 sty $F3
                 ldy #$00
-                jsr mos.gsinitForFilenameParsing
+                jsr gsinitForFilenameParsing
                 ldx #$00
 LA076:
-                jsr mos.gsreadEntryPoint
+                jsr gsreadEntryPoint
                 bcs LA088
                 beq LA085
                 sta $03D2,x
@@ -4172,7 +4172,7 @@ LA076:
                 cpx #$0B
                 bne LA076
 LA085:
-                jmp mos.badStringError
+                jmp badStringError
 
 LA088:
                 stz $03D2,x
@@ -4206,7 +4206,7 @@ LA09E:
 
 LA0B5:
                 .if version==400
-                jmp mos.badCommandError
+                jmp badCommandError
                 .else
                 sta $03C6
                 sta $03C7
@@ -4350,8 +4350,8 @@ LA17C:
                 lda cfsRFSFSSwitch
                 beq LA18B
                 .endif
-                jsr mos.LF6FC
-                jsr mos.LF701
+                jsr LF6FC
+                jsr LF701
                 clv
                 bcs LA1DB
 LA18B:
@@ -4371,7 +4371,7 @@ LA1A1:
                 beq LA1DD
                 .endif
 LA1A6:
-                jsr mos.LF717
+                jsr LF717
 LA1A9:
                 lda #$FF
                 sta $03C6
@@ -4493,7 +4493,7 @@ LA259:
                 lda #3
                 bne LA295
 LA260:
-                jmp mos.badCommandError
+                jmp badCommandError
                 .else
                 lda #$01
                 ora cfsRFSFSSwitch
@@ -4501,7 +4501,7 @@ LA260:
 LA260:
                 txa
                 bne LA266
-                jmp mos.badStringError
+                jmp badStringError
 
 LA266:
                 ldx #$FF
@@ -4850,7 +4850,7 @@ LA422:
                 dex                          ; *OPT 2
                 beq LA43D
 LA433:
-                jmp mos.badCommandError ; *OPT 4+ - error Bad command (*BUG* should be Bad option)
+                jmp badCommandError ; *OPT 4+ - error Bad command (*BUG* should be Bad option)
 
 ; *OPT 1 - set message level
 ; --------------------------
@@ -4908,7 +4908,7 @@ LA45D:
                 dec $C0
                 lda cfsRFSFSSwitch
                 beq LA46B
-                jsr mos.LF710
+                jsr LF710
                 tay
                 clc
                 bra LA485
@@ -5109,7 +5109,7 @@ LA56B:
                 beq LA584
                 pha
                 lda #fscFileHandleRange
-                jsr mos.callFSCV
+                jsr callFSCV
                 pla
                 clc
                 php
@@ -5208,7 +5208,7 @@ LA608:
                 inc $03C7
 LA618:
                 ldx #$FF
-                bit mos.valueFF
+                bit valueFF
                 bra LA670
 
 LA61F:
@@ -5273,7 +5273,7 @@ LA678:
                 beq LA62E
                 .endif
 LA67D:
-                jsr mos.LF710
+                jsr LF710
                 cmp #$2B
                 bne LA608
                 lda #$08
@@ -5281,7 +5281,7 @@ LA67D:
                 beq LA68D
                 jsr LA05D
 LA68D:
-                jsr mos.LF701
+                jsr LF701
                 bcc LA67D
                 clv
                 rts
@@ -5293,7 +5293,7 @@ LA694:
                 .endif
                 phx
                 phy
-                jsr mos.LF710
+                jsr LF710
                 sta $BD
                 lda #$FF
                 sta $C0
@@ -5482,7 +5482,7 @@ LA7AB:
                 stz $BA
                 lda $03CA
                 sta $03DF
-                jsr mos.LEF1B
+                jsr LEF1B
                 beq LA821
                 lda #$0D
                 jsr OSWRCH
@@ -5551,12 +5551,12 @@ LA822:
                 lda cfsRFSFSSwitch
                 beq LA82D
                 jsr LA9CA
-                jmp mos.badCommandError
+                jmp badCommandError
 
 LA82D:
                 jsr LAA5A
                 jsr LAAA0
-                jsr mos.LEF1B
+                jsr LEF1B
                 beq LA821
                 jsr LA923
                 .text "RECORD then RETURN"
@@ -5598,7 +5598,7 @@ printSpaceThenPrintHexByte:
 printHexByte:
                 pha
                 .if version==350
-                jsr mos.LE520
+                jsr LE520
                 .else
                 lsr a
                 lsr a
@@ -5728,7 +5728,7 @@ LA918:
 LA922:
                 phy
 LA923:
-                jsr mos.LEF1B
+                jsr LEF1B
                 tay
 
 ;-------------------------------------------------------------------------
@@ -5801,7 +5801,7 @@ LA96A:
                 rts
 
 LA96B:
-                jsr mos.isLetter
+                jsr isLetter
                 eor $03B2,x
                 bcs LA975
                 and #$DF
@@ -5849,7 +5849,7 @@ LA9A0:
                 bra LA9A0
 
 LA9B1:
-                jsr mos.LEF1B
+                jsr LEF1B
                 beq LA9BB
 LA9B6:
                 lda #$07
@@ -5880,7 +5880,7 @@ resetACIAThenRewriteControlRegister:
 LA9D7:
                 jsr resetACIA
                 lda aciaControlRegister
-                jmp mos.writeACIAControlRegister
+                jmp writeACIAControlRegisterAndCopy
                 
 ;-------------------------------------------------------------------------
 
@@ -6318,7 +6318,7 @@ enterNewLanguage: .proc
                 
 transferPage:
                 .if version==350
-                jsr mos.relocateNextLanguageROMPage
+                jsr relocateNextLanguageROMPage
                 .endif
                 php
                 sei
@@ -6365,7 +6365,7 @@ transferPageLoop:
 
                 ; copy done - execute language in parasite
                 .if version==350
-                jsr mos.getLanguageParasiteAddrAndAssumeRelocatable
+                jsr getLanguageParasiteAddrAndAssumeRelocatable
                 .else
                 jsr getLanguageParasiteAddr
                 .endif
@@ -6418,7 +6418,7 @@ LAC60:
                 ; Y = parasite address bits 16-23
                 ; A = parasite address bits 24-31
                 .if version==350
-                jmp mos.checkForTubeRelocationBitmap
+                jmp checkForTubeRelocationBitmap
                 .else
                 sta tubeLanguageParasiteAddr+3
                 sty tubeLanguageParasiteAddr+2

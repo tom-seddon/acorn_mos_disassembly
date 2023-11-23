@@ -218,7 +218,7 @@ LF577:
                 lda $0808,x
                 cmp #$04
                 bne LF58A
-                jsr mos.osbyte98
+                jsr osbyte98
                 bcc LF58A
                 lda #$00
                 stz $0800,x
@@ -251,7 +251,7 @@ LF5A3:
                 bra LF5E6
 
 LF5B2:
-                jsr mos.osbyte98
+                jsr osbyte98
                 bcs LF577
                 and #$03
                 beq LF55A
@@ -260,7 +260,7 @@ LF5B2:
                 inc $0828,x
                 tay
                 bpl LF5D0
-                jsr mos.osbyte98
+                jsr osbyte98
                 and #$03
                 sta $0838
                 bra LF58B
@@ -327,7 +327,7 @@ LF61C:
                 sta $083E
                 pla
                 .if version==350
-                jsr mos.LE520
+                jsr LE520
                 .else
                 lsr a
                 lsr a
@@ -359,7 +359,7 @@ LF653:
 LF65C:
                 lda $083D
                 clc
-                adc mos.LE165,x
+                adc LE165,x
                 sta $083D
                 bcc LF66B
                 inc $083E
@@ -381,7 +381,7 @@ LF66B:
 LF685:
                 php
                 sei
-                jsr mos.osbyte91
+                jsr osbyte91
                 pha
                 and #$04
                 beq LF6A2
@@ -391,8 +391,8 @@ LF685:
                 bne LF699Sound
                 jsr LF592
 LF699Sound:
-                jsr mos.osbyte91
-                jsr mos.osbyte91
+                jsr osbyte91
+                jsr osbyte91
                 plp
                 bra LF6E0
 
@@ -418,9 +418,9 @@ LF6B3Sound:
                 stz $0830,x
                 lda #$FF
                 sta $0810,x
-                jsr mos.osbyte91
+                jsr osbyte91
                 sta $080C,x
-                jsr mos.osbyte91
+                jsr osbyte91
                 plp
                 pha
                 lda $080C,x

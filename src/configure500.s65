@@ -215,12 +215,12 @@ starCONFIGUREOrStarSTATUS:
                 lda #>configureTable
                 sta oscliWorkspace.tablePtr+1
                 ldx #$FF
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 bne L886C
                 jsr fetchCommandTableByte
 
 L886C:
-                bit mos.valueFF ; V=1 to indicate 2-byte metadata
+                bit valueFF ; V=1 to indicate 2-byte metadata
                 jsr findCommand
                 bcs foundCONFIGOrSTATUSTopic
                 plp
@@ -231,7 +231,7 @@ L886C:
 ;-------------------------------------------------------------------------
 
 foundCONFIGOrSTATUSTopic:
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 plp
                 bvc L8884
                 jsr L895D
@@ -327,7 +327,7 @@ printDecimalByteAThenNewLine:
 ;-------------------------------------------------------------------------
 
 jmpBadCommandError:
-                jmp mos.badCommandError
+                jmp badCommandError
 
 ;-------------------------------------------------------------------------
 
@@ -422,7 +422,7 @@ L895B:
 
 L895D:
                 pha
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
 
 L8961:
                 bne jmpBadCommandError
@@ -447,7 +447,7 @@ L8978:
                 asl a
                 sta $B1
                 ldx #0
-                jsr mos.LF30A
+                jsr LF30A
                 beq L898B
                 jsr L89B5
                 cmp #2
@@ -545,7 +545,7 @@ done:
 
                 .if version==350
 setTSTAndReadConfigurationByte:
-                jsr mos.withTST
+                jsr withTST
                 .endif
 readConfigurationByte: .block
                 php
@@ -622,7 +622,7 @@ checkLetter:
 
 checkInput:
                 lda (stringInputBufferAddress),y
-                jsr mos.isLetter
+                jsr isLetter
                 bcc checkLetter ; taken if letter
                 
                 ; Non-letter input means potentially end of command
@@ -862,7 +862,7 @@ unknownCONFIGOrStatus:
                 lda #$14
                 rol a           ;form $28 or $29 according to C
                 tax
-                jmp mos.makeROMServiceCall
+                jmp makeROMServiceCall
 
 ;-------------------------------------------------------------------------
 ;
@@ -961,7 +961,7 @@ maskByBitCount:
 
                 .if version==350
 setTSTAndReadUsePrinterIgnoreChar:
-                jsr mos.withTST
+                jsr withTST
                 .endif
 readUsePrinterIgnoreChar:
                 phy
@@ -1029,7 +1029,7 @@ L8BD4:
 
                 .if version==350
 setTSTAndReadDefaultTVSettings
-                jsr mos.withTST
+                jsr withTST
                 .endif
 readDefaultTVSettings:
                 ldx #configureTable.L8605-configureTable

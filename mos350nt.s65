@@ -4,6 +4,7 @@
 
 version=350
 versionString="MOS 3.50(NT)"
+includeTerminalROM=false
                 
 *=$8000
                 .dsection utils
@@ -15,10 +16,6 @@ versionString="MOS 3.50(NT)"
                 ; you an error if the code would go past the 64 K
                 ; barrier.
 
-;-------------------------------------------------------------------------
-
-includeTerminalROM=false
-                
 ;-------------------------------------------------------------------------
 
                 .section utils

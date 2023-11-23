@@ -11,7 +11,7 @@
 
 isSecondProcessorPresent:
                 .if version==350
-                jsr mos.withTST
+                jsr withTST
                 .endif
                 ldx #$01                     
                 stx tube.status1

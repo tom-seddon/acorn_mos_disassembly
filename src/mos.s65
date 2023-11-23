@@ -1,7 +1,5 @@
 ; -*- comment-column:45; -*-
 
-mos: .block
-
 ; VDU driver entry block
 ; ======================
 LC000:                                       ; Read from VDU memory
@@ -8495,7 +8493,7 @@ osbyte9C:
                 and aciaControlRegister
                 eor SEIWKA
                 ldx aciaControlRegister
-writeACIAControlRegister:
+writeACIAControlRegisterAndCopy:
                 sta aciaControlRegister
                 sta ACIA.control
                 plp
@@ -11025,7 +11023,7 @@ LF1FA:
                 .word bputTapeOrROM ; BPUTV
                 .byte terminalROM
                 .if version==400
-                .word mos.badCommandError
+                .word badCommandError
                 .else
                 .word bgetTapeOrROM ; BGETV
                 .endif
@@ -13951,9 +13949,9 @@ extendedVectorEntryPoint:
                 ; $102,x - old X
                 ; $101,x - old Y
 
-                jsr mos.selectHAZEL
+                jsr selectHAZEL
                 lda extendedVectorSpace,y    ;get vector ROM number
-                jsr mos.selectROMA
+                jsr selectROMA
                 ply
                 plx
                 pla
@@ -13975,9 +13973,9 @@ extendedVectorReturnThunk:
                 pla
                 pla
                 pla
-                jsr mos.selectMOSOrHAZEL
+                jsr selectMOSOrHAZEL
                 pla
-                jsr mos.selectROMA
+                jsr selectROMA
                 pla
                 plp
 rtsFFAA:
@@ -14002,46 +14000,36 @@ osbyte9D:
                 brk
 
 ;-------------------------------------------------------------------------
-
-; MOS block ends here, so that the standard entry points have
-; unadorned names.
-;
-; A couple of the E_ entry points need namespacing in the Terminal
-; ROM.
-                .endblock
-
-
-;-------------------------------------------------------------------------
 OSWRSC:
-                jmp mos.oswrscEntryPoint ; FFB3
-                .byte mos.defaultVectorTable.end-mos.defaultVectorTable ;
-                .word mos.defaultVectorTable ;
+                jmp oswrscEntryPoint ; FFB3
+                .byte defaultVectorTable.end-defaultVectorTable ;
+                .word defaultVectorTable ;
 OSRDSC:
-                jmp mos.osrdscEntryPoint ; FFB9
+                jmp osrdscEntryPoint ; FFB9
 VDUCHR:
-                jmp mos.vduChrEntryPoint ; FFBC
+                jmp vduChrEntryPoint ; FFBC
 OSEVEN:
-                jmp mos.eventEntryPoint ; FFBF
+                jmp eventEntryPoint ; FFBF
 GSINIT:
-                jmp mos.gsinitEntryPoint ; FFC2
+                jmp gsinitEntryPoint ; FFC2
 GSREAD:
-                jmp mos.gsreadEntryPoint ; FFC5
+                jmp gsreadEntryPoint ; FFC5
 NVRDCH:
-                jmp mos.osrdchEntryPoint                    ; FFC8
+                jmp osrdchEntryPoint                    ; FFC8
 NVWRCH:
-                jmp mos.oswrchEntryPoint                    ; FFCB
+                jmp oswrchEntryPoint                    ; FFCB
 OSFIND:
-                jmp mos.osfindEntryPoint                    ; FFCE
+                jmp osfindEntryPoint                    ; FFCE
 OSGBPB:
-                jmp mos.osgbpbEntryPoint                    ; FFD1
+                jmp osgbpbEntryPoint                    ; FFD1
 OSBPUT:
-                jmp mos.osbputEntryPoint                    ; FFD4
+                jmp osbputEntryPoint                    ; FFD4
 OSBGET:
-                jmp mos.osbgetEntryPoint                    ; FFD7
+                jmp osbgetEntryPoint                    ; FFD7
 OSARGS:
-                jmp mos.osargsEntryPoint ; FFDA
+                jmp osargsEntryPoint ; FFDA
 OSFILE:
-                jmp mos.osfileEntryPoint ; FFDD
+                jmp osfileEntryPoint ; FFDD
 OSRDCH:
                 jmp (RDCHV)                  ; FFE0
 OSASCI:
@@ -14063,7 +14051,7 @@ OSCLI:
 LFFFA:                                       ; FFFA NMIV
                 .word nmiEntryPoint
 LFFFC:                                       ; FFFB RESETV
-                .word mos.resetEntryPoint
+                .word resetEntryPoint
 LFFFE:                                       ; FFFE IRQV
-                .word mos.irqEntryPoint
-
+                .word irqEntryPoint
+                

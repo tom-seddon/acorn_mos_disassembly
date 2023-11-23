@@ -105,7 +105,7 @@ L8C4B:
 
 L8C5B:
                 tax
-                jsr mos.LF89A
+                jsr LF89A
                 bcs L8C68
                 bit osfileParameterBlock+1
                 bpl L8C74
@@ -133,7 +133,7 @@ L8C74:
 
 L8C7F:       
                 jsr readHexDigit
-                bit mos.valueFF
+                bit valueFF
                 bcs L8C94
                 and #$DF
                 cmp #$5B
@@ -159,7 +159,7 @@ L8CA1:
                 clv
 
 L8CAA:
-                jmp mos.skipSpacesAndCheckForCRInStringInput
+                jmp skipSpacesAndCheckForCRInStringInput
                 
 
 ;-------------------------------------------------------------------------
@@ -192,19 +192,19 @@ L8CC7:
 
 L8CD0:
                 jsr L8F4A
-                jmp mos.LF87C
+                jmp LF87C
 
 ;-------------------------------------------------------------------------
 
 L8CD6:
-                jmp mos.badCommandError
+                jmp badCommandError
 
 ;-------------------------------------------------------------------------
 
 L8CD9:       
                 jsr L8CEA
                 bcs locret_8CE9
-                jsr mos.LF846
+                jsr LF846
                 sty osfileParameterBlock+5
                 lda 1,x
                 sta osfileParameterBlock+6
@@ -300,7 +300,7 @@ L8D63:
 
 L8D66:
                 .if version!=400
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 and #$DF
                 cmp #'I'
                 bne L8D7C
@@ -312,7 +312,7 @@ L8D66:
                 sta osfileParameterBlock+1
 
 L8D7C:
-                jmp mos.skipSpacesAndCheckForCRInStringInput
+                jmp skipSpacesAndCheckForCRInStringInput
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -352,7 +352,7 @@ L8DA2:
                 beq L8DB7
 
 L8DB4:
-                jmp mos.badCommandError
+                jmp badCommandError
 
 ;-------------------------------------------------------------------------
 
@@ -377,7 +377,7 @@ L8DC0:
                 .if version==400
                 rts
                 .else
-                jmp mos.LF8D1
+                jmp LF8D1
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -397,7 +397,7 @@ L8961_sram:
                 jsr $0406
                 jsr L8CEA
                 bcs L8970
-                jsr mos.LF7D1
+                jsr LF7D1
 L8970:
                 lda #$88
                 jsr $0406
@@ -420,10 +420,10 @@ starSRLOADOrStarSRSAVE:
                 stx osfileParameterBlock+2
                 sty osfileParameterBlock+3
                 ldy #0
-                jsr mos.gsinitForFilenameParsing
+                jsr gsinitForFilenameParsing
 
 L8DE0:
-                jsr mos.gsreadEntryPoint
+                jsr gsreadEntryPoint
                 bcc L8DE0
                 ldx #5
                 jsr L8D58
@@ -485,7 +485,7 @@ L8E20:
                 stx osfileParameterBlock+$C
                 ldx ACCCON
                 .if version==400
-                jsr mos.skipSpacesAndCheckForCRInStringInput
+                jsr skipSpacesAndCheckForCRInStringInput
                 .else
                 jsr L8D66
                 .endif
@@ -496,7 +496,7 @@ L8E20:
 
 L8E2E:
                 ldx ACCCON
-                jsr mos.selectHAZEL
+                jsr selectHAZEL
                 stz hazel.tempFSFlag
                 ldy #$B
 
@@ -531,7 +531,7 @@ L8E4B:
 ;-------------------------------------------------------------------------
 
 L8E5B:
-                jsr mos.osbyte84
+                jsr osbyte84
                 tya
                 sec
                 sbc oshwm
@@ -583,7 +583,7 @@ L8E9C:
                 .if version==400
                 rts
                 .else
-                jmp mos.LF8D1
+                jmp LF8D1
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -631,7 +631,7 @@ L8EDC:
 
 L8EE0:
                 pha
-                jsr mos.LF89A
+                jsr LF89A
                 pla
                 rol a
                 dex
@@ -728,8 +728,8 @@ L8F54:
                 lda (stringInputBufferAddress),y
                 cmp #'+'
                 bne locret_8F61
-                bit mos.valueFF
-                jsr mos.incAndSkipSpaces
+                bit valueFF
+                jsr incAndSkipSpaces
 
 locret_8F61:
                 rts
@@ -772,7 +772,7 @@ L8F84:
 
 L8F8C:
                 ldy ACCCON
-                jsr mos.selectHAZEL
+                jsr selectHAZEL
                 lda unk_8F50-4,x
                 ldx hazel.dfde
                 and hazel.dfde

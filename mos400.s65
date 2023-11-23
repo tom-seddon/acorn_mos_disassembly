@@ -17,9 +17,6 @@ versionString="MOS 4.00"
 
 ;-------------------------------------------------------------------------
 
-; Is there a better way of doing this?
-ext=terminal.ext
-
 ; MOS 4.00 seems to be able to skip the ext ROM selection step. Could
 ; this be more widely applicable?
 ;

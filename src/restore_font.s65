@@ -43,7 +43,7 @@ restoreFont32ToN:
 
 restoreFontPart:
                 sta $FB                      ;save MSB of dest
-                jsr mos.selectTerminalROMAndANDY2
+                jsr selectTerminalROMAndANDY2
                 phy                          ;
                 ldy #$00                     ;
                 stz $FA                      ;initialize LSB of src
@@ -59,7 +59,7 @@ restoreFontPart:
                 bne -
                 ply
                 plp
-                jmp mos.selectTerminalROM
+                jmp selectTerminalROM
 
 ;-------------------------------------------------------------------------
 

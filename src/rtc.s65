@@ -266,7 +266,7 @@ L986C:
                 .if version>=500
 osword0F:
                 ldx #romServiceCallUnrecognisedOSWORD
-                jmp mos.makeROMServiceCall
+                jmp makeROMServiceCall
                 .endif
                 
 ;-------------------------------------------------------------------------
@@ -288,7 +288,7 @@ osword0E:
                 lda originalY
                 pha
                 ldx #romServiceCallUnrecognisedOSWORD
-                jsr mos.makeROMServiceCall
+                jsr makeROMServiceCall
                 cmp #1
                 pla
                 sta originalY
@@ -313,7 +313,7 @@ L989B:
                 beq L98AF
 L98A8:
                 ldx #romServiceCallUnrecognisedOSWORD
-                jsr mos.makeROMServiceCall
+                jsr makeROMServiceCall
                 bne L98B2
 L98AF:
                 pha
@@ -479,7 +479,7 @@ storeBCDByteString:
                 jsr storeNybbleString
                 pla
                 .if version==350
-                jsr mos.LE520
+                jsr LE520
                 .else
                 lsr a
                 lsr a
@@ -502,7 +502,7 @@ storeNybbleString:
                 .if version<500
                 .if version==350
 setTSTAndReadDefaults2:
-                jsr mos.withTST
+                jsr withTST
                 .endif
 readDefaults2:
                 ldx #CMOSBytes.defaults2+cmosBytesOffset
@@ -514,7 +514,7 @@ readDefaults2:
                 .if version<500
                 .if version==350
 setTSTAndReadDefaults3:
-                jsr mos.withTST
+                jsr withTST
                 .endif
 readDefaults3:
                 ldx #CMOSBytes.defaults3+cmosBytesOffset
@@ -547,7 +547,7 @@ readCMOSByte:
                 .endif
                 .if version==350
 setTSTAndReadRTCByte:
-                jsr mos.withTST
+                jsr withTST
                 .endif
 readRTCByte:
                 php

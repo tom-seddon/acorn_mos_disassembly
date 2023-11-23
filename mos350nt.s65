@@ -20,9 +20,11 @@ versionString="MOS 3.50(NT)"
 osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
 osbyte14=terminal.osbyte14
 includeTerminalROM=false
-ext=terminal.ext
 clearSoundChannelBufferInternal=terminal.clearSoundChannelBufferInternal
 LF416=terminal.LF416
+plotMoveOrCopyRectangle=terminal.plotMoveOrCopyRectangle
+plotEllipseOutline=terminal.plotEllipseOutline
+plotEllipseFilled=terminal.plotEllipseFilled
                 
 ;-------------------------------------------------------------------------
 

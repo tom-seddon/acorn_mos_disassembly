@@ -21,8 +21,10 @@ defaultMODE=129
 
 ; Is there a better way of doing this?
 osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
-ext=terminal.ext
 osbyte14=mos.osbyte14
+plotMoveOrCopyRectangle=terminal.plotMoveOrCopyRectangle
+plotEllipseOutline=terminal.plotEllipseOutline
+plotEllipseFilled=terminal.plotEllipseFilled
 
 ;-------------------------------------------------------------------------
 

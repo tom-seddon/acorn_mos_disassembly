@@ -1,7 +1,5 @@
 ; -*- comment-column:45; -*-
 
-ext: .block
-
 plotEllipseOutline:
                 ; https://tobylobster.github.io/GXR-pages/gxr/S-s23.html#SP1
                 jsr     ellipseInitialisation
@@ -941,5 +939,3 @@ rtsBFF4:
                 .byte $ff
                 .byte $ff
                 .endif
-
-                .endblock

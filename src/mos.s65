@@ -6064,10 +6064,10 @@ isCursorEditingPossible:
 ; 184–191 = Move/copy rectangle [MasRef E.3-31]
 ;
                 .if version!=400
-plotMoveOrCopyRectangle:
+selectExtROMAndPlotMoveOrCopyRectangle:
                 ldx #$80|extROM   ; select VIEW+ANDY
                 jsr selectROMX
-                jsr ext.plotMoveOrCopyRectangle
+                jsr plotMoveOrCopyRectangle
                 bra LDFF1
                 .endif
 
@@ -6076,10 +6076,10 @@ plotMoveOrCopyRectangle:
 ; 192–199 = Plot ellipse outline [MasRef E.3-32]
 ;
                 .if version!=400
-plotEllipseOutline:
+selectExtROMAndPlotEllipseOutline:
                 ldx #$80|extROM
                 jsr selectROMX
-                jsr ext.plotEllipseOutline
+                jsr plotEllipseOutline
 LDFF1:
                 jmp selectTerminalROMAndANDY
                 .endif
@@ -6089,10 +6089,10 @@ LDFF1:
 ; 200–207 = Plot solid ellipse [MasRef E.3-32]
 ;
                 .if version!=400
-plotEllipseFilled:
+selectExtROMAndPlotEllipseFilled:
                 ldx #$80|extROM
                 jsr selectROMX
-                jsr ext.plotEllipseFilled
+                jsr plotEllipseFilled
                 bra LDFF1
                 .endif
 
@@ -6291,9 +6291,9 @@ plotEntryPointTable:
                 .word terminal.L9999 ;160–167 = Plot circular arc [MasRef E.3-29]
                 .word terminal.L9935 ;168–175 = Plot filled chord segment [MasRef E.3-30]
                 .word terminal.L9923 ;176–183 = Plot filled sector [MasRef E.3-30]
-                .word plotMoveOrCopyRectangle ;184–191 = Move/copy rectangle [MasRef E.3-31]
-                .word plotEllipseOutline ;192–199 = Plot ellipse outline [MasRef E.3-32]
-                .word plotEllipseFilled ;200–207 = Plot solid ellipse [MasRef E.3-32]
+                .word selectExtROMAndPlotMoveOrCopyRectangle ;184–191 = Move/copy rectangle [MasRef E.3-31]
+                .word selectExtROMAndPlotEllipseOutline ;192–199 = Plot ellipse outline [MasRef E.3-32]
+                .word selectExtROMAndPlotEllipseFilled ;200–207 = Plot solid ellipse [MasRef E.3-32]
 
 ; Times 40 lookup table, high bytes
 multiplyBy40TableHigh:

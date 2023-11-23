@@ -19,9 +19,15 @@ versionString="MOS 4.00"
 
 ; Is there a better way of doing this?
 ext=terminal.ext
-plotMoveOrCopyRectangle=ext.plotMoveOrCopyRectangle
-plotEllipseOutline=ext.plotEllipseOutline
-plotEllipseFilled=ext.plotEllipseFilled
+
+; MOS 4.00 seems to be able to skip the ext ROM selection step. Could
+; this be more widely applicable?
+;
+; (Not that it'd make a huge difference to the speed, but it would
+; save a few bytes.)
+selectExtROMAndPlotMoveOrCopyRectangle=terminal.plotMoveOrCopyRectangle
+selectExtROMAndPlotEllipseOutline=terminal.plotEllipseOutline
+selectExtROMAndPlotEllipseFilled=terminal.plotEllipseFilled
                 
 ;-------------------------------------------------------------------------
 

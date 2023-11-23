@@ -25,9 +25,9 @@ ext=terminal.ext
 ;
 ; (Not that it'd make a huge difference to the speed, but it would
 ; save a few bytes.)
-selectExtROMAndPlotMoveOrCopyRectangle=terminal.plotMoveOrCopyRectangle
-selectExtROMAndPlotEllipseOutline=terminal.plotEllipseOutline
-selectExtROMAndPlotEllipseFilled=terminal.plotEllipseFilled
+selectExtROMAndPlotMoveOrCopyRectangle=plotMoveOrCopyRectangle
+selectExtROMAndPlotEllipseOutline=plotEllipseOutline
+selectExtROMAndPlotEllipseFilled=plotEllipseFilled
                 
 ;-------------------------------------------------------------------------
 

@@ -24,11 +24,6 @@ versionString="MOS 3.29"
 
 ;-------------------------------------------------------------------------
 
-osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
-osbyte14=terminal.osbyte14
-
-;-------------------------------------------------------------------------
-
                 .section ext
                 .include "src/sound_stuff.s65"
                 .fill 7,255

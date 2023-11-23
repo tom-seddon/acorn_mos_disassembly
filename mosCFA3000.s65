@@ -22,11 +22,6 @@ CFA3000=true
 
 ;-------------------------------------------------------------------------
 
-osbyteAndOSWORDRoutineTable=terminal.osbyteAndOSWORDRoutineTable
-osbyte14=terminal.osbyte14
-
-;-------------------------------------------------------------------------
-
                 .section ext
                 .include "src/sound_stuff.s65"
                 .fill 7,255

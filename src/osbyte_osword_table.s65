@@ -116,18 +116,18 @@ osbyteAndOSWORDRoutineTable:
                 .word mos.osbyteUnused
 
                 ;Restore a group of font definitions D.2-28
-                .word mos.osbyte19
+                .word mos.selectTerminalROMAndOSBYTE19
 
                 ; Not sure...
                 .if version==350
-                .word terminal.L8EDC
+                .word L8EDC
                 .elsif version>=400
                 .word mos.LF8EA
                 .endif
 
                 ; Not sure...
                 .if version==350
-                .word terminal.L8F8C
+                .word L8F8C
                 .elsif version>=400
                 .word mos.LF8F0
                 .endif
@@ -170,7 +170,7 @@ osbyteAndOSWORDRoutineTable:
 
                 ;Close all *SPOOL/*SPOOLON or *EXEC files D.2-33
                 .if version==350
-                .word terminal.L9423
+                .word L9423
                 .else
                 .word mos.osbyte77
                 .endif
@@ -321,14 +321,14 @@ osbyteAndOSWORDRoutineTable:
 
                 ;Read CMOS RAM
                 .if version==350
-                .word terminal.readCMOSByte
+                .word readCMOSByte
                 .else
                 .word mos.osbyteA1
                 .endif
 
                 ;Write CMOS RAM
                 .if version==350
-                .word terminal.writeCMOSByte
+                .word writeCMOSByte
                 .else
                 .word mos.osbyteA2
                 .endif
@@ -411,23 +411,23 @@ oswordRoutineTable:
                 .word mos.osword0D
 
                 ;Read CMOS clock
-                .word mos.osword0E
+                .word mos.selectTerminalROMAndOSWORD0E
 
                 ;Write CMOS clock
                 .if version==350
-                .word terminal.osword0F
+                .word osword0F
                 .else
-                .word mos.osword0F
+                .word mos.selectTerminalROMAndOSWORD0F
                 .endif
                 
                 .if version==350
-                .word terminal.L8BF2
+                .word L8BF2
                 .elsif version>=400
                 .word mos.osword10
                 .endif
 
                 .if version==350
-                .word terminal.L8E2E
+                .word L8E2E
                 .elsif version>=400
                 .word mos.osword11
                 .endif

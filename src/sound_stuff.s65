@@ -9,7 +9,11 @@ LF413:
 
 ;-------------------------------------------------------------------------
 
+                .if version>=500
+LF416Internal:                 ; need a better naming convention here.
+                .else
 LF416:
+                .endif
                 ldx #$00
                 lda $0838
                 bne LF421
@@ -184,7 +188,7 @@ LF55A:
 ;
 ; X = buffer number (must be a sound channel buffer)
 ;
-                .if version==350
+                .if version>=500||version==350
                 ; All this stuff is in the top-level namespace in
                 ; 3.50. Needs a rethink!
 clearSoundChannelBufferInternal:
@@ -384,9 +388,9 @@ LF685:
                 pla
                 ldy $0820,x
                 iny
-                bne LF699
+                bne LF699Sound
                 jsr LF592
-LF699:
+LF699Sound:
                 jsr mos.osbyte91
                 jsr mos.osbyte91
                 plp
@@ -396,14 +400,14 @@ LF6A2:
                 pla
                 and #$F8
                 asl a
-                bcc LF6B3
+                bcc LF6B3Sound
                 eor #$FF
                 lsr a
                 sec
                 sbc #$40
                 jsr LF599
                 lda #$FF
-LF6B3:
+LF6B3Sound:
                 sta $0820,x
                 lda #$05
                 sta $081C,x

@@ -5,9 +5,6 @@
 version=320
 includeTerminalROM=false
 versionString="OS 3.20(NT)"
-plotMoveOrCopyRectangle=terminal.plotMoveOrCopyRectangle
-plotEllipseOutline=terminal.plotEllipseOutline
-plotEllipseFilled=terminal.plotEllipseFilled
 
                 
 *=$8000

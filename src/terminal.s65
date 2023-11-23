@@ -1,12 +1,11 @@
 ; -*- comment-column:45; -*-
 
-terminal: .block
+utilsROMHeader: .block
                 .if (version==320||version==350)&&includeTerminalROM
-                
                 jmp terminalLanguageEntryPoint ; Language entry point
                 jmp utilsServiceEntryPoint  ; Service entry point
                 .byte $C2                    ; ROM type=SERV+LANG+6502
-                .byte copyrightText-1-terminal ; (C) offset
+                .byte copyrightText-1-utilsROMHeader ; (C) offset
                 .byte $01
                 .text "TERMINAL"
                 .byte 0
@@ -25,7 +24,7 @@ copyrightText:
                 brk
                 jmp utilsServiceEntryPoint
                 .byte $82
-                .byte copyrightText-1-terminal
+                .byte copyrightText-1-utilsROMHeader
                 .byte $00
                 .text "MOS"
                 .byte 0
@@ -44,7 +43,7 @@ copyrightText:
                 jmp utilsServiceEntryPoint
 
                 .byte $82
-                .byte copyright-1-terminal
+                .byte copyright-1-utilsROMHeader
                 .if version==500
                 .byte 0
                 .elsif version==510
@@ -64,6 +63,7 @@ copyright:
                 .text "(C)1986 Acorn",0
                 .endif
                 .endif
+                .endblock
 
 ;-------------------------------------------------------------------------
 
@@ -9276,7 +9276,3 @@ chr127:
                 .byte %11111111
                 .byte %11111111
                 .byte %11111111
-                
-                .endblock
-
-                

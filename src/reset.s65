@@ -24,8 +24,8 @@
                 .if version<500
                 ldy #RTC.a.dv32768Hz
                 ldx #RTC.a
-                jsr terminal.writeRTCByte
-                jsr terminal.finishRTCUpdate
+                jsr writeRTCByte
+                jsr finishRTCUpdate
                 .endif
                 .if version!=350
                 lda #ACCCON.Y|ACCCON.X       ; page in HAZEL+shadow
@@ -41,7 +41,7 @@
                 lda defaultVectorTable+0 ;what is this.
                 .endif
                 .if version==350
-                jsr terminal.ldaSystemVIAIER
+                jsr ldaSystemVIAIER
                 .else
                 lda systemVIA.ier
                 .endif
@@ -49,7 +49,7 @@
                 pha
                 .if version==350
                 bne nonPowerOnReset
-                jsr terminal.resetCRTC
+                jsr resetCRTC
                 ldx #7
 
 LFC34:
@@ -94,7 +94,7 @@ LFC5A:
                 bcc LFC5A
                 stx TEMPA
                 lda #ACCCON.X
-                jsr terminal.trbACCCON
+                jsr trbACCCON
                 bne LFC53
                 jsr selectTerminalROM
                 .else
@@ -161,7 +161,7 @@ nonPowerOnReset:
                 lda #ACCCON.Y|ACCCON.X ; page in MOS ROM, page in main
                                        ; RAM
                 .if version==350
-                jsr terminal.trbACCCON
+                jsr trbACCCON
                 .else
                 trb ACCCON
                 .endif
@@ -203,8 +203,8 @@ L80AD:
 LFCBF:
                 .endif
                 .if version==350
-                ldx #terminal.configureTable.mode.metadata-terminal.configureTable
-                jsr terminal.setTSTAndReadConfigurationByte
+                ldx #configureTable.mode.metadata-configureTable
+                jsr setTSTAndReadConfigurationByte
                 .elsif version<500
                 jsr readDefaultMODE          ; Read configured MODE
                 .else
@@ -215,31 +215,31 @@ LFCBF:
                 ora #CMOSBytes.defaults0.shadowMask
                 sta startupOptions
                 .if version==350
-                jsr terminal.setTSTAndReadDefaults3
+                jsr setTSTAndReadDefaults3
                 .else
-                jsr terminal.readDefaults3 ; Read configured BOOT
+                jsr readDefaults3 ; Read configured BOOT
                 .endif
                 and #CMOSBytes.defaults3.autoBootMask
                 lsr a         ; Reset OSBYTE 255 boot bit (b3) if BOOT
                 trb startupOptions
                 .if version==350
-                jsr terminal.setTSTAndReadDefaultTVSettings
+                jsr setTSTAndReadDefaultTVSettings
                 .else
-                jsr terminal.readDefaultTVSettings
+                jsr readDefaultTVSettings
                 .endif
                 sty tvOffset
                 stx tvInterlace
                 .if version==350
-                jsr terminal.setTSTAndReadDefaults3
+                jsr setTSTAndReadDefaults3
                 .else
-                jsr terminal.readDefaults3
+                jsr readDefaults3
                 .endif
                 and #CMOSBytes.defaults3.protectedScrollingMask
                 beq L80D4
                 lda #VDUVariables.cursorFlags.scrollProtect
 L80D4:
                 sta vduv.cursorFlags
-                jsr terminal.restoreFont32To255
+                jsr restoreFont32To255
                 ply
                 ldx #$92
                 bra initializePage2Loop
@@ -346,12 +346,12 @@ L8155:
 L8164:
                 .if version==350
                 ldx #$19
-                jsr terminal.setTSTAndReadRTCByte
+                jsr setTSTAndReadRTCByte
                 .elsif version<500
                 jsr readDefaults1
                 .elsif version>=500
                 ldx #cmosBytesOffset+CMOSBytes.defaults1
-                jsr terminal.readRTCByte
+                jsr readRTCByte
                 .endif
                 ldx #keyboardStatusByte.shiftLockDisengaged
                 asl a
@@ -373,16 +373,16 @@ gotKeyboardStatusByte:
                 beq L8196
                 .if version==350
                 ldx #cmosBytesOffset+CMOSBytes.printerIgnoreChar
-                jsr terminal.setTSTAndReadRTCByte
+                jsr setTSTAndReadRTCByte
                 .elsif version<500
                 jsr readDefaultPrinterIgnoreChar
                 .elsif version>=500
                 ldx #cmosBytesOffset+CMOSBytes.printerIgnoreChar
-                jsr terminal.readRTCByte
+                jsr readRTCByte
                 .endif
                 sta printerIgnoreChar
                 .if version==350
-                jsr terminal.setTSTAndReadUsePrinterIgnoreChar
+                jsr setTSTAndReadUsePrinterIgnoreChar
                 .elsif version<500
                 jsr readDefaults2
                 lsr a                        ;C=tubeOn
@@ -392,8 +392,8 @@ gotKeyboardStatusByte:
                 .endif
                 ror noignoreState
                 .if version==350
-                ldx #terminal.configureTable.print.metadata-terminal.configureTable
-                jsr terminal.setTSTAndReadConfigurationByte
+                ldx #configureTable.print.metadata-configureTable
+                jsr setTSTAndReadConfigurationByte
                 .elsif version<500
                 jsr readDefaultFX5Settings
                 .elsif version>=500
@@ -406,8 +406,8 @@ L8196:
                 ldx #1
                 .else
                 .if version==350
-                ldx #terminal.configureTable.data.metadata-terminal.configureTable
-                jsr terminal.setTSTAndReadConfigurationByte
+                ldx #configureTable.data.metadata-configureTable
+                jsr setTSTAndReadConfigurationByte
                 .elsif version<500
                 jsr readDefaultSerialDataFormat
                 .elsif version>=500
@@ -420,7 +420,7 @@ L8196:
                 sta aciaControlRegister
 
                 .if version<500
-                jsr terminal.resetACIAThenRewriteControlRegister
+                jsr resetACIAThenRewriteControlRegister
                 ldx #$01
                 .elsif version>=500
                 ldx #CMOSBytes.joystick
@@ -532,9 +532,9 @@ L81DD:
                 .if version<500&&version!=350
                 jsr readDefaultSerialBaudRateIndex
                 .else
-                ldx #terminal.configureTable.baud.metadata-terminal.configureTable
+                ldx #configureTable.baud.metadata-configureTable
                 .if version==350
-                jsr terminal.setTSTAndReadConfigurationByte
+                jsr setTSTAndReadConfigurationByte
                 .else
                 jsr readConfigurationByte
                 .endif
@@ -548,9 +548,9 @@ L81DD:
                 .endif
 
                 .if version==350
-                jsr terminal.setTSTAndReadDefaults3
+                jsr setTSTAndReadDefaults3
                 .else
-                jsr terminal.readDefaults3
+                jsr readDefaults3
                 .endif
                 bit #CMOSBytes.defaults3.loudMask
                 bne L8211
@@ -651,7 +651,7 @@ resetCMOSRAMLoop:
                 ldy LFEA2-1,x
 LFE91:
                 .endif
-                jsr terminal.writeCMOSByte
+                jsr writeCMOSByte
                 plx
                 dex
                 .if version==350
@@ -757,7 +757,7 @@ LFEA2:
 softReset:
                 .if version==350
                 lda #ACCCON.Y
-                jsr terminal.tsbACCCON
+                jsr tsbACCCON
                 .else
                 jsr mos.selectHAZEL
                 .endif
@@ -784,7 +784,7 @@ softReset:
 L829D:
                 .if version<500
                 .if version==350
-                jsr terminal.setTSTAndReadDefaults2
+                jsr setTSTAndReadDefaults2
                 .else
                 jsr readDefaults2
                 .endif
@@ -792,9 +792,9 @@ L829D:
                 bcc continueSoftReset
 
                 .if version==350
-                jsr terminal.setTSTAndReadDefaults3
+                jsr setTSTAndReadDefaults3
                 .else
-                jsr terminal.readDefaults3
+                jsr readDefaults3
                 .endif
 
                 .if version==350
@@ -802,9 +802,9 @@ L829D:
                 lsr a
                 lsr a
                 lda #ACCCON.ITU
-                jsr terminal.trbACCCON
+                jsr trbACCCON
                 bcs L82B4
-                jsr terminal.tsbACCCON
+                jsr tsbACCCON
                 .else
                 bit #CMOSBytes.defaults3.extTubeMask
                 php
@@ -816,7 +816,7 @@ L829D:
                 .endif
 L82B4:
                 .if version==350
-                jsr terminal.isSecondProcessorPresent
+                jsr isSecondProcessorPresent
                 .else
                 jsr mos.isSecondProcessorPresent
                 .endif
@@ -836,7 +836,7 @@ L82B4:
                 .endif
                 
                 .if version==350
-                jsr terminal.isSecondProcessorPresent
+                jsr isSecondProcessorPresent
                 .else
                 jsr mos.isSecondProcessorPresent
                 .endif

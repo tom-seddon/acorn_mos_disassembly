@@ -2754,9 +2754,9 @@ nextMaskedCharY:
 
 vdu127AtGraphicsCursor:
                 ; CHR$127 is a solid block, not a backspace.
-                lda #<terminal.chr127
+                lda #<chr127
                 sta ZTEMPC+0
-                lda #>terminal.chr127
+                lda #>chr127
                 sta ZTEMPC+1
                 ldx #$08
                 stx vduv.graphicsPlotState   ;plot in background colour
@@ -2795,9 +2795,9 @@ LCE37:
                 beq writeTeletextSpaceChar   ;taken if teletext mode
 
                 ; Address of space char is known.
-                lda #<terminal.LB900
+                lda #<LB900
                 sta ZTEMPC+0
-                lda #>terminal.LB900
+                lda #>LB900
                 sta ZTEMPC+1
                 bra writeBitmapChar
 
@@ -3754,7 +3754,7 @@ LD24D:
                 bra LD268
 
 LD265:
-                jsr terminal.L9B09
+                jsr L9B09
 LD268:
                 ldy #$00
                 jsr LD270
@@ -4756,7 +4756,7 @@ LD8D7:
                 ldy #$24
                 lda #$20
                 ldx #$28
-                jsr terminal.L9B09
+                jsr L9B09
                 bit $DB
                 bvs LD8EC
                 lda $032E
@@ -5336,11 +5336,11 @@ LDC48:
 LDC52:
                 jsr LDC1C
                 bcs LDC47
-                jsr terminal.L9D57
+                jsr L9D57
                 bcs LDC46
 LDC5C:
                 jsr LDCC1
-                jsr terminal.L9D57
+                jsr L9D57
                 bcs LDC46
                 jsr LDCD7
                 jsr LDCB8
@@ -6216,8 +6216,8 @@ vdu_routines=_
 
 ; LSB of routine address
 vduRoutinesLSBTable:
-                .for i=0,i<len(vdu_routines),i+=1
-                .byte <vdu_routines[i][0]
+                .for _i=0,_i<len(vdu_routines),_i+=1
+                .byte <vdu_routines[_i][0]
                 .next
 
 ; If bit 7 set: MSB of routine address
@@ -6230,13 +6230,13 @@ vduRoutinesLSBTable:
 ; Bottom 4 bits are ORed with $f0 and stored in $26a - -ve bytes left
 ; in VDU queue.
 vduRoutinesMSBTable:
-                .for i=0,i<len(vdu_routines),i+=1
-                .if vdu_routines[i][1]==0
-                .byte >vdu_routines[i][0]
+                .for _i=0,_i<len(vdu_routines),_i+=1
+                .if vdu_routines[_i][1]==0
+                .byte >vdu_routines[_i][0]
                 .else
-                .cerror vdu_routines[i][0]<(vduRoutinesPage<<8) || vdu_routines[i][0]>(vduRoutinesPage<<8)+$7ff,format("illegal VDU routine address for VDU %d: $%04x",i,vdu_routines[i][0])
-                .cerror vdu_routines[i][1]<0 || vdu_routines[i][1]>15,format("illegal VDU parameter count for VDU %d: %d",i,vdu_routines[i][1])
-                .byte (16-vdu_routines[i][1])|(((>vdu_routines[i][0])&$0f)<<4)
+                .cerror vdu_routines[_i][0]<(vduRoutinesPage<<8) || vdu_routines[_i][0]>(vduRoutinesPage<<8)+$7ff,format("illegal VDU routine address for VDU %d: $%04x",_i,vdu_routines[_i][0])
+                .cerror vdu_routines[_i][1]<0 || vdu_routines[_i][1]>15,format("illegal VDU parameter count for VDU %d: %d",_i,vdu_routines[_i][1])
+                .byte (16-vdu_routines[_i][1])|(((>vdu_routines[_i][0])&$0f)<<4)
                 .endif
                 .next
 
@@ -6278,39 +6278,39 @@ vdu23EntryPointTable:
 plotEntryPointTable:
                 .word plotPoint    ;64–71 = Plot point [MasRef E.3-24]
                 .word plotHorizontalLineFill ;72–79 = Horizontal line fill (left and right to non-background) [MasRef E.3-24]
-                .word terminal.L9BF7 ;80–87 = Plot triangle [MasRef E.3-25]
+                .word L9BF7 ;80–87 = Plot triangle [MasRef E.3-25]
                 .word plotHorizontalLineFillRight ;88–95 = Horizontal line fill (right to background) [MasRef E.3-25]
                 .word LC448 ;96–103 = Plot rectangle [MasRef E.3-26]
                 .word plotHorizontalLineFill ;104–111 = Horizontal line fill (left and right to foreground) [MasRef E.3-26]
-                .word terminal.plotParallelogram ;112–119 = Plot parallelogram [MasRef E.3-27]
+                .word plotParallelogram ;112–119 = Plot parallelogram [MasRef E.3-27]
                 .word plotHorizontalLineFillRight ;120–127 = Horizontal line fill (right to non-foreground) [MasRef E.3-27]
-                .word terminal.L9CF9 ;128–135 = Flood fill to non-background [MasRef E.3-28]
-                .word terminal.L9CF9 ;136–143 = Flood fill to foreground [MasRef E.3-28]
-                .word terminal.L99A4 ;144–151 = Plot circle outline [MasRef E.3-28]
-                .word terminal.L9944 ;152–159 = Plot filled circle [MasRef E.3-29]
-                .word terminal.L9999 ;160–167 = Plot circular arc [MasRef E.3-29]
-                .word terminal.L9935 ;168–175 = Plot filled chord segment [MasRef E.3-30]
-                .word terminal.L9923 ;176–183 = Plot filled sector [MasRef E.3-30]
+                .word L9CF9 ;128–135 = Flood fill to non-background [MasRef E.3-28]
+                .word L9CF9 ;136–143 = Flood fill to foreground [MasRef E.3-28]
+                .word L99A4 ;144–151 = Plot circle outline [MasRef E.3-28]
+                .word L9944 ;152–159 = Plot filled circle [MasRef E.3-29]
+                .word L9999 ;160–167 = Plot circular arc [MasRef E.3-29]
+                .word L9935 ;168–175 = Plot filled chord segment [MasRef E.3-30]
+                .word L9923 ;176–183 = Plot filled sector [MasRef E.3-30]
                 .word selectExtROMAndPlotMoveOrCopyRectangle ;184–191 = Move/copy rectangle [MasRef E.3-31]
                 .word selectExtROMAndPlotEllipseOutline ;192–199 = Plot ellipse outline [MasRef E.3-32]
                 .word selectExtROMAndPlotEllipseFilled ;200–207 = Plot solid ellipse [MasRef E.3-32]
 
 ; Times 40 lookup table, high bytes
 multiplyBy40TableHigh:
-                .for i=0,i<25,i+=1
-                .byte >i*40
+                .for _i=0,_i<25,_i+=1
+                .byte >_i*40
                 .next
 
 ; Times 40 lookup table, low bytes
 multiplyBy40TableLow:
-                .for i=0,i<25,i+=1
-                .byte <i*40
+                .for _i=0,_i<25,_i+=1
+                .byte <_i*40
                 .next
 
 ; Times 640 lookup table, high bytes
 multiplyBy640TableHigh:
-                .for i=0,i<32,i+=1
-                .byte >i*640
+                .for _i=0,_i<32,_i+=1
+                .byte >_i*640
                 .next
 
 ;-------------------------------------------------------------------------
@@ -7086,7 +7086,7 @@ resetEntryPoint:                ;e364
                 jmp reset
                 .else
                 jsr selectTerminalROM ; Page in ROM 15 and continue
-                jmp terminal.reset
+                jmp reset
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -7118,17 +7118,17 @@ LE389:
                 phx
                 .if version==350
                 jsr selectTerminalROM
-                jsr terminal.L873F
+                jsr L873F
                 .elsif version<500
                 jsr getROMInsertedFlagRTCAddressAndMask
                 sta TEMPA                    ;save mask
                 jsr selectTerminalROM
-                jsr terminal.readRTCByte     ;read inserted flag
+                jsr readRTCByte     ;read inserted flag
                 tya                          ;A = byte read
                 and TEMPA                    ;do mask
                 .elsif version>=500
                 jsr selectTerminalROM
-                jsr terminal.L873F
+                jsr L873F
                 .endif
                 cmp #$01                     ;C set if ROM is inserted
                 plx
@@ -7146,7 +7146,7 @@ LE389:
                 .if version!=350
 scanROMs: .proc
                 .include "scan_roms.s65"
-                jmp terminal.romsScanned     ;not sure why not RTS.
+                jmp romsScanned     ;not sure why not RTS.
                 .endproc
                 .endif
 
@@ -7222,12 +7222,12 @@ LE431:
                 jsr selectTerminalROM
                 .if version<500&&version!=350
                 phy
-                jsr terminal.readDefaultROMs
+                jsr readDefaultROMs
                 and #$0F                     ;get default FS ROM
                 ply
                 .else
-                ldx #terminal.configureTable.file.metadata-terminal.configureTable
-                jsr terminal.readConfigurationByte
+                ldx #configureTable.file.metadata-configureTable
+                jsr readConfigurationByte
                 .endif
 
                 tax
@@ -7308,10 +7308,10 @@ LE4A3:
 LE4BB:
                 jsr selectTerminalROM     ; Page in ROM 15 - UTILS ROM
                 .if version<500&&version!=350
-                jsr terminal.readDefaultLanguageROM        ; Read configured LANG
+                jsr readDefaultLanguageROM        ; Read configured LANG
                 .else
-                ldx #terminal.configureTable.lang.metadata-terminal.configureTable
-                jsr terminal.readConfigurationByte
+                ldx #configureTable.lang.metadata-configureTable
+                jsr readConfigurationByte
                 .endif
                 tax
 LE4C2:
@@ -7373,7 +7373,7 @@ LE509:
                 bit tubePresence
                 bpl startCommandLineUI
 copyLanguageOverTube:
-                jmp terminal.tubeHost.copyLanguage
+                jmp tubeHost.copyLanguage
                 .elsif version>=500
                 bra startCommandLineUI
                 .endif
@@ -7439,8 +7439,8 @@ LE520:
 LE525:
                 ldx #$2c                     ;???
                 ldy #$03
-                jsr terminal.writeCMOSByte
-                jmp terminal.printCMOSRamResetMessage
+                jsr writeCMOSByte
+                jmp printCMOSRamResetMessage
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -7459,7 +7459,7 @@ defaultBRKHandler:
 
 startCommandLineUI:
                 jsr selectTerminalROM
-                jmp terminal.commandLineUI
+                jmp commandLineUI
 
 ;-------------------------------------------------------------------------
 ;
@@ -7496,7 +7496,7 @@ isROMValidThenSelectTerminalROM:
 
 ;-------------------------------------------------------------------------
 ;
-; Select paged ROM bank 15 - TERMINAL.
+; Select paged ROM bank 15 - 
 ;
 ; Preserves X/Y
 selectTerminalROM:            ;e590
@@ -7574,7 +7574,7 @@ LE5D4:
 LE5E4:
                 ldx #$40
 LE5E6:
-                jmp resetACIA
+                jmp resetACIAState
 
 LE5E9:
                 ldy ACIA+1
@@ -7631,7 +7631,7 @@ LE616:
                 bmi LE64E
                 bvs rtsE64D
                 jsr withTerminalROM
-                jmp terminal.LA45D
+                jmp LA45D
 
 LE623:
                 ldy ACIA+1
@@ -8323,7 +8323,7 @@ emptyCommandLine=*+1                         ;arbitrary place that's
                 ldy #>hazel.commandLine
                 ldx #<hazel.commandLine
                 jsr withTerminalROM
-                jmp terminal.oscli
+                jmp oscli
                 .endblock
 
 emptyCommandLine=oscliEntryPoint.emptyCommandLine
@@ -8480,7 +8480,7 @@ setRS423Active:
                 jsr getRS423InputBufferFreeBytes
                 bcc rtsE928
                 ldx #ACIA.control.rtsLowTXInterruptEnabled
-resetACIA:
+resetACIAState:
                 ldy #ACIA.control.rtsRTSInterruptEnabled|ACIA.control.word8DataOddParity1Stop|ACIA.control.reset
 
 ;-------------------------------------------------------------------------
@@ -8656,7 +8656,7 @@ LE9A4:
                 .if version!=350
 osbyte77:                       ;e9b5
                 jsr withTerminalROM
-                jmp terminal.L9423
+                jmp L9423
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -8713,13 +8713,13 @@ BufferTableBase: .function buffer
 ; for index 0 (see bufferIndex0Offsets).
 ;
 bufferBaseAddressMSBs:
-                .for i=0,i<len(buffers),i+=1
-                .byte >BufferTableBase(buffers[i])
+                .for _i=0,_i<len(buffers),_i+=1
+                .byte >BufferTableBase(buffers[_i])
                 .endfor
 
 bufferBaseAddressLSBs:
-                .for i=0,i<len(buffers),i+=1
-                .byte <BufferTableBase(buffers[i])
+                .for _i=0,_i<len(buffers),_i+=1
+                .byte <BufferTableBase(buffers[_i])
                 .endfor
 
 ;-------------------------------------------------------------------------
@@ -8728,8 +8728,8 @@ bufferBaseAddressLSBs:
 ; - buffer indexes count up, and wrap once they reach 0.
 
 bufferIndex0Offsets:
-                .for i=0,i<len(buffers),i+=1
-                .byte BufferTableIndex0Offset(buffers[i])
+                .for _i=0,_i<len(buffers),_i+=1
+                .byte BufferTableIndex0Offset(buffers[_i])
                 .endfor
 
 ;-------------------------------------------------------------------------
@@ -9240,7 +9240,7 @@ osbyte7E:                       ;ec3c
                 cli
                 stz pagedModeCounter
                 jsr withTerminalROM
-                jsr terminal.starEXEC
+                jsr starEXEC
                 jsr LE947
 LEC54:
                 ldx #$FF
@@ -9256,7 +9256,7 @@ osbyte7D: ;EC57
                 ror $FF
                 bit tubePresence
                 bpl LECD9
-                jmp terminal.tubeHost.copyEscapeStatus
+                jmp tubeHost.copyEscapeStatus
                 .elsif version>=500
                 php
                 sei
@@ -9707,7 +9707,7 @@ osbyteUnused:                   ;ed84
                 .if version!=350
 osbyteA1:
                 jsr withTerminalROM
-                jmp terminal.readCMOSByte
+                jmp readCMOSByte
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -9715,7 +9715,7 @@ osbyteA1:
                 .if version!=350
 osbyteA2:
                 jsr withTerminalROM
-                jmp terminal.writeCMOSByte
+                jmp writeCMOSByte
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -9735,7 +9735,7 @@ osbyte8C8D:
                 pla                          ; Restore ACCON
 selectMOSOrHAZEL:                                       ;edb0
                 and #ACCCON.Y   ;get just the HAZEL/MOS bit
-                bne tsbACCCON   ;branch taken if HAZEL at $c000
+                bne setACCCONBits      ;branch taken if HAZEL at $c000
 selectMOS:
                 lda #ACCCON.Y
                 trb ACCCON      ;page in MOS at $c000
@@ -9743,7 +9743,7 @@ selectMOS:
 
 selectHAZEL:
                 lda #ACCCON.Y
-tsbACCCON:
+setACCCONBits:
                 tsb ACCCON      ;page in HAZEL at $c000
                 rts
 
@@ -10061,11 +10061,11 @@ LEF76:
 ;-------------------------------------------------------------------------
 
                 .if version>=350
-osword0E:
+selectTerminalROMAndOSWORD0E:
                 cmp #3
                 bcs handleUnrecognisedOSWORD
                 jsr withTerminalROM
-                jmp terminal.osword0E
+                jmp osword0E
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -10222,11 +10222,11 @@ LEF1B: .LEF1BMacro
 ; OSWORD 14 (&0E) Read CMOS clock [MasRef D.3-22]
 ;
                 .if version<350
-osword0E:
+selectTerminalROMAndOSWORD0E:
                 cmp #$03                   ;only codes 0/1/2 are valid
                 bcs handleUnrecognisedOSWORD
                 jsr withTerminalROM
-                jmp terminal.osword0E
+                jmp osword0E
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -10791,15 +10791,15 @@ setTSTAndResetKeyRepeat:
 resetKeyRepeat:
                 jsr withTerminalROM
                 .if version<500&&version!=350
-                jsr terminal.getDefaultKeyboardAutoRepeatDelay
+                jsr getDefaultKeyboardAutoRepeatDelay
                 sty keyboardAutoRepeatDelay
-                jsr terminal.getDefaultKeyboardAutoRepeatRate
+                jsr getDefaultKeyboardAutoRepeatRate
                 .else
                 ldx #CMOSBytes.keyboardAutoRepeatDelay+cmosBytesOffset
-                jsr terminal.readRTCByte
+                jsr readRTCByte
                 sta keyboardAutoRepeatDelay
                 ldx #CMOSBytes.keyboardAutoRepeatRate+cmosBytesOffset
-                jsr terminal.readRTCByte
+                jsr readRTCByte
                 tay
                 .endif
                 ldx keyboardAutoRepeatRate
@@ -10810,7 +10810,7 @@ resetKeyRepeat:
 ;
 ; OSBYTE 18 (&12) Reset soft keys [MasRef D.2-26]
 ;
-; MasRef says X undefined on exit; in fact, X=0, and terminal.scanROMs
+; MasRef says X undefined on exit; in fact, X=0, and scanROMs
 ; relies on this.
 ;
 osbyte12:
@@ -10996,9 +10996,9 @@ callFSCV:
 ; OSWORD 15 (&0F) Write CMOS clock [MasRef D.3-24]
 ;
                 .if version!=350
-osword0F:
+selectTerminalROMAndOSWORD0F:
                 jsr withTerminalROM       ; Page in ROM 15
-                jmp terminal.osword0F
+                jmp osword0F
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -11018,23 +11018,23 @@ LF1F9:
 ; TAPE/ROM extended vector values
 ; -------------------------------
 LF1FA:
-                .word terminal.osfileTapeOrROM ; FILEV
+                .word osfileTapeOrROM ; FILEV
                 .byte terminalROM
-                .word terminal.osargsTapeOrROM ; ARGSV
+                .word osargsTapeOrROM ; ARGSV
                 .byte terminalROM
-                .word terminal.bputTapeOrROM ; BPUTV
+                .word bputTapeOrROM ; BPUTV
                 .byte terminalROM
                 .if version==400
                 .word mos.badCommandError
                 .else
-                .word terminal.bgetTapeOrROM ; BGETV
+                .word bgetTapeOrROM ; BGETV
                 .endif
                 .byte terminalROM
-                .word terminal.osgbpbTapeOrROM ; GBPBV
+                .word osgbpbTapeOrROM ; GBPBV
                 .byte terminalROM
-                .word terminal.osfindTapeOrROM ; FINDV
+                .word osfindTapeOrROM ; FINDV
                 .byte terminalROM
-                .word terminal.fscTapeOrROM  ; FSCV
+                .word fscTapeOrROM  ; FSCV
                 .byte terminalROM
 
 ;-------------------------------------------------------------------------
@@ -11060,7 +11060,7 @@ rtsF180:
                 .if version!=350
 osbyte14:                       ;f21c
                 jsr withTerminalROM
-                jmp terminal.restoreFont32To126
+                jmp restoreFont32To126
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -11069,7 +11069,7 @@ osbyte14:                       ;f21c
 ;
 ; MasRef D.2-28
 ;
-osbyte19:                       ;f222
+selectTerminalROMAndOSBYTE19:                ;f222
                 .if version>=511||version==350
                 ldx #romServiceCallUnrecognisedOSBYTE
                 jsr makeROMServiceCall
@@ -11081,7 +11081,7 @@ osbyte19:                       ;f222
                 ldx originalX
                 .endif
                 jsr withTerminalROM
-                jmp terminal.osbyte19
+                jmp osbyte19
 
 ;-------------------------------------------------------------------------
 
@@ -11841,7 +11841,7 @@ LF416:
                 lda $f4
                 pha
                 jsr selectTerminalROM
-                jsr terminal.LF416
+                jsr LF416Internal
                 plx
                 jmp selectROMX
 
@@ -11850,7 +11850,7 @@ clearSoundChannelBuffer:
                 lda $f4
                 pha
                 jsr selectTerminalROM
-                jsr terminal.clearSoundChannelBuffer
+                jsr clearSoundChannelBufferInternal
                 plx
                 jsr selectROMX
                 plx
@@ -12684,7 +12684,7 @@ LF849:
                 inc $b1
                 inc $b3
                 jsr selectTerminalROM
-                jsr terminal.L8D0F
+                jsr L8D0F
                 jsr selectROMA
 LF85D:
                 cpy $2ef
@@ -12756,7 +12756,7 @@ LF8D1: .LF8D1Macro
                 .if version>=400
 LF8EA:
                 jsr withTerminalROM
-                jmp terminal.L8EDC
+                jmp L8EDC
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -12764,7 +12764,7 @@ LF8EA:
                 .if version>=400
 LF8F0:
                 jsr withTerminalROM
-                jmp terminal.L8F8C
+                jmp L8F8C
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -12772,7 +12772,7 @@ LF8F0:
                 .if version>=400
 osword10:
                 jsr withTerminalROM
-                jmp terminal.L8BF2
+                jmp L8BF2
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -12780,7 +12780,7 @@ osword10:
                 .if version>=400
 osword11:
                 jsr withTerminalROM
-                jmp terminal.L8E2E
+                jmp L8E2E
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -13592,7 +13592,7 @@ osbyte8EWithoutRelocation:
 ;-------------------------------------------------------------------------
 
 getLanguageParasiteAddrAndAssumeRelocatable:
-                jsr terminal.tubeHost.getLanguageParasiteAddr
+                jsr tubeHost.getLanguageParasiteAddr
                 lda #$40
                 trb $f4                 ; clear the don't-relocate bit
                 rts
@@ -13627,7 +13627,7 @@ LFB31:
                 bcs LFB3B
                 ldy reset.LFEA2-1,x
 LFB3B:
-                jsr terminal.writeCMOSByte
+                jsr writeCMOSByte
                 plx
                 dex
                 bne LFB31
@@ -13652,7 +13652,7 @@ reset: .block
                 .include "reset.s65"
 foundTube:
 continueSoftReset:
-                jmp terminal.softResetPart2
+                jmp softResetPart2
                 .endblock
 
 ;-------------------------------------------------------------------------

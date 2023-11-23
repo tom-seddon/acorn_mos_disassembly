@@ -130,6 +130,8 @@ L8081:
 ; STARTUP
 ; =======
 
+; This code is officially more than a bit gnarly, as it gets stitched
+; together in several different ways.
 
                 .if version==350             ;stripped_out_reset
 softResetPart2:
@@ -143,14 +145,19 @@ reset:                          ;8020
                 .endif
 
                 .if version<500
-                bcc continueSoftReset        ;taken if Tube not found
+                bcc handleROMWorkspace        ;taken if Tube not found
+                .if version!=350
 foundTube:
+                .endif
                 ldx #romServiceCallTubeMainInitialisation
                 jsr mos.makeROMServiceCall   ;
-                bne continueSoftReset        ; Not claimed, step past
+                bne handleROMWorkspace        ; Not claimed, step past
                 dec tubePresence ; Tube PreInit claimed, set TubeFlag to &FF, Tube present
                 .endif
+                .if version!=350
 continueSoftReset:
+                .endif
+handleROMWorkspace:
                 lda lastBREAKType ; Soft Break, don't ask about workspace
                 beq L82FC
                 ldy #$DC                     ; Start high workspace at &DC00 and work downwards

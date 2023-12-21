@@ -136,6 +136,7 @@ romServiceCallInformReset=$27
 romServiceCallUnknownCONFIG=$28
 romServiceCallUnknownSTATUS=$29
 romServiceCallLanguageChange=$2a
+romServiceCallCompactJoystick=$2c
 romServiceCall30=$30
 romServiceCallTubeSystemPostInitialisation=$FE    ;
 romServiceCallTubeMainInitialisation=$FF    ;

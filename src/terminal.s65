@@ -189,7 +189,7 @@ L82FE:
                 sta $F3
                 ; Y=>end of FS Info Blocks
                 ldy #<hazel.fsInfoBlocks+size(defaultFsInfoBlocks)
-                ldx #$25                     ; Ask ROMs for FS Info Blocks
+                ldx #romServiceCallRequestFSInfo
                 jsr makeROMServiceCall   ;
                 lda #$00                     ; Terminate FS Info blocks
                 sta ($F2),y

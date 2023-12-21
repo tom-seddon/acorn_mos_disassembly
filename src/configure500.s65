@@ -852,14 +852,16 @@ printConfigureTableString:
 ;
 ; Entry:
 ;
-; C=1 for unknown CONFIG, or C=0 for unknown STATUS
+; C=0 for unknown CONFIG, or C=1 for unknown STATUS
 ;
 ; Exit:
 ;
 ; as per appropriate ROM service call
 ; 
 unknownCONFIGOrStatus:
-                lda #$14
+                .cerror (romServiceCallUnknownCONFIG&1)!=0
+                .cerror (romServiceCallUnknownSTATUS&1)==0
+                lda #romServiceCallUnknownCONFIG>>1
                 rol a           ;form $28 or $29 according to C
                 tax
                 jmp makeROMServiceCall

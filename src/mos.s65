@@ -8047,7 +8047,7 @@ LE7DE:
                 bit adcConversionType
                 bpl LE7EA
                 ldy #$B6
-                ldx #$2C        ; Master Compact joystick call
+                ldx #romServiceCallCompactJoystick
                 jmp makeROMServiceCall
 
 ;-------------------------------------------------------------------------

@@ -3159,9 +3159,11 @@ readDefaults3:
 readCMOSByte:
                 cpx #$ff
                 bne readRTCByte              ; taken if address not $ff
+
+                ; Read address $ff to query the size.
                 jsr i2cTestReadEEPROMByte    ; do an experimental read
                 ldy #0                       ; failure result is 0
-                bcs rts9DE0                  ; taken if read failed
+                bcs rts9DE0 ; taken if read failed - no EEPROM present
                 ldx #$7f                          
                 jsr i2cReadEEPROMByte        ; read the byte at $7f
                 phy                          ; save the byte read
@@ -3169,9 +3171,16 @@ readCMOSByte:
                 jsr i2cReadEEPROMByte        ; read the byte at $ff
                 tya                          ; A = byte from $ff
                 tsx
-                eor $101,x          ; difference between the two reads
-                ora #$7f            ; ?????
-                tay                 ; and... that is the result?????
+
+                eor $101,x
+                ; The EEPROM contents reset code EORs the byte at +$7f
+                ; with $80, and stores that at +$ff. So either the
+                ; result is 0 (+$7f and +$ff are the same byte: it's a
+                ; 128-byte EEPROM) or it's a value with bit 8 clear
+                ; (+$7f and +$ff are not the same byte: it's a
+                ; 256-byte EEPROM).
+                ora #$7f ; 127 if 128-byte EEPROM; 255 if 256-byte EEPROM
+                tay
                 bra plx_rts9DDF
                 .endif
 
@@ -3184,7 +3193,7 @@ readDefaultByte:
                 ldy #0                 ; default failure result is 0
                 cpx #size(CMOSBytes)   ; trying to read a known value?
                 bcs gotResult   ; taken if failed to read an unknown value
-                ldy L9DE4,x      ; use a default value for failed read
+                ldy defaultEEPROMContents,x ; use a default value for failed read
                 bra gotResult
 
 addressIsValid:
@@ -3202,8 +3211,8 @@ readDefaultCMOSByte:
                 phx
                 bra readRTCByte.readDefaultByte
 
-L9DE4:
-                ; Default EEPROM contents? For use if the EEPROM runs
+defaultEEPROMContents:
+                ; Default EEPROM contents - for use if the EEPROM runs
                 ; out of write cycles?
                 .byte 0                      ; econetStationNumber
                 .byte 254                    ; fileServerStationNumber
@@ -3228,7 +3237,7 @@ L9DE4:
                 .if version>=511||olivetti
                 .byte 4                      ; country
                 .endif
-                .cerror *-L9DE4!=size(CMOSBytes)
+                .cerror *-defaultEEPROMContents!=size(CMOSBytes)
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -3238,11 +3247,18 @@ rts9DF7:
                 rts
 writeCMOSByte:
                 txa
+                ; The app note says a 256-byte EEPROM could be fitted,
+                ; and there's the size test code to check for it, but
+                ; looks the last 128 bytes would never get used.
                 and #$7f
-                beq rts9DF7              ; taken if address $00 or $80
+                ; Location 0 is protected - see Master Reference
+                ; Manual D.2-49. 
+                beq rts9DF7              ; taken if address $00 (or $80)
                 ora #$80
+                ; Location 127 is protected - see Compact Application
+                ; Note.
                 inc a                    
-                beq rts9DF7              ; taken if address $7f or $ff
+                beq rts9DF7              ; taken if address $7f (or $ff)
 writeRTCByte:
                 phx
                 phy

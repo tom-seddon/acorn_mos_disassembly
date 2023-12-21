@@ -688,6 +688,8 @@ resetCMOSRAMLoop:
                 .else
                 
                 .if version>=500
+                ; Put values in place for EEPROM size check. See code
+                ; in readCMOSByte.
                 ldx #$7f
                 jsr i2cReadEEPROMByte
                 tya

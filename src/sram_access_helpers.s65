@@ -12,6 +12,7 @@ LF7A4:
 
 ;-------------------------------------------------------------------------
 
+                .if includeTubeSupport
 LF7B7:
                 jsr selectROMA
 LF7BA:
@@ -24,9 +25,11 @@ LF7BA:
                 cmp osfileParameterBlock+3
                 bne LF7BA
                 jmp selectTerminalROM
+                .endif
 
 ;-------------------------------------------------------------------------
 
+                .if includeTubeSupport
 LF7D1:
                 bit osfileParameterBlock+1
                 bmi LF7B7
@@ -41,6 +44,7 @@ LF7D9:
                 cmp osfileParameterBlock+3
                 bne LF7D9
                 jmp selectTerminalROM
+                .endif
 
 ;-------------------------------------------------------------------------
 

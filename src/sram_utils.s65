@@ -60,34 +60,37 @@ L8C0E:
 
 L8C16:
                 bit osfileParameterBlock+1
-                bvc L8C4B
-                ldy #4
+                bvc L8C4B       ;taken if romid was specified
+
+                ; Sort out pseudo address - see MasRef G.7-5
+                ldy #4          ; 4=first SRAM bank
                 lda osfileParameterBlock+5
                 ldx osfileParameterBlock+6
-
 L8C23:
-                cpx #$3F
-                bcc L8C3D
-                bne L8C2D
-                cmp #$F0
-                bcc L8C3D
+                cpx #>data_bank_size
+                bcc L8C3D       ; taken if MSB $00-$3e
+                bne L8C2D       ; taken if MSB >=$40
+
+                ; Address is 16 KB-the dummy header size
+                cmp #<data_bank_size
+                bcc L8C3D       ; taken if address<$3ff0
 
 L8C2D:
-                sbc #$F0
+                sbc #<data_bank_size
                 pha
                 txa
-                sbc #$3F
+                sbc #>data_bank_size
                 tax
                 pla
                 iny
-                cpy #8
-                bcc L8C23
-                jmp badAddressError
+                cpy #8          ; 8=last SRAM bank
+                bcc L8C23       ; taken if more banks to go
+                jmp badAddressError ; taken if pseudo address out of range
 
 ;-------------------------------------------------------------------------
 
 L8C3D:
-                adc #$10
+                adc #dummy_rom_header_size
                 sta osfileParameterBlock+5
                 txa
                 adc #$80
@@ -99,7 +102,7 @@ L8C4B:
                 cmp #$10
                 bcc L8C5B
                 cmp #$14
-                bcs L8C74
+                bcs badIdError
                 eor #$14
                 sta osfileParameterBlock+4
 
@@ -108,8 +111,8 @@ L8C5B:
                 jsr LF89A
                 bcs L8C68
                 bit osfileParameterBlock+1
-                bpl L8C74
-                bvs L8C74
+                bpl badIdError
+                bvs badIdError
 
 L8C68:
                 jsr L8F84
@@ -120,40 +123,43 @@ L8C68:
 
 ;-------------------------------------------------------------------------
 
-L8C74:
+badIdError:
                 jsr doFollowingError
-
-;-------------------------------------------------------------------------
-
                 .byte $80
                 .text "Bad id"
                 .byte 0
 
 ;-------------------------------------------------------------------------
 
-L8C7F:       
-                jsr readHexDigit
-                bit valueFF
-                bcs L8C94
-                and #$DF
-                cmp #$5B
-                bcs L8CAA
+readROMID:
+                jsr readHexDigit ; get char, possibly hex
+                bit valueFF      ; V=1
+                bcs L8C94        ; taken if hex digit encountered
+                and #$DF         ; redundantly convert to upper case
+                cmp #'Z'+1
+                bcs L8CAA       ; taken if >'Y'
                 cmp #'W'
-                bcc L8CAA
-                sbc #'S'
-                iny
+                bcc L8CAA       ; taken if <'W'
+                sbc #'W'-4      ; adjust: W=4, X=5, Y=6, Z=7
+                iny             ; consume command line char
 
 L8C94:
+                ; TODO: what is this? surely if readHexDigit
+                ; succeeded, there's no need to ever call
+                ; parseNumberFromString?
                 cmp #1
                 bne L8CA1
-                dey
-                jsr parseNumberFromString
-                txa
+                dey             ; go back to the got char
+                jsr parseNumberFromString ; read as number
+                txa                       ; A = result
                 cmp #$10
-                bcs L8C74
+                bcs badIdError  ; taken if >=16
 
 L8CA1:
+                ; +4 = romid
                 sta osfileParameterBlock+4
+
+                ; clear +1 bit 6 
                 lda #$40
                 trb osfileParameterBlock+1
                 clv
@@ -166,7 +172,7 @@ L8CAA:
 
 starSRDATAOrStarSRROM:
                 pha
-                jsr L8C7F
+                jsr readROMID
                 bvs L8CD6
                 bne L8CD6
                 pla
@@ -177,7 +183,7 @@ starSRDATAOrStarSRROM:
                 sta osfileParameterBlock+1
                 .endif
                 jsr L8C4B
-                bcs L8C74
+                bcs badIdError
                 bne L8CC7
                 ora romInformationTable,x
                 beq L8CD0
@@ -260,10 +266,10 @@ L8D1C:
                 inc osfileParameterBlock+4
                 lda osfileParameterBlock+4
                 cmp #8
-                bcs L8D63
+                bcs jmpBadAddressError
                 phx
                 jsr L8C4B
-                bne L8D63
+                bne jmpBadAddressError
                 plx
                 ldy #$10
                 lda osfileParameterBlock+2
@@ -285,21 +291,24 @@ locret_8D57:
 
 ;-------------------------------------------------------------------------
 
-L8D58:
+parse16BitHexAddressFromCommandLine:
                 jsr parseHexAddressFromCommandLine
-
-L8D5B:
+checkParameterBlockAddressIs16Bit:
                 lda osfileParameterBlock+2,x
                 ora osfileParameterBlock+3,x
                 beq locret_8D57
 
-L8D63:
+jmpBadAddressError:
                 jmp badAddressError
 
 ;-------------------------------------------------------------------------
-
-L8D66:
+;
+; Read I from command line. From Master Compact app note: ``A facility
+; to load an SRAM image and update the MOS ROM type table has been
+; added. An "I" should be added to the *SRLOAD command.''
+; 
                 .if version!=400
+readImmediateFlag:
                 jsr skipSpacesAndCheckForCRInStringInput
                 and #$DF
                 cmp #'I'
@@ -307,8 +316,8 @@ L8D66:
                 iny
                 lda osfileParameterBlock+1
                 cmp #$80
-                bne L8DB4
-                ora #$20
+                bne jmpBadCommandError8DB4 ; "Bad command" if not *SRLOAD
+                ora #$20                   ; set bit 5 to indicate I
                 sta osfileParameterBlock+1
 
 L8D7C:
@@ -316,7 +325,11 @@ L8D7C:
                 .endif
 
 ;-------------------------------------------------------------------------
+;
+; C=0 for *SRREAD
+; 
 
+                
 starSRREADOrStarSRWRITE:
                 .if version==400
                 jsr L8A88
@@ -324,12 +337,20 @@ starSRREADOrStarSRWRITE:
                 asl a
                 sta osfileParameterBlock+1
                 .endif
-                ldx #9
+                
+                ; osfileParameterBlock?1 = 64 if SRREAD; 192 if SRWRITE
+                ; osfileParameterBlock!9 = data address
+                ; osfileParameterBlock!2 = data length
+                ; osfileParameterBlock!5 = sram address
+                
+                ldx #9          ; store at osfileParameterBlock+9
                 jsr parseHexAddressFromCommandLine
-                jsr L8F54
-                ldx #2
+                jsr checkForPlusInCommandLine
+                ldx #2          ; store at osfileParameterBlock+2
                 jsr parseHexAddressFromCommandLine
-                bvs L8DA2
+                bvs L8DA2 ; taken if + encountered, so +2 is already the length
+
+                ; Form length of data in +2
                 ldx #$FC
 
 L8D94:
@@ -338,20 +359,26 @@ L8D94:
                 sta osfileParameterBlock+2-$FC,x
                 inx
                 bne L8D94
-                bcc L8D63
+                bcc jmpBadAddressError ; taken if end<start
 
 L8DA2:
+                ; Check length is a 16 bit quantity
                 ldx #2
-                jsr L8D5B
+                jsr checkParameterBlockAddressIs16Bit
+
+                ; Parse SRAM address
                 ldx #5
-                jsr L8D58
-                jsr L8C7F
+                jsr parse16BitHexAddressFromCommandLine
+
+                ; Read ROM ID
+                jsr readROMID
+
                 .if version>=500||version==350
-                jsr L8D66
+                jsr readImmediateFlag
                 .endif
                 beq L8DB7
 
-L8DB4:
+jmpBadCommandError8DB4:
                 jmp badCommandError
 
 ;-------------------------------------------------------------------------
@@ -361,11 +388,11 @@ L8DB7:
                 php
                 jsr L8C16
                 beq L8DC0
-                jsr L8C74
+                jsr badIdError
 
 L8DC0:
                 jsr L8F40
-                .if version==400||version==350
+                .if includeTubeSupport
                 lda osfileParameterBlock+11
                 and osfileParameterBlock+12
                 inc a
@@ -382,18 +409,18 @@ L8DC0:
 
 ;-------------------------------------------------------------------------
 
-                .if version<500
+                .if includeTubeSupport
 L8952:
-                lda #$c8
+                lda #$c8    ; 8 = claimant code for sideways RAM utils
                 jsr $0406
-                bcc L8952
-                lda #0
+                bcc L8952       ; if it failed, try again
+                lda #0          ; multi byte parasite->host
                 bit osfileParameterBlock+1
                 bmi L8961_sram
-                inc a
+                inc a           ; multi byte host->parasite
 L8961_sram:
-                ldx #$f6        ;TODO
-                ldy #$02        ;TODO
+                ldx #<(osfileParameterBlock+9)
+                ldy #>(osfileParameterBlock+9)
                 jsr $0406
                 jsr L8CEA
                 bcs L8970
@@ -426,12 +453,12 @@ L8DE0:
                 jsr gsreadEntryPoint
                 bcc L8DE0
                 ldx #5
-                jsr L8D58
+                jsr parse16BitHexAddressFromCommandLine
                 bit osfileParameterBlock+1
                 bmi L8E0D
-                jsr L8F54
+                jsr checkForPlusInCommandLine
                 ldx #7
-                jsr L8D58
+                jsr parse16BitHexAddressFromCommandLine
                 bvs L8E0D
                 sec
                 ldx #$FE
@@ -443,12 +470,12 @@ L8DFC:
                 inx
                 bne L8DFC
                 bcs L8E0D
-                jmp L8D63
+                jmp jmpBadAddressError
 
 ;-------------------------------------------------------------------------
 
 L8E0D:
-                jsr L8C7F
+                jsr readROMID
                 stz osfileParameterBlock+$B
                 .if version==350
                 ldx #$ff
@@ -456,7 +483,7 @@ L8E0D:
                 ldx #0
                 .endif
                 .if version>=500||version==350
-                jsr L8D66
+                jsr readImmediateFlag
                 .endif
                 and #$DF
                 .if version==350
@@ -487,10 +514,10 @@ L8E20:
                 .if version==400
                 jsr skipSpacesAndCheckForCRInStringInput
                 .else
-                jsr L8D66
+                jsr readImmediateFlag
                 .endif
                 beq L8E41
-                jmp L8DB4
+                jmp jmpBadCommandError8DB4
 
 ;-------------------------------------------------------------------------
 
@@ -515,7 +542,7 @@ L8E41:
                 phx
                 jsr L8C16
                 beq L8E4B
-                jmp L8C74
+                jmp badIdError
 
 ;-------------------------------------------------------------------------
 
@@ -722,8 +749,20 @@ unk_8F50:       .byte 1
                 .byte 8
 
 ;-------------------------------------------------------------------------
+;
+; Check to see if next char on command line is +.
+;
+; Entry:
+;
+; (stringInputBufferAddress),y = next char on command line
+;
+; Exit:
+;
+; V=0 if not +
+; 
+; V=1 if +. (stringInputBufferAddress),y = next non-space after the +
 
-L8F54:       
+checkForPlusInCommandLine:       
                 clv
                 lda (stringInputBufferAddress),y
                 cmp #'+'

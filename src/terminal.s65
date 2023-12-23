@@ -676,7 +676,7 @@ errorReadingString:
 ;
 ; C=1 if ok: A = digit read
 ;
-; C=0 if error: Z=1 if CR encountered
+; C=0 if error: A = value read, Z=1 if CR encountered
 ; 
 readHexDigit:
                 jsr readDigitFromString
@@ -1756,7 +1756,9 @@ rts94A4:
 ; exit:
 ;
 ; C=0 if error
-
+;
+; preserves: V
+; 
 parseHexAddressFromString:
                 jsr skipSpacesAndCheckForCRInStringInput ; Skip spaces
                 jsr readHexDigit
@@ -3621,7 +3623,7 @@ utilsServiceEntryPoint:
                 rts
 utilsInCorrectBank:
                 .endif
-                .if version<500
+                .if includeTubeSupport
                 cmp #romServiceCallTubeSystemPostInitialisation
                 bcc handleNonTube
                 bne handleTubeMainInitialisation
@@ -3677,7 +3679,7 @@ L9DCA:
                 lda #$00                     ; Claim call and return
 
 handleNonTube:
-                .elsif version>=500
+                .else
                 cpx #terminalROM
                 beq utilsInCorrectBank
                 rts
@@ -6160,7 +6162,7 @@ doFollowingError:
                 .include "cfs_errors.s65"
                 .endif
 
-                .if version<500
+                .if includeTubeSupport
 ;-------------------------------------------------------------------------
 ;
 ; Tube host code

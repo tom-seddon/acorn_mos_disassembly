@@ -225,7 +225,7 @@ L886C:
                 bcs foundCONFIGOrSTATUSTopic
                 plp
                 jsr unknownCONFIGOrStatus
-                bne jmpBadCommandError
+                bne jmpBadCommandError8B68
                 rts
 
 ;-------------------------------------------------------------------------
@@ -283,7 +283,7 @@ L88B4:
                 cpx #configureTable.mode.metadata-configureTable
                 bne L88C1
                 bit #$78
-                bne jmpBadCommandError
+                bne jmpBadCommandError8B68
                 tay
                 bpl L88C1
                 eor #$88
@@ -292,7 +292,7 @@ L88C1:
                 jsr getMaskCount
                 cmp maskByBitCount,y
                 beq jmpL88EE
-                bcs jmpBadCommandError
+                bcs jmpBadCommandError8B68
 
 
 jmpL88EE:
@@ -326,7 +326,7 @@ printDecimalByteAThenNewLine:
 
 ;-------------------------------------------------------------------------
 
-jmpBadCommandError:
+jmpBadCommandError8B68:
                 jmp badCommandError
 
 ;-------------------------------------------------------------------------
@@ -413,19 +413,19 @@ L8953:
                 jsr parseNumberFromString
 
 L8956:
-                bcc jmpBadCommandError
+                bcc jmpBadCommandError8B68
                 txa
                 cmp #$10
 
 L895B:
-                bcs jmpBadCommandError
+                bcs jmpBadCommandError8B68
 
 L895D:
                 pha
                 jsr skipSpacesAndCheckForCRInStringInput
 
 L8961:
-                bne jmpBadCommandError
+                bne jmpBadCommandError8B68
                 pla
                 rts
 

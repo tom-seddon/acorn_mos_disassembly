@@ -14,6 +14,10 @@ copyright:
                 .byte 0
                 .text "(C)"
                 .endblock
+dummy_rom_header_size=*-dummy_rom_header
+data_bank_size=16384-dummy_rom_header_size
+                ; I doubt I've caught all the implied 16s...
+                .cerror *-dummy_rom_header!=16
 
 LF87C:
                 jsr selectROMX

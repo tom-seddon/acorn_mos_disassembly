@@ -47,6 +47,13 @@ includeStarX=version<500
                 ; command name entries in MOS 4.00.
 tapeCommandString=version==400?"tape":"TAPE"
 motorCommandString=version==400?"motor":"MOTOR"
+
+                ; If true, include Tube support.
+                .if version==320||version==350||version==400
+includeTubeSupport=true
+                .elif version>=500
+includeTubeSupport=false
+                .endif
                 
                 .endweak
                 

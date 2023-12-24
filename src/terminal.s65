@@ -764,7 +764,7 @@ printROMsLoop:
                 tya
                 tax
                 phy
-                jsr LF89A
+                jsr isBankROM
                 bcs L86D2
                 jsr alwaysPrintFollowingMessage
                 .text "ROM ",0

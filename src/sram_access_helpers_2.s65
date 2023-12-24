@@ -15,6 +15,7 @@ copyright:
                 .text "(C)"
                 .endblock
 dummy_rom_header_size=*-dummy_rom_header
+data_bank_start=$8000+dummy_rom_header_size
 data_bank_size=16384-dummy_rom_header_size
                 ; I doubt I've caught all the implied 16s...
                 .cerror *-dummy_rom_header!=16
@@ -36,8 +37,22 @@ LF894:
                 jmp selectTerminalROM
 
 ;-------------------------------------------------------------------------
-
-LF89A:
+;
+; Check if a ROM bank is writeable. 
+;
+; Entry:
+;
+; X = ROM bank of interest
+;
+; Exit:
+;
+; C=1 if ROM, C=0 if RAM
+;
+; Terminal ROM selected
+;
+; Preserves: X
+; 
+isBankROM:
                 jsr selectROMX
                 lda $8008
                 tay
@@ -47,9 +62,9 @@ LF89A:
                 cmp $8008
                 sty $8008
                 cli
-                beq LF8B1
+                beq jmpSelectTerminalROM
                 clc
-LF8B1:
+jmpSelectTerminalROM:
                 jmp selectTerminalROM
 
 ;-------------------------------------------------------------------------

@@ -118,18 +118,18 @@ osbyteAndOSWORDRoutineTable:
                 ;Restore a group of font definitions D.2-28
                 .word selectTerminalROMAndOSBYTE19
 
-                ; Not sure...
+                ; Test RAM presence D.2-28
                 .if version==350
-                .word L8EDC
+                .word osbyte44
                 .elsif version>=400
-                .word LF8EA
+                .word selectTerminalROMAndOSBYTE44
                 .endif
 
-                ; Not sure...
+                ; Test pseudo/absolute use of bank D.2-29
                 .if version==350
-                .word L8F8C
+                .word osbyte45
                 .elsif version>=400
-                .word LF8F0
+                .word selectTerminalROMAndOSBYTE45
                 .endif
 
                 ;Write 1MHz bus selection status D.2-29

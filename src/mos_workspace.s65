@@ -772,7 +772,7 @@ tapeInputCurrentBlockSize=$2e9
 blockFlagOfCurrentlyResidentBlock=$2eb
 lastCharacterOfCurrentlyResidentBlock=$2ec
 
-; Probably needs a better name :(
+; Needs a better name, possibly more than one :(
 ;
 ; Used by various file routines to store OSGBPB and OSFILE parameter
 ; blocks.
@@ -783,6 +783,8 @@ lastCharacterOfCurrentlyResidentBlock=$2ec
 ; Used when parsing hex addresses from the command line - obviously
 ; designed primarily for convenient use when building up the OSFILE
 ; parameter block for use with *LOAD and *SAVE.
+;
+; Used by the SRAM utilities to store working data.
 osfileParameterBlock=$2ed
                 
 ; rtcTempData=$2ee
@@ -960,7 +962,7 @@ oldACCCON:                      ;dfdc
                 .fill 1
 hasACCCONChanged:                ;dfdd
                 .fill 1
-dfde:
+dfde:           ; pseudo/absolute bank flags, as queried by OSBYTE $45
                 .fill 1
                 .bend
                 .endv

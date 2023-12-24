@@ -87,28 +87,29 @@ L8C2D:
                 bcc L8C23       ; taken if more banks to go
                 jmp badAddressError ; taken if pseudo address out of range
 
-;-------------------------------------------------------------------------
-
 L8C3D:
-                adc #dummy_rom_header_size
+                ; form actual address in osfileParameterBlock!5
+                adc #<data_bank_start
                 sta osfileParameterBlock+5
                 txa
-                adc #$80
+                adc #>data_bank_start
                 sta osfileParameterBlock+6
-                sty osfileParameterBlock+4
+                sty osfileParameterBlock+4 ; save ROM number
 
 L8C4B:
-                lda osfileParameterBlock+4
-                cmp #$10
-                bcc L8C5B
+                lda osfileParameterBlock+4 ; get ROM number
+                cmp #$10                   
+                bcc L8C5B       ; if <16, use as-is
+
+                ; How do you end up with $14????
                 cmp #$14
-                bcs badIdError
+                bcs badIdError  ; bad id if <$14
                 eor #$14
                 sta osfileParameterBlock+4
 
 L8C5B:
                 tax
-                jsr LF89A
+                jsr isBankROM
                 bcs L8C68
                 bit osfileParameterBlock+1
                 bpl badIdError
@@ -131,42 +132,44 @@ badIdError:
 
 ;-------------------------------------------------------------------------
 
-readROMID:
+readROMID: .proc
                 jsr readHexDigit ; get char, possibly hex
                 bit valueFF      ; V=1
                 bcs L8C94        ; taken if hex digit encountered
                 and #$DF         ; redundantly convert to upper case
                 cmp #'Z'+1
-                bcs L8CAA       ; taken if >'Y'
+                bcs done        ; taken if >'Z' - not valid
                 cmp #'W'
-                bcc L8CAA       ; taken if <'W'
+                bcc done        ; taken if <'W' - not valid
                 sbc #'W'-4      ; adjust: W=4, X=5, Y=6, Z=7
                 iny             ; consume command line char
 
 L8C94:
-                ; TODO: what is this? surely if readHexDigit
-                ; succeeded, there's no need to ever call
-                ; parseNumberFromString?
+                ; Handle decimal numbers: if the bank was 1, it might
+                ; be "1" or the first char of "10", "11", etc. Handle
+                ; accordingly.
+                ;
+                ; (If using the W/X/Y/Z syntax, the banks are 4-7.)
                 cmp #1
-                bne L8CA1
+                bne gotROMID
                 dey             ; go back to the got char
                 jsr parseNumberFromString ; read as number
                 txa                       ; A = result
                 cmp #$10
-                bcs badIdError  ; taken if >=16
+                bcs badIdError  ; bad id if >15
 
-L8CA1:
+gotROMID:
                 ; +4 = romid
                 sta osfileParameterBlock+4
 
-                ; clear +1 bit 6 
+                ; clear +1 bit 6 - indicate valid rom id?
                 lda #$40
                 trb osfileParameterBlock+1
                 clv
 
-L8CAA:
+done:
                 jmp skipSpacesAndCheckForCRInStringInput
-                
+                .endproc
 
 ;-------------------------------------------------------------------------
 
@@ -193,7 +196,7 @@ starSRDATAOrStarSRROM:
 
 L8CC7:
                 lda hazel.dfde
-                eor L8F4C,x
+                eor unk_8F50-4,x
                 sta hazel.dfde
 
 L8CD0:
@@ -338,10 +341,15 @@ starSRREADOrStarSRWRITE:
                 sta osfileParameterBlock+1
                 .endif
                 
-                ; osfileParameterBlock?1 = 64 if SRREAD; 192 if SRWRITE
-                ; osfileParameterBlock!9 = data address
-                ; osfileParameterBlock!2 = data length
+                ; osfileParameterBlock?1 = 64 if SRREAD or SRSAVE
+                ;                          192 if SRWRITE
+                ;                          128 if SRLOAD
+                ;                          bit 6 clear if valid rom id
+                ;                          bit 5 set if I flag (3.50/5.xx)
+                ; (osfileParameterBlock+2); = data length
+                ; osfileParameterBlock?4 = rom bank/rom id
                 ; osfileParameterBlock!5 = sram address
+                ; osfileParameterBlock!9 = data address
                 
                 ldx #9          ; store at osfileParameterBlock+9
                 jsr parseHexAddressFromCommandLine
@@ -380,8 +388,6 @@ L8DA2:
 
 jmpBadCommandError8DB4:
                 jmp badCommandError
-
-;-------------------------------------------------------------------------
 
 L8DB7:       
 
@@ -652,13 +658,13 @@ L8A88:
                 
 ;-------------------------------------------------------------------------
 
-L8EDC:
+osbyte44:
                 lda #0
                 ldx #7
 
 L8EE0:
                 pha
-                jsr LF89A
+                jsr isBankROM
                 pla
                 rol a
                 dex
@@ -809,7 +815,11 @@ L8F84:
                 cpx #8
                 bcs L8FA4
 
-L8F8C:
+osbyte45:
+                ; When entered as OSBYTE $45, the X register is bogus,
+                ; so the table lookup could read junk and the AND
+                ; could end up meaningless. But that doesn't matter:
+                ; it's only the value in X on exit that's important.
                 ldy ACCCON
                 jsr selectHAZEL
                 lda unk_8F50-4,x

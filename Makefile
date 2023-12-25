@@ -122,8 +122,18 @@ _dist_copy:
 ##########################################################################
 ##########################################################################
 
+ifeq ($(OS),Windows_NT)
+UNAME:=$(OS)
+else
+UNAME:=$(shell uname -s)
+endif
+
 .PHONY:tom_laptop
+ifeq ($(UNAME),Darwin)
+tom_laptop: ECTAGS:=exuberant-ctags
+else
 tom_laptop: ECTAGS:=ctags
+endif
 tom_laptop: all
 	$(ECTAGS) '--exclude=.#*' --langdef=64tass --langmap=64tass:.s65 '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*):/\1/l.label/' -e *.s65 src/*.s65
 

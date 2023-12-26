@@ -1,0 +1,12 @@
+LF8D1:
+                lda osfileParameterBlock+1
+                cmp #$a0
+                bne jmpSelectTerminalROM
+                ldy osfileParameterBlock+4
+                tya
+                tax
+                jsr LE389
+                bcc jmpSelectTerminalROM
+                lda $8006
+                sta romInformationTable,x
+                bra jmpSelectTerminalROM

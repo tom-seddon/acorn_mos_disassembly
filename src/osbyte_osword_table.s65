@@ -419,16 +419,21 @@ oswordRoutineTable:
                 .else
                 .word selectTerminalROMAndOSWORD0F
                 .endif
-                
+
+                .if version>=350
+osword42AndAboveRoutineTable:
+                ; Sideways RAM Block Transfer
                 .if version==350
-                .word L8BF2
+                .word osword42
                 .elsif version>=400
-                .word osword10
+                .word selectTerminalROMAndOSWORD42
                 .endif
 
+                ; Sideways RAM Load/Save
                 .if version==350
-                .word L8E2E
+                .word osword43
                 .elsif version>=400
-                .word osword11
+                .word selectTerminalROMAndOSWORD43
+                .endif
                 .endif
                 

@@ -1385,7 +1385,7 @@ L9077:
                 sta osfileParameterBlock+OSGBPBParameterBlock.address+1
                 dec osfileParameterBlock+OSGBPBParameterBlock.address+2
                 dec osfileParameterBlock+OSGBPBParameterBlock.address+3
-                lda #gbppPutBytesCurrentPTR
+                lda #gbpbPutBytesCurrentPTR
                 ldx #<osfileParameterBlock
                 ldy #>osfileParameterBlock
                 jsr OSGBPB

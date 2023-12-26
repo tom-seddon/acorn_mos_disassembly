@@ -1,13 +1,13 @@
 ;-------------------------------------------------------------------------
 
-unk_8BE8:
+osword42SetupTable:
                 .if version>=500||version==350
                 .byte 1
                 .endif
                 .byte 9
-                .byte $A
-                .byte $B
-                .byte $C
+                .byte 10
+                .byte 11
+                .byte 12
                 .byte 2
                 .byte 3
                 .byte 4
@@ -15,113 +15,147 @@ unk_8BE8:
                 .byte 6
 
 ;-------------------------------------------------------------------------
-
-L8BF2:
+;
+; OSWORD $42 - Sideways RAM Block Transfor (G.7-7)
+;
+; Entry: parameter block like this:
+;
+;    block?0 - bit 7 clear=read, set=write
+;              bit 6 clear=absolute, set=pseudo
+;    block!1 - data address
+;    (block+5); - block length
+;    block?7 - ROM ID 0-$0f, or $10-$13 for W/X/Y/Z
+;    (block+8); - sideways RAM address
+; 
+osword42: .proc
                 .if version==400
-                lda ($f0)
+                lda (originalX)
                 and #$c0
                 sta osfileParameterBlock+1
                 .endif
                 ldy #9
 
-L8BF4:
-                lda ($F0),y
+copyFromParameterBlockLoop:
+                lda (originalX),y
                 .if version==400
-                ldx unk_8BE8-1,y
+                ldx osword42SetupTable-1,y
                 .else
-                ldx unk_8BE8,y
+                ldx osword42SetupTable,y
                 .endif
                 sta osfileParameterBlock,x
                 dey
                 .if version==400
-                bne L8BF4
+                bne copyFromParameterBlockLoop
                 .else
-                bpl L8BF4
-                iny
+                bpl copyFromParameterBlockLoop
+                iny             ; Y=0
                 .endif
 
-L8C00:
-                lda $B0,y
+saveTransferPointersLoop:
+                lda sramTransferPointers,y
                 pha
                 iny
-                cpy #4
-                bcc L8C00
-                jsr L8DB7
-                ldy #3
+                cpy #size(sramTransferPointers)
+                bcc saveTransferPointersLoop
 
-L8C0E:
+                jsr doSidewaysRAMBlockTransfer
+
+                ldy #size(sramTransferPointers)-1
+restoreTransferPointersLoop:
                 pla
-                sta $B0,y
+                sta sramTransferPointers,y
                 dey
-                bpl L8C0E
+                bpl restoreTransferPointersLoop
                 rts
+                .endproc
 
 ;-------------------------------------------------------------------------
 
-L8C16:
+convertSidewaysRAMPseudoAddress:
                 bit osfileParameterBlock+1
-                bvc L8C4B       ;taken if romid was specified
+                bvc checkROMID ;taken if absolute addressing - nothing to do
 
                 ; Sort out pseudo address - see MasRef G.7-5
                 ldy #4          ; 4=first SRAM bank
-                lda osfileParameterBlock+5
-                ldx osfileParameterBlock+6
-L8C23:
-                cpx #>data_bank_size
-                bcc L8C3D       ; taken if MSB $00-$3e
-                bne L8C2D       ; taken if MSB >=$40
+                lda osfileParameterBlock+5 ; SRAM pseudo address LSB
+                ldx osfileParameterBlock+6 ; SRAM pseudo address MSB
+findStartBankLoop:
+                cpx #>dataBankSize
+                bcc foundStartBank ; taken if MSB $00-$3e
+                bne nextBank       ; taken if MSB >=$40
 
                 ; Address is 16 KB-the dummy header size
-                cmp #<data_bank_size
-                bcc L8C3D       ; taken if address<$3ff0
+                cmp #<dataBankSize
+                bcc foundStartBank ; taken if address<$3ff0
 
-L8C2D:
-                sbc #<data_bank_size
+nextBank:
+                sbc #<dataBankSize
                 pha
                 txa
-                sbc #>data_bank_size
+                sbc #>dataBankSize
                 tax
                 pla
                 iny
                 cpy #8          ; 8=last SRAM bank
-                bcc L8C23       ; taken if more banks to go
+                bcc findStartBankLoop ; taken if more banks to go
                 jmp badAddressError ; taken if pseudo address out of range
 
-L8C3D:
+foundStartBank:
                 ; form actual address in osfileParameterBlock!5
-                adc #<data_bank_start
+                adc #<dataBankStart
                 sta osfileParameterBlock+5
                 txa
-                adc #>data_bank_start
+                adc #>dataBankStart
                 sta osfileParameterBlock+6
                 sty osfileParameterBlock+4 ; save ROM number
+                .cerror *!=checkROMID ; fall through to checkROMID
 
-L8C4B:
+;-------------------------------------------------------------------------
+;
+; Check ROM ID (as read by readROMID) is valid.
+;
+; Entry:
+;
+; osfileParameterBlock?4 = ROM ID
+;
+; Exit:
+;
+; 
+;
+; May also generate a "Bad id" error.
+
+checkROMID: .proc
                 lda osfileParameterBlock+4 ; get ROM number
                 cmp #$10                   
-                bcc L8C5B       ; if <16, use as-is
+                bcc gotValidROMID       ; if <16, use as-is
 
-                ; How do you end up with $14????
+                ; convert W/X/Y/Z to 4-7
                 cmp #$14
-                bcs badIdError  ; bad id if <$14
-                eor #$14
+                bcs badIdError  ; bad id if >=$14
+                eor #$14        ; $10->$04, $11->$05, $12->$06, $13->$07
                 sta osfileParameterBlock+4
 
-L8C5B:
+gotValidROMID:
                 tax
                 jsr isBankROM
-                bcs L8C68
+                bcs L8C68       ; taken if ROM
                 bit osfileParameterBlock+1
                 bpl badIdError
                 bvs badIdError
 
 L8C68:
-                jsr L8F84
-                ldx osfileParameterBlock+4
+                jsr sramGetBankMode        ; A=$40 if pseudo
+                ldx osfileParameterBlock+4 ; get ROM ID
                 eor osfileParameterBlock+1
                 and #$40
-                rts
 
+                ; for *SRDATA: A=$00 if pseudo bank, $40 if absolute
+                ; 
+                ; for *SRROM: A=$40 if pseudo bank, $00 if absolute
+                
+                rts
+                .endproc
+                
 ;-------------------------------------------------------------------------
 
 badIdError:
@@ -131,7 +165,23 @@ badIdError:
                 .byte 0
 
 ;-------------------------------------------------------------------------
-
+;
+; Read ROM ID from command line.
+;
+; Entry:
+;
+; ($f2),y = command line input pointer
+;
+; Exit:
+;
+; V=1 if invalid
+;
+; V=0 if valid
+;    osfileParameterBlock?1 bit 6 cleared
+;    osfileParameterBlock?4 is ROM ID
+;
+; May also generate a "Bad id" error.
+; 
 readROMID: .proc
                 jsr readHexDigit ; get char, possibly hex
                 bit valueFF      ; V=1
@@ -165,7 +215,7 @@ gotROMID:
                 ; clear +1 bit 6 - indicate valid rom id?
                 lda #$40
                 trb osfileParameterBlock+1
-                clv
+                clv             ; V=0
 
 done:
                 jmp skipSpacesAndCheckForCRInStringInput
@@ -176,36 +226,42 @@ done:
 starSRDATAOrStarSRROM:
                 pha
                 jsr readROMID
-                bvs L8CD6
-                bne L8CD6
+                bvs jmpBadCommandError8CD6 ; taken if invalid ROM ID
+                bne jmpBadCommandError8CD6 ; taken if bad command line
+                                           ; contents
                 pla
+
+                ; $80 if *SRDATA; $00 if *SRROM
                 .if version==400
                 jsr L8A88
                 .else
                 asl a
                 sta osfileParameterBlock+1
                 .endif
-                jsr L8C4B
-                bcs badIdError
-                bne L8CC7
+                jsr checkROMID
+                bcs badIdError  ; taken if bank could never be used
+                                ; with pseudo addressing
+                bne toggleModeAndInitBank ; taken if switching to other bank mode
+
+                ; If bank mode didn't change, but there's nothing in
+                ; the bank already, set up the dummy ROM header for
+                ; it. 
                 ora romInformationTable,x
-                beq L8CD0
+                beq initBank
                 rts
 
-;-------------------------------------------------------------------------
+toggleModeAndInitBank:
+                lda hazel.sramBankModes
+                eor sramBank4567ModeMasks-4,x
+                sta hazel.sramBankModes
 
-L8CC7:
-                lda hazel.dfde
-                eor unk_8F50-4,x
-                sta hazel.dfde
-
-L8CD0:
-                jsr L8F4A
-                jmp LF87C
+initBank:
+                jsr setROMXType6502
+                jmp initDummyROMHeader
 
 ;-------------------------------------------------------------------------
 
-L8CD6:
+jmpBadCommandError8CD6:
                 jmp badCommandError
 
 ;-------------------------------------------------------------------------
@@ -224,63 +280,59 @@ locret_8CE9:
 
 ;-------------------------------------------------------------------------
 
-L8CEA:       
-                ldx #$B0
+L8CEA:
+                ; get sideways RAM pointer address in X - src if
+                ; reading from sideways RAM, dest if writing to
+                ; sideways RAM
+                ldx #sramTransferPointers.src
                 bit osfileParameterBlock+1
-                bpl L8CF3
-                ldx #$B2
-
-L8CF3:
+                bpl +           ; taken if reading from sideways RAM
+                ldx #sramTransferPointers.dest
++
                 stz 0,x
-                ldy osfileParameterBlock+5
-                tya
+                ldy osfileParameterBlock+5 ; sram address LSB
+                tya                        ; Y=sram address LSB
                 clc
-                adc osfileParameterBlock+2
+                adc osfileParameterBlock+2 ; form end address LSB
                 sta osfileParameterBlock+2
-                lda osfileParameterBlock+6
-                sta 1,x
-                adc osfileParameterBlock+3
+                lda osfileParameterBlock+6 ; sram address MSB
+                sta 1,x                    ; 
+                adc osfileParameterBlock+3 ; form end address MSB
                 sta osfileParameterBlock+3
                 sec
                 jsr L8F62
-                
-
-;-------------------------------------------------------------------------
-
 L8D0F:
-
                 cpy osfileParameterBlock+2
                 bne L8D1C
                 lda 1,x
                 cmp osfileParameterBlock+3
                 bne L8D1C
                 rts
-
-;-------------------------------------------------------------------------
-
 L8D1C:
                 bit osfileParameterBlock+1
-                bvc L8D53
-                lda 1,x
-                cmp #$C0
-                bcc L8D53
-                lda #$80
-                sta 1,x
-                inc osfileParameterBlock+4
+                bvc L8D53       ; taken if absolute addressing
+                lda 1,x         ; get sideways RAM pointer
+                cmp #>(dataBankStart+dataBankSize) ; gone past end of bank?
+                bcc L8D53       ; taken if not past end of bank
+                lda #>dataBankStart
+                sta 1,x                    ; reset pointer MSB
+                inc osfileParameterBlock+4 ; move to next bank
                 lda osfileParameterBlock+4
                 cmp #8
-                bcs jmpBadAddressError
+                bcs jmpBadAddressError ; bad address error if definitely past end of pseudo-addressable area
                 phx
-                jsr L8C4B
-                bne jmpBadAddressError
+                jsr checkROMID  ; perform other ROM ID checks
+                bne jmpBadAddressError ; bad address error if bad
                 plx
-                ldy #$10
+                ldy #<dataBankStart
+
+                ; Subtract dataBankSize from count of bytes remaining
                 lda osfileParameterBlock+2
                 sec
-                sbc #$F0
+                sbc #<dataBankSize
                 sta osfileParameterBlock+2
                 lda osfileParameterBlock+3
-                sbc #$3F
+                sbc #>dataBankSize
                 sta osfileParameterBlock+3
                 clc
                 jsr L8F62
@@ -310,7 +362,7 @@ jmpBadAddressError:
 ; to load an SRAM image and update the MOS ROM type table has been
 ; added. An "I" should be added to the *SRLOAD command.''
 ; 
-                .if version!=400
+                .if version==350||version>=500
 readImmediateFlag:
                 jsr skipSpacesAndCheckForCRInStringInput
                 and #$DF
@@ -331,8 +383,6 @@ L8D7C:
 ;
 ; C=0 for *SRREAD
 ; 
-
-                
 starSRREADOrStarSRWRITE:
                 .if version==400
                 jsr L8A88
@@ -384,18 +434,16 @@ L8DA2:
                 .if version>=500||version==350
                 jsr readImmediateFlag
                 .endif
-                beq L8DB7
+                beq doSidewaysRAMBlockTransfer
 
 jmpBadCommandError8DB4:
                 jmp badCommandError
 
-L8DB7:       
-
+doSidewaysRAMBlockTransfer:
                 php
-                jsr L8C16
+                jsr convertSidewaysRAMPseudoAddress
                 beq L8DC0
-                jsr badIdError
-
+                jsr badIdError  ; should be a jmp; will never return
 L8DC0:
                 jsr L8F40
                 .if includeTubeSupport
@@ -418,19 +466,19 @@ L8DC0:
                 .if includeTubeSupport
 L8952:
                 lda #$c8    ; 8 = claimant code for sideways RAM utils
-                jsr $0406
+                jsr $0406   ; claim Tube
                 bcc L8952       ; if it failed, try again
                 lda #0          ; multi byte parasite->host
                 bit osfileParameterBlock+1
-                bmi L8961_sram
+                bmi +           ; taken if writing to sideways RAM
                 inc a           ; multi byte host->parasite
-L8961_sram:
++
                 ldx #<(osfileParameterBlock+9)
                 ldy #>(osfileParameterBlock+9)
-                jsr $0406
+                jsr $0406       ; begin transfer to/from data address
                 jsr L8CEA
                 bcs L8970
-                jsr LF7D1
+                jsr transferSidewaysRAMOverTube
 L8970:
                 lda #$88
                 jsr $0406
@@ -505,9 +553,9 @@ L8E0D:
                 dey
                 .endif
                 .if version==350
-                stz osfileParameterBlock+$9
-                ldx #$dc
-                stx osfileParameterBlock+$a
+                stz osfileParameterBlock+9
+                ldx #>hazel.commandLine
+                stx osfileParameterBlock+10
                 ldx #$03
                 .else
                 dex
@@ -515,7 +563,7 @@ L8E0D:
                 .endif
 
 L8E20:
-                stx osfileParameterBlock+$C
+                stx osfileParameterBlock+12
                 ldx ACCCON
                 .if version==400
                 jsr skipSpacesAndCheckForCRInStringInput
@@ -527,14 +575,14 @@ L8E20:
 
 ;-------------------------------------------------------------------------
 
-L8E2E:
+osword43:
                 ldx ACCCON
                 jsr selectHAZEL
                 stz hazel.tempFSFlag
                 ldy #$B
 
 L8E39:
-                lda ($F0),y
+                lda (originalX),y
                 sta osfileParameterBlock+1,y
                 dey
                 bpl L8E39
@@ -546,19 +594,16 @@ L8E39:
 L8E41:
                 php
                 phx
-                jsr L8C16
+                jsr convertSidewaysRAMPseudoAddress
                 beq L8E4B
                 jmp badIdError
-
-;-------------------------------------------------------------------------
-
 L8E4B:
-                lda osfileParameterBlock+$C
+                lda osfileParameterBlock+12
                 bmi L8E5B
-                ora osfileParameterBlock+$B
+                ora osfileParameterBlock+11
                 bne L8E72
                 lda #2
-                ldy #$DD
+                ldy #>hazel.ddxx
                 bra L8E66
 
 ;-------------------------------------------------------------------------
@@ -572,21 +617,21 @@ L8E5B:
 
 L8E66:
                 stz osfileParameterBlock+9
-                sty osfileParameterBlock+$A
-                stz osfileParameterBlock+$B
-                sta osfileParameterBlock+$C
+                sty osfileParameterBlock+10
+                stz osfileParameterBlock+11
+                sta osfileParameterBlock+12
 
 L8E72:
                 bit osfileParameterBlock+1
                 bpl L8EAF
-                lda #$40
-                jsr L8F1B
+                lda #findOpenForRead
+                jsr sramOpenFile
 
 L8E7C:
                 sec
                 jsr L8EED
-                lda #4
-                jsr L8F14_500
+                lda #gbpbGetBytesCurrentPTR
+                jsr sramOSGBPB
                 php
                 bcc L8E96
                 ldx #$FE
@@ -622,8 +667,8 @@ L8E9C:
 ;-------------------------------------------------------------------------
 
 L8EAF:
-                lda #$80
-                jsr L8F1B
+                lda #findOpenForWrite
+                jsr sramOpenFile
 
 L8EB4:
                 sec
@@ -631,8 +676,8 @@ L8EB4:
 
 L8EB7:
                 lda osfileParameterBlock+7-$FE,x
-                sta ($B0-$FE)&$ffff,x
-                sbc osfileParameterBlock+$B-$FE,x
+                sta @w sramTransferPointers-$fe,x
+                sbc osfileParameterBlock+11-$FE,x
                 sta osfileParameterBlock+7-$FE,x
                 inx
                 bne L8EB7
@@ -640,8 +685,8 @@ L8EB7:
                 php
                 jsr L8EED
                 jsr L8CD9
-                lda #2
-                jsr L8F14_500
+                lda #gbpbPutBytesCurrentPTR
+                jsr sramOSGBPB
                 plp
                 bcc L8E9C
                 beq L8E9C
@@ -657,42 +702,43 @@ L8A88:
                 .endif
                 
 ;-------------------------------------------------------------------------
-
+;
+; OSBYTE 68 (&44) - Test RAM presence [MasRef D.2-28]
+; 
 osbyte44:
                 lda #0
                 ldx #7
-
-L8EE0:
+osbyte44Loop:
                 pha
                 jsr isBankROM
                 pla
                 rol a
                 dex
                 cpx #4
-                bcs L8EE0
+                bcs osbyte44Loop
                 tax
                 rts
 
 ;-------------------------------------------------------------------------
 
-L8EED:       
+L8EED:
                 lda hazel.moveSrcHandle
-                sta hazel.moveOSGBPB+0
+                sta hazel.moveOSGBPB.handle
                 ldx #1
 
 L8EF5:
                 lda osfileParameterBlock+9,x
-                sta $DFC8,x
+                sta hazel.moveOSGBPB.addr,x
                 lda osfileParameterBlock+$B,x
                 bcs L8F02
-                lda $B0,x
+                lda sramTransferPointers.src,x
 
 L8F02:
-                sta $DFCC,x
+                sta hazel.moveOSGBPB.numBytes,x
                 sta osfileParameterBlock+2,x
                 lda #$FF
-                sta $DFCA,x
-                stz $DFCE,x
+                sta hazel.moveOSGBPB.addr+2,x ; address is in I/O processor
+                stz hazel.moveOSGBPB.numBytes+2,x ; size is 16-bit quantity
                 dex
                 bpl L8EF5
                 rts
@@ -700,7 +746,7 @@ L8F02:
 
 ;-------------------------------------------------------------------------
 
-L8F14_500:       
+sramOSGBPB:
                 ldx #<hazel.moveOSGBPB
                 ldy #>hazel.moveOSGBPB
                 jmp OSGBPB
@@ -708,51 +754,42 @@ L8F14_500:
 
 ;-------------------------------------------------------------------------
 
-L8F1B:       
+sramOpenFile:
                 asl hazel.tempFSFlag
                 ldx osfileParameterBlock+2
                 ldy osfileParameterBlock+3
                 jsr OSFIND
                 tax
-                bne L8F3D
+                bne sramFileFound
                 jsr doFollowingError
-
-;-------------------------------------------------------------------------
-
                 .byte $D6
                 .text "File not found"
                 .byte 0
 
-;-------------------------------------------------------------------------
-
-L8F3D:
+sramFileFound:
                 sta hazel.moveSrcHandle
-                
-
-;-------------------------------------------------------------------------
-
-L8F40:       
-                ldx osfileParameterBlock+4
+L8F40:
+                ldx osfileParameterBlock+4 ; ROM number of interest
                 bit osfileParameterBlock+1
-                bpl locret_8F4F
-                bvs locret_8F4F
+                bpl rts8F4F ; taken if reading
+                bvs rts8F4F ; taken if pseudo addressing
 
-L8F4A:
-                lda #2
-
-L8F4C:
+                ; writing, absolute addressing
+setROMXType6502:
+                lda #romType6502
                 sta romInformationTable,x
 
-locret_8F4F:
+rts8F4F:
                 rts
                 
 
 ;-------------------------------------------------------------------------
 
-unk_8F50:       .byte 1
-                .byte 2
-                .byte 4
-                .byte 8
+sramBank4567ModeMasks:
+                .byte 1         ; bank 4
+                .byte 2         ; bank 5
+                .byte 4         ; bank 6
+                .byte 8         ; bank 7
 
 ;-------------------------------------------------------------------------
 ;
@@ -784,20 +821,23 @@ locret_8F61:
 
 L8F62:       
                 phx
+                ; select the non-sram data pointer
                 txa
-                eor #2
+                eor #sramTransferPointers.src^sramTransferPointers.dest
                 tax
                 bcc L8F73
-                lda osfileParameterBlock+9
+
+                ; store data address in the non-sram pointer
+                lda osfileParameterBlock+9 ; data address LSB
                 sta 0,x
-                lda osfileParameterBlock+$A
+                lda osfileParameterBlock+10 ; data address MSB
                 sta 1,x
 
 L8F73:
-                sty osfileParameterBlock
+                sty osfileParameterBlock+0 ; sram address LSB
                 lda 0,x
                 sec
-                sbc osfileParameterBlock
+                sbc osfileParameterBlock+0
                 sta 0,x
                 bcs L8F82
                 dec 1,x
@@ -808,12 +848,27 @@ L8F82:
                 
 
 ;-------------------------------------------------------------------------
+;
+; Get bank mode: pseudo, or absolute.
+;
+; (Only banks 4-7 can be used with pseudo addressing, but you can test
+; any.)
+;
+; Entry:
+;
+; X = bank of interest
+;
+; Exit:
+;
+; A=$00 if absolute (C=1 as well, if bank could only ever be absolute)
+;
+; A=$40 if pseudo
 
-L8F84:       
+sramGetBankMode:
                 cpx #4
-                bcc L8FA4
+                bcc bankModeIsInherentlyAbsolute ; taken if <4
                 cpx #8
-                bcs L8FA4
+                bcs bankModeIsInherentlyAbsolute ; taken if >=8
 
 osbyte45:
                 ; When entered as OSBYTE $45, the X register is bogus,
@@ -821,22 +876,20 @@ osbyte45:
                 ; could end up meaningless. But that doesn't matter:
                 ; it's only the value in X on exit that's important.
                 ldy ACCCON
-                jsr selectHAZEL
-                lda unk_8F50-4,x
-                ldx hazel.dfde
-                and hazel.dfde
-                beq L8F9F
-                lda #$40
-
-L8F9F:
+                jsr selectHAZEL ; engage HAZEL
+                lda sramBank4567ModeMasks-4,x ; acquire mask: 1/2/4/8 for banks
+                                 ; 4/5/6/7 respectively
+                ldx hazel.sramBankModes ; load current settings into X, in case this is OSBYTE $45
+                and hazel.sramBankModes
+                beq +           ; taken with A=$00 if bank of interest
+                                ; is absolute
+                lda #$40        ; indicate pseudo
++
                 sty ACCCON
                 clc
                 rts
 
-;-------------------------------------------------------------------------
-
-L8FA4:
+bankModeIsInherentlyAbsolute:
                 sec
                 lda #0
                 rts
-                

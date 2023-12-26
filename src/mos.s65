@@ -10033,25 +10033,22 @@ oswordEntryPoint:
                 cmp #$e0
                 bcs osbyteOrUSERV
                 cmp #$10
-                bcc LEF76
+                bcc osword00To0F
                 cmp #$44
-                bcs LEF71
+                bcs osword44ToFF
                 cmp #$42
-                bcs LEF74
+                bcs osword42To43
                 sec
-
-LEF71:
+osword44ToFF:
                 jmp handleUnrecognisedOSBYTEOrOSWORD
 
-LEF74:
-                .if version<500
-                sbc #$34                     ; :(
-                .elsif version>=500
-                sbc #$33
-                .endif
+osword42To43:
+                .cerror (osword42AndAboveRoutineTable-oswordRoutineTable)%2!=0
+                sbc #$42-((osword42AndAboveRoutineTable-oswordRoutineTable)/2-1)
 
-LEF76:
-                adc #$59                     ; :(
+osword00To0F:
+                .cerror (oswordRoutineTable-osbyteAndOSWORDRoutineTable)%2!=0
+                adc #(oswordRoutineTable-osbyteAndOSWORDRoutineTable)/2
                 asl a
                 bra callOSBYTEOrOSWORDFromTable
                 .endif
@@ -10248,8 +10245,8 @@ oswordEntryPoint:
                 bcs osbyteOrUSERV ;taken if OSWORD $E0 or higher -
                                   ;these go via USERV
 
-                .if version<350
-                cmp #16
+                .if version==320
+                cmp #$10
                 bcs handleUnrecognisedOSBYTEOrOSWORD ;taken if unknown OSWORD
 
 ; adjust request number so it's a suitable index into the
@@ -10261,19 +10258,21 @@ oswordEntryPoint:
 
                 .else
 
-                cmp #16
-                bcc LED4D
+                cmp #$10
+                bcc osword00To0F
                 cmp #$44
                 bcs handleUnrecognisedOSBYTEOrOSWORD
                 cmp #$42
-                bcs LED4B
+                bcs osword42To43
                 sec
                 bra handleUnrecognisedOSBYTEOrOSWORD
 
-LED4B:
-                sbc #$33
-LED4D:
-                adc #$59
+osword42To43:
+                .cerror (osword42AndAboveRoutineTable-oswordRoutineTable)%2!=0
+                sbc #$42-((osword42AndAboveRoutineTable-oswordRoutineTable)/2-1)
+osword00To0F:
+                .cerror (oswordRoutineTable-osbyteAndOSWORDRoutineTable)%2!=0
+                adc #(oswordRoutineTable-osbyteAndOSWORDRoutineTable)/2
                 asl a
                 bra callOSBYTEOrOSWORDFromTable
                 .endif
@@ -12676,7 +12675,7 @@ LF9AD:
                 .if version>=500
 LF846: .block
                 jsr selectROMA
-LF849:
+transferBetweenSidewaysRAMAndRAM:
                 lda ($b0),y
                 sta ($b2),y
                 iny
@@ -12687,11 +12686,11 @@ LF849:
                 jsr L8D0F
                 jsr selectROMA
 LF85D:
-                cpy $2ef
-                bne LF849
+                cpy osfileParameterBlock+2
+                bne transferBetweenSidewaysRAMAndRAM
                 lda 1,x
-                cmp $2f0
-                bne LF849
+                cmp osfileParameterBlock+3
+                bne transferBetweenSidewaysRAMAndRAM
                 jmp selectTerminalROM
                 .endblock
                 .endif
@@ -12733,25 +12732,8 @@ LF8BE:
 
 ;-------------------------------------------------------------------------
 
-; TODO: should be sram_access_helpers_3.s65 (for all that this is not
-; exactly helping the readability)
-
-LF8D1Macro: .macro
-                lda $02ee
-                cmp #$a0
-                bne jmpSelectTerminalROM
-                ldy $2f1
-                tya
-                tax
-                jsr LE389
-                bcc jmpSelectTerminalROM
-                lda $8006
-                sta romInformationTable,x
-                bra jmpSelectTerminalROM
-                .endmacro
-
                 .if version>=500
-LF8D1: .LF8D1Macro
+                .include "sram_access_helpers_3.s65"
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -12773,17 +12755,17 @@ selectTerminalROMAndOSBYTE45:
 ;-------------------------------------------------------------------------
 
                 .if version>=400
-osword10:
+selectTerminalROMAndOSWORD42:
                 jsr withTerminalROM
-                jmp L8BF2
+                jmp osword42
                 .endif
 
 ;-------------------------------------------------------------------------
 
                 .if version>=400
-osword11:
+selectTerminalROMAndOSWORD43:
                 jsr withTerminalROM
-                jmp L8E2E
+                jmp osword43
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -13401,7 +13383,7 @@ badCommandError:
                 .if version==350
                 .include "sram_access_helpers.s65"
                 .include "sram_access_helpers_2.s65"
-LF8D1: .LF8D1Macro
+                .include "sram_access_helpers_3.s65"
                 .endif
 
 ;-------------------------------------------------------------------------

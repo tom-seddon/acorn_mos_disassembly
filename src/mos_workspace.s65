@@ -59,7 +59,6 @@ includeTubeSupport=false
                 
 ;-------------------------------------------------------------------------
 
-
 tubeHostAddr=$400
 
                 .if version==350
@@ -78,6 +77,13 @@ tubeRelocationBuffer=$700
                 
 ;-------------------------------------------------------------------------
 
+                .virtual $b0
+sramTransferPointers: .block
+src: .fill 2
+dest: .fill 2
+                .endblock
+                .endvirtual
+                
 osargsBuffer=$a8                ;4-byte ZP buffer for use with OSARGS
 printMessageAddress=$b8
 
@@ -110,6 +116,13 @@ tapeCritical=$eb
 lastKeyPressedInternal=$ec
 firstKeyPressedInternal=$ed
 stringInputBufferAddress=$f2    ;word
+
+;-------------------------------------------------------------------------
+
+romTypeHasServiceEntry=$80
+romTypeHasLanguageEntry=$40
+romTypeHasTubeRelocationAddress=$20
+romType6502=$02
                 
 ;-------------------------------------------------------------------------
 
@@ -268,6 +281,10 @@ netOSWORD0Complete=13
                 
 ;-------------------------------------------------------------------------
 
+; OSFIND open constants
+findOpenForRead=$40
+findOpenForWrite=$80
+                
 fscOPT=0
 fscCheckEOF=1
 fscStarSlash=2
@@ -288,7 +305,7 @@ fscRUNLibrary=11
 fscRENAME=12
 
 gbpbPutBytesNewPTR=1            ;[AUG p340]
-gbppPutBytesCurrentPTR=2        ;[AUG p340]
+gbpbPutBytesCurrentPTR=2        ;[AUG p340]
 gbpbGetBytesNewPTR=3            ;[AUG p341]
 gbpbGetBytesCurrentPTR=4        ;[AUG p341]
 gbpbGetMediaMetadata=5          ;[AUG p341]
@@ -962,7 +979,13 @@ oldACCCON:                      ;dfdc
                 .fill 1
 hasACCCONChanged:                ;dfdd
                 .fill 1
-dfde:           ; pseudo/absolute bank flags, as queried by OSBYTE $45
+
+                .if version>=350
+sramBankModes:
+                ; pseudo/absolute bank flags, as queried by OSBYTE $45
+                .else
+dfde:
+                .endif
                 .fill 1
                 .bend
                 .endv

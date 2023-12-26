@@ -1,67 +1,68 @@
 LF846:
                 jsr selectROMA
-LF7A4:
-                lda ($b0),y
-                sta ($b2),y
+transferBetweenSidewaysRAMAndRAM:
+                lda (sramTransferPointers.src),y
+                sta (sramTransferPointers.dest),y
                 jsr LF7F0
-                bne LF7A4
+                bne transferBetweenSidewaysRAMAndRAM
                 lda 1,x
                 cmp osfileParameterBlock+3
-                bne LF7A4
+                bne transferBetweenSidewaysRAMAndRAM
                 jmp selectTerminalROM
 
 ;-------------------------------------------------------------------------
 
                 .if includeTubeSupport
-LF7B7:
+transferParasiteToSidewaysRAM:
                 jsr selectROMA
-LF7BA:
+transferParasiteToSidewaysRAMLoop:
                 lda tube.data3
-                sta ($b2),y
+                sta (sramTransferPointers.dest),y
                 jsr LF800
-                jsr LF7F0
-                bne LF7BA
+                jsr transferSidewaysRAMOverTubeLoopUpdate
+                bne transferParasiteToSidewaysRAMLoop
                 lda 1,x
                 cmp osfileParameterBlock+3
-                bne LF7BA
+                bne transferParasiteToSidewaysRAMLoop
                 jmp selectTerminalROM
                 .endif
 
 ;-------------------------------------------------------------------------
 
                 .if includeTubeSupport
-LF7D1:
+transferSidewaysRAMOverTube:
                 bit osfileParameterBlock+1
-                bmi LF7B7
-                jsr selectROMA
-LF7D9:
-                lda ($b0),y
-                sta tube.data3
-                jsr LF800
-                jsr LF7F0
-                bne LF7D9
+                bmi transferParasiteToSidewaysRAM
+                jsr selectROMA  ; select ROM of interest
+transferSidewaysRAMToParasiteLoop:
+                lda (sramTransferPointers.src),y ; load byte from sideways RAM
+                sta tube.data3  ; send byte to coprocessor
+                jsr LF800       ; 
+                jsr transferSidewaysRAMOverTubeLoopUpdate
+                bne transferSidewaysRAMToParasiteLoop
                 lda 1,x
                 cmp osfileParameterBlock+3
-                bne LF7D9
+                bne transferSidewaysRAMToParasiteLoop
                 jmp selectTerminalROM
                 .endif
 
 ;-------------------------------------------------------------------------
 
+                .if includeTubeSupport
+transferSidewaysRAMOverTubeLoopUpdate:
 LF7F0:
                 iny
                 bne LF800
-                inc $b1
-                inc $b3
+                inc sramTransferPointers.src+1
+                inc sramTransferPointers.dest+1
                 jsr selectTerminalROM
                 jsr L8D0F
                 jsr selectROMA
-
-;-------------------------------------------------------------------------
-
 LF800:
                 cpy osfileParameterBlock+2
-LF803:
                 ; the dummy ROM header's first byte is the RTS for
                 ; this routine...
-                .cerror *!=dummy_rom_header
+                .cerror *!=dummyROMHeader
+                .endif
+
+                

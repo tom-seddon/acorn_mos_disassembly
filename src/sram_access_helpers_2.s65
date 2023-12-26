@@ -1,10 +1,10 @@
-dummy_rom_header: .block
+dummyROMHeader: .block
                 rts
                 .byte 0,0
                 rts
                 .byte 0,0
-                .byte 2
-                .byte copyright-dummy_rom_header
+                .byte romType6502
+                .byte copyright-dummyROMHeader
                 .byte $ff
                 .text "R"
 ram_or_rom_char:
@@ -13,25 +13,34 @@ ram_or_rom_char:
 copyright:
                 .byte 0
                 .text "(C)"
-                .endblock
-dummy_rom_header_size=*-dummy_rom_header
-data_bank_start=$8000+dummy_rom_header_size
-data_bank_size=16384-dummy_rom_header_size
+size=*-dummyROMHeader
                 ; I doubt I've caught all the implied 16s...
-                .cerror *-dummy_rom_header!=16
+                .cerror *-dummyROMHeader!=16
 
-LF87C:
+                ; in any event, this ROM header must be <=16 bytes, as
+                ; the total pseudo-addressable area has a o documented
+                ; size of 4*(16384-16)
+                .cerror *-dummyROMHeader>16
+                .endblock
+
+dataBankStart=$8000+16
+dataBankSize=16384-16
+
+;-------------------------------------------------------------------------
+;
+; 
+initDummyROMHeader:
                 jsr selectROMX
-                ldy #size(dummy_rom_header)-1
+                ldy #size(dummyROMHeader)-1
 LF881:
-                lda dummy_rom_header,y
+                lda dummyROMHeader,y
                 sta $8000,y
                 dey
                 bpl LF881
-                bit $2ee
-                bvs LF894
+                bit osfileParameterBlock+1
+                bvs LF894       ; taken if called by *SRDATA
                 lda #'O'
-                sta $8000+(dummy_rom_header.ram_or_rom_char-dummy_rom_header)
+                sta $8000+(dummyROMHeader.ram_or_rom_char-dummyROMHeader)
 LF894:
                 stx $8001
                 jmp selectTerminalROM
@@ -54,6 +63,11 @@ LF894:
 ; 
 isBankROM:
                 jsr selectROMX
+
+                ; Modify the version number byte - if a valid
+                ; writeable sideways ROM, don't leave it in a bad
+                ; state if reset partway through (not much you can do
+                ; for non-ROMs of course...)
                 lda $8008
                 tay
                 eor #$ff

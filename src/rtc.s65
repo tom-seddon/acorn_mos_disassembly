@@ -464,7 +464,7 @@ convertTimeToString:
                 ldx #RTC.year
                 ldy #ClockStringFormat.yyyy+3
                 jsr storeRTCDataByteString
-                lda #$19                     ;it's always 19xx... right?
+                lda #assumedRTCCenturyBCD
                 jsr storeBCDByteString
                 lda #$20
                 sta ($F0),y

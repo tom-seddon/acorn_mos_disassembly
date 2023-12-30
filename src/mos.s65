@@ -9978,7 +9978,7 @@ LEEA4:
                 trb ACCCON
                 txa                          ; If X=0, exit with normal RAM/1MHz selected
                 beq LEEB0
-                .if version==350
+                .if correctOSBYTE6B6C
                 tya
                 .else
                 lda #ACCCON.X                ; BUG! This should be TYA

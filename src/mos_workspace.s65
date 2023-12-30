@@ -6,10 +6,32 @@
 ; 
 ;-------------------------------------------------------------------------
 
-; These variant flags are applicable to the stated versions only, and
-; may or may not be separable from the various .if/.endif constructs
-; for that version. If they're changed from these defaults for any
-; other version, the output may not make sense.
+; The version constant is not very well named: it should really be
+; something like "acornVersion". It refers to one of the official MOS
+; versions released for Acorn-branded hardware, and can have one of
+; the following 6 specific values:
+;
+; version=320 - MOS 3.20
+; version=350 - MOS 3.50
+; version=400 - MOS 4.00
+; version=500 - MOS 5.00
+; version=510 - MOS 5.10
+; version=511 - MOS 5.11
+;
+; (Strictly speaking, these are not numeric, but there's a few
+; instances of version>=n where this coincidentally makes sense. The
+; 5.xx series follow on from one another, some of the 4.00 changes are
+; in 5.xx too, and some of the 4.00 changes that are in 5.xx also made
+; it into 3.50 as well.)
+
+                .cerror !(version==320||version==350||version==400||version==500||version==510||version==511)
+
+; All other versions are considered to be variants of one of the six
+; official versions, as per the variant flags below. These variant
+; flags are applicable to the stated versions only, and may or may not
+; be separable from the various version-dependent .if/.endif
+; constructs for that version. If they're changed from these defaults
+; for any other version, the output may not make sense.
 ;
 ; Over time I intend to (try to) turn these into feature flags,
 ; according to the actual features they control.
@@ -35,18 +57,35 @@ includeTerminalROM=true
 
 ;-------------------------------------------------------------------------
 
-; These feature flags can be set fairly independently.
+; These feature flags can be set freely by the main driver file.
+                
                 .weak
-
+                
                 ; If true, include *X. Not clear what this command
                 ; actually, does, but it's in the original ROMs, so
                 ; there has to be the option...
 includeStarX=version<500
-
+                
                 ; For some reason, *TAPE and *MOTOR have lower-case
                 ; command name entries in MOS 4.00.
 tapeCommandString=version==400?"tape":"TAPE"
 motorCommandString=version==400?"motor":"MOTOR"
+
+                ; If false, reproduce the OSBYTE $6B/$6C bug present
+                ; in MOS versions prior to 3.50.
+correctOSBYTE6B6C=version==350
+
+                ; Assumed century for RTC reading purposes.
+assumedRTCCenturyBCD=$19
+
+                .endweak
+                
+;-------------------------------------------------------------------------
+
+; These feature flags are a work in progress, and can't yet be
+; adjusted freely.
+
+                .weak
 
                 ; If true, include Tube support.
                 .if version==320||version==350||version==400
@@ -56,7 +95,7 @@ includeTubeSupport=false
                 .endif
                 
                 .endweak
-                
+
 ;-------------------------------------------------------------------------
 
 tubeHostAddr=$400

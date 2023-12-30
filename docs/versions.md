@@ -30,4 +30,4 @@ been binary patched with some combination of the following patches:
 
 - Y2K fixes: http://www.adsb.co.uk/bbc/bbc_master.html
 - Fix for OSBYTE &6B never selecting the external 2 MHz bus: https://github.com/tom-seddon/acorn_mos_disassembly/blob/ac672c5201fc65644731a07c9c2065abcefd1e24/dist/mos320.lst#L27565
-
+- Fix for `*MOVE` permissions: https://mdfs.net/Info/Comp/BBC/SROMs/BuildMOS (detokenized text available here: [./BuildMOS.txt](./BuildMOS.txt))

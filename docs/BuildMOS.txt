@@ -1,0 +1,58 @@
+   10REM > BuildMOS
+   20:
+   30A%=0:X%=1:os%=((USR&FFF4)AND&FF00)DIV256
+   40DIM ctrl% 31,mem% &3FFF:X%=ctrl%:Y%=X%DIV256
+   50s$=".":IFos%AND32:d$="\"ELSE IFos%AND8:d$="/"ELSE s$="/":d$="."
+   60out$="MOS321"+s$+"rom"
+   70:
+   80ok%=TRUE:ON ERROR ok%=FALSE
+   90IF ok%:OSCLI"Access "+out$+" wr/wr"
+  100ON ERROR OFF
+  110:
+  120PRINT"Building 128K ROM image";
+  130out%=OPENOUT(out$):PRINT
+  140FOR rom%=8 TO 15:READ A$:PRINT A$;
+  150OSCLI"Load "+A$+" "+STR$~mem%
+  160IF rom%=14:READ A$:IF A$<>"":IF A$<>"*":PRINT 'A$;:OSCLI"Load "+A$+" "+STR$~mem%
+  170PROCgbpb(2,out%,mem%,&4000,PTR#out%)
+  180PRINT:NEXT rom%
+  190:
+  200PRINT "Fix Y2K bug";
+  210PTR#out%=7*&4000+&9881-&8000:BPUT#out%,&20
+  220PRINT'"Fix *MOVE bug";
+  230PTR#out%=7*&4000+&91E0-&8000:BPUT#out%,&80
+  240PRINT'"Fix OSBYTE &6B bug";
+  250PTR#out%=0*&4000+&EEAB-&C000:BPUT#out%,&EA:BPUT#out%,&98
+  260PRINT'"Change to version 3.21";
+  270PTR#out%=7*&4000+&9F07-&8000:BPUT#out%,&31
+  280PTR#out%=0*&4000+&EF79-&C000:BPUT#out%,&31
+  290CLOSE#out%:out%=0:PRINT
+  300OSCLI"Access "+out$+" R/R"
+  310OSCLI"SetType "+out$+" BBC"
+  320OSCLI"Stamp "+out$
+  330END
+  340:
+  350REM Filenames of ROM images to gather together
+  360DATA :System.ROMs.AcornMOS.Master320.G_MOS320
+  370REM  :System.ROMs.Filing.Disk.Acorn.DFS224+Mse
+  380DATA :System.ROMs.Filing.Disk.Acorn.DFS224MsRC
+  390DATA :System.ROMs.Filing.Network.Acorn.ANFS425
+  400DATA :Software.HADFS.SystemDisk.HADFSROM
+  410DATA :System.ROMs.AcornMOS.Master320.C_BASIC400
+  420DATA :Info.Comp.BBC.IDE.ADFS.ADFS153
+  430:
+  440REM Filename of ROM 14 image with MOS code
+  450DATA :System.ROMs.AcornMOS.Master320.E_ViewB30
+  460:
+  470REM Filename of short ROM 14 image or * for none
+  480DATA :System.ROMs.TextEd.ViewJ300lo
+  490:
+  500REM Filename of ROM 15 image
+  510DATA :System.ROMs.AcornMOS.Master320.F_TUtil320
+  520:
+  530REM General OSGBPB call
+  540DEFPROCgbpb(A%,chn%,addr%,num%,ptr%)
+  550?X%=chn%:X%!1=addr%:X%!5=num%:X%!9=ptr%:IFPAGE<&FFFFF:CALL &FFD1:ENDPROC
+  560IFA%=1ORA%=3:PTR#?X%=X%!9
+  570REPEAT:IFA%=1ORA%=2:BPUT#?X%,?X%!1 ELSE IFA%=3ORA%=4:?X%!1=BGET#?X%
+  580X%!1=X%!1+1:X%!5=X%!5-1:UNTIL(EOF#?X% AND A%>2)OR X%!5<1:ENDPROC

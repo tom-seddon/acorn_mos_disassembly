@@ -12673,24 +12673,24 @@ LF9AD:
 ;-------------------------------------------------------------------------
 
                 .if version>=500
-LF846: .block
+transferBetweenSidewaysRAMAndRAM: .block
                 jsr selectROMA
-transferBetweenSidewaysRAMAndRAM:
-                lda ($b0),y
-                sta ($b2),y
+transferBetweenSidewaysRAMAndRAMLoop:
+                lda (sramTransferPointers.src),y
+                sta (sramTransferPointers.dest),y
                 iny
                 bne LF85D
-                inc $b1
-                inc $b3
+                inc sramTransferPointers.src+1
+                inc sramTransferPointers.dest+1
                 jsr selectTerminalROM
                 jsr L8D0F
                 jsr selectROMA
 LF85D:
-                cpy osfileParameterBlock+2
-                bne transferBetweenSidewaysRAMAndRAM
+                cpy sramWorkspace.length+0
+                bne transferBetweenSidewaysRAMAndRAMLoop
                 lda 1,x
-                cmp osfileParameterBlock+3
-                bne transferBetweenSidewaysRAMAndRAM
+                cmp sramWorkspace.length+1
+                bne transferBetweenSidewaysRAMAndRAMLoop
                 jmp selectTerminalROM
                 .endblock
                 .endif

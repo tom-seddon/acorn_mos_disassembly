@@ -1,18 +1,21 @@
 ;-------------------------------------------------------------------------
 
+; osword42SetupTable[i] is offset into sramWorkspace for OSWORD
+; parameter block byte i
+                
 osword42SetupTable:
                 .if version>=500||version==350
-                .byte 1
+                .byte sramWorkspace.type-sramWorkspace
                 .endif
-                .byte 9
-                .byte 10
-                .byte 11
-                .byte 12
-                .byte 2
-                .byte 3
-                .byte 4
-                .byte 5
-                .byte 6
+                .byte sramWorkspace.dataAddress+0-sramWorkspace
+                .byte sramWorkspace.dataAddress+1-sramWorkspace
+                .byte sramWorkspace.dataAddress+2-sramWorkspace
+                .byte sramWorkspace.dataAddress+3-sramWorkspace
+                .byte sramWorkspace.length+0-sramWorkspace
+                .byte sramWorkspace.length+1-sramWorkspace
+                .byte sramWorkspace.bank-sramWorkspace
+                .byte sramWorkspace.sramAddress+0-sramWorkspace
+                .byte sramWorkspace.sramAddress+1-sramWorkspace
 
 ;-------------------------------------------------------------------------
 ;
@@ -20,7 +23,7 @@ osword42SetupTable:
 ;
 ; Entry: parameter block like this:
 ;
-;    block?0 - bit 7 clear=read, set=write
+;    block?0 - bit 7 clear=sram->memory, set=memory->sram
 ;              bit 6 clear=absolute, set=pseudo
 ;    block!1 - data address
 ;    (block+5); - block length
@@ -31,7 +34,7 @@ osword42: .proc
                 .if version==400
                 lda (originalX)
                 and #$c0
-                sta osfileParameterBlock+1
+                sta sramWorkspace.type
                 .endif
                 ldy #9
 
@@ -42,7 +45,7 @@ copyFromParameterBlockLoop:
                 .else
                 ldx osword42SetupTable,y
                 .endif
-                sta osfileParameterBlock,x
+                sta sramWorkspace,x
                 dey
                 .if version==400
                 bne copyFromParameterBlockLoop
@@ -72,13 +75,13 @@ restoreTransferPointersLoop:
 ;-------------------------------------------------------------------------
 
 convertSidewaysRAMPseudoAddress:
-                bit osfileParameterBlock+1
+                bit sramWorkspace.type
                 bvc checkROMID ;taken if absolute addressing - nothing to do
 
                 ; Sort out pseudo address - see MasRef G.7-5
                 ldy #4          ; 4=first SRAM bank
-                lda osfileParameterBlock+5 ; SRAM pseudo address LSB
-                ldx osfileParameterBlock+6 ; SRAM pseudo address MSB
+                lda sramWorkspace.sramAddress+0 ; pseudo address
+                ldx sramWorkspace.sramAddress+1 ; pseudo address
 findStartBankLoop:
                 cpx #>dataBankSize
                 bcc foundStartBank ; taken if MSB $00-$3e
@@ -101,13 +104,13 @@ nextBank:
                 jmp badAddressError ; taken if pseudo address out of range
 
 foundStartBank:
-                ; form actual address in osfileParameterBlock!5
+                ; form actual address in sramAddress!5
                 adc #<dataBankStart
-                sta osfileParameterBlock+5
+                sta sramWorkspace.sramAddress+0
                 txa
                 adc #>dataBankStart
-                sta osfileParameterBlock+6
-                sty osfileParameterBlock+4 ; save ROM number
+                sta sramWorkspace.sramAddress+1
+                sty sramWorkspace.bank ; save ROM number
                 .cerror *!=checkROMID ; fall through to checkROMID
 
 ;-------------------------------------------------------------------------
@@ -116,16 +119,16 @@ foundStartBank:
 ;
 ; Entry:
 ;
-; osfileParameterBlock?4 = ROM ID
+; sramWorkspace.bank = ROM ID
 ;
 ; Exit:
 ;
-; 
+; A=$40 Z=0 if operation addressing mode/bank addressing mode mismatch
 ;
 ; May also generate a "Bad id" error.
 
 checkROMID: .proc
-                lda osfileParameterBlock+4 ; get ROM number
+                lda sramWorkspace.bank
                 cmp #$10                   
                 bcc gotValidROMID       ; if <16, use as-is
 
@@ -133,26 +136,23 @@ checkROMID: .proc
                 cmp #$14
                 bcs badIdError  ; bad id if >=$14
                 eor #$14        ; $10->$04, $11->$05, $12->$06, $13->$07
-                sta osfileParameterBlock+4
+                sta sramWorkspace.bank
 
 gotValidROMID:
                 tax
                 jsr isBankROM
-                bcs L8C68       ; taken if ROM
-                bit osfileParameterBlock+1
-                bpl badIdError
-                bvs badIdError
+                bcs gotValidBank ; taken if RAM
+                bit sramWorkspace.type
 
-L8C68:
+                ; Don't understand the logic here?
+                bpl badIdError  ; taken if read operation
+                bvs badIdError  ; taken if pseudo addressing
+
+gotValidBank:
                 jsr sramGetBankMode        ; A=$40 if pseudo
-                ldx osfileParameterBlock+4 ; get ROM ID
-                eor osfileParameterBlock+1
+                ldx sramWorkspace.bank
+                eor sramWorkspace.type
                 and #$40
-
-                ; for *SRDATA: A=$00 if pseudo bank, $40 if absolute
-                ; 
-                ; for *SRROM: A=$40 if pseudo bank, $00 if absolute
-                
                 rts
                 .endproc
                 
@@ -185,7 +185,7 @@ badIdError:
 readROMID: .proc
                 jsr readHexDigit ; get char, possibly hex
                 bit valueFF      ; V=1
-                bcs L8C94        ; taken if hex digit encountered
+                bcs got1CharROMID  ; taken if hex digit encountered
                 and #$DF         ; redundantly convert to upper case
                 cmp #'Z'+1
                 bcs done        ; taken if >'Z' - not valid
@@ -194,7 +194,7 @@ readROMID: .proc
                 sbc #'W'-4      ; adjust: W=4, X=5, Y=6, Z=7
                 iny             ; consume command line char
 
-L8C94:
+got1CharROMID:
                 ; Handle decimal numbers: if the bank was 1, it might
                 ; be "1" or the first char of "10", "11", etc. Handle
                 ; accordingly.
@@ -210,11 +210,11 @@ L8C94:
 
 gotROMID:
                 ; +4 = romid
-                sta osfileParameterBlock+4
+                sta sramWorkspace.bank
 
                 ; clear +1 bit 6 - indicate valid rom id?
                 lda #$40
-                trb osfileParameterBlock+1
+                trb sramWorkspace.type
                 clv             ; V=0
 
 done:
@@ -233,10 +233,10 @@ starSRDATAOrStarSRROM:
 
                 ; $80 if *SRDATA; $00 if *SRROM
                 .if version==400
-                jsr L8A88
+                jsr sramInitType
                 .else
                 asl a
-                sta osfileParameterBlock+1
+                sta sramWorkspace.type
                 .endif
                 jsr checkROMID
                 bcs badIdError  ; taken if bank could never be used
@@ -266,13 +266,13 @@ jmpBadCommandError8CD6:
 
 ;-------------------------------------------------------------------------
 
-L8CD9:       
+L8CD9:
                 jsr L8CEA
                 bcs locret_8CE9
-                jsr LF846
-                sty osfileParameterBlock+5
+                jsr transferBetweenSidewaysRAMAndRAM
+                sty sramWorkspace.sramAddress+0
                 lda 1,x
-                sta osfileParameterBlock+6
+                sta sramWorkspace.sramAddress+1
 
 locret_8CE9:
                 rts
@@ -281,43 +281,44 @@ locret_8CE9:
 ;-------------------------------------------------------------------------
 
 L8CEA:
-                ; get sideways RAM pointer address in X - src if
+                ; get sram transfer sram pointer address in X - src if
                 ; reading from sideways RAM, dest if writing to
                 ; sideways RAM
                 ldx #sramTransferPointers.src
-                bit osfileParameterBlock+1
+                bit sramWorkspace.type
                 bpl +           ; taken if reading from sideways RAM
                 ldx #sramTransferPointers.dest
 +
                 stz 0,x
-                ldy osfileParameterBlock+5 ; sram address LSB
+                ldy sramWorkspace.sramAddress+0 ; sram address LSB
                 tya                        ; Y=sram address LSB
                 clc
-                adc osfileParameterBlock+2 ; form end address LSB
-                sta osfileParameterBlock+2
-                lda osfileParameterBlock+6 ; sram address MSB
+                adc sramWorkspace.length+0 ; form end address LSB
+                sta sramWorkspace.length+0
+                lda sramWorkspace.sramAddress+1 ; sram address MSB
                 sta 1,x                    ; 
-                adc osfileParameterBlock+3 ; form end address MSB
-                sta osfileParameterBlock+3
+                adc sramWorkspace.length+1 ; form end address MSB
+                sta sramWorkspace.length+1
                 sec
-                jsr L8F62
+                jsr initSRAMTransferDataPointer
 L8D0F:
-                cpy osfileParameterBlock+2
+                cpy sramWorkspace.length+0
                 bne L8D1C
                 lda 1,x
-                cmp osfileParameterBlock+3
+                cmp sramWorkspace.length+1
                 bne L8D1C
                 rts
+
 L8D1C:
-                bit osfileParameterBlock+1
+                bit sramWorkspace.type
                 bvc L8D53       ; taken if absolute addressing
                 lda 1,x         ; get sideways RAM pointer
                 cmp #>(dataBankStart+dataBankSize) ; gone past end of bank?
                 bcc L8D53       ; taken if not past end of bank
                 lda #>dataBankStart
                 sta 1,x                    ; reset pointer MSB
-                inc osfileParameterBlock+4 ; move to next bank
-                lda osfileParameterBlock+4
+                inc sramWorkspace.bank ; move to next bank
+                lda sramWorkspace.bank
                 cmp #8
                 bcs jmpBadAddressError ; bad address error if definitely past end of pseudo-addressable area
                 phx
@@ -327,18 +328,18 @@ L8D1C:
                 ldy #<dataBankStart
 
                 ; Subtract dataBankSize from count of bytes remaining
-                lda osfileParameterBlock+2
+                lda sramWorkspace.length+0
                 sec
                 sbc #<dataBankSize
-                sta osfileParameterBlock+2
-                lda osfileParameterBlock+3
+                sta sramWorkspace.length+0
+                lda sramWorkspace.length+1
                 sbc #>dataBankSize
-                sta osfileParameterBlock+3
+                sta sramWorkspace.length+1
                 clc
-                jsr L8F62
+                jsr initSRAMTransferDataPointer
 
 L8D53:
-                lda osfileParameterBlock+4
+                lda sramWorkspace.bank
                 clc
 
 locret_8D57:
@@ -349,8 +350,8 @@ locret_8D57:
 parse16BitHexAddressFromCommandLine:
                 jsr parseHexAddressFromCommandLine
 checkParameterBlockAddressIs16Bit:
-                lda osfileParameterBlock+2,x
-                ora osfileParameterBlock+3,x
+                lda sramWorkspace.length+0,x
+                ora sramWorkspace.length+1,x
                 beq locret_8D57
 
 jmpBadAddressError:
@@ -369,11 +370,11 @@ readImmediateFlag:
                 cmp #'I'
                 bne L8D7C
                 iny
-                lda osfileParameterBlock+1
+                lda sramWorkspace.type
                 cmp #$80
                 bne jmpBadCommandError8DB4 ; "Bad command" if not *SRLOAD
                 ora #$20                   ; set bit 5 to indicate I
-                sta osfileParameterBlock+1
+                sta sramWorkspace.type
 
 L8D7C:
                 jmp skipSpacesAndCheckForCRInStringInput
@@ -385,47 +386,38 @@ L8D7C:
 ; 
 starSRREADOrStarSRWRITE:
                 .if version==400
-                jsr L8A88
+                jsr sramInitType
                 .else
                 asl a
-                sta osfileParameterBlock+1
+                sta sramWorkspace.type
                 .endif
                 
-                ; osfileParameterBlock?1 = 64 if SRREAD or SRSAVE
-                ;                          192 if SRWRITE
-                ;                          128 if SRLOAD
-                ;                          bit 6 clear if valid rom id
-                ;                          bit 5 set if I flag (3.50/5.xx)
-                ; (osfileParameterBlock+2); = data length
-                ; osfileParameterBlock?4 = rom bank/rom id
-                ; osfileParameterBlock!5 = sram address
-                ; osfileParameterBlock!9 = data address
-                
-                ldx #9          ; store at osfileParameterBlock+9
+                ldx #sramWorkspace.dataAddress-osfileParameterBlock
                 jsr parseHexAddressFromCommandLine
                 jsr checkForPlusInCommandLine
-                ldx #2          ; store at osfileParameterBlock+2
+                ldx #sramWorkspace.length-osfileParameterBlock
                 jsr parseHexAddressFromCommandLine
                 bvs L8DA2 ; taken if + encountered, so +2 is already the length
 
-                ; Form length of data in +2
+                ; sramWorkspace.length is actually the end address -
+                ; substract start address to turn it into the length.
                 ldx #$FC
 
 L8D94:
-                lda osfileParameterBlock+2-$FC,x
-                sbc osfileParameterBlock+9-$FC,x
-                sta osfileParameterBlock+2-$FC,x
+                lda sramWorkspace.length-$FC,x
+                sbc sramWorkspace.dataAddress-$FC,x
+                sta sramWorkspace.length-$FC,x
                 inx
                 bne L8D94
                 bcc jmpBadAddressError ; taken if end<start
 
 L8DA2:
                 ; Check length is a 16 bit quantity
-                ldx #2
+                ldx #sramWorkspace.length-osfileParameterBlock
                 jsr checkParameterBlockAddressIs16Bit
 
                 ; Parse SRAM address
-                ldx #5
+                ldx #sramWorkspace.sramAddress-osfileParameterBlock
                 jsr parse16BitHexAddressFromCommandLine
 
                 ; Read ROM ID
@@ -447,8 +439,8 @@ doSidewaysRAMBlockTransfer:
 L8DC0:
                 jsr L8F40
                 .if includeTubeSupport
-                lda osfileParameterBlock+11
-                and osfileParameterBlock+12
+                lda sramWorkspace.dataAddress+2
+                and sramWorkspace.dataAddress+3
                 inc a
                 and tubePresence
                 bne L8952
@@ -469,12 +461,12 @@ L8952:
                 jsr $0406   ; claim Tube
                 bcc L8952       ; if it failed, try again
                 lda #0          ; multi byte parasite->host
-                bit osfileParameterBlock+1
+                bit sramWorkspace.type
                 bmi +           ; taken if writing to sideways RAM
                 inc a           ; multi byte host->parasite
 +
-                ldx #<(osfileParameterBlock+9)
-                ldy #>(osfileParameterBlock+9)
+                ldx #<sramWorkspace.dataAddress
+                ldy #>sramWorkspace.dataAddress
                 jsr $0406       ; begin transfer to/from data address
                 jsr L8CEA
                 bcs L8970
@@ -490,16 +482,16 @@ L8970:
 
 starSRLOADOrStarSRSAVE:
                 .if version==400
-                jsr L8A88
+                jsr sramInitType
                 .else
                 asl a
-                sta osfileParameterBlock+1
+                sta sramWorkspace.type
                 .endif
                 lsr hazel.tempFSFlag
                 stx stringInputBufferAddress
                 sty stringInputBufferAddress+1
-                stx osfileParameterBlock+2
-                sty osfileParameterBlock+3
+                stx sramWorkspace.length+0
+                sty sramWorkspace.length+1
                 ldy #0
                 jsr gsinitForFilenameParsing
 
@@ -508,7 +500,7 @@ L8DE0:
                 bcc L8DE0
                 ldx #5
                 jsr parse16BitHexAddressFromCommandLine
-                bit osfileParameterBlock+1
+                bit sramWorkspace.type
                 bmi L8E0D
                 jsr checkForPlusInCommandLine
                 ldx #7
@@ -518,9 +510,9 @@ L8DE0:
                 ldx #$FE
 
 L8DFC:
-                lda osfileParameterBlock+7-$FE,x
-                sbc osfileParameterBlock+5-$FE,x
-                sta osfileParameterBlock+7-$FE,x
+                lda sramWorkspace.sramAddress+2-$FE,x
+                sbc sramWorkspace.sramAddress+0-$FE,x
+                sta sramWorkspace.sramAddress+2-$FE,x
                 inx
                 bne L8DFC
                 bcs L8E0D
@@ -530,7 +522,7 @@ L8DFC:
 
 L8E0D:
                 jsr readROMID
-                stz osfileParameterBlock+$B
+                stz sramWorkspace.dataAddress+2
                 .if version==350
                 ldx #$ff
                 .else
@@ -553,9 +545,9 @@ L8E0D:
                 dey
                 .endif
                 .if version==350
-                stz osfileParameterBlock+9
+                stz sramWorkspace.dataAddress+0
                 ldx #>hazel.commandLine
-                stx osfileParameterBlock+10
+                stx sramWorkspace.dataAddress+1
                 ldx #$03
                 .else
                 dex
@@ -563,7 +555,7 @@ L8E0D:
                 .endif
 
 L8E20:
-                stx osfileParameterBlock+12
+                stx sramWorkspace.dataAddress+3
                 ldx ACCCON
                 .if version==400
                 jsr skipSpacesAndCheckForCRInStringInput
@@ -583,12 +575,12 @@ osword43:
 
 L8E39:
                 lda (originalX),y
-                sta osfileParameterBlock+1,y
+                sta sramWorkspace.type,y
                 dey
                 bpl L8E39
                 .if version==400
                 lda #$3f
-                trb osfileParameterBlock+1
+                trb sramWorkspace.type
                 .endif
 
 L8E41:
@@ -598,9 +590,9 @@ L8E41:
                 beq L8E4B
                 jmp badIdError
 L8E4B:
-                lda osfileParameterBlock+12
+                lda sramWorkspace.dataAddress+3
                 bmi L8E5B
-                ora osfileParameterBlock+11
+                ora sramWorkspace.dataAddress+2
                 bne L8E72
                 lda #2
                 ldy #>hazel.ddxx
@@ -616,13 +608,13 @@ L8E5B:
                 ldy oshwm
 
 L8E66:
-                stz osfileParameterBlock+9
-                sty osfileParameterBlock+10
-                stz osfileParameterBlock+11
-                sta osfileParameterBlock+12
+                stz sramWorkspace.dataAddress+0
+                sty sramWorkspace.dataAddress+1
+                stz sramWorkspace.dataAddress+2
+                sta sramWorkspace.dataAddress+3
 
 L8E72:
-                bit osfileParameterBlock+1
+                bit sramWorkspace.type
                 bpl L8EAF
                 lda #findOpenForRead
                 jsr sramOpenFile
@@ -637,11 +629,11 @@ L8E7C:
                 ldx #$FE
 
 L8E8A:
-                lda osfileParameterBlock+2-$FE,x
+                lda sramWorkspace.length+0-$FE,x
 
 L8E8D:
                 sbc hazel.moveOSGBPB+OSGBPBParameterBlock.count+0-$fe,x
-                sta osfileParameterBlock+2-$FE,x
+                sta sramWorkspace.length+0-$FE,x
                 inx
                 bne L8E8A
 
@@ -675,13 +667,13 @@ L8EB4:
                 ldx #$FE
 
 L8EB7:
-                lda osfileParameterBlock+7-$FE,x
+                lda sramWorkspace.sramAddress+2-$FE,x
                 sta @w sramTransferPointers-$fe,x
-                sbc osfileParameterBlock+11-$FE,x
-                sta osfileParameterBlock+7-$FE,x
+                sbc sramWorkspace.dataAddress+2-$FE,x
+                sta sramWorkspace.sramAddress+2-$FE,x
                 inx
                 bne L8EB7
-                ora osfileParameterBlock+7
+                ora sramWorkspace.sramAddress+2
                 php
                 jsr L8EED
                 jsr L8CD9
@@ -695,9 +687,9 @@ L8EB7:
 ;-------------------------------------------------------------------------
 
                 .if version==400
-L8A88:
+sramInitType:
                 asl a
-                sta osfileParameterBlock+1
+                sta sramWorkspace.type
                 rts
                 .endif
                 
@@ -727,15 +719,15 @@ L8EED:
                 ldx #1
 
 L8EF5:
-                lda osfileParameterBlock+9,x
+                lda sramWorkspace.dataAddress+0,x
                 sta hazel.moveOSGBPB.addr,x
-                lda osfileParameterBlock+$B,x
+                lda sramWorkspace.dataAddress+2,x
                 bcs L8F02
                 lda sramTransferPointers.src,x
 
 L8F02:
                 sta hazel.moveOSGBPB.numBytes,x
-                sta osfileParameterBlock+2,x
+                sta sramWorkspace.length+0,x
                 lda #$FF
                 sta hazel.moveOSGBPB.addr+2,x ; address is in I/O processor
                 stz hazel.moveOSGBPB.numBytes+2,x ; size is 16-bit quantity
@@ -756,8 +748,8 @@ sramOSGBPB:
 
 sramOpenFile:
                 asl hazel.tempFSFlag
-                ldx osfileParameterBlock+2
-                ldy osfileParameterBlock+3
+                ldx sramWorkspace.length+0
+                ldy sramWorkspace.length+1
                 jsr OSFIND
                 tax
                 bne sramFileFound
@@ -769,8 +761,8 @@ sramOpenFile:
 sramFileFound:
                 sta hazel.moveSrcHandle
 L8F40:
-                ldx osfileParameterBlock+4 ; ROM number of interest
-                bit osfileParameterBlock+1
+                ldx sramWorkspace.bank ; ROM number of interest
+                bit sramWorkspace.type
                 bpl rts8F4F ; taken if reading
                 bvs rts8F4F ; taken if pseudo addressing
 
@@ -818,34 +810,47 @@ locret_8F61:
                 
 
 ;-------------------------------------------------------------------------
-
-L8F62:       
+;
+; Adjust sram transfer data pointer so that the same Y register can be
+; used for both sram pointer and data pointer.
+;
+; Entry:
+;
+; X = offset of sram transfer sram pointer (0=src, 2=dest)
+; Y = value to subtract from sram transfer data pointer
+;
+; C=1 = initialise sram transfer data pointer from data address
+;
+; Exit:
+;
+; sram transfer data pointer has had Y subtracted
+;
+initSRAMTransferDataPointer: .proc
                 phx
                 ; select the non-sram data pointer
                 txa
                 eor #sramTransferPointers.src^sramTransferPointers.dest
                 tax
-                bcc L8F73
+                bcc subtractY
 
                 ; store data address in the non-sram pointer
-                lda osfileParameterBlock+9 ; data address LSB
+                lda sramWorkspace.dataAddress+0
                 sta 0,x
-                lda osfileParameterBlock+10 ; data address MSB
+                lda sramWorkspace.dataAddress+1
                 sta 1,x
 
-L8F73:
-                sty osfileParameterBlock+0 ; sram address LSB
+subtractY:
+                sty sramWorkspace.temp ; sram address LSB
                 lda 0,x
                 sec
-                sbc osfileParameterBlock+0
+                sbc sramWorkspace.temp
                 sta 0,x
-                bcs L8F82
+                bcs +
                 dec 1,x
-
-L8F82:
++
                 plx
                 rts
-                
+                .endproc
 
 ;-------------------------------------------------------------------------
 ;

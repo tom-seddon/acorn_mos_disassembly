@@ -37,7 +37,7 @@ LF881:
                 sta $8000,y
                 dey
                 bpl LF881
-                bit osfileParameterBlock+1
+                bit sramWorkspace.type
                 bvs LF894       ; taken if called by *SRDATA
                 lda #'O'
                 sta $8000+(dummyROMHeader.ram_or_rom_char-dummyROMHeader)
@@ -55,7 +55,7 @@ LF894:
 ;
 ; Exit:
 ;
-; C=1 if ROM, C=0 if RAM
+; C=0 if ROM, C=1 if RAM
 ;
 ; Terminal ROM selected
 ;
@@ -69,14 +69,14 @@ isBankROM:
                 ; state if reset partway through (not much you can do
                 ; for non-ROMs of course...)
                 lda $8008
-                tay
+                tay             ; Y = original value
                 eor #$ff
                 sei
-                sta $8008
-                cmp $8008
-                sty $8008
+                sta $8008       ; store modified value
+                cmp $8008       ; did it take? Z=1 if RAM
+                sty $8008       ; restore original value
                 cli
-                beq jmpSelectTerminalROM
+                beq jmpSelectTerminalROM ; taken if RAM
                 clc
 jmpSelectTerminalROM:
                 jmp selectTerminalROM

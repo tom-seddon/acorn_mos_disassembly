@@ -1,8 +1,8 @@
 LF8D1:
-                lda osfileParameterBlock+1
+                lda sramWorkspace.type
                 cmp #$a0
                 bne jmpSelectTerminalROM
-                ldy osfileParameterBlock+4
+                ldy sramWorkspace.bank
                 tya
                 tax
                 jsr LE389

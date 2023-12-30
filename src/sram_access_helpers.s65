@@ -1,13 +1,13 @@
-LF846:
-                jsr selectROMA
 transferBetweenSidewaysRAMAndRAM:
+                jsr selectROMA
+transferBetweenSidewaysRAMAndRAMLoop:
                 lda (sramTransferPointers.src),y
                 sta (sramTransferPointers.dest),y
                 jsr LF7F0
-                bne transferBetweenSidewaysRAMAndRAM
+                bne transferBetweenSidewaysRAMAndRAMLoop
                 lda 1,x
-                cmp osfileParameterBlock+3
-                bne transferBetweenSidewaysRAMAndRAM
+                cmp sramWorkspace.length+1
+                bne transferBetweenSidewaysRAMAndRAMLoop
                 jmp selectTerminalROM
 
 ;-------------------------------------------------------------------------
@@ -22,7 +22,7 @@ transferParasiteToSidewaysRAMLoop:
                 jsr transferSidewaysRAMOverTubeLoopUpdate
                 bne transferParasiteToSidewaysRAMLoop
                 lda 1,x
-                cmp osfileParameterBlock+3
+                cmp sramWorkspace.length+1
                 bne transferParasiteToSidewaysRAMLoop
                 jmp selectTerminalROM
                 .endif
@@ -41,7 +41,7 @@ transferSidewaysRAMToParasiteLoop:
                 jsr transferSidewaysRAMOverTubeLoopUpdate
                 bne transferSidewaysRAMToParasiteLoop
                 lda 1,x
-                cmp osfileParameterBlock+3
+                cmp sramWorkspace.length+1
                 bne transferSidewaysRAMToParasiteLoop
                 jmp selectTerminalROM
                 .endif

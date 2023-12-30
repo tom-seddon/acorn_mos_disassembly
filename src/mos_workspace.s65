@@ -803,6 +803,17 @@ lastCharacterOfCurrentlyResidentBlock=$2ec
 ;
 ; Used by the SRAM utilities to store working data.
 osfileParameterBlock=$2ed
+
+                .virtual osfileParameterBlock
+sramWorkspace: .block
+temp: .fill 1
+type: .fill 1
+length: .fill 2
+bank: .fill 1
+sramAddress: .fill 4
+dataAddress: .fill 4            
+                .endblock
+                .endvirtual
                 
 ; rtcTempData=$2ee
 

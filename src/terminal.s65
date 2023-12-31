@@ -298,7 +298,7 @@ mosCommandTable:
                 .mos_command "BASIC",starBASIC,$00,$00  ;
                 .mos_command "BUILD",starBUILD,$80,$00  ; XY=>parameters
                 .mos_command "CLOSE",starCLOSE,$00,$FF  ;
-                .if version<500&&version!=350
+                .if !useTableDrivenConfigure
                 .mos_command "CONFIGURE",starCONFIGURE,$00,$FF ;
                 .else
                 .mos_command "CONFIGURE",starCONFIGUREOrStarSTATUS,$00,$80 ;
@@ -347,7 +347,7 @@ mosCommandTable:
                 .mos_command "SRSAVE",starSRLOADOrStarSRSAVE,$80,$20
                 .mos_command "SRWRITE",starSRREADOrStarSRWRITE,$00,$e0
                 .endif
-                .if version<500&&version!=350
+                .if !useTableDrivenConfigure
                 .mos_command "STATUS",starSTATUS,$00,$FF  ;
                 .else
                 .mos_command "STATUS",starCONFIGUREOrStarSTATUS,$00,$c0
@@ -498,7 +498,12 @@ L8592:
                 jsr maybeGetStringInputBufferAddress
                 rti                          
 
-                .if version<500&&version!=350
+                .if !useTableDrivenConfigure
+
+                ; The useTableDrivenConfigure version of this does an
+                ; INX on entry - but i don't think in practice this
+                ; makes a difference if !useTableDrivenConfigure.
+                
 fetchCommandTableByte:
                 lda (oscliWorkspace.tablePtr)
                 pha                          
@@ -539,7 +544,7 @@ passStarCommandThrough:
                 ldy $E6
                 ldx #romServiceCallUnrecognisedCommand
                 jsr osbyte8F    ; Service call 4 - Unknown command
-                .if version<500&&version!=350
+                .if !useTableDrivenConfigure
                 beq rts85A5                    ; Claimed, return
                 .else
                 beq parseDone
@@ -873,7 +878,7 @@ starUNPLUG:
 starINSERTOrStarUNPLUG:
                 php
                 jsr skipSpacesAndCheckForCRInStringInput
-                .if version<500&&version!=350
+                .if !useTableDrivenConfigure
                 jsr parseSingle4BitNumberFromCommandLine
                 .else
                 jsr L8953
@@ -922,7 +927,11 @@ L8752:
                 .include "sram_utils.s65"
                 .include "osbyte_osword_table.s65"
                 .elsif version<400
+                .if useTableDrivenConfigure
+                .include "configure_table_driven.s65"
+                .else
                 .include "configure_code_driven.s65"
+                .endif
                 .elsif version<500
                 .include "sram_utils.s65"
                 .include "configure_code_driven.s65"
@@ -946,7 +955,7 @@ i2cTestReadEEPROMByte:
 
 ;-------------------------------------------------------------------------
 
-                .if version<500&&version!=350
+                .if !useTableDrivenConfigure
 ;-------------------------------------------------------------------------
 ;
 ; Read default *TV settings.

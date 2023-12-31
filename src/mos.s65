@@ -6981,7 +6981,7 @@ defaultMOSVariables:
                 .if version<500
                 .byte $04                    ;currentADCChannel
                 .byte $04                    ;maximumADCChannel
-                .elsif version>=500
+                .else
                 .byte $02                    ;currentADCChannel
                 .byte $02                    ;maximumADCChannel
                 .endif
@@ -7114,7 +7114,7 @@ clearTSTAndLE389:
 LE389:
                 phy
                 phx
-                .if version==350
+                .if version==350||version>=500
                 jsr selectTerminalROM
                 jsr L873F
                 .elsif version<500
@@ -7124,9 +7124,6 @@ LE389:
                 jsr readRTCByte     ;read inserted flag
                 tya                          ;A = byte read
                 and TEMPA                    ;do mask
-                .elsif version>=500
-                jsr selectTerminalROM
-                jsr L873F
                 .endif
                 cmp #$01                     ;C set if ROM is inserted
                 plx
@@ -7218,7 +7215,7 @@ LE431:
                 lda lastBREAKType ; Soft Break, use current filing system
                 beq LE454
                 jsr selectTerminalROM
-                .if version<500&&version!=350
+                .if !useTableDrivenConfigure
                 phy
                 jsr readDefaultROMs
                 and #$0F                     ;get default FS ROM
@@ -7305,7 +7302,7 @@ LE4A3:
                 beq LE509
 LE4BB:
                 jsr selectTerminalROM     ; Page in ROM 15 - UTILS ROM
-                .if version<500&&version!=350
+                .if !useTableDrivenConfigure
                 jsr readDefaultLanguageROM        ; Read configured LANG
                 .else
                 ldx #configureTable.lang.metadata-configureTable
@@ -10793,7 +10790,7 @@ clearTSTAndResetKeyRepeat:
                 .endif
 resetKeyRepeat:
                 jsr withTerminalROM
-                .if version<500&&version!=350
+                .if !useTableDrivenConfigure
                 jsr getDefaultKeyboardAutoRepeatDelay
                 sty keyboardAutoRepeatDelay
                 jsr getDefaultKeyboardAutoRepeatRate

@@ -172,7 +172,7 @@ L8605:
                 .itemMetadata $00,CMOSBytes.defaults0,CMOSBytes.defaults0.interlaceMask|(CMOSBytes.defaults0.tvMask<<CMOSBytes.defaults0.tvShift),0,false
 ectory:
                 .text "ectory",$ff
-                .if version==350
+                .if includeTubeSupport
 ternal:
                 .text "ternal",$ff
                 .endif

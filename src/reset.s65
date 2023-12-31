@@ -205,10 +205,12 @@ LFCBF:
                 .if version==350
                 ldx #configureTable.mode.metadata-configureTable
                 jsr clearTSTAndReadConfigurationByte
-                .elsif version<500
+                .elsif !useTableDrivenConfigure
                 jsr readDefaultMODE          ; Read configured MODE
                 .else
+                .if version>=500
                 jsr L9E58
+                .endif
                 ldx #configureTable.mode.metadata-configureTable;$56
                 jsr readConfigurationByte
                 .endif
@@ -347,9 +349,9 @@ L8164:
                 .if version==350
                 ldx #cmosBytesOffset+CMOSBytes.defaults1
                 jsr clearTSTAndReadRTCByte
-                .elsif version<500
+                .elsif !useTableDrivenConfigure
                 jsr readDefaults1
-                .elsif version>=500
+                .else
                 ldx #cmosBytesOffset+CMOSBytes.defaults1
                 jsr readRTCByte
                 .endif
@@ -374,9 +376,9 @@ gotKeyboardStatusByte:
                 .if version==350
                 ldx #cmosBytesOffset+CMOSBytes.printerIgnoreChar
                 jsr clearTSTAndReadRTCByte
-                .elsif version<500
+                .elsif !useTableDrivenConfigure
                 jsr readDefaultPrinterIgnoreChar
-                .elsif version>=500
+                .else
                 ldx #cmosBytesOffset+CMOSBytes.printerIgnoreChar
                 jsr readRTCByte
                 .endif
@@ -394,9 +396,9 @@ gotKeyboardStatusByte:
                 .if version==350
                 ldx #configureTable.print.metadata-configureTable
                 jsr clearTSTAndReadConfigurationByte
-                .elsif version<500
+                .elsif !useTableDrivenConfigure
                 jsr readDefaultFX5Settings
-                .elsif version>=500
+                .else
                 ldx #configureTable.print.metadata-configureTable
                 jsr readConfigurationByte
                 .endif
@@ -408,9 +410,9 @@ L8196:
                 .if version==350
                 ldx #configureTable.data.metadata-configureTable
                 jsr clearTSTAndReadConfigurationByte
-                .elsif version<500
+                .elsif !useTableDrivenConfigure
                 jsr readDefaultSerialDataFormat
-                .elsif version>=500
+                .else
                 ldx #configureTable.data.metadata-configureTable
                 jsr readConfigurationByte
                 .endif
@@ -529,7 +531,7 @@ L81DD:
                 lda serialULARegister
                 and #$7F
                 jsr LEC89
-                .if version<500&&version!=350
+                .if !useTableDrivenConfigure
                 jsr readDefaultSerialBaudRateIndex
                 .else
                 ldx #configureTable.baud.metadata-configureTable

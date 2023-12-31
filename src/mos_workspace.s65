@@ -92,6 +92,12 @@ includeTubeSupport=true
                 .elif version>=500
 includeTubeSupport=false
                 .endif
+
+                .if version==350||version>=500
+useTableDrivenConfigure=true
+                .else
+useTableDrivenConfigure=false
+                .endif
                 
                 .endweak
 
@@ -104,6 +110,11 @@ includeTubeSupport=false
 
                 .cerror includeStarX&&!includeTubeSupport
                 .cerror version==400&&!includeTubeSupport
+
+                ; Table-driven configuration takes up fewer bytes, so
+                ; no point trying to switch it off for builds where it
+                ; would be on.
+                .cerror (version==350||version>=500)&&!useTableDrivenConfigure
                 
 ;-------------------------------------------------------------------------
 

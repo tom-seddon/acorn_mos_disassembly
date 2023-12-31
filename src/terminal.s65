@@ -2899,7 +2899,7 @@ L9B90:
 
 ;-------------------------------------------------------------------------
 ;
-; 112–119 = Plot parallelogram [MasRef E.3-27]
+; 112-119 = Plot parallelogram [MasRef E.3-27]
 ;
 plotParallelogram:
                 ldx #$28

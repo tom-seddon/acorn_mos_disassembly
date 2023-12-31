@@ -1,4 +1,3 @@
-
 ;-------------------------------------------------------------------------
 ;
 ; Disorganized jumble of constants. They'll get tidied up at some
@@ -558,7 +557,7 @@ oshwm: .fill 1
 
 ; OSBYTE 181 (&B5) Read/write RS243 input interpretation [MasRef D.2-54]
 rs423InputInterpretationStatus: .fill 1
-
+
 ; OSBYTE 182 (&B6) Read NOIGNORE state [MasRef D.2-55]
 ;
 ; TODO - not a great name, no matter how official - should probably be usePrinterIgnoreChar or something
@@ -1104,13 +1103,13 @@ oldGraphicsCursorPixels:
 oldGraphicsCursorPixelsX: .fill 2
 ; &16 2 Previous graphics cursor Y coordinate. (p)
 oldGraphicsCursorPixelsY: .fill 2
-; &18 1 Text cursor X coordinate (from left of screen) when not cursor editing. When cursor editing, normally the input cursor X coordinate, but the output cursor X coordinate within an “unknown PLOT codes” routine.
+; &18 1 Text cursor X coordinate (from left of screen) when not cursor editing. When cursor editing, normally the input cursor X coordinate, but the output cursor X coordinate within an "unknown PLOT codes" routine.
 textCursorXPosition: .fill 1
-; &19 1 Text cursor Y coordinate (from top of screen) when not cursor editing. When cursor editing, normally t.lsthe input cursor Y coordinate, but the output cursor Y coordinate within an “unknown PLOT codes” routine.
+; &19 1 Text cursor Y coordinate (from top of screen) when not cursor editing. When cursor editing, normally t.lsthe input cursor Y coordinate, but the output cursor Y coordinate within an "unknown PLOT codes" routine.
 textCursorYPosition: .fill 1
 ; &1A 1 Y produced by GADDR (see next section) so that (ZMEMG),Y addresses the correct byte.
 graphicsAddressOffset: .fill 1
-; &1B–&23 VDU queue: &23 contains last byte of queue, other bytes immediately precede it.
+; &1B-&23 VDU queue: &23 contains last byte of queue, other bytes immediately precede it.
 queueSize=9
 queueBegin: .fill queueSize
 queueEnd:
@@ -1119,7 +1118,7 @@ graphicsCursorPixels:
 graphicsCursorPixelsX: .fill 2
 ; &26 2 Graphics cursor Y coordinate. (p)
 graphicsCursorPixelsY: .fill 2
-; &28–&49 Workspace. But variable &38 must not be used in a Teletext mode (mode 7 or 135).
+; &28-&49 Workspace. But variable &38 must not be used in a Teletext mode (mode 7 or 135).
                 .union
 ew: .dstruct EllipseWorkspaceVDUVariables
 hlfw: .dstruct HorizontalLineFillWorkspaceVDUVariables
@@ -1140,7 +1139,7 @@ screenTopLeftAddress: .fill 2
 bytesPerCharacterRow: .fill 2
 ; &54 1 Most significant byte of number of bytes of screen memory.
 screenSizeHighByte: .fill 1
-; &55 1 Current screen mode (in range 0–7, i.e. without regard to ‘shadowing’).
+; &55 1 Current screen mode (in range 0-7, i.e. without regard to 'shadowing').
 currentScreenMODE: .fill 1
 ; &56 1 Memory mode: 0 for 20K modes, 1 for 16K modes, 2 for 10K modes, 3 for 8K modes, 4 for 1K modes.
 currentScreenMODEGroup: .fill 1
@@ -1160,17 +1159,17 @@ backgroundGCOLMode: .fill 1
 jumpVector: .fill 2
 ; &5F 1 Value for 6845 register 10 to revert to on leaving cursor editing.
 lastCursorStartRegisterValue: .fill 1
-; &60 1 (Number of logical colours)−1 (0 if Teletext).
+; &60 1 (Number of logical colours)-1 (0 if Teletext).
 numberOfLogicalColoursMinusOne: .fill 1
-; &61 1 (Number of pixels/byte)−1 (0 if not graphics).
+; &61 1 (Number of pixels/byte)-1 (0 if not graphics).
 pixelsPerByteMinusOne: .fill 1
 ; &62 1 Mask for leftmost pixel in a byte.
 colourMaskLeft: .fill 1
 ; &63 1 Mask for rightmost pixel in a byte.
 colourMaskRight: .fill 1
-; &64 1 Output cursor X coordinate when cursor editing, but input cursor X coordinate when cursor editing and inside an ‘unknown PLOT codes’ routine.
+; &64 1 Output cursor X coordinate when cursor editing, but input cursor X coordinate when cursor editing and inside an 'unknown PLOT codes' routine.
 editCursorXPosition: .fill 1
-; &65 1 Output cursor Y coordinate when cursor editing, but input cursor Y coordinate when cursor editing and inside an ‘unknown PLOT codes’ routine.
+; &65 1 Output cursor Y coordinate when cursor editing, but input cursor Y coordinate when cursor editing and inside an 'unknown PLOT codes' routine.
 editCursorYPosition: .fill 1
 ; &66 1 Cursor control flags (as set by VDU 23 16).
 cursorFlags: .block
@@ -1200,7 +1199,7 @@ column81: .fill 1
 foregroundGraphicsColour: .fill 1
 ; &6E 1 Current graphics background colour (as set by VDU 18)
 backgroundGraphicsColour: .fill 1
-; &6F–&7E Software copy of the current palette.
+; &6F-&7E Software copy of the current palette.
 currentPalette: .fill 16
 ; &7F 1 Reserved.
 reserved: .fill 1
@@ -1220,22 +1219,22 @@ vduv: .dstruct VDUVariables
 ; MasRef E.4-5, MasRef F.6-10
 ;
 ; &8000-83FF  RAM  Soft key expansions buffer
-; &8400–87FF  RAM  VDU workspace.
-; &8800–07    RAM  ECF pattern 1 definition.
-; &8808–0F    RAM  ECF pattern 2 definition.
-; &8810–17    RAM  ECF pattern 3 definition.
-; &8818–1F    RAM  ECF pattern 4 definition.
-; &8820–27    RAM  Current foreground ECF pattern or solid colour.
-; &8828–2F    RAM  Current background ECF pattern or solid colour.
-; &8830–BF    RAM  VDU workspace.
-; &88C0–FF    RAM  Reserved for future expansion.
-; &8900–FF    RAM  Current definitions of characters &20–3F.
-; &8A00–FF    RAM  Current definitions of characters &40–5F.
-; &8B00–FF    RAM  Current definitions of characters &60–7F.
-; &8C00–FF    RAM  Current definitions of characters &80–9F.
-; &8D00–FF    RAM  Current definitions of characters &A0–BF.
-; &8E00–FF    RAM  Current definitions of characters &C0–DF.
-; &8F00–FF    RAM  Current definitions of characters &E0–FF.
+; &8400-87FF  RAM  VDU workspace.
+; &8800-07    RAM  ECF pattern 1 definition.
+; &8808-0F    RAM  ECF pattern 2 definition.
+; &8810-17    RAM  ECF pattern 3 definition.
+; &8818-1F    RAM  ECF pattern 4 definition.
+; &8820-27    RAM  Current foreground ECF pattern or solid colour.
+; &8828-2F    RAM  Current background ECF pattern or solid colour.
+; &8830-BF    RAM  VDU workspace.
+; &88C0-FF    RAM  Reserved for future expansion.
+; &8900-FF    RAM  Current definitions of characters &20-3F.
+; &8A00-FF    RAM  Current definitions of characters &40-5F.
+; &8B00-FF    RAM  Current definitions of characters &60-7F.
+; &8C00-FF    RAM  Current definitions of characters &80-9F.
+; &8D00-FF    RAM  Current definitions of characters &A0-BF.
+; &8E00-FF    RAM  Current definitions of characters &C0-DF.
+; &8F00-FF    RAM  Current definitions of characters &E0-FF.
 
 VDUCoordinate: .struct
 x: .fill 2

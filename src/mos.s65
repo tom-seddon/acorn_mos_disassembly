@@ -82,7 +82,7 @@ WIND:
 ; . ZMEMG to the start of the page of memory containing the pixel.
 ;
 ; . Y and VDU variable &1A (i.e. location &31A) to contain the offset
-; of the byte containing the pixel within this page – i.e. (ZMEMG),y
+; of the byte containing the pixel within this page - i.e. (ZMEMG),y
 ; points to the byte containing the pixel.
 ;
 ; . ZMASK to a mask indicating which bits of this byte constitute the
@@ -97,7 +97,7 @@ WIND:
 ; Additionally, GADDR uses ZTEMP as workspace and returns A=0, Z=1.
 ;
 ; An example of the use of PLBYTE, WIND and GADDR is the following
-; code, which effectively re-implements the VDU 25 64–71 (plot a
+; code, which effectively re-implements the VDU 25 64-71 (plot a
 ; point) calls. It assumes that the routine addresses have been
 ; previously defined and that the graphics plot mode, etc. were set up
 ; by the VDU 25 code before the unknown PLOT codes vector was entered:
@@ -119,8 +119,8 @@ GADDR:
 ; MasRef E.4-8
 ;
 ; JSR IEG takes the internal pixel coordinates of the graphics cursor
-; (in VDU variables &24–&27), converts it back to external coordinates
-; and stores the result in VDU variables &10–&13.
+; (in VDU variables &24-&27), converts it back to external coordinates
+; and stores the result in VDU variables &10-&13.
 ;
 ; It should be called whenever the graphics code generates a new
 ; graphics cursor position (e.g. in the VDU drivers, it is called
@@ -3070,7 +3070,7 @@ setCRTCRegister10:
 
 ;-------------------------------------------------------------------------
 ;
-; VDU 23 2–5 Set ECF patterns [MasRef E.3-13]
+; VDU 23 2-5 Set ECF patterns [MasRef E.3-13]
 ;
 vdu23_2_EntryPoint:
 vdu23_3_EntryPoint:
@@ -3129,7 +3129,7 @@ LCF93:
 
 ;-------------------------------------------------------------------------
 ;
-; VDU 23 12–15 Set simple ECF pattern [MasRef E.3-17]
+; VDU 23 12-15 Set simple ECF pattern [MasRef E.3-17]
 ;
 vdu23_12_EntryPoint:
 vdu23_13_EntryPoint:
@@ -3444,25 +3444,25 @@ rtsD145:
 ; %00100 =  4 = 32-39 = Plot solid line (initial point omitted) [MasRef E.3-24]
 ; %00101 =  5 = 40-47 = Plot solid line (both endpoints omitted) [MasRef E.3-24]
 ; %00110 =  6 = 48-55 = Plot dotted line (initial point omitted) [MasRef E.3-24]
-; %00111 =  7 = 56–63 = Plot dotted line (both endpoints omitted) [MasRef E.3-24]
-; %01000 =  8 = 64–71 = Plot point [MasRef E.3-24]
-; %01001 =  9 = 72–79 = Horizontal line fill (left and right to non-background) [MasRef E.3-24]
-; %01010 = 10 = 80–87 = Plot triangle [MasRef E.3-25]
-; %01011 = 11 = 88–95 = Horizontal line fill (right to background) [MasRef E.3-25]
-; %01100 = 12 = 96–103 = Plot rectangle [MasRef E.3-26]
-; %01101 = 13 = 104–111 = Horizontal line fill (left and right to foreground) [MasRef E.3-26]
-; %01110 = 14 = 112–119 = Plot parallelogram [MasRef E.3-27]
-; %01111 = 15 = 120–127 = Horizontal line fill (right to non-foreground) [MasRef E.3-27]
-; %10000 = 16 = 128–135 = Flood fill to non-background [MasRef E.3-28]
-; %10001 = 17 = 136–143 = Flood fill to foreground [MasRef E.3-28]
-; %10010 = 18 = 144–151 = Plot circle outline [MasRef E.3-28]
-; %10011 = 19 = 152–159 = Plot filled circle [MasRef E.3-29]
-; %10100 = 20 = 160–167 = Plot circular arc [MasRef E.3-29]
-; %10101 = 21 = 168–175 = Plot filled chord segment [MasRef E.3-30]
-; %10110 = 22 = 176–183 = Plot filled sector [MasRef E.3-30]
-; %10111 = 23 = 184–191 = Move/copy rectangle [MasRef E.3-31]
-; %11000 = 24 = 192–199 = Plot ellipse outline [MasRef E.3-32]
-; %11001 = 25 = 200–207 = Plot solid ellipse [MasRef E.3-32]
+; %00111 =  7 = 56-63 = Plot dotted line (both endpoints omitted) [MasRef E.3-24]
+; %01000 =  8 = 64-71 = Plot point [MasRef E.3-24]
+; %01001 =  9 = 72-79 = Horizontal line fill (left and right to non-background) [MasRef E.3-24]
+; %01010 = 10 = 80-87 = Plot triangle [MasRef E.3-25]
+; %01011 = 11 = 88-95 = Horizontal line fill (right to background) [MasRef E.3-25]
+; %01100 = 12 = 96-103 = Plot rectangle [MasRef E.3-26]
+; %01101 = 13 = 104-111 = Horizontal line fill (left and right to foreground) [MasRef E.3-26]
+; %01110 = 14 = 112-119 = Plot parallelogram [MasRef E.3-27]
+; %01111 = 15 = 120-127 = Horizontal line fill (right to non-foreground) [MasRef E.3-27]
+; %10000 = 16 = 128-135 = Flood fill to non-background [MasRef E.3-28]
+; %10001 = 17 = 136-143 = Flood fill to foreground [MasRef E.3-28]
+; %10010 = 18 = 144-151 = Plot circle outline [MasRef E.3-28]
+; %10011 = 19 = 152-159 = Plot filled circle [MasRef E.3-29]
+; %10100 = 20 = 160-167 = Plot circular arc [MasRef E.3-29]
+; %10101 = 21 = 168-175 = Plot filled chord segment [MasRef E.3-30]
+; %10110 = 22 = 176-183 = Plot filled sector [MasRef E.3-30]
+; %10111 = 23 = 184-191 = Move/copy rectangle [MasRef E.3-31]
+; %11000 = 24 = 192-199 = Plot ellipse outline [MasRef E.3-32]
+; %11001 = 25 = 200-207 = Plot solid ellipse [MasRef E.3-32]
 ; %11010 = 26 = 208-215 = Reserved [MasRef E.3-34]
 ; %11011 = 27 = 215-223 = Reserved [MasRef E.3-34]
 ; %11100 = 28 = 224-231 = Reserved [MasRef E.3-34]
@@ -5346,10 +5346,10 @@ LDC5C:
 
 ;-------------------------------------------------------------------------
 ;
-; 72–79 = Horizontal line fill (left and right to non-background) [MasRef E.3-24]
-; 88–95 = Horizontal line fill (right to background) [MasRef E.3-25]
-; 104–111 = Horizontal line fill (left and right to foreground) [MasRef E.3-26]
-; 120–127 = Horizontal line fill (right to non-foreground) [MasRef E.3-27]
+; 72-79 = Horizontal line fill (left and right to non-background) [MasRef E.3-24]
+; 88-95 = Horizontal line fill (right to background) [MasRef E.3-25]
+; 104-111 = Horizontal line fill (left and right to foreground) [MasRef E.3-26]
+; 120-127 = Horizontal line fill (right to non-foreground) [MasRef E.3-27]
 ;
 plotHorizontalLineFill:
                 jsr copyECFPatternForLineFill
@@ -6059,7 +6059,7 @@ isCursorEditingPossible:
 
 ;-------------------------------------------------------------------------
 ;
-; 184–191 = Move/copy rectangle [MasRef E.3-31]
+; 184-191 = Move/copy rectangle [MasRef E.3-31]
 ;
                 .if version!=400
 selectExtROMAndPlotMoveOrCopyRectangle:
@@ -6071,7 +6071,7 @@ selectExtROMAndPlotMoveOrCopyRectangle:
 
 ;-------------------------------------------------------------------------
 ;
-; 192–199 = Plot ellipse outline [MasRef E.3-32]
+; 192-199 = Plot ellipse outline [MasRef E.3-32]
 ;
                 .if version!=400
 selectExtROMAndPlotEllipseOutline:
@@ -6084,7 +6084,7 @@ LDFF1:
 
 ;-------------------------------------------------------------------------
 ;
-; 200–207 = Plot solid ellipse [MasRef E.3-32]
+; 200-207 = Plot solid ellipse [MasRef E.3-32]
 ;
                 .if version!=400
 selectExtROMAndPlotEllipseFilled:
@@ -6274,24 +6274,24 @@ vdu23EntryPointTable:
 ; A = plot number
 ;
 plotEntryPointTable:
-                .word plotPoint    ;64–71 = Plot point [MasRef E.3-24]
-                .word plotHorizontalLineFill ;72–79 = Horizontal line fill (left and right to non-background) [MasRef E.3-24]
-                .word L9BF7 ;80–87 = Plot triangle [MasRef E.3-25]
-                .word plotHorizontalLineFillRight ;88–95 = Horizontal line fill (right to background) [MasRef E.3-25]
-                .word LC448 ;96–103 = Plot rectangle [MasRef E.3-26]
-                .word plotHorizontalLineFill ;104–111 = Horizontal line fill (left and right to foreground) [MasRef E.3-26]
-                .word plotParallelogram ;112–119 = Plot parallelogram [MasRef E.3-27]
-                .word plotHorizontalLineFillRight ;120–127 = Horizontal line fill (right to non-foreground) [MasRef E.3-27]
-                .word L9CF9 ;128–135 = Flood fill to non-background [MasRef E.3-28]
-                .word L9CF9 ;136–143 = Flood fill to foreground [MasRef E.3-28]
-                .word L99A4 ;144–151 = Plot circle outline [MasRef E.3-28]
-                .word L9944 ;152–159 = Plot filled circle [MasRef E.3-29]
-                .word L9999 ;160–167 = Plot circular arc [MasRef E.3-29]
-                .word L9935 ;168–175 = Plot filled chord segment [MasRef E.3-30]
-                .word L9923 ;176–183 = Plot filled sector [MasRef E.3-30]
-                .word selectExtROMAndPlotMoveOrCopyRectangle ;184–191 = Move/copy rectangle [MasRef E.3-31]
-                .word selectExtROMAndPlotEllipseOutline ;192–199 = Plot ellipse outline [MasRef E.3-32]
-                .word selectExtROMAndPlotEllipseFilled ;200–207 = Plot solid ellipse [MasRef E.3-32]
+                .word plotPoint    ;64-71 = Plot point [MasRef E.3-24]
+                .word plotHorizontalLineFill ;72-79 = Horizontal line fill (left and right to non-background) [MasRef E.3-24]
+                .word L9BF7 ;80-87 = Plot triangle [MasRef E.3-25]
+                .word plotHorizontalLineFillRight ;88-95 = Horizontal line fill (right to background) [MasRef E.3-25]
+                .word LC448 ;96-103 = Plot rectangle [MasRef E.3-26]
+                .word plotHorizontalLineFill ;104-111 = Horizontal line fill (left and right to foreground) [MasRef E.3-26]
+                .word plotParallelogram ;112-119 = Plot parallelogram [MasRef E.3-27]
+                .word plotHorizontalLineFillRight ;120-127 = Horizontal line fill (right to non-foreground) [MasRef E.3-27]
+                .word L9CF9 ;128-135 = Flood fill to non-background [MasRef E.3-28]
+                .word L9CF9 ;136-143 = Flood fill to foreground [MasRef E.3-28]
+                .word L99A4 ;144-151 = Plot circle outline [MasRef E.3-28]
+                .word L9944 ;152-159 = Plot filled circle [MasRef E.3-29]
+                .word L9999 ;160-167 = Plot circular arc [MasRef E.3-29]
+                .word L9935 ;168-175 = Plot filled chord segment [MasRef E.3-30]
+                .word L9923 ;176-183 = Plot filled sector [MasRef E.3-30]
+                .word selectExtROMAndPlotMoveOrCopyRectangle ;184-191 = Move/copy rectangle [MasRef E.3-31]
+                .word selectExtROMAndPlotEllipseOutline ;192-199 = Plot ellipse outline [MasRef E.3-32]
+                .word selectExtROMAndPlotEllipseFilled ;200-207 = Plot solid ellipse [MasRef E.3-32]
 
 ; Times 40 lookup table, high bytes
 multiplyBy40TableHigh:
@@ -11585,7 +11585,7 @@ rtsF363:
 
 ;-------------------------------------------------------------------------
 ;
-; OSBYTE 149 (&95) – write to JIM
+; OSBYTE 149 (&95) - write to JIM
 ;
 ; MasRef D.2-45
 ;
@@ -11596,7 +11596,7 @@ osbyte95:
 
 ;-------------------------------------------------------------------------
 ;
-; OSBYTE 151 (&97) – write to SHEILA
+; OSBYTE 151 (&97) - write to SHEILA
 ;
 ; MasRef D.2-45
 ;
@@ -11607,7 +11607,7 @@ osbyte97:
 
 ;-------------------------------------------------------------------------
 ;
-; OSBYTE 147 (&93) – write to FRED
+; OSBYTE 147 (&93) - write to FRED
 ;
 ; MasRef D.2-45
 ;
@@ -13980,7 +13980,7 @@ rtsFFAA:
 
 ;-------------------------------------------------------------------------
 ;
-; OSBYTE 150 (&96) Read from SHEILA (&FE00 – &FEFF) [MasRef D.2-45]
+; OSBYTE 150 (&96) Read from SHEILA (&FE00 - &FEFF) [MasRef D.2-45]
 ;
 osbyte96:
                 ldy $fe00,x

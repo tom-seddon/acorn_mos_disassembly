@@ -266,10 +266,10 @@ osbyteAndOSWORDRoutineTable:
                 ;Get character from buffer
                 .word osbyte91
 
-                ;Read from FRED (&FC00 – &FCFF)
+                ;Read from FRED (&FC00 - &FCFF)
                 .word osbyte92
 
-                ;Write to FRED (&FC00 – &FCFF)
+                ;Write to FRED (&FC00 - &FCFF)
                 .word osbyte93
 
                 ;Read from JIM (&FD00 - &FDFF)

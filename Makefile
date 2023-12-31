@@ -136,6 +136,7 @@ tom_laptop: ECTAGS:=ctags
 endif
 tom_laptop:
 	$(ECTAGS) '--exclude=.#*' --langdef=64tass --langmap=64tass:.s65 '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*):/\1/l.label/' '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*)=/\1/k.const/' -e *.s65 src/*.s65
+	$(PYTHON) bin/check7bit.py '*.s65'
 	$(MAKE) all
 
 # /opt/local/bin/ctags --exclude='.#*' --langdef=beebasm --langmap=beebasm:.6502.asm '--regex-beebasm=/^\.(\^|\*)?([A-Za-z0-9_]+)/\2/l,label/' '--regex-beebasm=/^[ \t]*macro[ \t]+([A-Za-z0-9_]+)/\1/m,macro/i' '--regex-beebasm=/^[ \t]*([A-Za-z0-9_]+)[ \t]*=[^=]/\1/v,value/' -eR src lib stnicc-beeb.asm

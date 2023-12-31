@@ -727,7 +727,7 @@ LBEA9:
 
 ;-------------------------------------------------------------------------
 ;
-; 184–191 = Move/copy rectangle [MasRef E.3-31]
+; 184-191 = Move/copy rectangle [MasRef E.3-31]
 ;
 ; The normal interpretation of <p> does not apply in this group of
 ; plot codes and the meanings are as follows:

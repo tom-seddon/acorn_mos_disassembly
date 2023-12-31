@@ -852,7 +852,7 @@ invalidROM:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500||version==350
+                .if useTableDrivenConfigure
 L873F:
                 jsr getROMInsertedFlagRTCAddressAndMask
                 sta $b0

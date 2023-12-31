@@ -7114,10 +7114,10 @@ clearTSTAndLE389:
 LE389:
                 phy
                 phx
-                .if version==350||version>=500
+                .if useTableDrivenConfigure
                 jsr selectTerminalROM
                 jsr L873F
-                .elsif version<500
+                .else
                 jsr getROMInsertedFlagRTCAddressAndMask
                 sta TEMPA                    ;save mask
                 jsr selectTerminalROM

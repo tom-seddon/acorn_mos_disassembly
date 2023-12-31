@@ -346,14 +346,15 @@ L8155:
                 .endif
 
 L8164:
+                .if useTableDrivenConfigure
+                ldx #cmosBytesOffset+CMOSBytes.defaults1
                 .if version==350
-                ldx #cmosBytesOffset+CMOSBytes.defaults1
                 jsr clearTSTAndReadRTCByte
-                .elsif !useTableDrivenConfigure
-                jsr readDefaults1
                 .else
-                ldx #cmosBytesOffset+CMOSBytes.defaults1
                 jsr readRTCByte
+                .endif
+                .else
+                jsr readDefaults1
                 .endif
                 ldx #keyboardStatusByte.shiftLockDisengaged
                 asl a
@@ -373,14 +374,15 @@ gotKeyboardStatusByte:
                 .endif
                 lda lastBREAKType
                 beq L8196
+                .if useTableDrivenConfigure
+                ldx #cmosBytesOffset+CMOSBytes.printerIgnoreChar
                 .if version==350
-                ldx #cmosBytesOffset+CMOSBytes.printerIgnoreChar
                 jsr clearTSTAndReadRTCByte
-                .elsif !useTableDrivenConfigure
-                jsr readDefaultPrinterIgnoreChar
                 .else
-                ldx #cmosBytesOffset+CMOSBytes.printerIgnoreChar
                 jsr readRTCByte
+                .endif
+                .else
+                jsr readDefaultPrinterIgnoreChar
                 .endif
                 sta printerIgnoreChar
                 .if version==350

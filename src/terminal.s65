@@ -918,16 +918,16 @@ L8752:
 ;-------------------------------------------------------------------------
 
                 .if version==350
-                .include "configure500.s65"
+                .include "configure_table_driven.s65"
                 .include "sram_utils.s65"
                 .include "osbyte_osword_table.s65"
                 .elsif version<400
-                .include "configure320.s65"
+                .include "configure_code_driven.s65"
                 .elsif version<500
                 .include "sram_utils.s65"
-                .include "configure320.s65"
+                .include "configure_code_driven.s65"
                 .elsif version>=500
-                .include "configure500.s65"
+                .include "configure_table_driven.s65"
                 .include "sram_utils.s65"
                 .include "osbyte_osword_table.s65"
                 .endif

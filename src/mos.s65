@@ -12665,7 +12665,7 @@ LF9AD:
 ;-------------------------------------------------------------------------
 
                 .if version==400
-                .include "sram_access_helpers.s65"
+                .include "sram_access_helpers_tube.s65"
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -13386,7 +13386,9 @@ badCommandError:
 ;-------------------------------------------------------------------------
 
                 .if version==350
-                .include "sram_access_helpers.s65"
+                .if includeTubeSupport
+                .include "sram_access_helpers_tube.s65"
+                .endif
                 .include "sram_access_helpers_2.s65"
                 .include "sram_access_helpers_3.s65"
                 .endif

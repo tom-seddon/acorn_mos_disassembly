@@ -1,8 +1,7 @@
-; TODO - this while file is actually Tube-specific stuff - there's a
-; better no-Tube version of transferBetweenSidewaysRAMAndRAM in
-; mos.s65, that doesn't do a jsr on every iteration.
+; There's a no-Tube version of transferBetweenSidewaysRAMAndRAM in
+; mos.s65, that's worth using if Tube not supported as it doesn't do a
+; jsr on every iteration.
                 
-                .if includeTubeSupport
 transferBetweenSidewaysRAMAndRAM:
                 jsr selectROMA
 transferBetweenSidewaysRAMAndRAMLoop:
@@ -14,11 +13,9 @@ transferBetweenSidewaysRAMAndRAMLoop:
                 cmp sramWorkspace.length+1
                 bne transferBetweenSidewaysRAMAndRAMLoop
                 jmp selectTerminalROM
-                .endif
                 
 ;-------------------------------------------------------------------------
 
-                .if includeTubeSupport
 transferParasiteToSidewaysRAM:
                 jsr selectROMA
 transferParasiteToSidewaysRAMLoop:
@@ -31,11 +28,9 @@ transferParasiteToSidewaysRAMLoop:
                 cmp sramWorkspace.length+1
                 bne transferParasiteToSidewaysRAMLoop
                 jmp selectTerminalROM
-                .endif
 
 ;-------------------------------------------------------------------------
 
-                .if includeTubeSupport
 transferSidewaysRAMOverTube:
                 bit osfileParameterBlock+1
                 bmi transferParasiteToSidewaysRAM
@@ -50,11 +45,9 @@ transferSidewaysRAMToParasiteLoop:
                 cmp sramWorkspace.length+1
                 bne transferSidewaysRAMToParasiteLoop
                 jmp selectTerminalROM
-                .endif
 
 ;-------------------------------------------------------------------------
 
-                .if includeTubeSupport
 transferSidewaysRAMLoopUpdate:
                 iny
                 bne LF800
@@ -68,5 +61,4 @@ LF800:
                 ; the dummy ROM header's first byte is the RTS for
                 ; this routine...
                 .cerror *!=dummyROMHeader
-                .endif
                 

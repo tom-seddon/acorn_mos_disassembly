@@ -113,7 +113,7 @@ data: .itemWithMetadata "Data",CMOSBytes.defaults3,CMOSBytes.defaults3.serialDat
                 .itemWithMetadata "Delay",CMOSBytes.keyboardAutoRepeatDelay,$ff,0,true
 dir: .itemWithMetadata "Dir",CMOSBytes.defaults1,CMOSBytes.defaults1.adfsLoadDirMask,0,false
 lastDirChar=dir.metadata-1
-                .if version==350
+                .if includeTubeSupport
 extube: .itemWithMetadata "ExTube",CMOSBytes.defaults3,CMOSBytes.defaults3.extTubeMask,1,false
 lastExChar=extube+1
                 .endif
@@ -126,7 +126,7 @@ file: .itemWithMetadata "File",CMOSBytes.defaultROMs,$f<<CMOSBytes.defaultROMs.f
                 .itemWithMetadata "Hard",CMOSBytes.defaults1,CMOSBytes.defaults1.floppyDrive,0,false
                 .endif
 ignore: .itemWithAddress "Ignore",handlePrinterIgnoreChar
-                .if version==350
+                .if includeTubeSupport
 intube: .itemWithMetadata "InTube",CMOSBytes.defaults3,CMOSBytes.defaults3.extTubeMask,0,false
 lastInChar=intube+1
                 .endif
@@ -138,7 +138,7 @@ mode: .itemWithMetadata "Mode",CMOSBytes.defaults0,CMOSBytes.defaults0.modeMask|
 noDir: .itemWithMetadata "NoDir",CMOSBytes.defaults1,CMOSBytes.defaults1.adfsLoadDirMask,1,false
 lastNoDirChar:=noDir.metadata-1
                 .itemWithMetadata "NoScroll",CMOSBytes.defaults3,CMOSBytes.defaults3.protectedScrollingMask,1,false
-                .if version==350
+                .if includeTubeSupport
                 .itemWithMetadata "NoTube",CMOSBytes.defaults2,CMOSBytes.defaults2.tubeOnMask,0,false
                 .endif
 print: .itemWithMetadata "Print",CMOSBytes.defaults2,CMOSBytes.defaults2.fx5SettingMask<<CMOSBytes.defaults2.fx5SettingShift,0,true
@@ -147,7 +147,7 @@ print: .itemWithMetadata "Print",CMOSBytes.defaults2,CMOSBytes.defaults2.fx5Sett
                 .itemWithMetadata "Scroll",CMOSBytes.defaults3,CMOSBytes.defaults3.protectedScrollingMask,0,false
 shCaps: .itemWithMetadata "ShCaps",CMOSBytes.defaults1,CMOSBytes.defaults1.shiftLockMask|CMOSBytes.defaults1.noLockMask|CMOSBytes.defaults1.capsLockMask,1,false
 lastShChar=shCaps+1
-                .if version==350
+                .if includeTubeSupport
                 .itemWithMetadata "Tube",CMOSBytes.defaults2,CMOSBytes.defaults2.tubeOnMask,1,false
                 .endif
                 .if version>=500
@@ -182,7 +182,7 @@ ift:
 textSnippetInsertPointOffsets:
                 .text lastDirChar-configureTable   ;"Directory"
                 .byte lastNoDirChar-configureTable ;"NoDirectory"
-                .if version==350
+                .if includeTubeSupport
                 .byte lastExChar-configureTable    ;"External"
                 .byte lastInChar-configureTable    ;"Internal"
                 .endif
@@ -192,7 +192,7 @@ textSnippetsCount=*-textSnippetInsertPointOffsets
 textSnippetOffsets:
                 .byte configureTable.ectory-configureTable
                 .byte configureTable.ectory-configureTable
-                .if version==350
+                .if includeTubeSupport
                 .byte configureTable.ternal-configureTable
                 .byte configureTable.ternal-configureTable
                 .endif

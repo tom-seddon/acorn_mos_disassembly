@@ -82,8 +82,8 @@ assumedRTCCenturyBCD=$19
                 
 ;-------------------------------------------------------------------------
 
-; These feature flags are a work in progress, and can't yet be
-; adjusted freely.
+; These feature flags are offered on a best-effort basis. They're more
+; intended for readability than for use as toggles.
 
                 .weak
 
@@ -96,6 +96,16 @@ includeTubeSupport=false
                 
                 .endweak
 
+;-------------------------------------------------------------------------
+
+; Some combinations are impossible. Sorry!
+;
+; (The code deliberately doesn't try to work around this. The driver
+; files must avoid these cases.)
+
+                .cerror includeStarX&&!includeTubeSupport
+                .cerror version==400&&!includeTubeSupport
+                
 ;-------------------------------------------------------------------------
 
 tubeHostAddr=$400
@@ -414,6 +424,16 @@ bufferNumberHighest=8           ;
 
 ;-------------------------------------------------------------------------
 
+                .if includeTubeSupport
+tubeReasonMultiByteParasiteToHost=0
+tubeReasonMultiByteHostToParasite=1
+tubeReasonExecute=4
+tubeReasonClaimMask=$c0
+tubeReasonReleaseMask=$80
+                .endif
+                
+;-------------------------------------------------------------------------
+
 ; uservIndex=0
 ; brkvIndex=1
 ; irq1vIndex=2
@@ -705,7 +725,11 @@ rs423InterruptMask: .fill 1
 systemVIAInterruptMask: .fill 1
 
 ; OSBYTE 234 (&EA) Read flag indicating Tube presence [MasRef D.2-76]
+                .if includeTubeSupport
 tubePresence: .fill 1
+                .else
+tubePresenceUnused: .fill 1
+                .endif
 
 ; OSBYTE 235 (&EB) is reserved for the speech system. [MasRef D.2-77]
 speechSystemByte2: .fill 1
@@ -1485,6 +1509,7 @@ LFE8E=$fe8e
 
 ;-------------------------------------------------------------------------
 
+                .if includeTubeSupport
                 .virtual $00
                 .union
 tubeOSFILEParameterBlock: .dstruct OSFILEParameterBlock
@@ -1500,13 +1525,14 @@ tubeBrkHandlerAddr:
 
 tubeStringBuffer=$700
 tubeOSWORDBuffer=$0128
-                
-;-------------------------------------------------------------------------
 
                 .virtual $53
 tubeLanguageParasiteAddr: .fill 4
                 .endv
+                
+                .endif
 
+;-------------------------------------------------------------------------
 ; MasRef E.4-4
                 .virtual $d0
 STATE: .block
@@ -1672,7 +1698,9 @@ printerIgnoreChar: .fill 1
                 
 defaults2: .block
                 .fill 1
+                .if includeTubeSupport
 tubeOnMask=1
+                .endif
 usePrinterIgnoreCharMask=2
 serialBaudRateIndexMask=7
 serialBaudRateIndexShift=2
@@ -1683,7 +1711,9 @@ fx5SettingShift=5
 defaults3: .block
                 .fill 1
 loudMask=2
+                .if includeTubeSupport
 extTubeMask=4
+                .endif
 protectedScrollingMask=8
 autoBootMask=16
 serialDataFormatMask=7

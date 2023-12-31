@@ -14,11 +14,11 @@ isSecondProcessorPresent:
                 jsr withTST
                 .endif
                 ldx #$01                     
-                stx tube.status1
-                lda tube.status1                   
+                stx $fee0;tube.status1
+                lda $fee0;tube.status1                   
                 eor #$01
                 ldx #$81                     
-                stx tube.status1             
-                and tube.status1       ; Cy=0 if no Tube, Cy=1 if Tube
+                stx $fee0;tube.status1             
+                and $fee0;tube.status1       ; Cy=0 if no Tube, Cy=1 if Tube
                 ror a
                 rts

@@ -144,7 +144,7 @@ reset:                          ;8020
                 .include "reset.s65"
                 .endif
 
-                .if version<500
+                .if includeTubeSupport
                 bcc handleROMWorkspace        ;taken if Tube not found
                 .if version!=350
 foundTube:
@@ -198,7 +198,11 @@ L82FE:
                 pha
                 stz spoolFileHandle
                 ldx #romServiceCallTubeSystemPostInitialisation
+                .if includeTubeSupport
                 ldy tubePresence
+                .else
+                ldy tubePresenceUnused
+                .endif
                 jsr makeROMServiceCall   ; Tube PostInit
                 and startupMessageSuppressionStatus
                 bpl L8340
@@ -514,7 +518,7 @@ rts85A5:
 starBASIC:
                 ldx basicROMNumber           ; Get BASIC ROM number
                 bmi passStarCommandThrough ; If no BASIC ROM, jump to pass to ROMs and filing system
-                .if version==350
+                .if version==350&&includeTubeSupport
                 jmp osbyte8EWithoutRelocation
                 .elsif version<500
                 sec                          ;
@@ -4108,9 +4112,9 @@ L9FF8:
 LA000:
                 bne LA00A
 LA002:
-                .if version<500
+                .if includeTubeSupport
                 phy
-                jsr LAAA4
+                jsr initiateCFSRFSHostToParasiteTransfer
                 ply
                 .endif
                 jsr LA6D2
@@ -4238,8 +4242,8 @@ LA0BB:
                 beq LA085
                 jsr LA9F3
                 jsr LA822
-                .if version<500
-                lda #$00
+                .if includeTubeSupport
+                lda #tubeReasonMultiByteParasiteToHost
                 jsr LAAA6
                 .endif
 LA0D3:
@@ -4305,13 +4309,13 @@ LA129:
                 jmp (FSCV)
 
 LA12E:
-                .if version<500
+                .if includeTubeSupport
                 bit tubePresence
-                bpl LA13C
-                lda $03C4
+                bpl LA13C                    ; taken if no Tube
+                lda $03C4                    
                 and $03C5
-                inc a
-                bne LA14C
+                inc a                     ; A=$00 if !&03c2=&FFFFxxxx
+                bne LA14C                 ; taken if copro address
 LA13C:
                 .endif
                 
@@ -4322,12 +4326,12 @@ LA13C:
                 lda #$01
                 jmp ($03C2)
 
-                .if version<500
+                .if includeTubeSupport
 LA14C:
                 ldx #$C2
                 ldy #$03
-                lda #$04
-                jmp LAAB0
+                lda #tubeReasonExecute
+                jmp initiateCFSRFSTubeTransfer
                 .endif
 
 ; TAPE/ROM FSC 9 - *EX
@@ -4717,20 +4721,20 @@ LA378:
                 sty $CD
                 ldy #$01
                 lda ($CC),y
-                sta $C8
+                sta $C8                      ; address LSB
                 iny
                 lda ($CC),y
-                sta $C9
-                .if version<500
+                sta $C9                      ; address MSB
+                .if includeTubeSupport
                 iny
                 lda ($CC),y
                 iny
-                and ($CC),y
-                inc a
-                and tubePresence
-                pha
+                and ($CC),y            ; A=$ff if bits 16-31 are $ffff
+                inc a              ; A!=$00 if bits 16-31 aren't $ffff
+                and tubePresence ; A!=$00 if copro address and copro present
+                pha              ; save copro usage flag
                 .if version!=400
-                php
+                php                          ; save C
                 .endif
                 beq LA3A7
                 ldx $CC
@@ -4740,37 +4744,40 @@ LA378:
                 iny
 LA39E:
                 .if version==400
-                lda #1
+                ; no tape, so always host->parasite
+                lda #tubeReasonMultiByteHostToParasite
                 .elsif version==350
-                lda #1
-                sbc #0
+                ; if C=1, host->parasite; if C=0, parasite->host
+                lda #tubeReasonMultiByteHostToParasite
+                sbc #0                       ; 
                 .else
-                lda #$00
+                ; if C=1, host->parasite; if C=0, parasite->host
+                lda #tubeReasonMultiByteParasiteToHost
                 plp
                 php
                 adc #$00
-                .endif
-                jsr LAAB0
+                .endif                       ; includeTubeSupport
+                jsr initiateCFSRFSTubeTransfer
 LA3A7:
                 .endif
-                lda ($CC)
-                tay
+                lda ($CC)                    ; A=handle
+                tay                          ; Y=handle
                 lda #$01
                 .if version!=400
-                .if version<500
-                plp
+                .if includeTubeSupport
+                plp                          ; restore C
                 .endif
-                php
+                php                          ; save C
                 adc #$00
                 .endif
                 jsr LAA8D
                 bcs LA3C1
                 .if version!=400
-                plp
+                plp                          ; restore C
                 .endif
-                .if version<500
-                pla
-                beq LA3BE
+                .if includeTubeSupport
+                pla                          ; restore copro usage flag
+                beq LA3BE                    ; taken if not copro
                 lda #$80
                 jsr tubeHost.entryPoint
 LA3BE:
@@ -4784,11 +4791,11 @@ LA3C1:
                 .endif
                 bit $E2
                 bpl LA3D3
-                .if version<500
-                pla
-                beq LA3D0
-                lda #$80
-                jsr tubeHost.entryPoint
+                .if includeTubeSupport
+                pla                          ; restore copro usage flag
+                beq LA3D0                    ; taken if no copro usage
+                lda #$80                     ; $80 = RFS/CFS release Tube
+                jsr tubeHost.entryPoint      
 LA3D0:
                 .endif
                 jmp LA343
@@ -4800,17 +4807,17 @@ LA3D3:
                 tay
                 jsr bputTapeOrROM
                 bcs LA3F6
-                .if version<500
-                plx
-                phx
-                beq LA3E9
-                sta tube.data3
+                .if includeTubeSupport
+                plx                          ; restore copro usage flag
+                phx                          ; save copro usage flag
+                beq LA3E9                    ; taken if no copro usage
+                sta tube.data3               ; send byte to Tube
                 bra LA3F1
 
 LA3E9:
                 .endif
-                sta ($C8)
-                inc $C8
+                sta ($C8)                    ; store the byte to I/O RAM
+                inc $C8                      ; next address...
                 bne LA3F1
                 inc $C9
 LA3F1:
@@ -4818,11 +4825,11 @@ LA3F1:
                 bra LA3D3
 
 LA3F6:
-                .if version<500
-                pla
+                .if includeTubeSupport
+                pla                          ; restore copro usage flag
                 php
-                beq LA3FF
-                lda #$80
+                beq LA3FF                    ; taken if not copro usage
+                lda #$80                     ; $80 = RFS/CFS release Tube
                 jsr tubeHost.entryPoint
 LA3FF:
                 plp
@@ -4835,17 +4842,17 @@ LA401:
                 beq LA3F6
                 lda ($CC)
                 tay
-                .if version<500
-                pla
-                pha
-                beq LA412
-                lda tube.data3
+                .if includeTubeSupport
+                pla                          ; restore copro usage flag
+                pha                          ; save copro usage flag
+                beq LA412                    ; taken if not copro usage
+                lda tube.data3               ; receive byte from Tube
                 bra LA41A
 LA412:
                 .endif
                 
-                lda ($C8)
-                inc $C8
+                lda ($C8)                    ; read the byte from I/O RAM
+                inc $C8                      ; next address...
                 bne LA41A
                 inc $C9
 LA41A:
@@ -4961,7 +4968,7 @@ LA485:
                 
 LA492:
                 .if version==400
-                jsr $f4ff
+                jsr LF710
                 tay
                 clc
                 ldx $c2
@@ -5011,16 +5018,16 @@ LA4B5:
                 inc $BC
                 bit $BD
                 bmi LA4D3
-                .if version<500
-                jsr LAABC
-                beq LA4D0
+                .if includeTubeSupport
+                jsr isTubeAddress
+                beq LA4D0                    ; taken if not Tube address
                 stx tube.data3
                 bra LA4D3
 
 LA4D0:
-                txa
+                txa                          ; A=byte to write
                 .endif
-                sta ($B0),y
+                sta ($B0),y                  ; store byte to I/O RAM
 LA4D3:
                 iny
                 cpy $03C8
@@ -5412,14 +5419,14 @@ LA71E:
                 beq LA74F
                 jsr LAA46
 LA737:
-                .if version<500
-                jsr LAABC
-                beq LA741
-                lda tube.data3
+                .if includeTubeSupport
+                jsr isTubeAddress
+                beq LA741                   ; taken if notTube address
+                lda tube.data3              ; load from Tube
                 bra LA743
 LA741:
                 .endif
-                lda ($B0),y
+                lda ($B0),y                  ; load from I/O RAM
 LA743:
                 jsr LA6CD
                 iny
@@ -5873,10 +5880,10 @@ LA9B6:
                 lda #$07
                 jsr OSWRCH
 LA9BB:
-                .if version<500
+                .if includeTubeSupport
                 lda tubePresence
-                beq LA9C5
-                lda #$80
+                beq LA9C5                  ; taken if copro not present
+                lda #$80                   ; $80 = CFS/RFS release Tube
                 jsr tubeHost.entryPoint
                 .endif
 LA9C5:
@@ -6037,10 +6044,10 @@ LAA68:
                 phy
                 jsr LAA8D
                 ply
-                .if version<500
-                bcs LAAC9                    ; Channel open, exit
-                .elsif version>=500
-                bcs LAA9F
+                .if includeTubeSupport
+                bcs rtsAAC9                    ; Channel open, exit
+                .else
+                bcs rtsAA9F
                 .endif
                 cpy spoolFileHandle                    ; Not SPOOL handle
                 bne LAA79
@@ -6069,12 +6076,12 @@ LAA8D:
                 and $E2                      ; Mask with open channels bitmask
                 lsr a                        ; Move 'input open if tested' into Carry
                 dey                          ; Exit if testing CFS#1 or RFS#3
-                beq LAA9F
+                beq rtsAA9F
                 lsr a                        ; Move 'output open if tested' into Carry
                 dey                          ; Exit if testing CFS#2
-                beq LAA9F
+                beq rtsAA9F
                 clc                          ; Otherwise, Carry=Not Open
-LAA9F:
+rtsAA9F:
                 rts
 
                 .if version!=400
@@ -6083,33 +6090,33 @@ LAAA0:
                 bra LAA2A
                 .endif
 
-                .if version<500
-LAAA4:
-                lda #$01
+                .if includeTubeSupport
+initiateCFSRFSHostToParasiteTransfer:
+                lda #tubeReasonMultiByteHostToParasite
 LAAA6:
-                jsr LAABC
-                beq LAAC9
-                txa
+                jsr isTubeAddress
+                beq rtsAAC9
+                txa                          ; restore transfer type
                 ldx #$B0
                 ldy #$00
-LAAB0:
-                pha
-                lda #$C0
-LAAB3:
+initiateCFSRFSTubeTransfer:
+                pha                         ; save transfer type
+                lda #$C0                    ; $c0 = CFS/RFS claim Tube
+-
                 jsr tubeHost.entryPoint
-                bcc LAAB3
-                pla
-                jmp tubeHost.entryPoint
+                bcc -
+                pla                          ; restore transfer type
+                jmp tubeHost.entryPoint      ; initiate transfer
 
-LAABC:
+isTubeAddress:
                 tax
                 lda $B2
-                and $B3
-                inc a
-                beq LAAC9
+                and $B3                 ; $ff if address is $FFFFxxxx
+                inc a                   ; $00 if address is $FFFFxxxx
+                beq rtsAAC9               ; taken if not Tube address
                 lda tubePresence
-                and #$80
-LAAC9:
+                and #$80            ; $80 if $FFFFxxxx and Tube active
+rtsAAC9:
                 rts
                 .endif
                 

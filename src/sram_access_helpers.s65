@@ -1,15 +1,21 @@
+; TODO - this while file is actually Tube-specific stuff - there's a
+; better no-Tube version of transferBetweenSidewaysRAMAndRAM in
+; mos.s65, that doesn't do a jsr on every iteration.
+                
+                .if includeTubeSupport
 transferBetweenSidewaysRAMAndRAM:
                 jsr selectROMA
 transferBetweenSidewaysRAMAndRAMLoop:
                 lda (sramTransferPointers.src),y
                 sta (sramTransferPointers.dest),y
-                jsr LF7F0
+                jsr transferSidewaysRAMLoopUpdate
                 bne transferBetweenSidewaysRAMAndRAMLoop
                 lda 1,x
                 cmp sramWorkspace.length+1
                 bne transferBetweenSidewaysRAMAndRAMLoop
                 jmp selectTerminalROM
-
+                .endif
+                
 ;-------------------------------------------------------------------------
 
                 .if includeTubeSupport
@@ -19,7 +25,7 @@ transferParasiteToSidewaysRAMLoop:
                 lda tube.data3
                 sta (sramTransferPointers.dest),y
                 jsr LF800
-                jsr transferSidewaysRAMOverTubeLoopUpdate
+                jsr transferSidewaysRAMLoopUpdate
                 bne transferParasiteToSidewaysRAMLoop
                 lda 1,x
                 cmp sramWorkspace.length+1
@@ -38,7 +44,7 @@ transferSidewaysRAMToParasiteLoop:
                 lda (sramTransferPointers.src),y ; load byte from sideways RAM
                 sta tube.data3  ; send byte to coprocessor
                 jsr LF800       ; 
-                jsr transferSidewaysRAMOverTubeLoopUpdate
+                jsr transferSidewaysRAMLoopUpdate
                 bne transferSidewaysRAMToParasiteLoop
                 lda 1,x
                 cmp sramWorkspace.length+1
@@ -49,8 +55,7 @@ transferSidewaysRAMToParasiteLoop:
 ;-------------------------------------------------------------------------
 
                 .if includeTubeSupport
-transferSidewaysRAMOverTubeLoopUpdate:
-LF7F0:
+transferSidewaysRAMLoopUpdate:
                 iny
                 bne LF800
                 inc sramTransferPointers.src+1
@@ -64,5 +69,4 @@ LF800:
                 ; this routine...
                 .cerror *!=dummyROMHeader
                 .endif
-
                 

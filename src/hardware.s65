@@ -38,7 +38,9 @@ slowBlink=$20
 ; ACIA=$fe08
 SERPROC=$fe10
 ;HADC=$fe18
+                .if includeTubeSupport
 TUBE=$fee0
+                .endif
 ROMSEL=$fe30
 ;ACCCON=$fe34
                 .virtual $fe20
@@ -267,6 +269,7 @@ systemVIA: .dstruct VIA
 userVIA: .dstruct VIA
                 .endv
 
+                .if includeTubeSupport
                 .virtual $fee0
 tube: .block
 ; Parasite to Host: Carries the OSWRCH call. Data register is a FIFO
@@ -337,7 +340,8 @@ status4:
 data4:
                 .fill 1
                 .bend
-                .endv
+                .endvirtual
+                .endif
 
 RTC: .struct
 seconds: .fill 1

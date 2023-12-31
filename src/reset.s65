@@ -749,8 +749,10 @@ LFEA2:
                 .byte $A        ; printerIgnoreChar
                 .if CFA3000
                 .byte 1<<CMOSBytes.defaults2.fx5SettingShift|6<<CMOSBytes.defaults2.serialBaudRateIndexShift ; defaults2
-                .else
+                .elsif includeTubeSupport
                 .byte 1<<CMOSBytes.defaults2.fx5SettingShift|3<<CMOSBytes.defaults2.serialBaudRateIndexShift|CMOSBytes.defaults2.tubeOnMask ; defaults2
+                .else
+                .byte 1<<CMOSBytes.defaults2.fx5SettingShift|3<<CMOSBytes.defaults2.serialBaudRateIndexShift ; defaults2
                 .endif
                 .byte 4<<CMOSBytes.defaults3.serialDataFormatShift|CMOSBytes.defaults3.loudMask
                 .cerror *-LFEA2!=size(CMOSBytes)-1
@@ -787,7 +789,7 @@ softReset:
                 jsr LEDD0
                 .endif
 L829D:
-                .if version<500
+                .if includeTubeSupport
                 .if version==350
                 jsr setTSTAndReadDefaults2
                 .else

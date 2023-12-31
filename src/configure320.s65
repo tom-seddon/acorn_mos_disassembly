@@ -12,7 +12,9 @@ _..=[("DELAY",setDefaultKeyboardAutoRepeatDelay,printDefaultKeyboardAutoRepeatDe
                 .if version<400
 _..=[("DIR",setDefaultADFSLoadDir,printDefaultADFSLoadDir)]
                 .endif
+                .if includeTubeSupport
 _..=[("EXTUBE",setDefaultExtTube,printDefaultExtTube)]
+                .endif
                 .if version<400
 _..=[("FDRIVE",setDefaultFDRIVE,printDefaultFDRIVE)]
                 .endif
@@ -24,7 +26,9 @@ _..=[("FLOPPY",setDefaultFloppyDrive,printDefaultFloppyDrive)]
 _..=[("HARD",setDefaultHardDrive,printDefaultFloppyDrive)]
                 .endif
 _..=[("IGNORE",setDefaultPrinterIgnoreChar,printDefaultPrinterIgnoreChar)]
+                .if includeTubeSupport
 _..=[("INTUBE",setDefaultIntTube,printDefaultExtTube)]
+                .endif
 _..=[("LANG",setDefaultLanguageROM,printDefaultLanguageROM)]
 _..=[("LOUD",setDefaultLoud,printDefaultLoud)]
 _..=[("MODE",setDefaultMODE,printDefaultMODE)]
@@ -34,13 +38,17 @@ _..=[("NOCAPS",setDefaultNoLock,printDefaultCaps)]
 _..=[("NODIR",setDefaultADFSNoLoadDir,printDefaultADFSLoadDir)]
                 .endif
 _..=[("NOSCROLL",setDefaultNoProtectedScrolling,printDefaultProtectedScrolling)]
+                .if includeTubeSupport
 _..=[("NOTUBE",setDefaultTubeOff,printDefaultTubeOn)]
+                .endif
 _..=[("PRINT",setDefaultFX5Settings,printDefaultFX5Settings)]
 _..=[("QUIET",setDefaultQuiet,printDefaultLoud)]
 _..=[("REPEAT",setDefaultKeyboardAutoRepeatRate,printDefaultKeyboardRepeatRate)]
 _..=[("SCROLL",setDefaultProtectedScrolling,printDefaultProtectedScrolling)]
 _..=[("SHCAPS",setDefaultShiftLock,printDefaultCaps)]
+                .if includeTubeSupport
 _..=[("TUBE",setDefaultTubeOn,printDefaultTubeOn)]
+                .endif
 _..=[("TV",setDefaultTVSettings,printDefaultTVSettings)]
 configureData=_
 
@@ -448,6 +456,7 @@ writeRTCBits:
 
 ;-------------------------------------------------------------------------
 
+                .if includeTubeSupport
 setDefaultTubeOff:
                 clc
 bneBadCommandError89E5:
@@ -456,12 +465,18 @@ bneBadCommandError89E5:
                 lda #$00
                 rol a
                 bra writeDefaults2Bits
+                .else
+bneBadCommandError89E5:
+                bne bneBadCommandError898B
+                .endif
 
 ;-------------------------------------------------------------------------
 
+                .if includeTubeSupport
 setDefaultTubeOn:
                 sec
                 bra bneBadCommandError89E5
+                .endif
 
 ;-------------------------------------------------------------------------
 
@@ -563,19 +578,23 @@ writeDefaultProtectedScrolling:
 
 ;-------------------------------------------------------------------------
 
+                .if includeTubeSupport
 setDefaultExtTube:
                 bne bcsBadCommandError
                 lda #CMOSBytes.defaults3.extTubeMask
                 bra writeDefaultExtTube
+                .endif
 
 ;-------------------------------------------------------------------------
 
+                .if includeTubeSupport
 setDefaultIntTube:
                 bne bcsBadCommandError
                 lda #$00
 writeDefaultExtTube:
                 ldy #~(CMOSBytes.defaults3.extTubeMask)&$ff
                 bra writeDefaults3Bits
+                .endif
 
 ;-------------------------------------------------------------------------
 
@@ -645,6 +664,7 @@ printLoud:
 
 ;-------------------------------------------------------------------------
 
+                .if includeTubeSupport
 printDefaultExtTube:
                 jsr readDefaults3
                 bit #CMOSBytes.defaults3.extTubeMask
@@ -660,6 +680,7 @@ printTernalTube:
                 jsr alwaysPrintFollowingMessage
                 .text "ternal Tube",13,0
                 rts
+                .endif
 
 ;-------------------------------------------------------------------------
 
@@ -675,6 +696,7 @@ printDefaultAutoBoot:
 
 ;-------------------------------------------------------------------------
 
+                .if includeTubeSupport
 printDefaultTubeOn:
                 jsr readDefaults2
                 lsr a                        ;C=tubeOn
@@ -683,7 +705,8 @@ printDefaultTubeOn:
 +
                 jsr alwaysPrintFollowingMessage
                 .text "Tube",13,0
-                rts                          
+                rts
+                .endif                
 
 ;-------------------------------------------------------------------------
 
@@ -982,8 +1005,10 @@ printSTATUSHelp:
                 .if version<400
                 jsr printDefaultADFSLoadDir
                 .endif
-                
+
+                .if includeTubeSupport
                 jsr printDefaultExtTube
+                .endif
 
                 .if version<400
                 jsr alwaysPrintFollowingMessage                    
@@ -1008,8 +1033,10 @@ printSTATUSHelp:
                 jsr alwaysPrintFollowingMessage                    
                 .text "Mode     ",0
                 jsr printDefaultMODE
-                
+
+                .if includeTubeSupport
                 jsr printDefaultTubeOn
+                .endif
                 
                 jsr printDefaultLoud
                 

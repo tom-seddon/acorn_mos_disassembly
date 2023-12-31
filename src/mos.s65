@@ -7337,7 +7337,11 @@ osbyte8E:
                 lda sidewaysROMType
                 and #%00001101
                 beq is6502ROM ;taken if low nybble is 0 (6502 BASIC) or 2 (other 6502 ROM)
+                .if includeTubeSupport
                 bit tubePresence
+                .else
+                bit tubePresenceUnused
+                .endif
                 bpl iCannotRunThisCodeError  ;taken if no Tube - assume impossible to run
 is6502ROM:
                 phx                          ;save ROM slot
@@ -7354,25 +7358,25 @@ LE4E1:
                 jsr OSNEWL
                 jsr OSNEWL
                 plp
-                .if version<500
-                lda #$01
+                .if includeTubeSupport
+                lda #$01               ; A=1 on default language entry
                 bit tubePresence
                 bmi copyLanguageOverTube     ;taken if Tube is present
                 .endif
                 lda sidewaysROMType
                 and #%00001101
                 bne iCannotRunThisCodeError ;taken if low nybble isn't 0 (6502 BASIC) or 2 (other 6502 ROM)
-                inc a                       ;
+                inc a                   ;A=1 on default language entry
                 jmp sidewaysROMLanguageEntry
 
 LE509:
                 lda #$00
-                .if version<500
+                .if includeTubeSupport
                 bit tubePresence
                 bpl startCommandLineUI
 copyLanguageOverTube:
                 jmp tubeHost.copyLanguage
-                .elsif version>=500
+                .else
                 bra startCommandLineUI
                 .endif
 
@@ -9245,17 +9249,17 @@ LEC54:
 osbyte7C: ;EC56
                 clc
 osbyte7D: ;EC57
-                .if version<500
+                .if includeTubeSupport
                 .if version==350
                 php
-                rol $ff
+                rol escapeFlag
                 plp
                 .endif
-                ror $FF
+                ror escapeFlag
                 bit tubePresence
                 bpl LECD9
                 jmp tubeHost.copyEscapeStatus
-                .elsif version>=500
+                .else
                 php
                 sei
                 php
@@ -12672,7 +12676,8 @@ LF9AD:
 
 ;-------------------------------------------------------------------------
 
-                .if version>=500
+                ; Ugly condition...
+                .if version>=500||(version==350&&!includeTubeSupport)
 transferBetweenSidewaysRAMAndRAM: .block
                 jsr selectROMA
 transferBetweenSidewaysRAMAndRAMLoop:
@@ -13391,7 +13396,8 @@ badCommandError:
 ; Tube 6502 language ROM relocation
 ;
 
-                .if version==350
+                .if version==350&&includeTubeSupport
+                
 relocateNextLanguageROMPage: .block
                 ; TODO - all the 0/1/2/3 references here are
                 ; presumably tubeLanguageHostAddr
@@ -13584,7 +13590,9 @@ getLanguageParasiteAddrAndAssumeRelocatable:
 
 ;-------------------------------------------------------------------------
 
-                .if !finmos329
+                .endif
+                
+                .if version==350&&!finmos329
 
 LFB0A:       .block
                 php
@@ -13602,6 +13610,8 @@ LFB0A:       .block
                 rts
                 .endblock
 
+;-------------------------------------------------------------------------
+
                 .if CFA3000
 LFB2F:
                 ldx #size(RTC.ram)-1
@@ -13617,8 +13627,6 @@ LFB3B:
                 dex
                 bne LFB31
                 rts
-                .endif
-
                 .endif
 
                 .endif

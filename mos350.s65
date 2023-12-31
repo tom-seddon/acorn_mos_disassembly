@@ -4,6 +4,7 @@
 
 version=350
 versionString="MOS 3.50"
+defaultMODE=7
                 
 *=$af00
                 .dsection ext

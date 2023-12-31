@@ -727,30 +727,33 @@ hang:
 
                 .if version==350
 LFEA2:
-                .byte $fe
-                .byte $00
-                .byte $eb
-                .byte $00
+                .byte $fe       ; fileServerStationNumber
+                .byte $00       ; fileServerNetworkNumber
+                .byte $eb       ; printerServerStationNumber
+                .byte $00       ; printerServerNetworkNumber
                 .if CFA3000
-                .byte $7d
+                .byte 7<<CMOSBytes.defaultROMs.languageShift|13<<CMOSBytes.defaultROMs.fsShift
                 .else
-                .byte $CD
+                .byte 12<<CMOSBytes.defaultROMs.languageShift|13<<CMOSBytes.defaultROMs.fsShift
                 .endif
-                .byte $FF
-                .byte $FF
-                .byte $15
-                .byte 0
-                .byte $17
+                .byte $FF       ; insertedROMs 8-15
+                .byte $FF       ; insertedROMs 0-7
+                .byte $15       ; editROMBytes
+                .byte 0         ; telecommsByte
+                .cerror !(defaultMODE>=0&&defaultMODE<=7||defaultMODE>=128&&defaultMODE<=135)
+                .byte (defaultMODE&7)<<CMOSBytes.defaults0.modeShift|((defaultMODE&$80)!=0?CMOSBytes.defaults0.shadowMask:0)|CMOSBytes.defaults0.interlaceMask|0<<CMOSBytes.defaults0.tvShift ; defaults0
+                ;.byte $17
                 .byte $60
-                .byte $32
-                .byte 8
-                .byte $A
+                .byte $32       ; keyboardAutoRepeatDelay
+                .byte 8         ; keyboardAutoRepeatRate
+                .byte $A        ; printerIgnoreChar
                 .if CFA3000
-                .byte $38
+                .byte 1<<CMOSBytes.defaults2.fx5SettingShift|6<<CMOSBytes.defaults2.serialBaudRateIndexShift ; defaults2
                 .else
-                .byte $2D
+                .byte 1<<CMOSBytes.defaults2.fx5SettingShift|3<<CMOSBytes.defaults2.serialBaudRateIndexShift|CMOSBytes.defaults2.tubeOnMask ; defaults2
                 .endif
-                .byte $82
+                .byte 4<<CMOSBytes.defaults3.serialDataFormatShift|CMOSBytes.defaults3.loudMask
+                .cerror *-LFEA2!=size(CMOSBytes)-1
 
 .endif
 

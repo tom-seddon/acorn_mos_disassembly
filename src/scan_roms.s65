@@ -72,7 +72,7 @@ currentROMValid:
                 txa
                 tay
                 .if version==350
-                jsr setTSTAndLE389
+                jsr clearTSTAndLE389
                 .else
                 jsr LE389
                 .endif

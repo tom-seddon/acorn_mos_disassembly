@@ -501,8 +501,8 @@ storeNybbleString:
 
                 .if version<500
                 .if version==350
-setTSTAndReadDefaults2:
-                jsr withTST
+clearTSTAndReadDefaults2:
+                jsr withTSTClear
                 .endif
 readDefaults2:
                 ldx #CMOSBytes.defaults2+cmosBytesOffset
@@ -513,8 +513,8 @@ readDefaults2:
 
                 .if version<500
                 .if version==350
-setTSTAndReadDefaults3:
-                jsr withTST
+clearTSTAndReadDefaults3:
+                jsr withTSTClear
                 .endif
 readDefaults3:
                 ldx #CMOSBytes.defaults3+cmosBytesOffset
@@ -546,8 +546,8 @@ readCMOSByte:
                 bcs rts98DB                  ;taken if invalid address
                 .endif
                 .if version==350
-setTSTAndReadRTCByte:
-                jsr withTST
+clearTSTAndReadRTCByte:
+                jsr withTSTClear
                 .endif
 readRTCByte:
                 php

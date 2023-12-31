@@ -1561,7 +1561,7 @@ vdu22EntryPoint:
 ;
 setStartupMODE:
                 .if version==350
-                jsr withTST
+                jsr withTSTClear
                 .endif
                 sta ZTEMP+0                  ;save MODE
                 lda $F4
@@ -7107,8 +7107,8 @@ staTEMPAAndACCCON:
 ;
 ;
                 .if version==350
-setTSTAndLE389:
-                jsr withTST
+clearTSTAndLE389:
+                jsr withTSTClear
                 .endif
 
 LE389:
@@ -8920,8 +8920,8 @@ isLetter: .proc                 ;EA71
 ; ESCAPE [MasRef D.2-46]
 ;
                 .if version==350
-setTSTAndInsertCharacterIntoKeyboardBuffer:
-                jsr withTST
+clearTSTAndInsertCharacterIntoKeyboardBuffer:
+                jsr withTSTClear
                 .endif
 insertCharacterIntoKeyboardBuffer:
                 ldx #$00
@@ -9796,7 +9796,7 @@ LEDCC:
 
 LEDD0:
                 .if version==350
-                jsr withTST
+                jsr withTSTClear
                 .endif
                 jsr LEE64
                 jsr LF1EE
@@ -10788,8 +10788,8 @@ osbyteA0:
 ; Reset key auto repeat settings to the defaults set in CMOS.
 ;
                 .if version==350
-setTSTAndResetKeyRepeat:
-                jsr withTST
+clearTSTAndResetKeyRepeat:
+                jsr withTSTClear
                 .endif
 resetKeyRepeat:
                 jsr withTerminalROM
@@ -11544,8 +11544,8 @@ LF40C:
 ;-------------------------------------------------------------------------
 
                 .if version==350
-setTSTAndOSBYTE247EntryPoint:
-                jsr withTST
+clearTSTAndOSBYTE247EntryPoint:
+                jsr withTSTClear
                 .endif
 osbyte247EntryPoint:
                 lda breakVectorByte0
@@ -11745,23 +11745,23 @@ returnThunkSuffix:
 
 ;-------------------------------------------------------------------------
 ;
-; Set ACCCON TST bit (paging in ROM for reads, rather than I/O, at
+; Clear ACCCON TST bit (paging in I/O for reads, rather than ROM, at
 ; $fc00...$feff), and restore it on exit from the current routine.
 ; 
                 .if version==350
                 ; Should be called something more like runWithTST
-withTST:
+withTSTClear:
                 jsr initWithRoutineStack
                 lda TEMPA
-                and #(~ACCCON.TST)&$ff
+                and #(~ACCCON.TST)&$ff       ; clear TST
                 sta ACCCON
-                lda #<(withTSTReturnThunk-1)
+                lda #<(withTSTClearReturnThunk-1)
                 sta $107,x
-                lda #>(withTSTReturnThunk-1)
+                lda #>(withTSTClearReturnThunk-1)
                 sta $108,x
                 bra plx_pla_plp_rts
 
-withTSTReturnThunk:
+withTSTClearReturnThunk:
                 php
                 pha
                 phx
@@ -12393,8 +12393,8 @@ resetAutoRepeatCounters:
 ; Preserves: A/C
 ;
                 .if version==350
-setTSTAndInterrogateKeyboard:
-                jsr withTST
+clearTSTAndInterrogateKeyboard:
+                jsr withTSTClear
                 .endif
 interrogateKeyboard:
                 ldy #$03                     ;write to keyboard
@@ -12561,8 +12561,8 @@ osbyte78:                          ;f90b
 ; MasRef D.2-36
 ;
                 .if version==350
-setTSTAndOSBYTE7A:
-                jsr withTST
+clearTSTAndOSBYTE7A:
+                jsr withTSTClear
                 .endif
 osbyte7A:
                 ldx #$10

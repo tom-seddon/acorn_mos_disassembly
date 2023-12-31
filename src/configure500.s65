@@ -544,8 +544,8 @@ done:
 ; Preserves: X/Y/P
 
                 .if version==350
-setTSTAndReadConfigurationByte:
-                jsr withTST
+clearTSTAndReadConfigurationByte:
+                jsr withTSTClear
                 .endif
 readConfigurationByte: .block
                 php
@@ -962,8 +962,8 @@ maskByBitCount:
 ; Preserves: Y
 
                 .if version==350
-setTSTAndReadUsePrinterIgnoreChar:
-                jsr withTST
+clearTSTAndReadUsePrinterIgnoreChar:
+                jsr withTSTClear
                 .endif
 readUsePrinterIgnoreChar:
                 phy
@@ -1030,8 +1030,8 @@ L8BD4:
 ;-------------------------------------------------------------------------
 
                 .if version==350
-setTSTAndReadDefaultTVSettings
-                jsr withTST
+clearTSTAndReadDefaultTVSettings
+                jsr withTSTClear
                 .endif
 readDefaultTVSettings:
                 ldx #configureTable.L8605-configureTable

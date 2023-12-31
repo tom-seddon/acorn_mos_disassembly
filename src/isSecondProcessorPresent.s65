@@ -11,7 +11,7 @@
 
 isSecondProcessorPresent:
                 .if version==350
-                jsr withTST
+                jsr withTSTClear
                 .endif
                 ldx #$01                     
                 stx $fee0;tube.status1

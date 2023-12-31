@@ -176,7 +176,7 @@ nonPowerOnReset:
                 .endif
                 ldx #key_ctrl
                 .if version==350
-                jsr setTSTAndInterrogateKeyboard
+                jsr clearTSTAndInterrogateKeyboard
                 .else
                 jsr interrogateKeyboard
                 .endif
@@ -204,7 +204,7 @@ LFCBF:
                 .endif
                 .if version==350
                 ldx #configureTable.mode.metadata-configureTable
-                jsr setTSTAndReadConfigurationByte
+                jsr clearTSTAndReadConfigurationByte
                 .elsif version<500
                 jsr readDefaultMODE          ; Read configured MODE
                 .else
@@ -215,7 +215,7 @@ LFCBF:
                 ora #CMOSBytes.defaults0.shadowMask
                 sta startupOptions
                 .if version==350
-                jsr setTSTAndReadDefaults3
+                jsr clearTSTAndReadDefaults3
                 .else
                 jsr readDefaults3 ; Read configured BOOT
                 .endif
@@ -223,14 +223,14 @@ LFCBF:
                 lsr a         ; Reset OSBYTE 255 boot bit (b3) if BOOT
                 trb startupOptions
                 .if version==350
-                jsr setTSTAndReadDefaultTVSettings
+                jsr clearTSTAndReadDefaultTVSettings
                 .else
                 jsr readDefaultTVSettings
                 .endif
                 sty tvOffset
                 stx tvInterlace
                 .if version==350
-                jsr setTSTAndReadDefaults3
+                jsr clearTSTAndReadDefaults3
                 .else
                 jsr readDefaults3
                 .endif
@@ -345,8 +345,8 @@ L8155:
 
 L8164:
                 .if version==350
-                ldx #$19
-                jsr setTSTAndReadRTCByte
+                ldx #cmosBytesOffset+CMOSBytes.defaults1
+                jsr clearTSTAndReadRTCByte
                 .elsif version<500
                 jsr readDefaults1
                 .elsif version>=500
@@ -364,7 +364,7 @@ L8164:
 gotKeyboardStatusByte:
                 stx keyboardStatusByte
                 .if version==350
-                jsr setTSTAndResetKeyRepeat
+                jsr clearTSTAndResetKeyRepeat
                 .else
                 jsr selectTerminalROM
                 jsr resetKeyRepeat
@@ -373,7 +373,7 @@ gotKeyboardStatusByte:
                 beq L8196
                 .if version==350
                 ldx #cmosBytesOffset+CMOSBytes.printerIgnoreChar
-                jsr setTSTAndReadRTCByte
+                jsr clearTSTAndReadRTCByte
                 .elsif version<500
                 jsr readDefaultPrinterIgnoreChar
                 .elsif version>=500
@@ -382,7 +382,7 @@ gotKeyboardStatusByte:
                 .endif
                 sta printerIgnoreChar
                 .if version==350
-                jsr setTSTAndReadUsePrinterIgnoreChar
+                jsr clearTSTAndReadUsePrinterIgnoreChar
                 .elsif version<500
                 jsr readDefaults2
                 lsr a                        ;C=tubeOn
@@ -393,7 +393,7 @@ gotKeyboardStatusByte:
                 ror noignoreState
                 .if version==350
                 ldx #configureTable.print.metadata-configureTable
-                jsr setTSTAndReadConfigurationByte
+                jsr clearTSTAndReadConfigurationByte
                 .elsif version<500
                 jsr readDefaultFX5Settings
                 .elsif version>=500
@@ -407,7 +407,7 @@ L8196:
                 .else
                 .if version==350
                 ldx #configureTable.data.metadata-configureTable
-                jsr setTSTAndReadConfigurationByte
+                jsr clearTSTAndReadConfigurationByte
                 .elsif version<500
                 jsr readDefaultSerialDataFormat
                 .elsif version>=500
@@ -514,7 +514,7 @@ L81DD:
                 .endif
 
                 .if version==350
-                jsr setTSTAndOSBYTE7A
+                jsr clearTSTAndOSBYTE7A
                 .else
                 jsr osbyte7A             
                 .endif
@@ -534,7 +534,7 @@ L81DD:
                 .else
                 ldx #configureTable.baud.metadata-configureTable
                 .if version==350
-                jsr setTSTAndReadConfigurationByte
+                jsr clearTSTAndReadConfigurationByte
                 .else
                 jsr readConfigurationByte
                 .endif
@@ -548,7 +548,7 @@ L81DD:
                 .endif
 
                 .if version==350
-                jsr setTSTAndReadDefaults3
+                jsr clearTSTAndReadDefaults3
                 .else
                 jsr readDefaults3
                 .endif
@@ -772,12 +772,12 @@ softReset:
                 stz hazel.moveDestHandle
                 ldy #$CA
                 .if version==350
-                jsr setTSTAndInsertCharacterIntoKeyboardBuffer
+                jsr clearTSTAndInsertCharacterIntoKeyboardBuffer
                 .else
                 jsr insertCharacterIntoKeyboardBuffer
                 .endif
                 .if version==350
-                jsr setTSTAndOSBYTE247EntryPoint
+                jsr clearTSTAndOSBYTE247EntryPoint
                 .else
                 jsr osbyte247EntryPoint
                 .endif
@@ -791,7 +791,7 @@ softReset:
 L829D:
                 .if includeTubeSupport
                 .if version==350
-                jsr setTSTAndReadDefaults2
+                jsr clearTSTAndReadDefaults2
                 .else
                 jsr readDefaults2
                 .endif
@@ -799,7 +799,7 @@ L829D:
                 bcc continueSoftReset
 
                 .if version==350
-                jsr setTSTAndReadDefaults3
+                jsr clearTSTAndReadDefaults3
                 .else
                 jsr readDefaults3
                 .endif

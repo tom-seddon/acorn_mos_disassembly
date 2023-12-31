@@ -69,7 +69,7 @@ copyright:
 
                 .if version==350
 trbACCCON:
-                jsr withTST
+                jsr withTSTClear
                 trb ACCCON
                 rts
                 .endif
@@ -78,7 +78,7 @@ trbACCCON:
 
                 .if version==350
 tsbACCCON:
-                jsr withTST
+                jsr withTSTClear
                 tsb ACCCON
                 rts
                 .endif
@@ -87,7 +87,7 @@ tsbACCCON:
 
                 .if version==350
 ldaSystemVIAIER:
-                jsr withTST
+                jsr withTSTClear
                 lda systemVIA.ier
                 rts
                 .endif
@@ -96,7 +96,7 @@ ldaSystemVIAIER:
 
                 .if version==350
 printCMOSRamResetMessage:
-                jsr withTST
+                jsr withTSTClear
                 jsr alwaysPrintFollowingMessage
                 .text 13,10
                 .text "CMOS RAM reset",13,10
@@ -135,7 +135,7 @@ L8081:
 
                 .if version==350             ;stripped_out_reset
 softResetPart2:
-                jsr withTST
+                jsr withTSTClear
                 pla
                 pla
                 pla

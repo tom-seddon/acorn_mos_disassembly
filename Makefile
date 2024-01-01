@@ -53,6 +53,9 @@ all:
 # New versions.
 	$(_V)$(MAKE) _build VERSION=320nt
 	$(_V)$(MAKE) _build VERSION=350nt
+	$(_V)$(MAKE) _build VERSION=6xx
+	$(_V)$(MAKE) _build VERSION=7xx
+	$(_V)$(MAKE) _build VERSION=8xx
 
 ##########################################################################
 ##########################################################################

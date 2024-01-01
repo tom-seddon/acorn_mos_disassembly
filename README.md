@@ -42,9 +42,22 @@ goal of this project.
 # new versions of the MOS
 
 Even though producing new versions of the MOS is not a goal of this
-project, there are two **experimental** new versions of the MOS
-available that happened to be particularly easy to create:
-[MOS 3.20(NT) and MOS 3.50(NT)](./docs/NT.md).
+project, there some **experimental** new versions of the MOS available
+anyway, for use at your own risk. These can be used in an emulator, or
+programmed into a EPROM (or similar) and used in real hardware.
+
+**All new versions of the MOS are experimental.** Should you actually
+use your 8-bit 1980s Acorn computer for anything important, please
+proceed with appropriate caution.
+
+[MOS 3.20(NT) and MOS 3.50(NT)](./docs/NT.md), for Master 128 only,
+have had the Terminal ROM taken out. All existing OS behaviour is
+(hopefully) maintained, but creation of new MegaROM images is much
+simplified.
+
+[MOS 6.00, MOS 7.00 and MOS 8.00](./docs/refresh.md), covering Master
+128, Master Compact and Olivetti PC128S, use the existing OS code as a
+starting point for new versions with additional fixes and features.
 
 # history
 

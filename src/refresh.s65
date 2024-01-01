@@ -1,0 +1,5 @@
+refreshVersion=true
+refreshMinorVersion=0
+
+refreshVersionString: .function refreshMajorVersion
+                .endfunction format("MOS %d.%02d",refreshMajorVersion,refreshMinorVersion)

@@ -1,0 +1,25 @@
+                .include "src/hardware.s65"
+                .include "src/mos_workspace.s65"
+                .include "src/refresh.s65"
+
+; MOS 7.xx - refreshed MOS 3.50 (Master 128)
+                
+version=350
+includeTerminalROM=false
+versionString=refreshVersionString(7)
+defaultMODE=7
+                
+*=$8000
+                .dsection utils
+                .cwarn *>$c000,'Terminal ROM is too large'
+                
+*=$c000
+                .dsection mos
+
+                .section utils
+                .include "src/terminal.s65"
+                .endsection
+
+                .section mos
+                .include "src/mos.s65"
+                .endsection

@@ -52,6 +52,9 @@ finmos329=false
                 ; Clear if stripping out the terminal ROM. Applicable
                 ; to 3.20 or 3.50.
 includeTerminalROM=true
+
+                ; Set if building any of the refresh versions.
+refreshVersion=false
                 .endweak
 
 ;-------------------------------------------------------------------------

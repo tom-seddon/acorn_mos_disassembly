@@ -2047,7 +2047,7 @@ L963A:
                 
 ;-------------------------------------------------------------------------
 
-L9423:
+osbyte77:
                 ldx #romServiceCallSpoolExecClosureWarning
                 jsr makeROMServiceCall
                 beq L941F

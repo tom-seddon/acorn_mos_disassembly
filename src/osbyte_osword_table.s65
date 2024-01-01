@@ -170,9 +170,9 @@ osbyteAndOSWORDRoutineTable:
 
                 ;Close all *SPOOL/*SPOOLON or *EXEC files D.2-33
                 .if version==350
-                .word L9423
-                .else
                 .word osbyte77
+                .else
+                .word selectTerminalROMAndOSBYTE77
                 .endif
 
                 ;Write keys pressed information D.2-33

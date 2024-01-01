@@ -8653,9 +8653,9 @@ LE9A4:
 ; D.2-33
 ;
                 .if version!=350
-osbyte77:                       ;e9b5
+selectTerminalROMAndOSBYTE77:
                 jsr withTerminalROM
-                jmp L9423
+                jmp osbyte77
                 .endif
 
 ;-------------------------------------------------------------------------

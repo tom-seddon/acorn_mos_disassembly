@@ -202,18 +202,21 @@ L80AD:
                 jsr LFB2F
 LFCBF:
                 .endif
-                .if version==350
-                ldx #configureTable.mode.metadata-configureTable
-                jsr clearTSTAndReadConfigurationByte
-                .elsif !useTableDrivenConfigure
-                jsr readDefaultMODE          ; Read configured MODE
-                .else
+
+                .if useTableDrivenConfigure
                 .if version>=500
                 jsr L9E58
                 .endif
-                ldx #configureTable.mode.metadata-configureTable;$56
+                ldx #configureTable.mode.metadata-configureTable
+                .if version==350
+                jsr clearTSTAndReadConfigurationByte
+                .else
                 jsr readConfigurationByte
                 .endif
+                .else
+                jsr readDefaultMODE          ; Read configured MODE
+                .endif
+                
                 ora #CMOSBytes.defaults0.shadowMask
                 sta startupOptions
                 .if version==350
@@ -395,29 +398,35 @@ gotKeyboardStatusByte:
                 jsr readUsePrinterIgnoreChar
                 .endif
                 ror noignoreState
+
+                .if useTableDrivenConfigure
+                ldx #configureTable.print.metadata-configureTable
                 .if version==350
-                ldx #configureTable.print.metadata-configureTable
                 jsr clearTSTAndReadConfigurationByte
-                .elsif !useTableDrivenConfigure
-                jsr readDefaultFX5Settings
                 .else
-                ldx #configureTable.print.metadata-configureTable
                 jsr readConfigurationByte
                 .endif
+                .else
+                jsr readDefaultFX5Settings
+                .endif
+                
                 sta printerDriverType
 L8196:
                 .if version==400
                 ldx #1
                 .else
+
+                .if useTableDrivenConfigure
+                ldx #configureTable.data.metadata-configureTable
                 .if version==350
-                ldx #configureTable.data.metadata-configureTable
                 jsr clearTSTAndReadConfigurationByte
-                .elsif !useTableDrivenConfigure
-                jsr readDefaultSerialDataFormat
                 .else
-                ldx #configureTable.data.metadata-configureTable
                 jsr readConfigurationByte
                 .endif
+                .else
+                jsr readDefaultSerialDataFormat
+                .endif
+                
                 asl a                        ;
                 asl a       ;shift into the control registerword field
                 ora #ACIA.control.rtsHighTXInterruptDisabled|ACIA.control.counterDivide64
@@ -533,16 +542,18 @@ L81DD:
                 lda serialULARegister
                 and #$7F
                 jsr LEC89
-                .if !useTableDrivenConfigure
-                jsr readDefaultSerialBaudRateIndex
-                .else
+                
+                .if useTableDrivenConfigure
                 ldx #configureTable.baud.metadata-configureTable
                 .if version==350
                 jsr clearTSTAndReadConfigurationByte
                 .else
                 jsr readConfigurationByte
                 .endif
+                .else
+                jsr readDefaultSerialBaudRateIndex
                 .endif
+                
                 pha
                 tax
                 jsr osbyte08

@@ -138,7 +138,7 @@ else
 tom_laptop: ECTAGS:=ctags
 endif
 tom_laptop:
-	$(ECTAGS) '--exclude=.#*' --langdef=64tass --langmap=64tass:.s65 '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*):/\1/l.label/' '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*)=/\1/k.const/' -e *.s65 src/*.s65
+	$(ECTAGS) '--exclude=.#*' --langdef=64tass --langmap=64tass:.s65 '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*):/\1/l,label/' '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*)=/\1/k,const/' -e *.s65 src/*.s65
 	$(PYTHON) bin/check7bit.py '*.s65'
 	$(MAKE) all
 

@@ -1,11 +1,9 @@
                 .include "src/hardware.s65"
                 .include "src/mos_workspace.s65"
-                .include "src/terminal_workspace.s65"
 
 version=320
 includeTerminalROM=false
 versionString="OS 3.20(NT)"
-
                 
 *=$8000
                 .dsection utils

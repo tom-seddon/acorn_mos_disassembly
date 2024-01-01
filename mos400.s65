@@ -1,6 +1,5 @@
                 .include "src/hardware.s65"
                 .include "src/mos_workspace.s65"
-                .include "src/terminal_workspace.s65"
 
 version=400
 versionString="MOS 4.00"

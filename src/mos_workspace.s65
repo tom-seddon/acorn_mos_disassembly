@@ -118,6 +118,14 @@ useTableDrivenConfigure=false
                 
 ;-------------------------------------------------------------------------
 
+beword .macro value
+                .byte >\value
+                .byte <\value
+                .endm
+                
+
+;-------------------------------------------------------------------------
+
 tubeHostAddr=$400
 
                 .if version==350

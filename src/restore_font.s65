@@ -44,6 +44,7 @@ restoreFont32ToN:
 restoreFontPart:
                 sta $FB                      ;save MSB of dest
                 jsr selectTerminalROMAndANDY2
+                .cwarn *<$9000,format("Code inside ANDY at: $%04x",*) ; following code can't be inside the ANDY region!
                 phy                          ;
                 ldy #$00                     ;
                 stz $FA                      ;initialize LSB of src
@@ -79,16 +80,13 @@ restoreFont32To126:
 osbyte19:
                 txa                          ;A=group identifier
                 beq restoreFont32To255   ;taken if group 0 - all chars
-                .if version<500
-                cmp #$08
-                .if version==350
-                bcs rts9922
-                .else
-                bcs rts9238         ;taken if group >= 8 (not invalid)
-                .endif
-                .elsif version>=500
+                .if version>=500
                 cmp #$10
-                bcs rts94A4
+                .else
+                cmp #$08
+                .endif
+                bcs osbyte19Done
+                .if version>=500
                 and #7
                 beq restoreFont32To255
                 .endif

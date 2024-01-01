@@ -1740,7 +1740,11 @@ L926D:
 
 ;-------------------------------------------------------------------------
 
-                .if version!=350
+                .if version==320||version==400
+osbyte19Done=rts9238
+                .include "restore_font.s65"
+                .elsif version>=500
+osbyte19Done=rts94A4
                 .include "restore_font.s65"
                 .endif
                 
@@ -2029,7 +2033,7 @@ L9412:
                 asl hazel.tempFSFlag
                 jsr OSBYTE
                 bvs badCommandError93E2
-L941F:
+rts941F:
                 rts
 
 ;-------------------------------------------------------------------------
@@ -2052,7 +2056,7 @@ L963A:
 osbyte77:
                 ldx #romServiceCallSpoolExecClosureWarning
                 jsr makeROMServiceCall
-                beq L941F
+                beq rts941F
                 jsr LA58B
                 lda spoolFileHandle
                 jsr LA56B
@@ -2067,7 +2071,7 @@ L9440:
                 lsr hazel.tempFSFlag
                 ply
                 plp
-                beq L941F
+                beq rts941F
                 lda #$80
                 bcc L944D
                 lda #$C0
@@ -2125,13 +2129,14 @@ L938E:
 starDELETE:
                 jsr starREMOVE
                 tay
-                bne L941F
+                bne rts941F
                 jmp notFoundError
 
 ;-------------------------------------------------------------------------
 
                 .if version==350
                 .include "rtc.s65"
+osbyte19Done=rts9922
                 .include "restore_font.s65"
                 .endif
 
@@ -2192,7 +2197,7 @@ parseSoftKeyNumberFromCommandLine:
                 jsr parseNumberFromString
                 bcc badKeyError
                 cpx #softKeyCount
-                bcc L941F
+                bcc rts941F
 badKeyError:
                 jsr doFollowingError
                 .byte $FB
@@ -2218,6 +2223,7 @@ printKeyDefinition:
                 lda $F4
                 pha
                 jsr selectTerminalROMAndANDY2
+                .cwarn *<$9000,format("Code inside ANDY at: $%04x",*)
                 lda andy.softKeys.stringLSBs,x
                 sta stringInputBufferAddress+0
                 lda andy.softKeys.stringMSBs,x

@@ -298,10 +298,10 @@ mosCommandTable:
                 .mos_command "BASIC",starBASIC,$00,$00  ;
                 .mos_command "BUILD",starBUILD,$80,$00  ; XY=>parameters
                 .mos_command "CLOSE",starCLOSE,$00,$FF  ;
-                .if !useTableDrivenConfigure
-                .mos_command "CONFIGURE",starCONFIGURE,$00,$FF ;
-                .else
+                .if useTableDrivenConfigure
                 .mos_command "CONFIGURE",starCONFIGUREOrStarSTATUS,$00,$80 ;
+                .else
+                .mos_command "CONFIGURE",starCONFIGURE,$00,$FF ;
                 .endif
                 .mos_command "CODE",starCommandThroughOSBYTE,$00,$88 ; X,y=parameters, OSBYTE &88
                 .mos_command "CREATE",starCommandThroughOSFILE,$80,$07 ; XY=>parameters, OSFILE &07
@@ -347,10 +347,10 @@ mosCommandTable:
                 .mos_command "SRSAVE",starSRLOADOrStarSRSAVE,$80,$20
                 .mos_command "SRWRITE",starSRREADOrStarSRWRITE,$00,$e0
                 .endif
-                .if !useTableDrivenConfigure
-                .mos_command "STATUS",starSTATUS,$00,$FF  ;
-                .else
+                .if useTableDrivenConfigure
                 .mos_command "STATUS",starCONFIGUREOrStarSTATUS,$00,$c0
+                .else
+                .mos_command "STATUS",starSTATUS,$00,$FF  ;
                 .endif
                 .if version<500
                 .mos_command tapeCommandString,starCommandThroughOSBYTE,$00,$8C ; X,y=parameters, OSBYTE &8C
@@ -544,10 +544,10 @@ passStarCommandThrough:
                 ldy $E6
                 ldx #romServiceCallUnrecognisedCommand
                 jsr osbyte8F    ; Service call 4 - Unknown command
-                .if !useTableDrivenConfigure
-                beq rts85A5                    ; Claimed, return
-                .else
+                .if useTableDrivenConfigure
                 beq parseDone
+                .else
+                beq rts85A5                    ; Claimed, return
                 .endif
 L85C0:
                 lda $E6
@@ -878,10 +878,10 @@ starUNPLUG:
 starINSERTOrStarUNPLUG:
                 php
                 jsr skipSpacesAndCheckForCRInStringInput
-                .if !useTableDrivenConfigure
-                jsr parseSingle4BitNumberFromCommandLine
-                .else
+                .if useTableDrivenConfigure
                 jsr L8953
+                .else
+                jsr parseSingle4BitNumberFromCommandLine
                 .endif
                 tay                          ;Y=ROM number
                 jsr getROMInsertedFlagRTCAddressAndMask

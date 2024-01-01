@@ -7215,14 +7215,14 @@ LE431:
                 lda lastBREAKType ; Soft Break, use current filing system
                 beq LE454
                 jsr selectTerminalROM
-                .if !useTableDrivenConfigure
+                .if useTableDrivenConfigure
+                ldx #configureTable.file.metadata-configureTable
+                jsr readConfigurationByte
+                .else
                 phy
                 jsr readDefaultROMs
                 and #$0F                     ;get default FS ROM
                 ply
-                .else
-                ldx #configureTable.file.metadata-configureTable
-                jsr readConfigurationByte
                 .endif
 
                 tax
@@ -7302,11 +7302,11 @@ LE4A3:
                 beq LE509
 LE4BB:
                 jsr selectTerminalROM     ; Page in ROM 15 - UTILS ROM
-                .if !useTableDrivenConfigure
-                jsr readDefaultLanguageROM        ; Read configured LANG
-                .else
+                .if useTableDrivenConfigure
                 ldx #configureTable.lang.metadata-configureTable
                 jsr readConfigurationByte
+                .else
+                jsr readDefaultLanguageROM        ; Read configured LANG
                 .endif
                 tax
 LE4C2:
@@ -10790,17 +10790,17 @@ clearTSTAndResetKeyRepeat:
                 .endif
 resetKeyRepeat:
                 jsr withTerminalROM
-                .if !useTableDrivenConfigure
-                jsr getDefaultKeyboardAutoRepeatDelay
-                sty keyboardAutoRepeatDelay
-                jsr getDefaultKeyboardAutoRepeatRate
-                .else
+                .if useTableDrivenConfigure
                 ldx #CMOSBytes.keyboardAutoRepeatDelay+cmosBytesOffset
                 jsr readRTCByte
                 sta keyboardAutoRepeatDelay
                 ldx #CMOSBytes.keyboardAutoRepeatRate+cmosBytesOffset
                 jsr readRTCByte
                 tay
+                .else
+                jsr getDefaultKeyboardAutoRepeatDelay
+                sty keyboardAutoRepeatDelay
+                jsr getDefaultKeyboardAutoRepeatRate
                 .endif
                 ldx keyboardAutoRepeatRate
                 sty keyboardAutoRepeatRate

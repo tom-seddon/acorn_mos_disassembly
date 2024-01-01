@@ -7295,9 +7295,9 @@ LE4A3:
                 .endif
                 bcc LE4C2
                 .if version==350&&!finmos329
-                cmp #$1f
+                cmp #$10+terminalROM
                 .else
-                cpx #$1F                     ; 16+UTILS ROM, re-enter Supervisor or Tube CLI
+                cpx #$10+terminalROM ; 16+UTILS ROM, re-enter Supervisor or Tube CLI
                 .endif
                 beq LE509
 LE4BB:

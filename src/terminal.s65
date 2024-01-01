@@ -108,7 +108,9 @@ printCMOSRamResetMessage:
 ;-------------------------------------------------------------------------
 
                 .if version==350
+                .if includeTubeSupport
                 .include "isSecondProcessorPresent.s65"
+                .endif
                 .endif
 
 ;-------------------------------------------------------------------------

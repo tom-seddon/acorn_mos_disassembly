@@ -9,6 +9,9 @@
 ; C=1 = Tube
 ;
 
+; (Note that this code is always included in MOS 5.xx, even though
+; there's no second processor support.)
+                
 isSecondProcessorPresent:
                 .if version==350
                 jsr withTSTClear

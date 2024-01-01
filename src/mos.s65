@@ -7098,7 +7098,7 @@ staTEMPAAndACCCON:
 
 ;-------------------------------------------------------------------------
 
-                .if version!=350
+                .if version!=350&&(includeTubeSupport||version>=500)
                 .include "isSecondProcessorPresent.s65"
                 .endif
 

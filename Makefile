@@ -131,7 +131,7 @@ _dist_copy:
 ci: CI_LST_ARCHIVE?=$(error must set CI_LST_ARCHIVE)
 ci: CI_NT_ARCHIVE?=$(error must set CI_NT_ARCHIVE)
 ci:
-	$(MAKE) VERBOSE=1 "TASSCMD=$(TASSCMD)"
+	$(MAKE) VERBOSE=1 MUST_MATCH=1 "TASSCMD=$(TASSCMD)"
 
 # Orginal versions
 	zip -9j "$(CI_LST_ARCHIVE)" "docs/README.txt" "build/mos320.lst" "build/mos500.lst" "build/mos510.lst" "build/mos511.lst" "build/mos400.lst" "build/mosPC128S.lst" "build/mos350.lst" "build/mosCFA3000.lst" "build/mosautocue.lst" 

@@ -1,5 +1,5 @@
 refreshVersion=true
-refreshMinorVersion=0
+refreshMinorVersion=1
 
 refreshVersionStringSuffix: .function
                 .endfunction format("%02d",refreshMinorVersion)

@@ -39,7 +39,9 @@ The following versions are available. All 3 versions are built from
 the same code, and are released together, so the version numbers for
 all 3 versions increase in sync.
 
-## .00 (under development)
+## .00
 
 * 6.00, 7.00: RTC year is assumed to be 20xx not 19xx
 * 6.00, 8.00: fix OSBYTE &6B behaviour
+
+## .01 (under development)

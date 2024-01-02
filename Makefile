@@ -56,6 +56,7 @@ all:
 	$(_V)$(MAKE) _build VERSION=6xx
 	$(_V)$(MAKE) _build VERSION=7xx
 	$(_V)$(MAKE) _build VERSION=8xx
+	$(_V)$(TASS) src/refresh_version.s65 -o $(BUILD)/refresh_version.dat
 
 ##########################################################################
 ##########################################################################

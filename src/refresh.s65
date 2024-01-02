@@ -1,5 +1,8 @@
 refreshVersion=true
 refreshMinorVersion=0
 
+refreshVersionStringSuffix: .function
+                .endfunction format("%02d",refreshMinorVersion)
+                
 refreshVersionString: .function refreshMajorVersion
-                .endfunction format("MOS %d.%02d",refreshMajorVersion,refreshMinorVersion)
+                .endfunction format("MOS %d.%s",refreshMajorVersion,refreshVersionStringSuffix())

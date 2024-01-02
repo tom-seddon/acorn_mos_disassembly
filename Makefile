@@ -125,6 +125,23 @@ _dist_copy:
 ##########################################################################
 ##########################################################################
 
+# this only needs to be portable to POSIX-type systems, so
+# Windows-friendliness is a bit half-arsed. It does work on my laptop.
+.PHONY:ci
+ci: CI_LST_ARCHIVE?=$(error must set CI_LST_ARCHIVE)
+ci: CI_NT_ARCHIVE?=$(error must set CI_NT_ARCHIVE)
+ci:
+	$(MAKE) VERBOSE=1 "TASSCMD=$(TASSCMD)"
+
+# Orginal versions
+	zip -9j "$(CI_LST_ARCHIVE)" "docs/README.txt" "build/mos320.lst" "build/mos500.lst" "build/mos510.lst" "build/mos511.lst" "build/mos400.lst" "build/mosPC128S.lst" "build/mos350.lst" "build/mosCFA3000.lst" "build/mosautocue.lst" 
+# NT versions
+	cd build && zip -9r "../$(CI_NT_ARCHIVE)" 320nt 350nt
+	zip -9j "$(CI_NT_ARCHIVE)" "docs/README.txt" "build/mos320nt.lst" "build/mos350nt.lst"
+
+##########################################################################
+##########################################################################
+
 ifeq ($(OS),Windows_NT)
 UNAME:=$(OS)
 else

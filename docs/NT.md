@@ -9,8 +9,8 @@ images with alternative utility or language ROMs.
 
 You can get a build from the latest release page:
 https://github.com/tom-seddon/acorn_mos_disassembly/releases/latest -
-download the -NT zip. Use `mos.rom` and `utils.rom` corresponding to
-the version of interest.
+download the `acorn-mos-320nt-350nt` zip. Use `mos.rom` and
+`utils.rom` corresponding to the version of interest.
 
 Alternatively, you can build it yourself, following
 [the building instructions](./build.md). Find the output in the build

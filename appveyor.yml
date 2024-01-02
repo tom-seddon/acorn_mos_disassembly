@@ -19,24 +19,15 @@ install:
   - ps: $env:RELEASE_NAME = $(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
 
 build_script:
-  - ps: $env:OUTPUT_LST_ARCHIVE="acorn-mos-disassembly-lst."+$env:RELEASE_NAME+".zip"
-  - ps: $env:OUTPUT_NT_ARCHIVE="acorn-mos-disassembly-NT."+$env:RELEASE_NAME+".zip"
-  - ps: make VERBOSE=1 TASSCMD=$HOME/tass64-code/64tass
-  - pushd build
-  - zip -9r "../$OUTPUT_NT_ARCHIVE" 320nt 350nt
-  - popd
-  - zip -9j "$OUTPUT_NT_ARCHIVE" "docs/README.txt" "build/mos320nt.lst" "build/mos350nt.lst"
-  - rm "build/mos320nt.lst" "build/mos350nt.lst"
-  - pushd build
-  - zip -9 "../$OUTPUT_LST_ARCHIVE" *.lst
-  - popd
-  - zip -9j "$OUTPUT_LST_ARCHIVE" "docs/README.txt"
+  - ps: $env:CI_LST_ARCHIVE="acorn-mos-disassembly-lst."+$env:RELEASE_NAME+".zip"
+  - ps: $env:CI_NT_ARCHIVE="acorn-mos-320nt-350nt."+$env:RELEASE_NAME+".zip"
   - env
+  - ps: make ci
     
 artifacts:
-  - path: $(OUTPUT_LST_ARCHIVE)
+  - path: $(CI_LST_ARCHIVE)
     name: lst_archive
-  - path: $(OUTPUT_NT_ARCHIVE)
+  - path: $(CI_NT_ARCHIVE)
     name: nt_archive
 
 deploy:

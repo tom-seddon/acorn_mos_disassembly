@@ -22,7 +22,7 @@ build_script:
   - ps: $env:CI_LST_ARCHIVE="acorn-mos-disassembly-lst."+$env:RELEASE_NAME+".zip"
   - ps: $env:CI_NT_ARCHIVE="acorn-mos-320nt-350nt."+$env:RELEASE_NAME+".zip"
   - env
-  - ps: make ci
+  - ps: make ci "TASSCMD=$HOME/tass64-code/64tass"
     
 artifacts:
   - path: $(CI_LST_ARCHIVE)

@@ -30,7 +30,7 @@ endif
 
 SHELLCMD:=$(PYTHON) submodules/shellcmd.py/shellcmd.py
 MKDIR:=$(SHELLCMD) mkdir
-TASS:=$(TASSCMD) --m65c02 --nostart -Wall $(_TASSQ) --case-sensitive --line-numbers --verbose-list
+TASS:="$(TASSCMD)" --m65c02 --nostart -Wall $(_TASSQ) --case-sensitive --line-numbers --verbose-list
 BUILD:=build
 DIST:=dist
 

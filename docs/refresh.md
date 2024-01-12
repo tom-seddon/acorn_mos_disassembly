@@ -46,8 +46,9 @@ all 3 versions increase in sync.
 
 ## A
 
-* 3.20A, 3.50A: RTC year is assumed to be 20xx not 19xx
 * 3.20A, 5.10A: fix OSBYTE &6B behaviour
 
 ## B (under development)
 
+* 3.20B, 3.50B: RTC year is assumed to be 20xx not 19xx
+* 3.20B, 3.50B: remove built-in  `*X` command

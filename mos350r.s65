@@ -8,6 +8,8 @@ version=350
 includeTerminalROM=false
 versionString=refreshVersionString("3.50")
 defaultMODE=7
+includeStarX=false
+assumedRTCCenturyBCD=$20   
                 
 *=$8000
                 .dsection utils

@@ -1,5 +1,5 @@
 refreshVersion=true
-refreshMinorVersion=0
+refreshMinorVersion=1
 
 refreshVersionStringSuffix: .function
                 ; To avoid confusion with MOS I5.10C, refresh version

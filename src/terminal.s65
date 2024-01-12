@@ -6360,16 +6360,21 @@ enterNewLanguage: .proc
                 
 transferPage:
                 .if version==350
+                .if !fasterTubeRelocation
                 jsr relocateNextLanguageROMPage
+                .endif
                 .endif
                 php
                 sei
 
                 ; initiate I/O->CoPro 256 bytes, then transfer the
                 ; next 256 bytes of the language ROM.
-                lda #$07
+                lda #tubeReason256BytesHostToParasite
                 jsr doTube
                 
+                .if fasterTubeRelocation
+                jsr relocateNextLanguageROMPage
+                .else
                 ldy #$00
                 .if version==350
 transferPageLoop:
@@ -6388,6 +6393,7 @@ transferPageLoop:
                 .endif
                 iny
                 bne transferPageLoop
+                .endif
                 plp
 
                 ; advance to next dest page.
@@ -6411,7 +6417,7 @@ transferPageLoop:
                 .else
                 jsr getLanguageParasiteAddr
                 .endif
-                lda #$04        ;execute in copro
+                lda #tubeReasonExecute
 
                 ; call Tube entry point with whatever reason code,
                 ; supplying language parasite address as the parasite

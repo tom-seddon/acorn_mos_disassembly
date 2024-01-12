@@ -84,6 +84,9 @@ assumedRTCCenturyBCD=$19
                 ; MOS 3.50. Applies to MOS 3.50 only.
 correctlyHandleMissingTubeRelocationBitmap=false
 
+                ; If true, improve Tube relocation speed. 
+fasterTubeRelocation=false
+
                 .endweak
                 
 ;-------------------------------------------------------------------------
@@ -143,11 +146,19 @@ tubeRelocationBitmapByte=$4f7
 tubeRelocationBitmapROMBank=$04f8
 tubeRelocationPageOffset=$04f9
 
+                .if !fasterTubeRelocation
                 ; 256-byte region where 1 relocated page of language
                 ; ROM is held ready for host->parasite pagewise
                 ; transfer.
 tubeRelocationBuffer=$700
                 .endif
+
+forcew: .macro instr,oper
+                \instr @w \oper
+                .endmacro
+                
+                .endif
+                
                 
 ;-------------------------------------------------------------------------
 
@@ -453,6 +464,7 @@ bufferNumberHighest=8           ;
 tubeReasonMultiByteParasiteToHost=0
 tubeReasonMultiByteHostToParasite=1
 tubeReasonExecute=4
+tubeReason256BytesHostToParasite=7
 tubeReasonClaimMask=$c0
 tubeReasonReleaseMask=$80
                 .endif

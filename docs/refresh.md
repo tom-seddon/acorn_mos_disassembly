@@ -52,4 +52,5 @@ all 3 versions increase in sync.
 
 * 3.20B, 3.50B: RTC year is assumed to be 20xx not 19xx
 * 3.20B, 3.50B: remove built-in  `*X` command
-* 3.50B: fix handling of missing sideways ROM Tube relocation bitmaps
+* 3.50B: fix handling of missing language ROM Tube relocation bitmaps
+* 3.50B: improve language ROM Tube transfer speed

@@ -13420,13 +13420,20 @@ loop:
                 cmp #$C0
                 bcs gotByte ; taken if not potentially-relocatable byte
                 pha
+                
                 jsr fetchTubeRelocationBitmapBit
                 pla
                 bcc gotByte ; taken if byte isn't actually to be relocated
                 clc
                 adc tubeRelocationPageOffset ; adjust for relocation offset
 gotByte:
+                .if fasterTubeRelocation
+                ; Fastest case round the loop is 20 cycles exactly, I
+                ; think?
+                sta tube.data3
+                .else
                 sta tubeRelocationBuffer,y
+                .endif
                 iny
                 bne loop
                 inc @w tubeLanguageHostAddr+1

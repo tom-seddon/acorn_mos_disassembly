@@ -29,6 +29,7 @@ endif
 ##########################################################################
 
 SHELLCMD:=$(PYTHON) submodules/shellcmd.py/shellcmd.py
+BBIN:=submodules/beeb/bin
 MKDIR:=$(SHELLCMD) mkdir
 TASS:="$(TASSCMD)" --m65c02 --nostart -Wall $(_TASSQ) --case-sensitive --line-numbers --verbose-list
 BUILD:=build
@@ -57,6 +58,11 @@ all:
 	$(_V)$(MAKE) _build VERSION=7xx
 	$(_V)$(MAKE) _build VERSION=8xx
 	$(_V)$(TASS) src/refresh_version.s65 -o $(BUILD)/refresh_version.dat
+
+# Produce non-relocating ROMs for 3.50(NT), which (like MOS 3.50)
+# doesn't gracefully handle lack of ROM relocation data.
+	$(_V)$(PYTHON) "$(BBIN)/tube_relocation.py" unset -o "build/350nt/basic.4r32.non_relocatable.rom" "orig/350/basic.4r32.rom"
+	$(_V)$(PYTHON) "$(BBIN)/tube_relocation.py" unset -o "build/350nt/edit.1.50r.non_relocatable.rom" "orig/350/edit.1.50r.rom"
 
 ##########################################################################
 ##########################################################################
@@ -106,8 +112,6 @@ dist:
 	$(_V)$(MAKE) clean
 	$(_V)$(MAKE) all MUST_MATCH=1
 	$(_V)$(SHELLCMD) mkdir $(DIST)
-# If shellcmd.py copy-file handled wildcards, this would be a bit
-# simpler.
 	$(_V)$(MAKE) _dist_copy VERSION=320
 	$(_V)$(MAKE) _dist_copy VERSION=500
 	$(_V)$(MAKE) _dist_copy VERSION=510
@@ -132,10 +136,12 @@ _dist_copy:
 ci: CI_LST_ARCHIVE?=$(error must set CI_LST_ARCHIVE)
 ci: CI_NT_ARCHIVE?=$(error must set CI_NT_ARCHIVE)
 ci:
+	$(MAKE) clean
 	$(MAKE) VERBOSE=1 MUST_MATCH=1 "TASSCMD=$(TASSCMD)"
 
 # Orginal versions
-	zip -9j "$(CI_LST_ARCHIVE)" "docs/README.txt" "build/mos320.lst" "build/mos500.lst" "build/mos510.lst" "build/mos511.lst" "build/mos400.lst" "build/mosPC128S.lst" "build/mos350.lst" "build/mosCFA3000.lst" "build/mosautocue.lst" 
+	zip -9j "$(CI_LST_ARCHIVE)" "docs/README.txt" "build/mos320.lst" "build/mos500.lst" "build/mos510.lst" "build/mos511.lst" "build/mos400.lst" "build/mosPC128S.lst" "build/mos350.lst" "build/mosCFA3000.lst" "build/mosautocue.lst" "build/mos329.lst"
+
 # NT versions
 	cd build && zip -9r "../$(CI_NT_ARCHIVE)" 320nt 350nt
 	zip -9j "$(CI_NT_ARCHIVE)" "docs/README.txt" "build/mos320nt.lst" "build/mos350nt.lst"

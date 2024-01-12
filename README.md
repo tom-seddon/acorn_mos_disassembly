@@ -55,9 +55,10 @@ have had the Terminal ROM taken out. All existing OS behaviour is
 (hopefully) maintained, but creation of new MegaROM images is much
 simplified.
 
-[MOS 6.00, MOS 7.00 and MOS 8.00](./docs/refresh.md), covering Master
-128, Master Compact and Olivetti PC128S, use the existing OS code as a
-starting point for new versions with additional fixes and features.
+[Refresh versions of MOS 3.20, MOS 3.50 and MOS 5.10](./docs/refresh.md),
+cover Master 128, Master Compact and Olivetti PC128S, using the
+existing OS code as a starting point for new versions with additional
+fixes and features.
 
 # history
 

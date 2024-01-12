@@ -2,7 +2,14 @@ refreshVersion=true
 refreshMinorVersion=1
 
 refreshVersionStringSuffix: .function
-                .endfunction format("%02d",refreshMinorVersion)
+                ; To avoid confusion with MOS I5.10C, refresh version
+                ; "C" does not exist.
+                .cerror refreshMinorVersion==2
+
+                ; There are 26 letters in the alphabet.
+                .cerror refreshMinorVersion>=25
+                
+                .endfunction format("%c",65+refreshMinorVersion)
                 
 refreshVersionString: .function refreshMajorVersion
-                .endfunction format("MOS %d.%s",refreshMajorVersion,refreshVersionStringSuffix())
+                .endfunction format("MOS %s%s",refreshMajorVersion,refreshVersionStringSuffix())

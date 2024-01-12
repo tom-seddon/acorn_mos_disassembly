@@ -54,9 +54,9 @@ all:
 # New versions.
 	$(_V)$(MAKE) _build VERSION=320nt
 	$(_V)$(MAKE) _build VERSION=350nt
-	$(_V)$(MAKE) _build VERSION=6xx
-	$(_V)$(MAKE) _build VERSION=7xx
-	$(_V)$(MAKE) _build VERSION=8xx
+	$(_V)$(MAKE) _build VERSION=320r
+	$(_V)$(MAKE) _build VERSION=350r
+	$(_V)$(MAKE) _build VERSION=510r
 	$(_V)$(TASS) src/refresh_version.s65 -o $(BUILD)/refresh_version.dat
 
 # Produce non-relocating ROMs for 3.50(NT), which (like MOS 3.50)

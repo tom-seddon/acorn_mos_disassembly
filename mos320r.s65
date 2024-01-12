@@ -2,11 +2,11 @@
                 .include "src/mos_workspace.s65"
                 .include "src/refresh.s65"
 
-; MOS 6.xx - refreshed MOS 3.20 (Master 128)
+; Refreshed MOS 3.20 (Master 128)
                 
 version=320
 includeTerminalROM=false
-versionString=refreshVersionString(6)
+versionString=refreshVersionString("3.20")
                 
 *=$8000
                 .dsection utils

@@ -2,11 +2,11 @@
                 .include "src/mos_workspace.s65"
                 .include "src/refresh.s65"
 
-; MOS 7.xx - refreshed MOS 3.50 (Master 128)
+; Refreshed MOS 5.10 (Master Compact/Olivetti PC128S)
                 
-version=350
+version=510
 includeTerminalROM=false
-versionString=refreshVersionString(7)
+versionString=refreshVersionString("5.10")
 defaultMODE=7
                 
 *=$8000

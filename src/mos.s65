@@ -13496,7 +13496,11 @@ gotRelocationBitmapROMBank:
 invalidTubeRelocationBitmap:
                 pla
                 jsr selectROMA
+                .if correctlyHandleMissingTubeRelocationBitmap
+                .cerror *!=setTubeLanguageParasiteAddr00008000
+                .else
                 bra noTubeRelocationBitmap
+                .endif
 
 ;-------------------------------------------------------------------------
 

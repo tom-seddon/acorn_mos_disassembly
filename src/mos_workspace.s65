@@ -80,6 +80,10 @@ correctOSBYTE6B6C=version==350
                 ; Assumed century for RTC reading purposes.
 assumedRTCCenturyBCD=$19
 
+                ; If false, reproduce the relocation issue present in
+                ; MOS 3.50. Applies to MOS 3.50 only.
+correctlyHandleMissingTubeRelocationBitmap=false
+
                 .endweak
                 
 ;-------------------------------------------------------------------------

@@ -13663,7 +13663,9 @@ LFB3B:
 
 ;-------------------------------------------------------------------------
 
+mosUnusedBegin:
                 .fill $fc00-*,$ff
+mosUnusedSize=*-mosUnusedBegin
 
                 .if version==350
 

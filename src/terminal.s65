@@ -6950,7 +6950,9 @@ LAE0F:
 
 ; Unused space
 ; ============
+terminalUnusedBegin:
                 .fill $b900-*,$ff
+terminalUnusedSize=*-terminalUnusedBegin
 
 ; Default font
 ; ============

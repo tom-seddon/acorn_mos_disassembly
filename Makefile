@@ -64,6 +64,11 @@ all:
 	$(_V)$(PYTHON) "$(BBIN)/tube_relocation.py" unset -o "build/350nt/basic.4r32.non_relocatable.rom" "orig/350/basic.4r32.rom"
 	$(_V)$(PYTHON) "$(BBIN)/tube_relocation.py" unset -o "build/350nt/edit.1.50r.non_relocatable.rom" "orig/350/edit.1.50r.rom"
 
+# Free space for the refreshed builds
+	$(_V)$(PYTHON) "bin/unused.py" "build/mos320r.lst"
+	$(_V)$(PYTHON) "bin/unused.py" "build/mos350r.lst"
+	$(_V)$(PYTHON) "bin/unused.py" "build/mos510r.lst"
+
 ##########################################################################
 ##########################################################################
 

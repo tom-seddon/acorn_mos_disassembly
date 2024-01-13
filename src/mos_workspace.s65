@@ -139,10 +139,14 @@ beword .macro value
 tubeHostAddr=$400
 
                 .if version==350
+                .cwarn tubeHost.page4End>$4f5
+                
                 ; MOS 3.50 parasite language relocation workspace?
 tubeRelocationBitmapPtr=2
 tubeRelocationBitmapSizeBytes=$4f5
+                .if !fasterTubeRelocation
 tubeRelocationBitmapByte=$4f7
+                .endif
 tubeRelocationBitmapROMBank=$04f8
 tubeRelocationPageOffset=$04f9
 
@@ -1567,6 +1571,10 @@ tubeLanguageHostAddr: .fill 2
 tubeTransferAddr: .fill 2
 tubeNotClaimed: .fill 1            ;bit 7 clear if tube claimed
 tubeClaimantID: .fill 1
+                .if fasterTubeRelocation
+tubeRelocationDelta: .fill 1
+tubeRelocationBitmapByte: .fill 1
+                .endif
 tubeBrkHandlerAddr:
                 ; Tube BRK handler sits here.
                 .endv
@@ -1574,9 +1582,9 @@ tubeBrkHandlerAddr:
 tubeStringBuffer=$700
 tubeOSWORDBuffer=$0128
 
-                .virtual $53
-tubeLanguageParasiteAddr: .fill 4
-                .endv
+
+                ; Need to tidy this one up...
+tubeLanguageParasiteAddr=tubeHost.brkHandler.languageParasiteAddr
                 
                 .endif
 

@@ -6237,8 +6237,9 @@ callCommandRoutine:
                 ; wouldn't have to be page-aligned.
                 jmp (tubeHost.commandRoutines)
 
-                ; ???
+languageParasiteAddr:
                 .dword $8000
+                .cwarn *>$90
                 .here
                 .endblock
 
@@ -6357,6 +6358,12 @@ enterNewLanguage: .proc
                 jsr tubeHost.entryPoint ;claim with ID=$3f
                 bcc enterNewLanguage    ;repeat until claimed
                 jsr getLanguageParasiteAddr ;sort out addresses
+
+                .if fasterTubeRelocation
+                lda tubeRelocationPageOffset
+                dec a
+                sta tubeRelocationDelta
+                .endif
                 
 transferPage:
                 .if version==350
@@ -6473,7 +6480,8 @@ LAC60:
                 rts
 
                 .endif
-                .pend
+                .endproc
+page4End:
                 .here
 
 codePages12:

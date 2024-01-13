@@ -13403,7 +13403,6 @@ relocateNextLanguageROMPage: .block
 
                 ldy #0
                 sty tubeLanguageHostAddr+0
-
 loop:
                 lda (tubeLanguageHostAddr),y ; fetch byte from language ROM
                 ldx tubeRelocationPageOffset
@@ -13419,13 +13418,34 @@ loop:
                 bcc gotByte ; taken if not potentially-relocatable byte
                 cmp #$C0
                 bcs gotByte ; taken if not potentially-relocatable byte
+
+                .if fasterTubeRelocation
+
+                asl tubeRelocationBitmapByte
+                bne gotBitmapBit
                 pha
+                jsr LFADE
+                clc
+                beq gotBitmapBit2
+                sec
+                rol tubeRelocationBitmapByte
+gotBitmapBit2:
+                pla
+gotBitmapBit:
+                bcc gotByte ; taken if no relocation
+                adc tubeRelocationDelta
                 
+                .else
+                
+                pha
                 jsr fetchTubeRelocationBitmapBit
                 pla
                 bcc gotByte ; taken if byte isn't actually to be relocated
                 clc
-                adc tubeRelocationPageOffset ; adjust for relocation offset
+                adc tubeRelocationPageOffset
+                
+                .endif
+                
 gotByte:
                 .if fasterTubeRelocation
                 ; Fastest case round the loop is 20 cycles exactly, I

@@ -13436,26 +13436,26 @@ gotByte:
                 .endif
                 iny
                 bne loop
-                inc @w tubeLanguageHostAddr+1
+                .forcew inc,tubeLanguageHostAddr+1
                 rts
                 .endblock
 
 ;-------------------------------------------------------------------------
 
 checkForTubeRelocationBitmap:
-                sta @w tubeLanguageParasiteAddr+3 ; parasite address bits 24-31
-                sty @w tubeLanguageParasiteAddr+2 ; parasite address bits 16-23
+                .forcew sta,tubeLanguageParasiteAddr+3 ; parasite address bits 24-31
+                .forcew sty,tubeLanguageParasiteAddr+2 ; parasite address bits 16-23
                 bit $f4
                 bvs setTubeLanguageParasiteAddr00008000 ; taken if don't-relocate bit set
                 lda sidewaysROMType
                 and #~%0010&$0f              ; Z=1 if 6502 code
                 bne noTubeRelocationBitmap                    ; taken if not 6502 code
-                lda @w tubeLanguageParasiteAddr+3 ; parasite address bits 24-31
-                sta @w tubeRelocationBitmapPtr+1
-                ora @w tubeLanguageParasiteAddr+2 ; parasite address bits 16-31
+                .forcew lda,tubeLanguageParasiteAddr+3 ; parasite address bits 24-31
+                .forcew sta,tubeRelocationBitmapPtr+1
+                .forcew ora,tubeLanguageParasiteAddr+2 ; parasite address bits 16-31
                 beq noTubeRelocationBitmap     ; taken if parasite address is $0000xxxx
-                lda @w tubeLanguageParasiteAddr+2
-                sta @w tubeRelocationBitmapPtr+0
+                .forcew lda,tubeLanguageParasiteAddr+2
+                .forcew sta,tubeRelocationBitmapPtr+0
                 ; (2) is address of bitmap descriptor table
                 ldy #2
                 lda (tubeRelocationBitmapPtr),y ; get bitmap ROM number
@@ -13465,14 +13465,14 @@ checkForTubeRelocationBitmap:
                 tay            ; Y = pointer to byte after bitmap, MSB
                 lda (tubeRelocationBitmapPtr) ; get pointer to byte after bitmap, LSB
                 ; (tubeRelocationBitmapPtr) = pointer to byte after bitmap
-                sta @w tubeRelocationBitmapPtr+0
-                sty @w tubeRelocationBitmapPtr+1
-                lda @w tubeLanguageParasiteAddr+1
+                .forcew sta,tubeRelocationBitmapPtr+0
+                .forcew sty,tubeRelocationBitmapPtr+1
+                .forcew lda,tubeLanguageParasiteAddr+1
                 sec
                 sbc #$80 ; $80 is of course the base page for a language ROM
                 sta tubeRelocationPageOffset
-                stz @w tubeLanguageParasiteAddr+3
-                stz @w tubeLanguageParasiteAddr+2
+                .forcew stz,tubeLanguageParasiteAddr+3
+                .forcew stz,tubeLanguageParasiteAddr+2
                 txa                     ; A = bitmap ROM number
                 bpl gotRelocationBitmapROMBank ; taken if absolute ROM number
                 clc
@@ -13513,10 +13513,10 @@ invalidTubeRelocationBitmap:
 
 setTubeLanguageParasiteAddr00008000:
                 lda #$80
-                sta @w tubeLanguageParasiteAddr+1
-                stz @w tubeLanguageParasiteAddr+0
-                stz @w tubeLanguageParasiteAddr+2
-                stz @w tubeLanguageParasiteAddr+3
+                .forcew sta,tubeLanguageParasiteAddr+1
+                .forcew stz,tubeLanguageParasiteAddr+0
+                .forcew stz,tubeLanguageParasiteAddr+2
+                .forcew stz,tubeLanguageParasiteAddr+3
 noTubeRelocationBitmap:
                 stz tubeRelocationPageOffset
                 rts
@@ -13525,12 +13525,12 @@ noTubeRelocationBitmap:
 
 fetchTubeRelocationBitmapByte: .block
                 ; decrement (2)
-                lda @w tubeRelocationBitmapPtr+0
+                .forcew lda,tubeRelocationBitmapPtr+0
                 php
-                dec @w tubeRelocationBitmapPtr+0
+                .forcew dec,tubeRelocationBitmapPtr+0
                 plp
                 bne +
-                dec @w tubeRelocationBitmapPtr+1
+                .forcew dec,tubeRelocationBitmapPtr+1
 +
                 lda $f4
                 pha

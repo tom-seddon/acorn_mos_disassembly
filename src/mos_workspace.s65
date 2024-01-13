@@ -153,12 +153,23 @@ tubeRelocationPageOffset=$04f9
 tubeRelocationBuffer=$700
                 .endif
 
-forcew: .macro instr,oper
-                \instr @w \oper
-                .endmacro
-                
                 .endif
+
+;-------------------------------------------------------------------------
+
+                ; Force word operand - a few instances of this,
+                ; presumably due to limitations in 1980s assemblers.
+                ;
+                ; Refresh versions can use an 8-bit operand for time
+                ; and space savings.
                 
+forcew: .macro instr,oper
+                .if refreshVersion
+                \instr \oper
+                .else
+                \instr @w \oper
+                .endif
+                .endmacro
                 
 ;-------------------------------------------------------------------------
 

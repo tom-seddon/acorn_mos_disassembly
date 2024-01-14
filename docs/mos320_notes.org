@@ -356,3 +356,8 @@ This does have the reset code behind the I/O area.
   a hexadecimal number preceded by &
   Items within [ ] are optional
 #+end_example
+
+* MOS 3.50 DFS/ADFS switch code
+
+
+* eof

@@ -34,6 +34,7 @@ MKDIR:=$(SHELLCMD) mkdir
 TASS:="$(TASSCMD)" --m65c02 --nostart -Wall $(_TASSQ) --case-sensitive --line-numbers --verbose-list
 BUILD:=build
 DIST:=dist
+TUBE_RELOCATION_PY:=$(BBIN)/tube_relocation.py
 
 ##########################################################################
 ##########################################################################
@@ -59,15 +60,36 @@ all:
 	$(_V)$(MAKE) _build VERSION=510r
 	$(_V)$(TASS) src/refresh_version.s65 -o $(BUILD)/refresh_version.dat
 
-# Produce non-relocating ROMs for 3.50(NT), which (like MOS 3.50)
-# doesn't gracefully handle lack of ROM relocation data.
-	$(_V)$(PYTHON) "$(BBIN)/tube_relocation.py" unset -o "build/350nt/basic.4r32.non_relocatable.rom" "orig/350/basic.4r32.rom"
-	$(_V)$(PYTHON) "$(BBIN)/tube_relocation.py" unset -o "build/350nt/edit.1.50r.non_relocatable.rom" "orig/350/edit.1.50r.rom"
+# Produce non-relocating ROMs for the updated 3.50 builds.
+	$(_V)$(MAKE) _updated_350_roms
 
 # Free space for the refreshed builds
 	$(_V)$(PYTHON) "bin/unused.py" "build/mos320r.lst"
 	$(_V)$(PYTHON) "bin/unused.py" "build/mos350r.lst"
 	$(_V)$(PYTHON) "bin/unused.py" "build/mos510r.lst"
+
+##########################################################################
+##########################################################################
+
+.PHONY:_updated_350_roms
+_updated_350_roms: _NR:=build/non_relocating
+_updated_350_roms: _R9:=build/dfs_bitmaps
+_updated_350_roms:
+	$(_V)$(SHELLCMD) mkdir "$(_NR)"
+	$(_V)$(SHELLCMD) mkdir "$(_R9)"
+
+# Create non-relocating BASIC and EDIT ROMs.
+	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" unset -o "$(_NR)/basic.4r32.rom" "orig/350/basic.4r32.rom"
+	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" unset -o "$(_NR)/edit.1.50r.rom" "orig/350/edit.1.50r.rom"
+
+# Extract BASIC and EDIT relocation bitmaps.
+	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" extract -o "build/basic.4r32.relocation.dat" "orig/350/basic.4r32.rom" "orig/350/view.rom"
+	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" extract -o "build/edit.1.50r.relocation.dat" "orig/350/edit.1.50r.rom" "orig/350/view.rom"
+
+# Generate some new ROMs with the relocation bitmaps in the DFS ROM.
+	$(_V)$(SHELLCMD) copy-file "orig/350/dfs.2.45.rom" "$(_R9)/dfs.2.45.rom"
+	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" set -o "$(_R9)/basic.4r32.rom" "$(_R9)/dfs.2.45.rom" --absolute-bank --bitmap-address 0xaf00 "orig/350/basic.4r32.rom" "build/basic.4r32.relocation.dat" 9
+	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" set -o "$(_R9)/edit.1.50r.rom" "$(_R9)/dfs.2.45.rom" --absolute-bank --bitmap-address 0xb162 "orig/350/edit.1.50r.rom" "build/edit.1.50r.relocation.dat" 9
 
 ##########################################################################
 ##########################################################################

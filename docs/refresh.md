@@ -25,6 +25,10 @@ other banks.
 (Note that `mos.rom` and `utils.rom` are closely related and cannot be
 mixed freely. Both ROMs must come from the exact same build!)
 
+Please bear in mind [the MOS 3.50 notes](./MOS3.50.md) if using
+MOS 3.50r and hoping to use the standard MOS 3.50 ROMs for DFS, BASIC,
+EDIT or ADFS.
+
 # Other notes
 
 - The new version number can be seen in response to `*FX0` or `*HELP`

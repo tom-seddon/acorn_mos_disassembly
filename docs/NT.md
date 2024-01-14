@@ -38,23 +38,5 @@ anything you like in banks 9-14.
 
 In all other respects this is (supposed to be) identical to MOS 3.50.
 
-Note that the non-MOS stuff in MOS 3.50 is annoyingly interdependent.
-The MOS is careful to confine itself to to specific regions, but the
-other built-in ROMs aren't. So please note the following restrictions:
-
-1. If wanting to use the MOS 3.50 DFS (DFS 2.45) and/or MOS 3.50 ADFS
-   (ADFS 2.03), you'll need both, as they depend on one another, and
-   you'll need to put them in their default banks (DFS in bank 9, ADFS
-   in bank 13)
-   
-2. MOS 3.50 BASIC (BASIC 4r32) or MOS 3.50 EDIT (EDIT 1.50r) can go in
-   any bank, but to use them with a 6502 co-processor they need to be
-   in their default banks (EDIT in bank 11, BASIC in bank 12) and the
-   original View ROM will also need to be in bank 14. This is due to a
-   bug in MOS 3.50 relating to relocating ROMs when copying over the
-   Tube
-   
-As a workaround for issue 2, modified versions of BASIC and EDIT are
-supplied in the `350nt` folder in the distribution zip. These are
-non-relocatable, so you'll get less extra memory in the 2nd processor
-than you should... but, they will actually work.
+Please bear in mind [the MOS 3.50 notes](./MOS3.50.md) if hoping to
+use the standard MOS 3.50 ROMs for DFS, BASIC, EDIT or ADFS.

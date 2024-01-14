@@ -27,15 +27,15 @@ bank 12 and VIEW in bask 14.
    
 # Workarounds
 
-Patched ROMs are available to help work around the above restrictions.
+Patched ROMs are supplied to help work around the above restrictions.
 
 ## Not bothered about HIBASIC or HIEDIT? ##
 
 If you use a 6502 2nd processor, but don't much care about getting
 some more memory in BASIC or EDIT when using it, you can use the
 non-relocating version of BASIC and EDIT. Find them in the
-`non_relocating` folder in the distribution, next to the MOS 3.50
-ROMs.
+`other_350_roms.rel_none` folder in the distribution, next to the MOS
+3.50 ROMs.
 
 These can go in any bank, and don't depend on any other ROM.
 
@@ -44,8 +44,9 @@ These can go in any bank, and don't depend on any other ROM.
 If you want the extra memory in BASIC or EDIT in your 6502 2nd
 processor, but don't want to be stuck with View in bank 14, you might
 like relocating versions of BASIC and EDIT that depend only on a
-patched version of DFS. Find all 3 ROMs in the `dfs_bitmaps` folder in
-the distribution, next to the MOS 3.50 ROMs.
+patched version of DFS. Find all 3 ROMs in the
+`other_350_roms.rel_dfs` folder in the distribution, next to the MOS
+3.50 ROMs.
 
 BASIC and EDIT can go in any bank. DFS must go in bank 9, its usual
 location.

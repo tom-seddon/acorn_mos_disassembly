@@ -39,6 +39,12 @@ TUBE_RELOCATION_PY:=$(BBIN)/tube_relocation.py
 ##########################################################################
 ##########################################################################
 
+OTHER_350_ROMS_REL_NONE:=$(BUILD)/other_350_roms.rel_none
+OTHER_350_ROMS_REL_DFS:=$(BUILD)/other_350_roms.rel_dfs
+
+##########################################################################
+##########################################################################
+
 .PHONY:all
 all:
 	$(_V)$(MAKE) _build_orig_with_ext VERSION=320
@@ -72,24 +78,22 @@ all:
 ##########################################################################
 
 .PHONY:_updated_350_roms
-_updated_350_roms: _NR:=build/non_relocating
-_updated_350_roms: _R9:=build/dfs_bitmaps
 _updated_350_roms:
-	$(_V)$(SHELLCMD) mkdir "$(_NR)"
-	$(_V)$(SHELLCMD) mkdir "$(_R9)"
+	$(_V)$(SHELLCMD) mkdir "$(OTHER_350_ROMS_REL_NONE)"
+	$(_V)$(SHELLCMD) mkdir "$(OTHER_350_ROMS_REL_DFS)"
 
 # Create non-relocating BASIC and EDIT ROMs.
-	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" unset -o "$(_NR)/basic.4r32.rom" "orig/350/basic.4r32.rom"
-	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" unset -o "$(_NR)/edit.1.50r.rom" "orig/350/edit.1.50r.rom"
+	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" unset -o "$(OTHER_350_ROMS_REL_NONE)/basic.4r32.rom" "orig/350/basic.4r32.rom"
+	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" unset -o "$(OTHER_350_ROMS_REL_NONE)/edit.1.50r.rom" "orig/350/edit.1.50r.rom"
 
 # Extract BASIC and EDIT relocation bitmaps.
 	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" extract -o "build/basic.4r32.relocation.dat" "orig/350/basic.4r32.rom" "orig/350/view.rom"
 	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" extract -o "build/edit.1.50r.relocation.dat" "orig/350/edit.1.50r.rom" "orig/350/view.rom"
 
 # Generate some new ROMs with the relocation bitmaps in the DFS ROM.
-	$(_V)$(SHELLCMD) copy-file "orig/350/dfs.2.45.rom" "$(_R9)/dfs.2.45.rom"
-	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" set -o "$(_R9)/basic.4r32.rom" "$(_R9)/dfs.2.45.rom" --absolute-bank --bitmap-address 0xaf00 "orig/350/basic.4r32.rom" "build/basic.4r32.relocation.dat" 9
-	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" set -o "$(_R9)/edit.1.50r.rom" "$(_R9)/dfs.2.45.rom" --absolute-bank --bitmap-address 0xb162 "orig/350/edit.1.50r.rom" "build/edit.1.50r.relocation.dat" 9
+	$(_V)$(SHELLCMD) copy-file "orig/350/dfs.2.45.rom" "$(OTHER_350_ROMS_REL_DFS)/dfs.2.45.rom"
+	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" set -o "$(OTHER_350_ROMS_REL_DFS)/basic.4r32.rom" "$(OTHER_350_ROMS_REL_DFS)/dfs.2.45.rom" --absolute-bank --bitmap-address 0xaf00 "orig/350/basic.4r32.rom" "build/basic.4r32.relocation.dat" 9
+	$(_V)$(PYTHON) "$(TUBE_RELOCATION_PY)" set -o "$(OTHER_350_ROMS_REL_DFS)/edit.1.50r.rom" "$(OTHER_350_ROMS_REL_DFS)/dfs.2.45.rom" --absolute-bank --bitmap-address 0xb162 "orig/350/edit.1.50r.rom" "build/edit.1.50r.relocation.dat" 9
 
 ##########################################################################
 ##########################################################################
@@ -170,6 +174,8 @@ ci:
 	zip -9j "$(CI_LST_ARCHIVE)" "docs/README.txt" "build/mos320.lst" "build/mos500.lst" "build/mos510.lst" "build/mos511.lst" "build/mos400.lst" "build/mosPC128S.lst" "build/mos350.lst" "build/mosCFA3000.lst" "build/mosautocue.lst" "build/mos329.lst"
 
 # NT versions
+	$(SHELLCMD) move "$(OTHER_350_ROMS_REL_NONE)" "build/350nt"
+	$(SHELLCMD) move "$(OTHER_350_ROMS_REL_DFS)" "build/350nt"
 	cd build && zip -9r "../$(CI_NT_ARCHIVE)" 320nt 350nt
 	zip -9j "$(CI_NT_ARCHIVE)" "docs/README.txt" "build/mos320nt.lst" "build/mos350nt.lst"
 

@@ -8,12 +8,11 @@ mind the following restrictions if hoping to use them.
 
 ## ADFS and DFS
 
-MOS 3.50 DFS (DFS 2.45) and MOS 3.50 ADFS (ADFS 2.03) share code. ADFS
-won't work without DFS; DFS does work to at least some extent without
-ADFS, but I haven't tested this thoroughly.
-   
-Both need to go in their default banks: DFS in bank 9, ADFS in bank
-13.
+Some of the ADFS 2.03 code lives in the DFS 2.45 ROM, meaning ADFS
+2.03 won't work without DFS 2.45 also installed. Both need to go in
+their default banks: DFS in bank 9, ADFS in bank 13.
+
+DFS 2.45 appears to be self-contained... but I can't promise that!
 
 ## BASIC and EDIT
    

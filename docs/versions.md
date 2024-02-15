@@ -10,7 +10,7 @@ The following released versions for Acorn systems are covered:
 - MOS 4.00 (Master ET, UK): [../dist/mos400.lst](../dist/mos400.lst)
 - MOS 5.00 (Master Compact, UK): [../dist/mos500.lst](../dist/mos500.lst)
 - MOS 5.10 (Master Compact, UK): [../dist/mos510.lst](../dist/mos510.lst)
-- MOS 5.11 (Master Compact, International):  [../dist/mos511.lst](../dist/mos511.lst)
+- MOS 5.11i (Master Compact, International):  [../dist/mos511.lst](../dist/mos511.lst)
 
 The following unreleased versions for Acorn systems are covered:
 
@@ -20,7 +20,7 @@ The following non-Acorn systems are also covered:
 
 - MOS I5.10C (variant of MOS 5.10) ([Olivetti PC128S](https://it.wikipedia.org/wiki/Olivetti_Prodest_PC_128_S)):  [../dist/mosPC128S.lst](../dist/mosPC128S.lst)
 - MOS 3.5a (variant of MOS 3.50) ([Henson CFA3000](https://stardot.org.uk/forums/viewtopic.php?t=20676)):  [../dist/mosCFA3000.lst](../dist/mosCFA3000.lst)
-- MOS 5.10i (variant of MOS 5.11) ([Autocue 1500 teleprompter](https://stardot.org.uk/forums/viewtopic.php?t=7179)):  [../dist/mosautocue.lst](../dist/mosautocue.lst)
+- MOS 5.10i (variant of MOS 5.11i) ([Autocue 1500 teleprompter](https://stardot.org.uk/forums/viewtopic.php?t=7179)):  [../dist/mosautocue.lst](../dist/mosautocue.lst)
 
 # Patched versions
 

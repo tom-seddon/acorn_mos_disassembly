@@ -76,37 +76,6 @@ names for some of the bits similar to the the GXR ROM.
 
 # the other MOS parts?
 
-There are disassemblies or source code available for some versions of
-some of the non-MOS parts of the various iterations of the Master
-ROMs.
-
-## BASIC
-
-https://github.com/stardot/AcornCmosBasic
-
-https://github.com/stardot/AcornDmosBasic
-
-https://github.com/hoglet67/BBCBasic4r32
-
-http://8bs.com/basic/basic4.htm
-
-## ADFS
-
-https://github.com/hoglet67/ADFS/blob/master/src/adfs150.asm
-
-## DFS
-
-http://regregex.bbcmicro.net/dfs224.asm.txt
-
-## Edit
-
-https://github.com/SteveFosdick/edit4/
-
-## View
-
-Nobody appears to have disassembled View.
-
-## ViewSheet
-
-Nobody appears to have disassembled ViewSheet.
-
+As well as the MOS code, the Master series ROMs usually included some
+additional software. [Disassemblies or source code available for some
+versions of some of these](./docs/other-parts.md).

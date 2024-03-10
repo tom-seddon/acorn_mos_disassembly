@@ -610,7 +610,7 @@ done:
 ; Preserves: X/V
 
 findCommand: .block
-                sty $E6         ;save Y
+                sty commandLineY ;save Y
                 bra checkInput       ;get going...
 
 checkLetter:
@@ -635,7 +635,7 @@ checkInput:
 
 noMatch:
                 clc             ;indicate no match
-                ldy $E6         ;restore Y
+                ldy commandLineY ;restore Y
                 dey             ;compensate for upcoming iny
 
 abbreviationMatch:

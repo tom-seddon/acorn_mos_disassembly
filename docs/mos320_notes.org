@@ -357,7 +357,18 @@ This does have the reset code behind the I/O area.
   Items within [ ] are optional
 #+end_example
 
-* MOS 3.50 DFS/ADFS switch code
+* Unknown *CONFIGURE service call code
 
+A = $28
+X = ROM
+Y = ($f2),y offset for command line tail
+
+Set A=0 if handled. If unhandled, =Bad Command= is emitted.
+
+* Unknown *STATUS service call code
+
+A = $29
+X = ROM
+Y = ($f2),y offset for command line tail
 
 * eof

@@ -84,7 +84,7 @@ starCONFIGURE:
                 bcs callSetRoutine           ;taken if known
                 ldx #romServiceCallUnknownCONFIG
 L8881:
-                ldy $E6
+                ldy commandLineY
                 jsr makeROMServiceCall
                 bne badCommandError88AC
                 rts
@@ -272,7 +272,7 @@ resetDefaultTVSettings:
 ; 
 L8934:
                 jsr skipSpacesAndCheckForCRInStringInput
-                sty $E6
+                sty commandLineY
                 beq L8979                    ;taken if input ends with CR
                 ldx #$00
                 bra L894A
@@ -306,7 +306,7 @@ L8951:
                 beq L8960                    ;accept abbreviations
 L895C:
                 clc
-                ldy $E6
+                ldy commandLineY
                 dey
 L8960:
                 iny

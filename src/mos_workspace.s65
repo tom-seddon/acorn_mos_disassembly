@@ -211,6 +211,7 @@ goodString=$01
                 .endvirtual
 stringInputPlingFlag=$e5        ;bit 7 set if last char was '!'
 readCharacterTimedFlag=$e6
+commandLineY=$e6                
 autoRepeatCountdownTimer=$e7
 tapeCritical=$eb
 lastKeyPressedInternal=$ec

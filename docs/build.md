@@ -47,10 +47,6 @@ reference. Released versions:
 - `build/mos510.lst` - MOS 5.10
 - `build/mos511.lst` - MOS 5.11
 
-Modified versions:
-
-- `build/mos320multios.lst` - MOS 3.20 + Y2K fix
-
 Unreleased versions:
 
 - `build/mos329.lst` - MOS 3.29

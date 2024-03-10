@@ -55,7 +55,7 @@ ellipseOutlineContinueRowLoop:
                 lda     vduv+0,y
                 tay
 
-LBA46:
+ellipseOutlineContinueRowLoop2:
                 sty     vduv.ew.currentOffsetX+0
                 jsr     outlineEllipsePlotOnePointAndReflection
                 tya
@@ -68,8 +68,8 @@ LBA46:
                 sbc     vduv+0,x
                 lda     vduv.ew.currentOffsetX+1
                 sbc     vduv+1,x
-                bpl     LBA46
-                lda     vduv.workspace._2F
+                bpl     ellipseOutlineContinueRowLoop2
+                lda     vduv.ew.halfHeightCounter+1
                 bpl     ellipseOutlineLoop
                 bra     LBA7B
 
@@ -114,7 +114,9 @@ LAF30:
                 bpl LAF2D
 
 LAF47:
-                lda vduv.workspace._2F
+                lda vduv.ew.halfHeightCounter+1 ; TODO can merge with
+                                                ; code above...
+                                                ; probably?
                 bpl ellipseOutlineLoop
                 .if version==350
                 bra LBA7B
@@ -138,7 +140,7 @@ startFilledEllipse:
                 ldx     #VDUVariables.ew.rightPoint
                 ldy     #VDUVariables.ew.leftPoint
                 jsr     fillEllipseOneRowAndReflection
-                lda     vduv.workspace._2F
+                lda     vduv.ew.halfHeightCounter+1
                 bpl     filledEllipseLoop
 
 LBA7B:
@@ -150,23 +152,24 @@ LBA83:
                 ldx     #VDUVariables.ew.pointB
                 ldy     #VDUVariables.ew.pointA
 
+; https://tobylobster.github.io/GXR-pages/gxr/S-s23.html#SP9
 fillEllipseOneRowAndReflection:
                 phx
                 phy
                 clc
                 lda     vduv.oldGraphicsCursorPixelsX+0
                 adc     vduv+0,y
-                sta     vduv.workspace._40
+                sta     vduv.ew.pointE+0
                 lda     vduv.oldGraphicsCursorPixelsX+1
                 adc     vduv+1,y
-                sta     vduv.workspace._41
+                sta     vduv.ew.pointE+1
                 clc
                 lda     vduv.oldGraphicsCursorPixelsX+0
                 adc     vduv+0,x
-                sta     vduv.workspace._44
+                sta     vduv.ew.plotPointX+0
                 lda     vduv.oldGraphicsCursorPixelsX+1
                 adc     vduv+1,x
-                sta     vduv.workspace._45
+                sta     vduv.ew.plotPointX+1
                 clc
                 lda     vduv.oldGraphicsCursorPixelsY+0
                 adc     ellipseCountHeight+0
@@ -182,17 +185,17 @@ fillEllipseOneRowAndReflection:
                 sec
                 lda     vduv.oldGraphicsCursorPixelsX+0
                 sbc     vduv+0,x
-                sta     vduv.workspace._40
+                sta     vduv.ew.pointE+0
                 lda     vduv.oldGraphicsCursorPixelsX+1
                 sbc     vduv+1,x
-                sta     vduv.workspace._41
+                sta     vduv.ew.pointE+1
                 sec
                 lda     vduv.oldGraphicsCursorPixelsX+0
                 sbc     vduv+0,y
-                sta     vduv.workspace._44
+                sta     vduv.ew.pointF+0
                 lda     vduv.oldGraphicsCursorPixelsX+1
                 sbc     vduv+1,y
-                sta     vduv.workspace._45
+                sta     vduv.ew.pointF+1
                 sec
                 lda     vduv.oldGraphicsCursorPixelsY+0
                 sbc     ellipseCountHeight+0
@@ -201,9 +204,9 @@ fillEllipseOneRowAndReflection:
                 sbc     ellipseCountHeight+1
                 
 LBAFE:
-                sty     vduv.workspace._46
+                sty     vduv.ew.plotPointY+0
                 sty     vduv.ew.currentOffsetX+0
-                sta     vduv.workspace._47
+                sta     vduv.ew.plotPointY+1
                 sta     vduv.ew.currentOffsetX+1
                 ldx     #VDUVariables.ew.pointF
                 ldy     #VDUVariables.ew.pointE
@@ -224,10 +227,10 @@ LBB12:
                 pla
                 stz     ellipseCountHeight+0
                 stz     ellipseCountHeight+1
-                ldx     #VDUVariables.workspace._29
+                ldx     #VDUVariables.ew.aspectRatio+1
                 ldy     #VDUVariables.ew.pointE
                 jsr     negateVDUVariableXIntoY
-                ldx     #VDUVariables.workspace._29
+                ldx     #VDUVariables.ew.aspectRatio+1
                 ldy     #VDUVariables.ew.pointF
                 jsr     copyTwoBytesWithinVDUVariables
                 ldx     #VDUVariables.ew.pointF
@@ -238,7 +241,7 @@ ellipseInitialisation:
                 ; https://tobylobster.github.io/GXR-pages/gxr/S-s23.html#SP5
                 ldy     #VDUVariables.graphicsCursorPixelsX
                 ldx     #VDUVariables.oldGraphicsCursorPixelsX
-                lda     #VDUVariables.workspace._29
+                lda     #VDUVariables.ew.aspectRatio+1
                 jsr     LD678
                 stz     vduv.ew.aspectRatio+0
                 ldy     #VDUVariables.queueEnd-2
@@ -261,10 +264,10 @@ ellipseInitialisation:
                 sta     ellipseSignFlag
                 ldx     #VDUVariables.ew.aspectRatio
                 ldy     #VDUVariables.ew.halfHeightCounter
-                jsr     LBD83
+                jsr     divide24By16Bits
                 ldx     #VDUVariables.ew.shear
                 ldy     #VDUVariables.ew.halfHeightCounter
-                jsr     LBD83
+                jsr     divide24By16Bits
                 lda     L8841
                 beq     LBB86
                 sec
@@ -272,30 +275,30 @@ ellipseInitialisation:
 
 LBB7B:
                 lda     #0
-                sbc     vduv.workspace._2B-$fd,y
-                sta     vduv.workspace._2B-$fd,y
+                sbc     vduv.ew.shear-$fd,y
+                sta     vduv.ew.shear-$fd,y
                 iny
                 bne     LBB7B
 
 LBB86:
-                lda     vduv.workspace._2E
+                lda     vduv.ew.halfHeightCounter+0
                 sta     L883C
-                lda     vduv.workspace._2F
+                lda     vduv.ew.halfHeightCounter+1
                 jsr     LD4CE
                 ldy     #3
 
 LBB94:
-                lda     $8840,y
-                sta     vduv.workspace._30,y
+                lda     L8840,y
+                sta     vduv.ew.halfHeightSquared+0,y
                 dey
                 bpl     LBB94
                 ldx     #$a
 
 LBB9F:
-                stz     $8842,x
+                stz     ellipseAccumulatedShear,x
                 dex
                 bpl     LBB9F
-                inc     L8845
+                inc     ellipseCountOddNumbers+0
                 jsr     updateEllipse
                 jsr     updateEllipse
                 stz     ellipseCountHeight+0
@@ -468,11 +471,11 @@ updateEllipse:
                 bne     +
                 inc     ellipseCountHeight+1
 +
-                lda     vduv.workspace._2E
+                lda     vduv.ew.halfHeightCounter+0
                 bne     +
-                dec     vduv.workspace._2F
+                dec     vduv.ew.halfHeightCounter+1
 +
-                dec     vduv.workspace._2E
+                dec     vduv.ew.halfHeightCounter+0
                 rts
 
 ;-------------------------------------------------------------------------
@@ -531,14 +534,22 @@ done:
                 .endblock
 
 ;-------------------------------------------------------------------------
-
-LBD83:
+;
+; https://tobylobster.github.io/GXR-pages/gxr/S-s24.html#SP1 ?
+; 
+divide24By16Bits:
                 phx
+
+                ; Copy 16-bit value into workspace
                 lda     vduv+0,y
                 sta     L883F
                 lda     vduv+1,y
                 sta     L8840
-                ldy     #$18 ;not VDUVariables.textCursorXPosition?
+
+                ; 24 bits...?
+                ldy     #24
+
+                ; Copy 24-bit value into workspace
                 lda     vduv+0,x
                 sta     L883A
                 lda     vduv+1,x
@@ -549,6 +560,8 @@ LBD83:
 LBDA3:
                 dey
                 beq     LBDF8
+
+                ; shift 24-bit value left 1
                 asl     L883A
                 rol     L883B
                 rol     a
@@ -561,6 +574,7 @@ LBDAF:
                 clc
 
 LBDB9:
+                ; shift 40-bit value left 1
                 rol     L883A
                 rol     L883B
                 rol     L883C

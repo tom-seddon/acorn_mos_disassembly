@@ -14,9 +14,11 @@ endif
 ifeq ($(VERBOSE),1)
 _V:=
 _TASSQ:=
+_VERBOSE_OPTION:=--verbose
 else
 _V:=@
 _TASSQ:=-q
+_VERBOSE_OPTION:=
 endif
 
 ifeq ($(MUST_MATCH),1)
@@ -180,6 +182,51 @@ ci:
 	$(SHELLCMD) move "$(OTHER_350_ROMS_REL_DFS)" "build/350nt"
 	cd build && zip -9r "../$(CI_NT_ARCHIVE)" 320nt 350nt
 	zip -9j "$(CI_NT_ARCHIVE)" "docs/README.txt" "build/mos320nt.lst" "build/mos350nt.lst"
+
+##########################################################################
+##########################################################################
+
+# Example setup, creating a 1 Mbit image that you might actually want
+# to use, and creating a 512 KByte multi-OS image.
+
+.PHONY:tom_example
+tom_example: _DEST:=$(BUILD)/tom_example
+tom_example: _BASIC_EDITOR:=../basic_editor/
+tom_example: _EXMON2:=../exmon2_disassembly/
+tom_example:
+# Build prerequisites.
+	$(_V)$(MAKE) all
+	$(_V)cd "$(_BASIC_EDITOR)" && $(MAKE)
+	$(_V)cd "$(_EXMON2)" && $(MAKE)
+
+# Add relevant Tube relocation stuff to DFS ROM.
+	$(_V)$(SHELLCMD) mkdir "$(_DEST)"
+	$(_V)$(SHELLCMD) copy-file "orig/350/dfs.2.45.rom" "$(_DEST)/"
+	$(_V)$(SHELLCMD) copy-file "orig/350/basic.4r32.rom" "$(_DEST)/"
+	$(_V)$(SHELLCMD) copy-file "orig/350/edit.1.50r.rom" "$(_DEST)/"
+	$(_V)$(SHELLCMD) copy-file "$(_BASIC_EDITOR)/.build/rbasiced.rom" "$(_DEST)/"
+	$(_V)$(PYTHON) submodules/beeb/bin/tube_relocation.py $(_VERBOSE_OPTION) set-multi --bitmap-rom "$(_DEST)/dfs.2.45.rom" 14 --begin 0xaf00 --end 0xb800 --rom "$(_DEST)/basic.4r32.rom" "$(BUILD)/basic.4r32.relocation.dat" --rom "$(_DEST)/edit.1.50r.rom" "$(BUILD)/edit.1.50r.relocation.dat" --rom "$(_DEST)/rbasiced.rom" "$(_BASIC_EDITOR)/.build/rbasiced.relocation.dat" --set-multi
+
+# Concatenate all files to form 128 KByte image.
+	$(_V)$(SHELLCMD) concat --pad 16384 -o "$(_DEST)/megarom.bin" "$(BUILD)/350r/mos.rom" "$(_EXMON2)/.build/exmon2.rom" "orig/350/adfs.2.03.rom" "$(_DEST)/edit.1.50r.rom" "$(_DEST)/basic.4r32.rom" "$(_DEST)/rbasiced.rom" "$(_DEST)/dfs.2.45.rom" "$(BUILD)/350r/utils.rom"
+	$(_V)$(SHELLCMD) stat "$(_DEST)/megarom.bin"
+
+# Split apart into 8 x 16 KB ROM images for testing in b2. Split
+# generates generic output names, so they'll need renaming.
+	$(_V)$(SHELLCMD) split -b 16384 "$(_DEST)/megarom.bin" "$(_DEST)/rom"
+	$(_V)$(SHELLCMD) rm-file -f "$(_DEST)/mos.rom" "$(_DEST)/9.rom" "$(_DEST)/a.rom" "$(_DEST)/b.rom" "$(_DEST)/c.rom" "$(_DEST)/d.rom" "$(_DEST)/e.rom" "$(_DEST)/f.rom" 
+	$(_V)$(SHELLCMD) rename "$(_DEST)/rom0" "$(_DEST)/mos.rom"
+	$(_V)$(SHELLCMD) rename "$(_DEST)/rom1" "$(_DEST)/9.rom"
+	$(_V)$(SHELLCMD) rename "$(_DEST)/rom2" "$(_DEST)/a.rom"
+	$(_V)$(SHELLCMD) rename "$(_DEST)/rom3" "$(_DEST)/b.rom"
+	$(_V)$(SHELLCMD) rename "$(_DEST)/rom4" "$(_DEST)/c.rom"
+	$(_V)$(SHELLCMD) rename "$(_DEST)/rom5" "$(_DEST)/d.rom"
+	$(_V)$(SHELLCMD) rename "$(_DEST)/rom6" "$(_DEST)/e.rom"
+	$(_V)$(SHELLCMD) rename "$(_DEST)/rom7" "$(_DEST)/f.rom"
+
+# Form 512 KByte multi-OS ROM image.
+	$(_V)$(SHELLCMD) split -b 131072 "orig/multios/multios.bin" "$(_DEST)/multios"
+	$(_V)$(SHELLCMD) concat -o "$(_DEST)/multios.bin" "$(_DEST)/multios0" "$(_DEST)/megarom.bin" "$(_DEST)/multios2" "$(_DEST)/multios3"
 
 ##########################################################################
 ##########################################################################

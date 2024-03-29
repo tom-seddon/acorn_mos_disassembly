@@ -29,6 +29,9 @@ Please bear in mind [the MOS 3.50 notes](./MOS3.50.md) if using
 MOS 3.50r and hoping to use the standard MOS 3.50 ROMs for DFS, BASIC,
 EDIT or ADFS.
 
+If you're feeling adventurous, I have some notes on putting together
+a [MOS 3.50 DIY build](./MOS3.50.DIY.md).
+
 # Other notes
 
 - The new version number can be seen in response to `*FX0` or `*HELP`

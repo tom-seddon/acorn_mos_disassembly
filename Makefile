@@ -106,7 +106,8 @@ _build_orig_with_ext:
 .PHONY:_build_with_ext
 _build_with_ext:
 	$(_V)$(SHELLCMD) mkdir $(BUILD)/$(VERSION)
-	$(_V)$(TASS) mos$(VERSION).s65 -L$(BUILD)/mos$(VERSION).lst --output-section mos -o $(BUILD)/$(VERSION)/mos.rom --output-section utils -o $(BUILD)/$(VERSION)/utils.rom --output-section ext -o $(BUILD)/$(VERSION)/ext.rom
+	$(_V)$(TASS) mos$(VERSION).s65 -L$(BUILD)/mos$(VERSION).full.lst --output-section mos -o $(BUILD)/$(VERSION)/mos.rom --output-section utils -o $(BUILD)/$(VERSION)/utils.rom --output-section ext -o $(BUILD)/$(VERSION)/ext.rom
+	$(_V)$(PYTHON) "bin/improve_lst.py" -o "$(BUILD)/mos$(VERSION).lst" "$(BUILD)/mos$(VERSION).full.lst"
 
 ##########################################################################
 ##########################################################################
@@ -119,7 +120,8 @@ _build_orig:
 .PHONY:_build
 _build:
 	$(_V)$(SHELLCMD) mkdir $(BUILD)/$(VERSION)
-	$(_V)$(TASS) mos$(VERSION).s65 -L$(BUILD)/mos$(VERSION).lst --output-section mos -o $(BUILD)/$(VERSION)/mos.rom --output-section utils -o $(BUILD)/$(VERSION)/utils.rom
+	$(_V)$(TASS) mos$(VERSION).s65 -L$(BUILD)/mos$(VERSION).full.lst --output-section mos -o $(BUILD)/$(VERSION)/mos.rom --output-section utils -o $(BUILD)/$(VERSION)/utils.rom
+	$(_V)$(PYTHON) "bin/improve_lst.py" -o "$(BUILD)/mos$(VERSION).lst" "$(BUILD)/mos$(VERSION).full.lst"
 
 ##########################################################################
 ##########################################################################

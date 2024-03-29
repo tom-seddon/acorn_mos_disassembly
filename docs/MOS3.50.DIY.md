@@ -127,12 +127,13 @@ MegaROM image.
 
 I used an Xgecu T48 with a PLCC32-to-DIP32 adapter.
 
-# Makefile target
+# Example Makefile target
 
 See the `tom_example` target in the Makefile, which does all of the
 above. This is just an example, but it does run on my PC, and it might
 even run on yours too.
 
 Needs https://github.com/tom-seddon/basic_editor and
-https://github.com/tom-seddon/exmon2_disassembly available - please
-see the respective repos for building instructions.
+https://github.com/tom-seddon/exmon2_disassembly working copies
+available - note paths in the Makefile. Please see the respective
+repos for building instructions.

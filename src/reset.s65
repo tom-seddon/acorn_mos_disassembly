@@ -593,10 +593,10 @@ scanROMs:
 romsScanned:
                 lda startupOptions
                 jsr setStartupMODE
-                lda lastBREAKType
-                dec a
+                lda lastBREAKType ; $00=soft; $01=power-on; $02=hard
+                dec a             ; $ff=soft; $00=power-on; $01=hard
                 .if version>=510
-                beq powerOnReset
+                beq powerOnReset ; taken if power-on reset
                 jmp softReset
                 .else
                 bne softReset                    ;taken if not power-on reset
@@ -606,7 +606,7 @@ powerOnReset:
                 .if version>=500
                 ldx #$ff
                 jsr i2cReadEEPROMByte
-                bcs checkForNVRAMReset
+                bcs checkForNVRAMReset ; taken if read failed
                 tya
                 and #$7f
                 .if version>=511||olivetti

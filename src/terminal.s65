@@ -3395,6 +3395,8 @@ L9E58:
 ;
 ; "A change in the state of the data line, from LOW to HIGH, while the
 ; clock is HIGH, defines the STOP condition."
+;
+; preserves: C
 ; 
 i2cStopDataTransfer:
                 php

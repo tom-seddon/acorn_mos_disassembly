@@ -14,7 +14,6 @@ compatibility, and possibly Y2K fix?), but I haven't investigated.
 |  14000 | View                  |
 |  18000 | DFS 2.26              |
 |  1c000 | BASIC                 |
-|--------|-----------------------|
 |  20000 | OS 2.00               |
 |  24000 | ARM 1.13              |
 |  28000 | EXMON II 2.02         |
@@ -23,7 +22,6 @@ compatibility, and possibly Y2K fix?), but I haven't investigated.
 |  34000 | View                  |
 |  38000 | DFS 2.26              |
 |  3c000 | BASIC                 |
-|--------|-----------------------|
 |  40000 | MOS 3.20              |
 |  44000 | DFS 2.24              |
 |  48000 | ViewSheet B1.0        |
@@ -32,7 +30,6 @@ compatibility, and possibly Y2K fix?), but I haven't investigated.
 |  54000 | ADFS 1.50             |
 |  58000 | View                  |
 |  5c000 | Terminal              |
-|--------|-----------------------|
 |  60000 | MOS 3.50              |
 |  64000 | DFS 2.45              |
 |  68000 | ViewSheet B1.01       |

@@ -8,13 +8,18 @@ Here are some notes about a DIY ROM I put together, containing the
 following ROMs, which might serve as an example of doing this sort of
 thing:
 
-MOS/ROM 15 = MOS 3.50r
-ROM 14 = DFS 2.45 + relocation bitmaps + ADFS code
-ROM 13 = The BASIC Editor (relocatable)
-ROM 12 = BASIC 4r32 (relocatable)
-ROM 11 = EDIT 1.50r (relocatable)
-ROM 10 = ADFS 2.03
-ROM 9 = EXMON II
+| ROM | What |
+| --- | --- |
+| MOS | MOS 3.50r |
+| 15 | MOS 3.50r utils |
+| 14 | DFS 2.45 + relocation bitmaps + extra ADFS code |
+| 13 | The BASIC Editor (relocatable) |
+| 12 | BASIC 4r32 (relocatable) |
+| 11 | EDIT 1.50r (relocatable) |
+| 10 | ADFS 2.03 |
+| 9 | EXMON II |
+
+# Prerequisites
 
 You'll need to be set up to build the ROMs locally, as per
 [the build instructions](./build.md).
@@ -91,14 +96,14 @@ images can be loaded individually.
 See https://mdfs.net/Info/Comp/BBC/SROMs/MegaROM.htm - the files need
 to be concatenated, in the following order:
 
-0. `mos.rom`
-1. ROM 9 - EXMON II
-2. ROM 10 - ADFS 2.03
-3. ROM 11 - EDIT 1.50r (as modified by tube_relocation.py)
-4. ROM 12 - BASIC 4r32 (as modified by tube_relocation.py)
-5. ROM 13 - The BASIC Editor (as modified by tube_relocation.py)
-6. ROM 14 - DFS 2.45 (as modified by tube_relocation.py)
-7. ROM 15 - `utils.rom`
+1. `mos.rom`
+2. ROM 9 - EXMON II
+3. ROM 10 - ADFS 2.03
+4. ROM 11 - EDIT 1.50r (as modified by tube_relocation.py)
+5. ROM 12 - BASIC 4r32 (as modified by tube_relocation.py)
+6. ROM 13 - The BASIC Editor (as modified by tube_relocation.py)
+7. ROM 14 - DFS 2.45 (as modified by tube_relocation.py)
+8. ROM 15 - `utils.rom`
 
 Each file must be 16,384 bytes, padded if required, so that the full
 image is 131,072 bytes.

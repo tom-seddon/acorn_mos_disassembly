@@ -230,6 +230,9 @@ tom_example:
 
 ##########################################################################
 ##########################################################################
+#
+# Test stuff, for me on my laptop.
+#
 
 ifeq ($(OS),Windows_NT)
 UNAME:=$(OS)
@@ -249,3 +252,12 @@ tom_laptop:
 	$(MAKE) all
 
 # /opt/local/bin/ctags --exclude='.#*' --langdef=beebasm --langmap=beebasm:.6502.asm '--regex-beebasm=/^\.(\^|\*)?([A-Za-z0-9_]+)/\2/l,label/' '--regex-beebasm=/^[ \t]*macro[ \t]+([A-Za-z0-9_]+)/\1/m,macro/i' '--regex-beebasm=/^[ \t]*([A-Za-z0-9_]+)[ \t]*=[^=]/\1/v,value/' -eR src lib stnicc-beeb.asm
+
+.PHONY:tom_tube_transfer
+tom_tube_transfer: _CURL:=curl --no-progress-meter
+tom_tube_transfer:
+	$(SHELLCMD) copy-file tools/language_relocate_speed.txt build/language_relocate_speed.dat
+	$(PYTHON) submodules/beeb/bin/text2bbc.py build/language_relocate_speed.dat
+	$(_CURL) -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
+	$(_CURL) "http://localhost:48075/paste/b2" -H "Content-Type:text/plain" -H "Content-Encoding:utf-8" --upload-file build/language_relocate_speed.dat
+

@@ -13401,52 +13401,25 @@ relocateNextLanguageROMPage: .block
                 
                 .if fasterTubeRelocation
 
-                ldy #0
-                sty tubeLanguageHostAddr+0
+                stz tubeLanguageHostAddr+0
                 
                 ldx tubeRelocationPageOffset
-                beq transferVerbatimLoop
+                beq transferVerbatim
 
-transferRelocatedLoop:
-                lda (tubeLanguageHostAddr),y
-                cmp #$7f
-                bcc transferByte
-                cmp #$c0
-                bcs transferByte
-                
-                asl tubeRelocationBitmapByte
-                bne gotBitmapBit
-                
-                pha                          ; save ROM byte
+transferRelocated:
 
-                ; The MOS 3.50 code tries to handle table exhaustion
-                ; by treating any remainder as unrelocated - but I
-                ; don't think there's any point. Just form your
-                ; bitmaps correctly, damnit!
-                ;
-                ; (In this could have been used to create short
-                ; bitmaps, by arranging the ROM just so. But nobody
-                ; did that, and probably nobody will, and it's not
-                ; worth the lower relocation speed.)
+                lda tubeRelocationBitmapByte
 
-                jsr fetchTubeRelocationBitmapByte
-                sec
-                rol a
+                jsr tubeHost.brkHandler.transferRelocatedPageLoop
+
                 sta tubeRelocationBitmapByte
-                
-                pla                          ; restore ROM byte
 
-gotBitmapBit:
-                bcc transferByte ; taken if no relocation
-                adc tubeRelocationDelta
-transferByte:
-                sta tube.data3
-                iny
-                bne transferRelocatedLoop
 pageTransferred:
                 inc tubeLanguageHostAddr+1
                 rts
 
+transferVerbatim:
+                ldy #0
 transferVerbatimLoop:
                 lda (tubeLanguageHostAddr),y ; +5 = 10
                 nop                          ; +2 = 12

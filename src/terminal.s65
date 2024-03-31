@@ -6241,6 +6241,47 @@ callCommandRoutine:
 
 languageParasiteAddr:
                 .dword $8000
+
+                .if fasterTubeRelocation
+transferRelocatedPageLoop:
+tubeLanguageHostAddr=*+1
+                ldy $ffff                    ; +4 12
+                cpy #$7f                     ; +2 14
+                bcc transferByte             ; +3 17
+                cpy #$c0
+                bcs transferByte
+
+                asl a
+                bne gotBitmapBit
+                jsr fetchTubeRelocationBitmapByte
+
+                ; The standard MOS 3.50 code tries to handle table
+                ; exhaustion by monitoring the remaining bitmap size
+                ; and treating any remainder as implying no need for
+                ; relocation - but I don't think there's any point.
+                ; Just form your bitmaps correctly, damnit!
+                ;
+                ; (In this could have been used to create short
+                ; bitmaps, by arranging the ROM just so. But it's not
+                ; worth the reduced relocation speed.)
+                
+                sec
+                rol a
+gotBitmapBit:
+                bcc transferByte
+                sta relda+1
+                tya
+                adc tubeRelocationDelta
+                tay
+relda:
+                lda #$ff
+transferByte:
+                sty tube.data3               ; +4 21
+                inc tubeLanguageHostAddr+0   ; +5 5
+                bne transferRelocatedPageLoop ; +3 8
+                rts
+                .endif
+                
                 .cwarn *>$90
                 .here
                 .endblock

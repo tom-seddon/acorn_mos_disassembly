@@ -1567,7 +1567,11 @@ LFE8E=$fe8e
                 .union
 tubeOSFILEParameterBlock: .dstruct OSFILEParameterBlock
 tubeOSGBPBParameterBlock: .dstruct OSGBPBParameterBlock
+                .if fasterTubeRelocation
+tubeLanguageHostAddr=tubeHost.brkHandler.tubeLanguageHostAddr
+                .else
 tubeLanguageHostAddr: .fill 2
+                .endif
                 .endunion
 tubeTransferAddr: .fill 2
 tubeNotClaimed: .fill 1            ;bit 7 clear if tube claimed

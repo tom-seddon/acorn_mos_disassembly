@@ -143,7 +143,7 @@ LC018:                                       ; Fetch byte from ROM Y
                 jmp selectROMX                    ; Page in ROM X and return
 
 LC024:
-                jmp ($035D)
+                jmp (vduv.jumpVector)
 
 ;-------------------------------------------------------------------------
 ;
@@ -178,7 +178,8 @@ outputQueueToVDU:
                 bit STATE
                 bpl LC053              ;branch taken if not VDU21 mode
 
-                ; ????
+                ; VDU disabled. But if outputting to printer
+                ; specifically with VDU1, let the char through,
                 ldy vduv.jumpVector+1
                 cpy #>vdu1EntryPoint
                 bne clc_rts_c034
@@ -248,24 +249,27 @@ LC096:
                 bit STATE
                 bmi LC0C7                    ;taken if VDU21
                 jsr LCE0C
-                lda #$20
-                bit $0366
+                lda #vduv.cursorFlags.noMoveCursorAfterPrint
+                bit vduv.cursorFlags
                 bne LC0C7
                 jsr LC276
                 bra LC0C7
 
 LC0A9:
-                eor #$06
-                bne LC0C5
+                eor #$06                     ; compare to VDU6?
+                bne LC0C5                    ; taken if not VUD6
                 lda #STATE.isVDU21
-                trb STATE
+                trb STATE                    ; reset VDU21 flag
                 bra reinstateCursorEditing
 
 LC0B3:
                 sta vduv.jumpVector+1
+
+                ; TODO - pointless code?
                 tya
                 eor #$F7
                 cmp #$FA
+                
                 tya
                 bit STATE
                 bmi LC0A9             ;branch taken if VDU21 in effect
@@ -2843,7 +2847,7 @@ write4bppChar:
 -
                 lda (ZTEMPC),y               ;get font byte - %abcdefgh
                 jsr get4bppScreenByteFor2Pixels ;pixels g and h
-                sta ($E0),y
+                sta (ZTEMPD),y
                 lda (ZTEMPC),y               ;get font byte - %abcdefgh
                 lsr a                        ;%0abcdefg
                 lsr a                        ;%00abcdef
@@ -2932,7 +2936,7 @@ distanceMask0:
 ;
 ; (ZTEMP) = column N+1
 ; (ZTEMPB) = column N+2
-; (ZTEMPC) = column N+3
+; (ZTEMPD) = column N+3
 ;
 getNext3ColumnAddresses:
                 jsr getNextColumnAddress
@@ -2941,6 +2945,7 @@ getNext3ColumnAddresses:
                 jsr getNextColumnAddress
                 stx ZTEMPB+0
                 sta ZTEMPB+1
+                .cerror *!=getNextColumnAddress
 
 ;-------------------------------------------------------------------------
 ;
@@ -8327,6 +8332,8 @@ emptyCommandLine=*+1                         ;arbitrary place that's
 
 emptyCommandLine=oscliEntryPoint.emptyCommandLine
 
+;-------------------------------------------------------------------------
+
                 ; OSWRCH
                 ; ======
 oswrchEntryPoint:
@@ -8341,9 +8348,9 @@ oswrchEntryPoint:
                 jsr callNETV
                 bcs LE8A5
 LE833:
-                lda #$02
+                lda #characterDestinationStatus.vdu_disable
                 bit characterDestinationStatus
-                bne LE862
+                bne LE862                ; taken if VDU disabled
                 pla                          ;restore char to print
                 pha                          ;save it again
                 tax                          ;X=char to print
@@ -8370,9 +8377,9 @@ LE833:
                 tsb ACCCON
                 bcs LE869
 LE862:
-                lda #$08
+                lda #characterDestinationStatus.printer_enable
                 bit characterDestinationStatus
-                beq LE86E
+                beq LE86E                    ; taken if printer disabled
 LE869:
                 pla
                 pha
@@ -8380,8 +8387,8 @@ LE869:
 LE86E:
                 .if version!=400
                 lda characterDestinationStatus
-                ror a
-                bcc LE88F
+                ror a                      ; extract rs423_enable flag
+                bcc LE88F                  ; taken if RS423 disabled
                 ldy $EA
                 dey
                 bpl LE88F
@@ -8402,7 +8409,7 @@ LE888:
 LE88F:
                 .endif
 
-                lda #$10
+                lda #characterDestinationStatus.spool_disable
                 bit characterDestinationStatus
                 bne LE8A5
                 ldy spoolFileHandle
@@ -8410,9 +8417,9 @@ LE88F:
                 pla
                 pha
                 sec
-                ror $EB
+                ror tapeCritical
                 jsr OSBPUT
-                lsr $EB
+                lsr tapeCritical
 LE8A5:
                 pla
                 ply
@@ -8431,7 +8438,7 @@ LE8B9:
                 php
                 sei
                 tax
-                lda #$04
+                lda #characterDestinationStatus.printer_disable
                 bit characterDestinationStatus
                 bne LE8D3
                 txa

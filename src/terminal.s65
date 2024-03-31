@@ -829,7 +829,7 @@ printROMVersion:
                 jsr printSpaceThenPrintHexByte
 printInsertionStatus:
                 phy
-                .if version<500&&version!=350
+                .if !useTableDrivenConfigure
                 jsr getROMInsertedFlagRTCAddressAndMask
                 sta starROMSWorkspace.insertedFlagMask
                 jsr readRTCByte
@@ -857,9 +857,9 @@ invalidROM:
                 .if useTableDrivenConfigure
 L873F:
                 jsr getROMInsertedFlagRTCAddressAndMask
-                sta $b0
+                sta starROMSWorkspace.insertedFlagMask
                 jsr readRTCByte
-                and $b0
+                and starROMSWorkspace.insertedFlagMask
                 rts
                 .endif
                 
@@ -1740,7 +1740,7 @@ L926D:
 
 ;-------------------------------------------------------------------------
 
-                .if version==320||version==400
+                .if (version==320||version==400)&&!useTableDrivenConfigure
 osbyte19Done=rts9238
                 .include "restore_font.s65"
                 .elsif version>=500
@@ -2136,7 +2136,14 @@ starDELETE:
 
                 .if version==350
                 .include "rtc.s65"
+                .endif
+                .if version==350||(version<500&&useTableDrivenConfigure)
+                .if version==350
 osbyte19Done=rts9922
+                .else
+osbyte19Done:
+                rts
+                .endif
                 .include "restore_font.s65"
                 .endif
 
@@ -2197,7 +2204,11 @@ parseSoftKeyNumberFromCommandLine:
                 jsr parseNumberFromString
                 bcc badKeyError
                 cpx #softKeyCount
+                .if abs(rts941F-*)<127
                 bcc rts941F
+                .else
+                bcc osbyte19Done
+                .endif
 badKeyError:
                 jsr doFollowingError
                 .byte $FB

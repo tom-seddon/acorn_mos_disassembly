@@ -42,6 +42,19 @@ I decided to use 10+14 as this makes it slightly easier for me to test
 in the emulator (as the `*CONFIGURE FILE 9` setting, which usually
 makes sense, won't keep selecting ADFS).
 
+# Finding additional images
+
+ADFS 2.03 is part of the MegaROM, and there's a 16 KB ROM image in
+this repo in the `orig/mos350` folder.
+
+EXMON II is widely available. The newest version released by Beebug
+seems to be 2.02. A very slightly updated version 2.03 is available
+here: https://github.com/tom-seddon/exmon2_disassembly
+
+For The BASIC Editor, I use my updated version 1.46 from here:
+https://github.com/tom-seddon/basic_editor - 1.46 comes as a
+relocatable version with a Tube relocation bitmap.
+
 # Setting up the relocation bitmaps
 
 I have a script for looking after MOS 3.50 relocation bitmaps:
@@ -58,8 +71,8 @@ Relocation bitmaps for BASIC 4r32 and EDIT 1.50r are produced during
 the build process: see `build/basic.4r32.relocation.dat` and
 `build/edit.1.50r.relocation.dat`. 609+444=1,053 bytes total.
 
-The BASIC Editor is also relocatable, and its relocation bitmap is
-supplied with the latest release. Another 600-odd bytes. It all fits!
+The BASIC Editor's relocation bitmap is another 600-odd bytes. It all
+fits!
 
 The `tube_relocation.py set-multi` command will insert the relocation
 bitmaps into an unused region of a ROM, and fix up the relocatable
@@ -74,15 +87,6 @@ The command line for this gets a bit unwieldy, even in this simplified
 summary form that doesn't spell out the full paths:
 
     python3 submodules/beeb/bin/tube_relocation.py set-multi --bitmap-rom dfs.2.45.rom 14 --begin 0xaf00 --end 0xb800 --rom basic.4r32.rom basic.4r32.relocation.dat --rom edit.1.50r.rom edit.1.50r.relocation.dat --rom rbasiced.rom rbasiced.relocation.dat --set-multi
-
-# Finding additional images
-
-ADFS 2.03 is part of the MegaROM, and there's a 16 KB ROM image in
-this repo in the `orig/mos350` folder.
-
-EXMON II is widely available. The newest version released by Beebug
-seems to be 2.02. A very slightly updated version 2.03 is available
-here: https://github.com/tom-seddon/exmon2_disassembly
 
 # Test in emulator
 

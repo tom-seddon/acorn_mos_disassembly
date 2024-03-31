@@ -108,6 +108,19 @@ useTableDrivenConfigure=true
                 .else
 useTableDrivenConfigure=false
                 .endif
+
+                ; If true, put 750-odd bytes of sound code in the ext
+                ; ROM rather than the MOS ROM.
+                ;
+                ; (MOS 5.00+ has some code for having this stuff in
+                ; the utils ROM, and MOS 3.50 has some code for having
+                ; this stuff in the ext ROM. The MOS 3.50 code is a
+                ; bit tighter.)
+                .if version==350
+soundStuffInExtROM=true
+                .else
+soundStuffInExtROM=false
+                .endif
                 
                 .endweak
 

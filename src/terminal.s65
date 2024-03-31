@@ -6989,7 +6989,7 @@ LAE0F:
                 .include "terminal_code.s65"
                 .endif
 
-                .if version==350&&!includeTerminalROM
+                .if soundStuffInExtROM&&!includeTerminalROM
                 .include "sound_stuff.s65"
                 .endif
 

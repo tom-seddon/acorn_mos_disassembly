@@ -7823,7 +7823,7 @@ LE718:
                 bpl LE728
                 inc previousKeyPressedWhenReadingOSBYTE
                 cli
-                .if version==350
+                .if soundStuffInExtROM
                 jsr LF3C5_350
                 .else
                 jsr LF416                    ;update sound???
@@ -11836,7 +11836,7 @@ starRunBOOT:
 
 ;-------------------------------------------------------------------------
 
-                .if version<500&&version!=350
+                .if version<500&&version!=350&&!soundStuffInExtROM
                 .include "sound_stuff.s65"
                 .endif
 
@@ -11867,7 +11867,7 @@ clearSoundChannelBuffer:
 
 ;-------------------------------------------------------------------------
 
-                .if version==350
+                .if soundStuffInExtROM
 clearSoundChannelBuffer:
                 jsr selectExtROM
                 phy
@@ -11877,7 +11877,7 @@ clearSoundChannelBuffer:
 
 ;-------------------------------------------------------------------------
 
-                .if version==350
+                .if soundStuffInExtROM
 LF3C5_350:
                 jsr selectExtROM
                 phy
@@ -11889,7 +11889,7 @@ selectOldROM:
 
 ;-------------------------------------------------------------------------
 
-                .if version==350
+                .if soundStuffInExtROM
 selectExtROM:
                 ldy $f4
                 lda #extROM

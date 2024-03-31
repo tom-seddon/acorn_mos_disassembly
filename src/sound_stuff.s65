@@ -188,7 +188,7 @@ LF55A:
 ;
 ; X = buffer number (must be a sound channel buffer)
 ;
-                .if version>=500||version==350
+                .if version>=500||soundStuffInExtROM
                 ; All this stuff is in the top-level namespace in
                 ; 3.50. Needs a rethink!
 clearSoundChannelBufferInternal:

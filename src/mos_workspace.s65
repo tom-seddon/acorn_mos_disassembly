@@ -1568,7 +1568,7 @@ LFE8E=$fe8e
 tubeOSFILEParameterBlock: .dstruct OSFILEParameterBlock
 tubeOSGBPBParameterBlock: .dstruct OSGBPBParameterBlock
                 .if fasterTubeRelocation
-tubeLanguageHostAddr=tubeHost.brkHandler.tubeLanguageHostAddr
+tubeLanguageHostAddr=tubeHost.zeroPageCode.tubeLanguageHostAddr
                 .else
 tubeLanguageHostAddr: .fill 2
                 .endif
@@ -1580,8 +1580,8 @@ tubeClaimantID: .fill 1
 tubeRelocationDelta: .fill 1
 tubeRelocationBitmapByte: .fill 1
                 .endif
-tubeBrkHandlerAddr:
-                ; Tube BRK handler sits here.
+tubeZeroPageCodeAddr:
+                ; Tube handler zero-page code sits here.
                 .endv
 
 tubeStringBuffer=$700
@@ -1589,7 +1589,7 @@ tubeOSWORDBuffer=$0128
 
 
                 ; Need to tidy this one up...
-tubeLanguageParasiteAddr=tubeHost.brkHandler.languageParasiteAddr
+tubeLanguageParasiteAddr=tubeHost.zeroPageCode.languageParasiteAddr
                 
                 .endif
 

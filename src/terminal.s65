@@ -3669,9 +3669,9 @@ handleTubeMainInitialisation:
                 sta EVENTV+0
                 lda #>tubeHost.eventHandler
                 sta EVENTV+1
-                lda #<tubeBrkHandlerAddr
+                lda #<tubeHost.zeroPageCode.brkHandler
                 sta BRKV+0
-                lda #>tubeBrkHandlerAddr
+                lda #>tubeHost.zeroPageCode.brkHandler
                 sta BRKV+1
                 lda #tube.status1.S|tube.status1.M|tube.status1.J|tube.status1.I;
                 sta tube.status1
@@ -3691,10 +3691,10 @@ handleTubeMainInitialisation:
                 jsr tubeHost.resetTubeClaim
 
                 ; Copy BRK handler into zero page.
-                ldx #size(tubeHost.brkHandler)
+                ldx #size(tubeHost.zeroPageCode)
 -
-                lda tubeHost.brkHandler,x
-                sta @w tubeBrkHandlerAddr,x
+                lda tubeHost.zeroPageCode,x
+                sta @w tubeZeroPageCodeAddr,x
                 dex
                 bpl -
 
@@ -6199,8 +6199,9 @@ doFollowingError:
 
 tubeHost: .block          ;tube code
                 
-brkHandler: .block
-                .logical tubeBrkHandlerAddr
+zeroPageCode: .block
+                .logical tubeZeroPageCodeAddr
+brkHandler:
                 lda #$FF
                 jsr sendR4       ;send $ff via R4 to interrupt copro
                 lda tube.data2   ;get ACK byte from copro
@@ -6285,10 +6286,6 @@ transferByte:
                 .cwarn *>$90
                 .here
                 .endblock
-
-; Slightly ugly aliases for inner symbol :(
-idleStartup=brkHandler.idleStartup
-idleLoop=brkHandler.idleLoop
 
 codePage0:
                 .logical tubeHostAddr
@@ -6376,7 +6373,7 @@ dataTransfer:
 LABDB:
                 jsr release
                 jsr sendR2A
-                jmp idleStartup
+                jmp zeroPageCode.idleStartup
 
 LABE4:
                 lsr a            ;000STPVM J
@@ -6786,7 +6783,7 @@ sendR2X:
                 bvc sendR2X
                 stx tube.data2
 goIdle_1:
-                jmp idleLoop
+                jmp zeroPageCode.idleLoop
 
 ;-------------------------------------------------------------------------
 ;

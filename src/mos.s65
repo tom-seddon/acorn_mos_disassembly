@@ -13410,7 +13410,7 @@ transferRelocated:
 
                 lda tubeRelocationBitmapByte
 
-                jsr tubeHost.brkHandler.transferRelocatedPageLoop
+                jsr tubeHost.zeroPageCode.transferRelocatedPageLoop
 
                 sta tubeRelocationBitmapByte
 

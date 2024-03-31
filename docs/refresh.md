@@ -68,3 +68,4 @@ There is no version C.
 
 ## D (under development)
 
+* 3.50D: improve relocated language ROM Tube transfer speed

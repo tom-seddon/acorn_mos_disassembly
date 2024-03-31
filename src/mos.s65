@@ -13396,11 +13396,69 @@ badCommandError:
 ;
 
                 .if version==350&&includeTubeSupport
-                
-relocateNextLanguageROMPage: .block
-                ; TODO - all the 0/1/2/3 references here are
-                ; presumably tubeLanguageHostAddr
 
+relocateNextLanguageROMPage: .block
+                
+                .if fasterTubeRelocation
+
+                ldy #0
+                sty tubeLanguageHostAddr+0
+                
+                ldx tubeRelocationPageOffset
+                beq transferVerbatimLoop
+
+transferRelocatedLoop:
+                lda (tubeLanguageHostAddr),y
+                cmp #$7f
+                bcc transferByte
+                cmp #$c0
+                bcs transferByte
+                
+                asl tubeRelocationBitmapByte
+                bne gotBitmapBit
+                
+                pha                          ; save ROM byte
+
+                ; The MOS 3.50 code tries to handle table exhaustion
+                ; by treating any remainder as unrelocated - but I
+                ; don't think there's any point. Just form your
+                ; bitmaps correctly, damnit!
+                ;
+                ; (In this could have been used to create short
+                ; bitmaps, by arranging the ROM just so. But nobody
+                ; did that, and probably nobody will, and it's not
+                ; worth the lower relocation speed.)
+
+                jsr fetchTubeRelocationBitmapByte
+                sec
+                rol a
+                sta tubeRelocationBitmapByte
+                
+                pla                          ; restore ROM byte
+
+gotBitmapBit:
+                bcc transferByte ; taken if no relocation
+                adc tubeRelocationDelta
+transferByte:
+                sta tube.data3
+                iny
+                bne transferRelocatedLoop
+pageTransferred:
+                inc tubeLanguageHostAddr+1
+                rts
+
+transferVerbatimLoop:
+                lda (tubeLanguageHostAddr),y ; +5 = 10
+                nop                          ; +2 = 12
+                nop                          ; +2 = 14
+                nop                          ; +2 = 16
+                sta tube.data3               ; +4 = 20
+                iny                          ; +2 = 2
+                bne transferVerbatimLoop     ; +3 = 5
+                bra pageTransferred
+
+                .else
+                
                 ldy #0
                 sty tubeLanguageHostAddr+0
 loop:
@@ -13419,24 +13477,6 @@ loop:
                 cmp #$C0
                 bcs gotByte ; taken if not potentially-relocatable byte
 
-                .if fasterTubeRelocation
-
-                asl tubeRelocationBitmapByte
-                bne gotBitmapBit
-                pha
-                jsr LFADE
-                clc
-                beq gotBitmapBit2
-                sec
-                rol tubeRelocationBitmapByte
-gotBitmapBit2:
-                pla
-gotBitmapBit:
-                bcc gotByte ; taken if no relocation
-                adc tubeRelocationDelta
-                
-                .else
-                
                 pha
                 jsr fetchTubeRelocationBitmapBit
                 pla
@@ -13444,20 +13484,15 @@ gotBitmapBit:
                 clc
                 adc tubeRelocationPageOffset
                 
-                .endif
-                
 gotByte:
-                .if fasterTubeRelocation
-                ; Fastest case round the loop is 20 cycles exactly, I
-                ; think?
-                sta tube.data3
-                .else
                 sta tubeRelocationBuffer,y
-                .endif
                 iny
                 bne loop
                 .forcew inc,tubeLanguageHostAddr+1
                 rts
+
+                .endif
+                
                 .endblock
 
 ;-------------------------------------------------------------------------
@@ -13544,6 +13579,14 @@ noTubeRelocationBitmap:
 ;-------------------------------------------------------------------------
 
 fetchTubeRelocationBitmapByte: .block
+                .if fasterTubeRelocation
+                sec
+                lda tubeRelocationBitmapPtr+0
+                sbc #1
+                sta tubeRelocationBitmapPtr+0
+                bcs +
+                dec tubeRelocationBitmapPtr+1
+                .else
                 ; decrement (2)
                 .forcew lda,tubeRelocationBitmapPtr+0
                 php
@@ -13551,7 +13594,18 @@ fetchTubeRelocationBitmapByte: .block
                 plp
                 bne +
                 .forcew dec,tubeRelocationBitmapPtr+1
+                .endif
 +
+                
+                .if fasterTubeRelocation
+                ldx $f4
+                lda tubeRelocationBitmapROMBank
+                sta $f4
+                sta ROMSEL
+                lda (tubeRelocationBitmapPtr)
+                stx $f4
+                stx ROMSEL
+                .else
                 lda $f4
                 pha
                 lda tubeRelocationBitmapROMBank ; get ROM number containing relocation bitmap
@@ -13561,17 +13615,19 @@ fetchTubeRelocationBitmapByte: .block
                 pla            ; 
                 jsr selectROMA ; restore old ROM
                 txa            ; A = bitmap byte
+                .endif
                 rts
                 .endblock
 
 ;-------------------------------------------------------------------------
 
+                .if !fasterTubeRelocation
 fetchTubeRelocationBitmapBit: .block
                 asl tubeRelocationBitmapByte ; put next bit in carry, possibly the terminator
                 bne +                        ; taken if bit was valid
                 ; the bit shifted out was the terminator, so fetch
                 ; next one.
-                jsr LFADE                   ; fetch next byte
+                jsr fetchTubeRelocationBitmapByte2 ; fetch next byte
                 clc                         ; report bit clear
                 beq +                       ; taken if end of table??
                 ; fetch next bit into carry, and set shifted-in bit 0
@@ -13581,12 +13637,17 @@ fetchTubeRelocationBitmapBit: .block
 +
                 rts
                 .endblock
+                .endif
 
 ;-------------------------------------------------------------------------
-
-LFADE:       .block
+;
+; Terrible naming...
+;
+                .if !fasterTubeRelocation
+fetchTubeRelocationBitmapByte2: .block
                 jsr fetchTubeRelocationBitmapByte ; fetch next byte from bitmap
                 sta tubeRelocationBitmapByte      ; store it
+
                 ; decrement (tubeRelocationBitmapSizeBytes)
                 lda tubeRelocationBitmapSizeBytes+0
                 php
@@ -13595,11 +13656,14 @@ LFADE:       .block
                 bne +
                 dec tubeRelocationBitmapSizeBytes+1
 +
-                lda tubeRelocationBitmapSizeBytes+1 ; ?
-                eor #$80                            ; ?
-                and #$80                            ; ?
+                ; Set Z if the remaining size went negative.
+                
+                lda tubeRelocationBitmapSizeBytes+1 ; N=1 if run out
+                eor #$80                            ; N=0 if run out
+                and #$80                            ; Z=1 if run out
                 rts
                 .endblock
+                .endif
 
 ;-------------------------------------------------------------------------
 

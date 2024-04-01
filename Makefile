@@ -180,6 +180,8 @@ ci:
 # NT versions
 	$(SHELLCMD) move "$(OTHER_350_ROMS_REL_NONE)" "build/350nt"
 	$(SHELLCMD) move "$(OTHER_350_ROMS_REL_DFS)" "build/350nt"
+	$(SHELLCMD) copy-file "build/basic.4r32.relocation.dat" "build/350nt"
+	$(SHELLCMD) copy-file "build/edit.1.50r.relocation.dat" "build/350nt"
 	cd build && zip -9r "../$(CI_NT_ARCHIVE)" 320nt 350nt
 	zip -9j "$(CI_NT_ARCHIVE)" "docs/README.txt" "build/mos320nt.lst" "build/mos350nt.lst"
 

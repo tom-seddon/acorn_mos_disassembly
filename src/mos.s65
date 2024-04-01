@@ -448,15 +448,15 @@ setTextCursorXPositionRoutinesTable:
 
 ;-------------------------------------------------------------------------
 
-advanceTextCursorRoutinesTable:
-                .word LC310
-                .word LC2F2
-                .word LC310
-                .word LC2F2
-                .word LC35A
-                .word LC35A
-                .word LC338
-                .word LC338
+moveTextCursorRoutinesTable:
+                .word moveTextCursorPositiveX
+                .word moveTextCursorNegativeX
+                .word moveTextCursorPositiveX
+                .word moveTextCursorNegativeX
+                .word moveTextCursorPositiveY
+                .word moveTextCursorPositiveY
+                .word moveTextCursorNegativeY
+                .word moveTextCursorNegativeY
 
 ;-------------------------------------------------------------------------
 
@@ -581,8 +581,8 @@ LC249:
 vdu9EntryPoint:
                 jsr handleColumn81
                 bcs LC235
-                lda #$00
-                jsr LC2E9
+                lda #$00                     ; X+
+                jsr moveTextCursor
                 bcc LC273
 LC258:
                 jsr LC38F
@@ -592,7 +592,7 @@ vdu10EntryPoint:
                 clc
                 jsr LC88E
                 lda #$08
-                jsr LC2E9
+                jsr moveTextCursor           ; Y-
 LC269:
                 bcc LC273
                 jsr LC37B
@@ -605,7 +605,7 @@ LC273:
 LC276:
                 jsr testVDU5State
                 bne LC235                    ; taken if VDU5
-                jsr LC2E9
+                jsr moveTextCursor           ; A=0, so X+
                 bcc LC273
                 lda #$01
                 bit $0366
@@ -631,7 +631,7 @@ vdu8EntryPoint:
                 bit $036C
                 bvs LC28B
                 lda #$06
-                jsr LC2E9
+                jsr moveTextCursor           ; X-
                 bcc LC273
                 jsr LC38F
 vdu11EntryPoint:
@@ -642,7 +642,7 @@ vdu11EntryPoint:
                 inc pagedModeCounter
 LC2BE:
                 lda #$0E
-                jsr LC2E9
+                jsr moveTextCursor           ; Y+
                 bra LC269
 
 ;-------------------------------------------------------------------------
@@ -692,93 +692,112 @@ staTextCursorYPosition:
                 rts
 
 ;-------------------------------------------------------------------------
+;
+; Move text cursor.
+;
+; Entry:
+;
+; A = direction to move: 0 = X+
+;                        2 = X-
+;                        4 = X+
+;                        6 = X-
+;                        8 = Y-
+;                        10 = Y-
+;                        12 = Y+
+;                        14 = Y+
 
-LC2E9:
+moveTextCursor:
                 eor vduv.cursorFlags
                 and #(vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal)
                 tax
-LC2EF:
-                jmp (advanceTextCursorRoutinesTable,x)
-
-LC2F2:
-                lda $0308
-                cmp $0318
-                bcs LC337
-                dec $0318
-                sec
-                lda $034A
-                sbc $034F
-                sta $034A
-                sta ZMEMT+0
-                bcs LC336
-                dec $034B
-                bra LC32B
+callMoveTextCursorRoutine:
+                jmp (moveTextCursorRoutinesTable,x)
 
 ;-------------------------------------------------------------------------
 
-LC310:
+moveTextCursorNegativeX:
+                lda vduv.textWindowLeft
+                cmp vduv.textCursorXPosition
+                bcs rtsC337
+                dec vduv.textCursorXPosition
+                sec
+                lda vduv.textCursorCRTCAddress+0
+                sbc vduv.bytesPerCharacter
+                sta vduv.textCursorCRTCAddress+0
+                sta ZMEMT+0
+                bcs clc_rts_C336
+                dec vduv.textCursorCRTCAddress+1
+                bra fixUpZMEMTHiFromTextCursorCRTCAddressHi
+
+;-------------------------------------------------------------------------
+
+moveTextCursorPositiveX:
                 lda vduv.textCursorXPosition
                 cmp vduv.textWindowRight
-                bcs LC337
+                bcs rtsC337
                 inc vduv.textCursorXPosition
                 lda vduv.textCursorCRTCAddress+0
                 adc vduv.bytesPerCharacter
                 sta vduv.textCursorCRTCAddress+0
                 sta ZMEMT+0
-                bcc LC337
+                bcc rtsC337
                 inc vduv.textCursorCRTCAddress+1
-LC32B:
+fixUpZMEMTHiFromTextCursorCRTCAddressHi:
                 lda vduv.textCursorCRTCAddress+1
-LC32E:
+fixUpZMEMTHi:
                 bpl LC334
                 sec
                 sbc vduv.screenSizeHighByte
 LC334:
                 sta ZMEMT+1
-LC336:
+clc_rts_C336:
                 clc
-LC337:
+rtsC337:
                 rts
 
 ;-------------------------------------------------------------------------
 
-LC338:
-                lda $030B
-                cmp $0319
-                bcs LC337
-                dec $0319
+moveTextCursorNegativeY:
+                lda vduv.textWindowTop
+                cmp vduv.textCursorYPosition
+                bcs rtsC337
+                dec vduv.textCursorYPosition
                 sec
-                lda $034A
+                lda vduv.textCursorCRTCAddress+0
                 sbc $0352
-                sta $034A
+                sta vduv.textCursorCRTCAddress+0
                 sta ZMEMT+0
-                lda $034B
+                lda vduv.textCursorCRTCAddress+1
                 sbc $0353
-                sta $034B
-                bra LC32E
+                sta vduv.textCursorCRTCAddress+1
+                bra fixUpZMEMTHi
 
-LC35A:
-                lda $0319
-                cmp $0309
-                bcs LC337
-                inc $0319
-                lda $034A
-                adc $0352
-                sta $034A
+;-------------------------------------------------------------------------
+
+moveTextCursorPositiveY:
+                lda vduv.textCursorYPosition
+                cmp vduv.textWindowBottom
+                bcs rtsC337
+                inc vduv.textCursorYPosition
+                lda vduv.textCursorCRTCAddress+0
+                adc vduv.bytesPerCharacterRow+0
+                sta vduv.textCursorCRTCAddress+0
                 sta ZMEMT+0
-                lda $034B
-                adc $0353
-                sta $034B
-                bra LC32E
+                lda vduv.textCursorCRTCAddress+1
+                adc vduv.bytesPerCharacterRow+1
+                sta vduv.textCursorCRTCAddress+1
+                bra fixUpZMEMTHi
+
+;-------------------------------------------------------------------------
 
 LC37B:
-                lda #$10
-                bit $0366
+                lda #vduv.cursorFlags.noVerticalScroll
+                bit vduv.cursorFlags
                 bne LC38F
                 txa
                 eor #$06
                 pha
-                lda #$42
+                lda #STATE.isCursorEditing|STATE.isScrollingDisabled
                 bit STATE
                 beq LC3A2
                 bvs LC397
@@ -793,49 +812,55 @@ LC397:
                 jsr exchangeEditCursorPositionAndTextCursorPosition
                 plx
                 phx
-                jsr LC2EF
+                jsr callMoveTextCursorRoutine
                 jsr exchangeEditCursorPositionAndTextCursorPosition
 LC3A2:
                 plx
                 sec
-LC3A4:
+rtsC3A4:
                 rts
 
+;-------------------------------------------------------------------------
+
 vdu28EntryPoint:
-                ldx $0355
-                lda $0321
-                cmp $0323
-                bcc LC3A4
-                cmp modeMaxRow,x
-                beq LC3B7
-                bcs LC3A4
-LC3B7:
-                lda $0322
+                ldx vduv.currentScreenMODE
+                lda vduv.queueEnd-3          ; max Y
+                cmp vduv.queueEnd-1          ; min Y
+                bcc rtsC3A4                  ; bail if max Y<min Y
+                cmp modeMaxRow,x             ; 
+                beq +                        ; taken if max Y==max row
+                bcs rtsC3A4                  ; bail if max Y>max row
++
+                lda vduv.queueEnd-2          ; max X
                 cmp modeMaxColumn,x
-                beq LC3C2
-                bcs LC3A4
+                beq +                        ; taken if max X==max col
+                bcs rtsC3A4                  ; bail if max X>max col
                 sec
-LC3C2:
-                sbc $0320
-                bcc LC3A4
++
+                sbc vduv.queueEnd-4          ; form window width
+                bcc rtsC3A4                  ; bail if negative
                 jsr setTextWindowWidthInBytes
-                lda #$08
-                tsb STATE
+                lda #STATE.isTextWindow
+                tsb STATE                    ; set isTextWIndow bit
+
+                ; set text window value from the 4 VDU 28 argument
+                ; bytes in the VDU queue
                 ldx #VDUVariables.queueEnd-4
                 ldy #VDUVariables.textWindowLeft
                 jsr copyFourBytesWithinVDUVariables
+                
                 jsr exchangeEditCursorPositionAndTextCursorPosition
-                jsr LCCDA
-                bcc LC3E0
-                jsr LC3E8
+                jsr updateZMEMTWithTextCursorPositionIfValid
+                bcc LC3E0         ; taken if text cursor pos was valid
+                jsr resetTextCursorPosition
 LC3E0:
                 jsr exchangeEditCursorPositionAndTextCursorPosition
-                jsr LCCDA
-                bcc LC407
-LC3E8:
+                jsr updateZMEMTWithTextCursorPositionIfValid
+                bcc LC407         ; taken if text cursor pos was valid
+resetTextCursorPosition:
                 lda STATE
                 pha
-                and #$DF
+                and #~STATE.isVDU5
                 sta STATE
                 jsr vdu30EntryPoint
                 pla
@@ -843,12 +868,12 @@ LC3E8:
                 rts
 
 vdu13EntryPoint:
-                lda $0366
-                and #$0E
+                lda vduv.cursorFlags
+                and #vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal;$0E
                 tax
                 jsr testVDU5State
                 bne LC40A
-                lsr $036C
+                lsr vduv.column81
                 jsr LC38F
 LC407:
                 jmp updateCRTCCursorAddress
@@ -857,7 +882,7 @@ LC40A:
                 jsr LC1DE
                 jmp LC4DF
 
-LC410:
+jsrVDU30EntryPoint:
                 jsr vdu30EntryPoint
 
 ;-------------------------------------------------------------------------
@@ -866,7 +891,7 @@ LC410:
 ;
 vdu16EntryPoint:
                 lda vduv.pixelsPerByteMinusOne
-                beq LC3A4                    ;taken if MODE 7
+                beq rtsC3A4                    ;taken if MODE 7
                 ldx #VDUVariables.graphicsWindowPixelsLeft
                 jsr copyEightBytesToWorkspace28
                 jsr prepareForPlotBackground
@@ -902,7 +927,7 @@ LC448:
 vdu12EntryPoint:
                 lda #STATE.isVDU5
                 bit STATE
-                bne LC410                    ;taken if VDU 5 mode
+                bne jsrVDU30EntryPoint       ;taken if VDU 5 mode
                 lda #STATE.isTextWindow
                 bit STATE
                 bne clearTextWindow                    ;taken if text window
@@ -2566,6 +2591,8 @@ LCCCF:
                 lda ZTEMPB+0
 LCCD7:
                 jsr setTextCursorXPositionWithCursorFlags
+
+updateZMEMTWithTextCursorPositionIfValid:
 LCCDA:
                 ldx vduv.textCursorXPosition
                 cpx vduv.textWindowLeft
@@ -2589,6 +2616,8 @@ LCCF8:
 ; Get display address for current text cursor position.
 ;
 ; Set up display address without using BBC lookup table at &E0/1
+;
+; Exit: C=0
 ;
 updateZMEMTWithTextCursorPosition:
                 lda vduv.currentScreenMODEGroup

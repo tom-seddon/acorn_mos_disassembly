@@ -252,6 +252,7 @@ tom_laptop:
 	$(ECTAGS) '--exclude=.#*' --langdef=64tass --langmap=64tass:.s65 '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*):/\1/l,label/' '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*)=/\1/k,const/' -e *.s65 src/*.s65
 	$(PYTHON) bin/check7bit.py '*.s65'
 	$(MAKE) all
+#	$(MAKE) tom_wrchspd
 
 # /opt/local/bin/ctags --exclude='.#*' --langdef=beebasm --langmap=beebasm:.6502.asm '--regex-beebasm=/^\.(\^|\*)?([A-Za-z0-9_]+)/\2/l,label/' '--regex-beebasm=/^[ \t]*macro[ \t]+([A-Za-z0-9_]+)/\1/m,macro/i' '--regex-beebasm=/^[ \t]*([A-Za-z0-9_]+)[ \t]*=[^=]/\1/v,value/' -eR src lib stnicc-beeb.asm
 
@@ -263,3 +264,10 @@ tom_tube_transfer:
 	$(_CURL) -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
 	$(_CURL) "http://localhost:48075/paste/b2" -H "Content-Type:text/plain" -H "Content-Encoding:utf-8" --upload-file build/language_relocate_speed.dat
 
+.PHONY:tom_wrchspd
+tom_wrchspd: _CURL:=curl --no-progress-meter
+tom_wrchspd: _SSD:=build/wrchspd.ssd
+tom_wrchspd:
+	$(PYTHON) "submodules/beeb/bin/ssd_create.py" -o "$(_SSD)" -b "*BASIC" -b "CHAIN\"WRCHSPD\"" "beeb/acorn_mos_disassembly/0/$$.WRCHSPD"
+	$(_CURL) -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
+	$(_CURL) -H "Content-Type:application/binary" --upload-file "$(_SSD)" "http://localhost:48075/run/b2?name=$(_SSD)"

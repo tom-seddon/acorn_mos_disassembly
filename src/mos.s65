@@ -248,7 +248,7 @@ handleControlChar:
 LC096:
                 bit STATE
                 bmi LC0C7                    ;taken if VDU21
-                jsr LCE0C
+                jsr plotCharAtTextCursor
                 lda #vduv.cursorFlags.noMoveCursorAfterPrint
                 bit vduv.cursorFlags
                 bne LC0C7
@@ -265,10 +265,11 @@ LC0A9:
 LC0B3:
                 sta vduv.jumpVector+1
 
-                ; TODO - pointless code?
+                .if !fasterOSWRCH
                 tya
                 eor #$F7
                 cmp #$FA
+                .endif
                 
                 tya
                 bit STATE
@@ -447,7 +448,7 @@ setTextCursorXPositionRoutinesTable:
 
 ;-------------------------------------------------------------------------
 
-LC177:
+advanceTextCursorRoutinesTable:
                 .word LC310
                 .word LC2F2
                 .word LC310
@@ -460,8 +461,8 @@ LC177:
 ;-------------------------------------------------------------------------
 
 LC187:
-                eor $0366
-                and #$0E
+                eor vduv.cursorFlags
+                and #(vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal)
                 pha
                 jsr LD1A6
                 plx
@@ -603,7 +604,7 @@ LC273:
 
 LC276:
                 jsr testVDU5State
-                bne LC235
+                bne LC235                    ; taken if VDU5
                 jsr LC2E9
                 bcc LC273
                 lda #$01
@@ -693,11 +694,11 @@ staTextCursorYPosition:
 ;-------------------------------------------------------------------------
 
 LC2E9:
-                eor $0366
-                and #$0E
+                eor vduv.cursorFlags
+                and #(vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal)
                 tax
 LC2EF:
-                jmp (LC177,x)
+                jmp (advanceTextCursorRoutinesTable,x)
 
 LC2F2:
                 lda $0308
@@ -713,29 +714,33 @@ LC2F2:
                 dec $034B
                 bra LC32B
 
+;-------------------------------------------------------------------------
+
 LC310:
-                lda $0318
-                cmp $030A
+                lda vduv.textCursorXPosition
+                cmp vduv.textWindowRight
                 bcs LC337
-                inc $0318
-                lda $034A
-                adc $034F
-                sta $034A
+                inc vduv.textCursorXPosition
+                lda vduv.textCursorCRTCAddress+0
+                adc vduv.bytesPerCharacter
+                sta vduv.textCursorCRTCAddress+0
                 sta ZMEMT+0
                 bcc LC337
-                inc $034B
+                inc vduv.textCursorCRTCAddress+1
 LC32B:
-                lda $034B
+                lda vduv.textCursorCRTCAddress+1
 LC32E:
                 bpl LC334
                 sec
-                sbc $0354
+                sbc vduv.screenSizeHighByte
 LC334:
                 sta ZMEMT+1
 LC336:
                 clc
 LC337:
                 rts
+
+;-------------------------------------------------------------------------
 
 LC338:
                 lda $030B
@@ -2765,7 +2770,7 @@ vdu127AtGraphicsCursor:
                 lda #$00
                 bra plotFontDataAtGraphicsCursorWithPlotMode
 
-LCE0C:
+plotCharAtTextCursor:
                 jsr handleColumn81
                 bcs plotCharAtGraphicsCursor          ;taken if VDU5
                 ldx vduv.numberOfLogicalColoursMinusOne
@@ -8356,7 +8361,7 @@ LE833:
                 tax                          ;X=char to print
                 lda ACCCON                   ;
                 pha                          ;S=[old ACCCON; ch; y; x; ch]
-                .if version==350
+                .if version==350&&!fasterOSWRCH
                 jsr selectMOS
                 .else
                 lda #ACCCON.Y
@@ -8375,6 +8380,13 @@ LE833:
                 pla
                 and #ACCCON.Y
                 tsb ACCCON
+
+                .if fasterOSWRCH
+                ; Early out when doing VDU output only.
+                lda characterDestinationStatus
+                beq LE8A5
+                .endif
+                
                 bcs LE869
 LE862:
                 lda #characterDestinationStatus.printer_enable

@@ -87,6 +87,13 @@ correctlyHandleMissingTubeRelocationBitmap=false
                 ; If true, improve Tube relocation speed. 
 fasterTubeRelocation=false
 
+                ; If true, insert a few OSWRCH code tweaks to improve
+                ; things. Priority given to Mode 0/3/4/6/7 when
+                ; outputting to VDU only.
+                ;
+                ; This means more code in the MOS area.
+fasterOSWRCH=false
+
                 .endweak
                 
 ;-------------------------------------------------------------------------
@@ -536,7 +543,7 @@ USERV:
 BRKV:
                 .fill 2
 IRQ1V:
-                .fill 2
+                .fill 2
 IRQ2V:
                 .fill 2
 CLIV:

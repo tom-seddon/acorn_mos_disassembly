@@ -63,7 +63,8 @@ together, so the version numbers for all 3 variants stay in sync.
 
 ## D (under development)
 
-* 3.50D: improve relocated language ROM Tube transfer speed
+* 3.20D: bring in some of the MOS 3.50 code shuffling to free up space for future improvements
+* 3.50D: improve relocated language ROM Tube transfer speed 
 
 ## C
 

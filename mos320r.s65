@@ -9,6 +9,8 @@ includeTerminalROM=false
 versionString=refreshVersionString("3.20")
 includeStarX=false
 assumedRTCCenturyBCD=$20   
+; useTableDrivenConfigure=true
+soundStuffInExtROM=true
                 
 *=$8000
                 .dsection utils

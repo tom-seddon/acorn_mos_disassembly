@@ -373,7 +373,9 @@ Y = ($f2),y offset for command line tail
 
 * OSWRCH throughput 
 
-** Initial results (b2, MOS 3.50D, Tube):
+** MOS 3.50D + Tube
+
+*** Initial results (b2, MOS 3.50D, Tube):
 
 | Mode | Main (TIME) | Main (cps) | Shadow (TIME) | Shadow (cps) |
 |------+-------------+------------+---------------+--------------|
@@ -383,7 +385,7 @@ Y = ($f2),y offset for command line tail
 |    6 |         438 |       2283 |           438 |         2283 |
 |    7 |         294 |       3389 |           295 |         3401 |
 
-** Plus early out for VDU output only:
+*** Plus early out for VDU output only:
 
 | Mode | Main (TIME) | Main (cps) | Shadow (TIME) | Shadow (cps) |
 |------+-------------+------------+---------------+--------------|
@@ -395,7 +397,7 @@ Y = ($f2),y offset for command line tail
 
 ~5% faster in Mode 7. ~3.5% faster in other modes.
 
-** Plus inline MOS ROM paging
+*** Plus inline MOS ROM paging
 
 | Mode | Main (TIME) | Main (cps) | Shadow (TIME) | Shadow (cps) |
 |------+-------------+------------+---------------+--------------|
@@ -405,16 +407,101 @@ Y = ($f2),y offset for command line tail
 |    6 |         417 |       2398 |               |              |
 |    7 |         274 |       3649 |           273 |         3663 |
 
-** Plus removal of pointless code at LC0B3
+*** Plus removal of pointless code at LC0B3
 
 | Mode | Main (TIME) | Main (cps) | Shadow (TIME) | Shadow (cps) |
 |------+-------------+------------+---------------+--------------|
-|    0 |         410 |       2493 |               |              |
+|    0 |         401 |       2493 |               |              |
 |    3 |         404 |       2475 |               |              |
 |    4 |         415 |       2409 |               |              |
 |    6 |         417 |       2398 |               |              |
 |    7 |         273 |       3663 |           274 |         3649 |
 
+Non-Tube figures basically identical.
 
+| Mode | Main (TIME) | Main (cps) | Shadow (TIME) | Shadow (cps) |
+|------+-------------+------------+---------------+--------------|
+|    0 |         402 |       2487 |           403 |         2481 |
+|    3 |         405 |       2469 |           405 |         2469 |
+|    4 |         417 |       2398 |           416 |         2403 |
+|    6 |         418 |       2392 |           418 |         2392 |
+|    7 |         275 |       3636 |           275 |         3636 |
+
+** MOS 3.20D
+
+*** Initial results (b2, MOS 3.20D, no Tube)
+
+| Mode | Main (TIME) | Main (cps) | Shadow (TIME) | Shadow (cps) |
+|------+-------------+------------+---------------+--------------|
+|    0 |         417 |       2398 |               |              |
+|    1 |         648 |       1543 |               |              |
+|    2 |        1240 |        806 |               |              |
+|    3 |         419 |       2386 |               |              |
+|    4 |         430 |       2325 |               |              |
+|    5 |         672 |       1488 |               |              |
+|    6 |         432 |       2314 |               |              |
+|    7 |         289 |       3460 |               |              |
+
+*** fasterOSWRCH (early out + inlen paging + no pointless code)
+
+| Mode | Main (TIME) | Main (cps) | Shadow (TIME) | Shadow (cps) |
+|------+-------------+------------+---------------+--------------|
+|    0 |         402 |       2487 |               |              |
+|    3 |         405 |       2469 |               |              |
+|    4 |         416 |       2403 |               |              |
+|    6 |         417 |       2398 |               |              |
+|    7 |         274 |       3649 |           275 | 3636         |
+
+*** Tighter ACCCON restore, PLA:PHA>TAX -> PLX:PHX
+
+| Mode | Main (TIME) | Main (cps) | Shadow (TIME) | Shadow (cps) |
+|------+-------------+------------+---------------+--------------|
+|    0 |         400 |       2500 |               |              |
+|    3 |         403 |       2481 |               |              |
+|    4 |         414 |       2415 |               |              |
+|    6 |         416 |       2403 |               |              |
+|    7 |         273 |       3663 |               |              |
+
+*** Various micro-optimisations
+
+(Stopped tracking the shadow times separately as they don't diverge
+much.)
+
+| Mode | Main (TIME) | Main (cps) | cps x |
+|------+-------------+------------+-------|
+|    0 |         374 |       2673 | 1.114 |
+|    1 |         607 |       1647 | 1.067 |
+|    2 |        1200 |        833 | 1.033 |
+|    3 |         377 |       2652 | 1.111 |
+|    4 |         388 |       2577 | 1.108 |
+|    5 |         630 |       1587 | 1.067 |
+|    6 |         389 |       2570 | 1.111 |
+|    7 |         246 |       4065 | 1.175 |
+
+** MOS 3.50D
+
+| Mode | old TIME | old cps | new TIME | new cps | cps x |
+|------+----------+---------+----------+---------+-------|
+|    0 |      423 |    2364 |      374 |    2673 | 1.131 |
+|    1 |      706 |    1416 |      658 |    1519 | 1.073 |
+|    2 |     1247 |     801 |     1199 |     834 | 1.041 |
+|    3 |      426 |    2347 |      377 |    2652 | 1.130 |
+|    4 |      437 |    2288 |      389 |    2570 | 1.126 |
+|    5 |      729 |    1371 |      681 |    1468 | 1.071 |
+|    6 |      438 |    2283 |      390 |    2564 | 1.123 |
+|    7 |      296 |    3378 |      246 |    4065 | 1.203 |
+
+** MOS 3.50 vs MOS 3.50D (real hardware)
+
+| Mode | 3.50 TIME | 3.50 cps | 3.50D TIME | 3.50D cps | cps x |
+|------+-----------+----------+------------+-----------+-------|
+|    0 |       425 |     2352 |        377 |      2652 | 1.128 |
+|    1 |       709 |     1410 |        661 |      1512 | 1.072 |
+|    2 |      1254 |      797 |       1207 |       828 | 1.039 |
+|    3 |       428 |     2336 |        379 |      2638 | 1.129 |
+|    4 |       439 |     2277 |        391 |      2557 | 1.123 |
+|    5 |       733 |     1364 |        684 |      1461 | 1.071 |
+|    6 |       441 |     2267 |        392 |      2551 | 1.125 |
+|    7 |       298 |     3355 |        247 |      4048 | 1.207 |
 
 * eof

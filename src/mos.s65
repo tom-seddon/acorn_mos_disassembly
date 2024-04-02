@@ -206,8 +206,17 @@ LC053:
                 bra LC0C0
 
 outputCharToVDU:
+                .if fasterOSWRCH
+                ; Skip stopCursorEditing if it'll be a no-op.
+                bit STATE
+                bvc LC06D
+                .endif
                 jsr stopCursorEditing
+                .if fasterOSWRCH
+                ; Already covered the not editing case above.
+                .else
                 bvc LC06D             ;taken if not previously editing
+                .endif
                 bmi LC06D             ;taken if VDU 21
                 cmp #$0D
                 bne LC06D                  ;taken if not printing a CR
@@ -220,7 +229,7 @@ LC06D:
                 cmp #$20
                 bcc handleControlChar
                 cmp #$7F
-                bne LC096                    ;taken if not backspace
+                bne handlePrintableChar       ;taken if not backspace
                 lda #$20 ;backspace is entry 32 in the VDU routines table
 handleControlChar:
                 tay                          ;Y=index in table
@@ -245,13 +254,13 @@ handleControlChar:
                 sta vduv.jumpVector+1
                 bra reinstateCursorEditing                    ; Continue
 
-LC096:
+handlePrintableChar:
                 bit STATE
                 bmi LC0C7                    ;taken if VDU21
                 jsr plotCharAtTextCursor
                 lda #vduv.cursorFlags.noMoveCursorAfterPrint
                 bit vduv.cursorFlags
-                bne LC0C7
+                bne LC0C7                    ; taken if not moving cursor
                 jsr LC276
                 bra LC0C7
 
@@ -603,15 +612,20 @@ LC273:
                 jmp updateCRTCCursorAddress
 
 LC276:
+                .if fasterOSWRCH
+                lda STATE
+                and #STATE.isVDU5
+                .else
                 jsr testVDU5State
+                .endif
                 bne LC235                    ; taken if VDU5
                 jsr moveTextCursor           ; A=0, so X+
                 bcc LC273
-                lda #$01
-                bit $0366
+                lda #vduv.cursorFlags.scrollProtect
+                bit vduv.cursorFlags
                 beq LC258
                 sec
-                ror $036C
+                ror vduv.column81
 LC28B:
                 rts
 
@@ -705,14 +719,22 @@ staTextCursorYPosition:
 ;                        10 = Y-
 ;                        12 = Y+
 ;                        14 = Y+
+;
+; Exit:
+;
+; X = actual jump table index
+; C = something...
 
+                .if !fasterOSWRCH
 moveTextCursor:
                 eor vduv.cursorFlags
                 and #(vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal)
                 tax
+                .cerror *!=callMoveTextCursorRoutine
+                .endif
 callMoveTextCursorRoutine:
                 jmp (moveTextCursorRoutinesTable,x)
-
+                
 ;-------------------------------------------------------------------------
 
 moveTextCursorNegativeX:
@@ -731,6 +753,15 @@ moveTextCursorNegativeX:
 
 ;-------------------------------------------------------------------------
 
+                .if fasterOSWRCH
+moveTextCursor:
+                eor vduv.cursorFlags
+                and #(vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal)
+                tax
+                bne callMoveTextCursorRoutine
+                .cerror *!=moveTextCursorPositiveX
+                .endif
+                
 moveTextCursorPositiveX:
                 lda vduv.textCursorXPosition
                 cmp vduv.textWindowRight
@@ -2803,7 +2834,16 @@ plotCharAtTextCursor:
                 jsr handleColumn81
                 bcs plotCharAtGraphicsCursor          ;taken if VDU5
                 ldx vduv.numberOfLogicalColoursMinusOne
+                .if fasterOSWRCH
+                bne writeBitmapSoftCharacter
+                jsr getSAA5050FromASCII
+writeTeletextChar:
+                sta (ZMEMT)
+                rts
+                .else
                 beq writeTeletextChar
+                .endif
+writeBitmapSoftCharacter:
                 jsr getSoftCharacterDefinitionAddress
 writeBitmapChar:
                 ldy #$07
@@ -2839,10 +2879,15 @@ LCE37:
 
 writeTeletextSpaceChar:
                 lda #$20
+                .if fasterOSWRCH
+                sta (ZMEMT)
+                rts
+                .else
 writeTeletextChar:
                 jsr getSAA5050FromASCII
                 sta (ZMEMT)
                 rts
+                .endif
 
 write2bppChar:
                 lda ZMEMT+1
@@ -2857,7 +2902,7 @@ write2bppChar:
                 eor ZEOR
                 sta (ZTEMPD),y               ;write to right column
                 lda (ZTEMPC),y               ;get font byte
-                .if version==350
+                .if version==350&&!fasterOSWRCH
                 jsr LE520
                 .else
                 lsr a                        ;
@@ -3448,6 +3493,34 @@ vdu23_16_EntryPoint:
 ; C=1 if VDU 5
 ;
 handleColumn81:
+                .if fasterOSWRCH
+
+                pha
+
+                lda STATE
+                and #STATE.isVDU5
+                sec
+                bne pla_rts    ; taken if VDU5 - return with carry set
+
+                ; not VDU5
+                clc
+                bit vduv.column81
+                bpl pla_rts                  ; taken if not column 81
+
+                php
+                phx
+                jsr vdu13EntryPoint          ; CR
+                jsr vdu10EntryPoint          ; LF
+                plx
+                plp
+
+pla_rts:
+                pla
+rtsD145:
+                rts
+
+                .else
+                
                 pha
                 phx
                 jsr testVDU5State
@@ -3465,6 +3538,8 @@ plx_pla_rts:
                 pla
 rtsD145:
                 rts
+
+                .endif
 
 ;-------------------------------------------------------------------------
 ;
@@ -5706,6 +5781,30 @@ done:
 ; A = SAA550 char
 ;
 getSAA5050FromASCII:
+                .if fasterOSWRCH
+
+                cmp #$23
+                beq translateHash
+                cmp #$5f
+                beq translateUnderscore
+                cmp #$60
+                beq translateGBP
+                rts
+
+translateHash:
+                lda #$5f
+                rts
+
+translateUnderscore:
+                lda #$60
+                rts
+
+translateGBP:
+                lda #$23
+                rts
+
+                .else
+                
                 cmp #$23
                 beq translateHash
                 cmp #$5F
@@ -5720,6 +5819,8 @@ translateUnderscore:
                 eor #$3F                     ;0x5f->0x60 or 0x1c->0x23
 rtsDDF7:
                 rts
+                
+                .endif
 
 ;-------------------------------------------------------------------------
 
@@ -8385,12 +8486,21 @@ LE833:
                 lda #characterDestinationStatus.vdu_disable
                 bit characterDestinationStatus
                 bne LE862                ; taken if VDU disabled
+                .if fasterOSWRCH
+                plx                          ; X=char to print
+                phx                          ; save it again
+                .else
                 pla                          ;restore char to print
                 pha                          ;save it again
                 tax                          ;X=char to print
+                .endif
                 lda ACCCON                   ;
                 pha                          ;S=[old ACCCON; ch; y; x; ch]
-                .if version==350&&!fasterOSWRCH
+                .if fasterOSWRCH
+                ; I think it's safe to clear Y like this in this case.
+                and #~ACCCON.Y               ; MOS ROM at $c000
+                sta ACCCON
+                .elsif version==350
                 jsr selectMOS
                 .else
                 lda #ACCCON.Y
@@ -8407,6 +8517,8 @@ LE833:
                 sta $F4
                 sta ROMSEL
                 pla
+                ; Only the saved Y bit is valid. For example, a mode
+                ; change might have adjusted the shadow RAM setup.
                 and #ACCCON.Y
                 tsb ACCCON
 

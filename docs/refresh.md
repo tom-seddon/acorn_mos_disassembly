@@ -63,8 +63,13 @@ together, so the version numbers for all 3 variants stay in sync.
 
 ## D (under development)
 
-* 3.20D: bring in some of the MOS 3.50 code shuffling to free up space for future improvements
-* 3.50D: improve relocated language ROM Tube transfer speed 
+* 3.20D: bring in some of the MOS 3.50 code shuffling to free up space
+  for future improvements
+* 3.50D: further improve relocated language ROM Tube transfer speed 
+* All: improve OSWRCH speed when printing text at text cursor. Most
+  noticeable in modes 0/3/4/6/7 when printing only to screen
+* 3.50D: fix text printing speed in modes 1/5, which was previously
+  needlessly a bit slower than in MOS 3.20
 
 ## C
 

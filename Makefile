@@ -269,5 +269,5 @@ tom_wrchspd: _CURL:=curl --no-progress-meter
 tom_wrchspd: _SSD:=build/wrchspd.ssd
 tom_wrchspd:
 	$(PYTHON) "submodules/beeb/bin/ssd_create.py" -o "$(_SSD)" -b "*BASIC" -b "CHAIN\"WRCHSPD\"" "beeb/acorn_mos_disassembly/0/$$.WRCHSPD"
-	$(_CURL) -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
+	$(_CURL) --connect-timeout 0.25 -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
 	$(_CURL) -H "Content-Type:application/binary" --upload-file "$(_SSD)" "http://localhost:48075/run/b2?name=$(_SSD)"

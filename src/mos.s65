@@ -1,5 +1,14 @@
 ; -*- comment-column:45; -*-
 
+testVDU5State: .macro
+                .if fasterOSWRCH
+                lda STATE
+                and #STATE.isVDU5
+                .else
+                jsr testVDU5StateNonInlined
+                .endif
+                .endmacro
+                
 ; VDU driver entry block
 ; ======================
 LC000:                                       ; Read from VDU memory
@@ -241,7 +250,7 @@ handleControlChar:
                 ora #$F0
                 sta vduQueueNegativeLength ;initialise initial VDU queue length
                 txa                          ; Restore original MSB value
-                .if version==350
+                .if version==350&&!fasterOSWRCH
                 jsr LE520
                 .else
                 lsr a                        ;
@@ -596,7 +605,7 @@ vdu9EntryPoint:
 LC258:
                 jsr LC38F
 vdu10EntryPoint:
-                jsr testVDU5State
+                .testVDU5State
                 bne LC23F
                 clc
                 jsr LC88E
@@ -612,12 +621,7 @@ LC273:
                 jmp updateCRTCCursorAddress
 
 LC276:
-                .if fasterOSWRCH
-                lda STATE
-                and #STATE.isVDU5
-                .else
-                jsr testVDU5State
-                .endif
+                .testVDU5State
                 bne LC235                    ; taken if VDU5
                 jsr moveTextCursor           ; A=0, so X+
                 bcc LC273
@@ -639,7 +643,7 @@ LC296:
                 bra LC241
 
 vdu8EntryPoint:
-                jsr testVDU5State
+                .testVDU5State
                 bne LC28C
                 lsr $036C
                 bit $036C
@@ -649,7 +653,7 @@ vdu8EntryPoint:
                 bcc LC273
                 jsr LC38F
 vdu11EntryPoint:
-                jsr testVDU5State
+                .testVDU5State
                 bne LC296
                 dec pagedModeCounter
                 bpl LC2BE
@@ -902,7 +906,7 @@ vdu13EntryPoint:
                 lda vduv.cursorFlags
                 and #vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal;$0E
                 tax
-                jsr testVDU5State
+                .testVDU5State
                 bne LC40A
                 lsr vduv.column81
                 jsr LC38F
@@ -998,7 +1002,7 @@ vdu31EntryPoint:
                 and #vduv.cursorFlags.swapAxes|vduv.cursorFlags.invertVertical|vduv.cursorFlags.invertHorizontal
                 tax
 LC488:
-                jsr testVDU5State
+                .testVDU5State
                 bne LC4CF                    ;taken if VDU 5
                 lda vduv.textCursorXPosition
                 pha                          ;save old X pos
@@ -1479,6 +1483,11 @@ setCRTCCursorAddress:
 ;
 ;
 updateCRTCCursorAddress:
+                .if fasterOSWRCH
+                ; Set C=1 if Mode 7
+                lda vduv.currentScreenMODE
+                cmp #$07
+                .endif
                 ldx vduv.textCursorCRTCAddress+0
                 lda vduv.textCursorCRTCAddress+1
                 ldy #$0E
@@ -1493,11 +1502,17 @@ updateCRTCCursorAddress:
 ;
 ; Y = first CRTC register to set
 ;
+.if !fasterOSWRCH
+; C = 1 if in Mode 7
+.endif
+;
 setCRTCAddress:
+                .if !fasterOSWRCH
                 pha                          ;save screen address MSB
                 lda vduv.currentScreenMODE
                 cmp #$07
                 pla                        ;restore screen address MSB
+                .endif
                 bcs adjustAddressForMODE7
                 stx ZTEMP+0
                 lsr a
@@ -1511,8 +1526,15 @@ setCRTCAddress:
 
 adjustAddressForMODE7:
                 ; C=1
+                .if fasterOSWRCH
+                ; only the top 2 bits of the result differ from the
+                ; 2-step calculation, and they're irrelevant as the
+                ; CRTC is 14-bit addressing.
+                sbc #$54
+                .else
                 sbc #$74                 ;adjust for Mode 7 addressing
                 eor #$20                 ;adjust for Mode 7 addressing
+                .endif
 setCRTCAddressRegisters:
                 sty CRTC+0
                 sta CRTC+1
@@ -2091,6 +2113,11 @@ LC9AA:
                 jsr getAddressForTextPosition
                 jsr LCAE8
 LC9B8:
+                .if fasterOSWRCH
+                ; Set C=1 if Mode 7
+                lda vduv.currentScreenMODE
+                cmp #7
+                .endif
                 ldy #$0C
                 lda vduv.screenTopLeftAddress+1
                 ldx vduv.screenTopLeftAddress+0
@@ -2836,10 +2863,25 @@ plotCharAtTextCursor:
                 ldx vduv.numberOfLogicalColoursMinusOne
                 .if fasterOSWRCH
                 bne writeBitmapSoftCharacter
-                jsr getSAA5050FromASCII
+                cmp #$23
+                beq writeTeletextHashChar
+                cmp #$5F
+                beq writeTeletextUnderscoreChar
+                cmp #$60
+                beq writeTeletextGBPChar
 writeTeletextChar:
                 sta (ZMEMT)
                 rts
+                
+writeTeletextGBPChar:
+                eor #$3f
+writeTeletextHashChar:
+                eor #$43
+writeTeletextUnderscoreChar:
+                eor #$3f
+                sta (ZMEMT)
+                rts
+                
                 .else
                 beq writeTeletextChar
                 .endif
@@ -2865,7 +2907,7 @@ vdu127EntryPoint:
                 bne LCE37
                 jsr vdu8EntryPoint
 LCE37:
-                jsr testVDU5State
+                .testVDU5State
                 bne vdu127AtGraphicsCursor
                 ldx vduv.numberOfLogicalColoursMinusOne
                 beq writeTeletextSpaceChar   ;taken if teletext mode
@@ -3101,7 +3143,7 @@ setCRTCRegister:
                 ; the result of testVDU5State - i.e., 32 - as the
                 ; setting, hiding the cursor.
                 sta vduv.lastCursorStartRegisterValue
-                jsr testVDU5State
+                .testVDU5State
                 bne rtsCF2A
                 lda vduv.lastCursorStartRegisterValue
 
@@ -3122,7 +3164,7 @@ rtsCF2A:
 ; VDU 23 1 Turn cursor on/off [MasRef E.3-12]
 ;
 vdu23_1_EntryPoint:
-                jsr testVDU5State
+                .testVDU5State
                 bne rtsCF2A                  ;taken if VDU5
                 lda vduv.queueEnd-8           ;get new cursor state
                 and #$03                     ;mask off bits of interest
@@ -3499,11 +3541,10 @@ handleColumn81:
 
                 lda STATE
                 and #STATE.isVDU5
-                sec
-                bne pla_rts    ; taken if VDU5 - return with carry set
+                cmp #$20       ; C=1 if VDU5
+                bcs pla_rts    ; taken if VDU5 - return with carry set
 
                 ; not VDU5
-                clc
                 bit vduv.column81
                 bpl pla_rts                  ; taken if not column 81
 
@@ -3523,7 +3564,7 @@ rtsD145:
                 
                 pha
                 phx
-                jsr testVDU5State
+                jsr testVDU5StateNonInlined
                 sec
                 bne plx_pla_rts        ;taken if VDU5
                 clc
@@ -5780,31 +5821,7 @@ done:
 ;
 ; A = SAA550 char
 ;
-getSAA5050FromASCII:
-                .if fasterOSWRCH
-
-                cmp #$23
-                beq translateHash
-                cmp #$5f
-                beq translateUnderscore
-                cmp #$60
-                beq translateGBP
-                rts
-
-translateHash:
-                lda #$5f
-                rts
-
-translateUnderscore:
-                lda #$60
-                rts
-
-translateGBP:
-                lda #$23
-                rts
-
-                .else
-                
+getSAA5050FromASCII: .block
                 cmp #$23
                 beq translateHash
                 cmp #$5F
@@ -5819,8 +5836,7 @@ translateUnderscore:
                 eor #$3F                     ;0x5f->0x60 or 0x1c->0x23
 rtsDDF7:
                 rts
-                
-                .endif
+                .endblock
 
 ;-------------------------------------------------------------------------
 
@@ -7030,7 +7046,7 @@ exchangeVDUVariables:
 ; exit:
 ;
 ; Z=0 if VDU5 mode
-testVDU5State:
+testVDU5StateNonInlined:
                 lda STATE
                 and #STATE.isVDU5
                 rts
@@ -8524,7 +8540,12 @@ LE833:
 
                 .if fasterOSWRCH
                 ; Early out when doing VDU output only.
+                ;
+                ; (The spool disable + spool handle case is treated as
+                ; spool enabled.)
                 lda characterDestinationStatus
+                and #(~characterDestinationStatus.spool_disable)&$ff
+                ora spoolFileHandle
                 beq LE8A5
                 .endif
                 

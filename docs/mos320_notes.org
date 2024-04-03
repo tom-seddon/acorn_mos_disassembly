@@ -467,6 +467,8 @@ Non-Tube figures basically identical.
 (Stopped tracking the shadow times separately as they don't diverge
 much.)
 
+MOS 3.20D (7fe3869da2b906912e0188e0ef5790cdc1214c63)
+
 | Mode | Main (TIME) | Main (cps) | cps x |
 |------+-------------+------------+-------|
 |    0 |         374 |       2673 | 1.114 |
@@ -478,7 +480,9 @@ much.)
 |    6 |         389 |       2570 | 1.111 |
 |    7 |         246 |       4065 | 1.175 |
 
-** MOS 3.50D
+
+** 7fe3869da2b906912e0188e0ef5790cdc1214c63
+*** MOS 3.50 vs MOS 3.50D (b2)
 
 | Mode | old TIME | old cps | new TIME | new cps | cps x |
 |------+----------+---------+----------+---------+-------|
@@ -491,7 +495,7 @@ much.)
 |    6 |      438 |    2283 |      390 |    2564 | 1.123 |
 |    7 |      296 |    3378 |      246 |    4065 | 1.203 |
 
-** MOS 3.50 vs MOS 3.50D (real hardware)
+*** MOS 3.50 vs MOS 3.50D (real hardware)
 
 | Mode | 3.50 TIME | 3.50 cps | 3.50D TIME | 3.50D cps | cps x |
 |------+-----------+----------+------------+-----------+-------|
@@ -503,5 +507,52 @@ much.)
 |    5 |       733 |     1364 |        684 |      1461 | 1.071 |
 |    6 |       441 |     2267 |        392 |      2551 | 1.125 |
 |    7 |       298 |     3355 |        247 |      4048 | 1.207 |
+
+
+
+
+
+**  More stuff
+
+Inline the LSRs for 2 bpp text writing = further useful improvements.
+
+*** Inline testVD5State everywhere
+
+| Mode | TIME |  cps |
+|------+------+------|
+|    0 |  374 | 2673 |
+|    1 |  606 | 1640 |
+|    2 | 1199 |  834 |
+|    3 |  376 | 2659 |
+|    4 |  388 | 2577 |
+|    5 |  630 | 1587 |
+|    6 |  389 | 2570 |
+|    7 |  244 | 4098 |
+
+*** Inline ASCII->SAA5050, tighten setCRTCAddress
+
+| Mode | TIME |  cps |
+|------+------+------|
+|    0 |  370 | 2702 |
+|    1 |  602 | 1661 |
+|    2 | 1194 |  837 |
+|    3 |  373 | 2680 |
+|    4 |  385 | 2597 |
+|    5 |  625 | 1600 |
+|    6 |  386 | 2590 |
+|    7 |  235 | 4255 |
+
+*** Fix *SPOOL :(, tighten Mode 7 CRTC address caclulations
+
+| Mode | TIME |  cps |
+|------+------+------|
+|    0 |  374 | 2674 |
+|    1 |  606 | 1650 |
+|    2 | 1198 |  834 |
+|    3 |  377 | 2652 |
+|    4 |  388 | 2577 |
+|    5 |  628 | 1592 |
+|    6 |  389 | 2570 |
+|    7 |  237 | 4219 |
 
 * eof

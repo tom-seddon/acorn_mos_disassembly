@@ -2961,42 +2961,67 @@ write2bppChar:
                 bpl -
                 rts
 
+get4bppScreenByteFor2Pixels: .macro
+                tax
+                lda LE023,x                  ;form byte
+                ora ZORA
+                eor ZEOR
+                .endm
+
 write4bppChar:
                 lda ZMEMT+1
                 ldx ZMEMT+0
                 jsr getNext3ColumnAddresses
 -
                 lda (ZTEMPC),y               ;get font byte - %abcdefgh
-                jsr get4bppScreenByteFor2Pixels ;pixels g and h
+                .if fasterOSWRCH
+                and #$03                     ;mask out 2 pixels
+                .get4bppScreenByteFor2Pixels
+                .else
+                jsr get4bppScreenByteFor2PixelsNonInlined ;pixels g and h
+                .endif
                 sta (ZTEMPD),y
                 lda (ZTEMPC),y               ;get font byte - %abcdefgh
                 lsr a                        ;%0abcdefg
                 lsr a                        ;%00abcdef
                 pha                          ;save %00abcdef
-                jsr get4bppScreenByteFor2Pixels ;pixels e and f
+                .if fasterOSWRCH
+                and #$03                     ;mask out 2 pixels
+                .get4bppScreenByteFor2Pixels
+                .else
+                jsr get4bppScreenByteFor2PixelsNonInlined ;pixels e and f
+                .endif
                 sta (ZTEMPB),y
                 pla                          ;restore %00abcdef
                 lsr a                        ;%000abcde
                 lsr a                        ;%0000abcd
                 pha                          ;save %0000abcd
-                jsr get4bppScreenByteFor2Pixels ;pixels c and d
+                .if fasterOSWRCH
+                and #$03                     ;mask out 2 pixels
+                .get4bppScreenByteFor2Pixels
+                .else
+                jsr get4bppScreenByteFor2PixelsNonInlined ;pixels c and d
+                .endif
                 sta (ZTEMP),y
                 pla                          ;restore %0000abcd
                 lsr a                        ;%00000abc
                 lsr a                        ;%000000ab
-                jsr get4bppScreenByteFor2Pixels ;pixels a and b
+                .if fasterOSWRCH
+                .get4bppScreenByteFor2Pixels
+                .else
+                jsr get4bppScreenByteFor2PixelsNonInlined ;pixels a and b
+                .endif
                 sta (ZMEMT),y
                 dey
                 bpl -
                 rts
 
-get4bppScreenByteFor2Pixels:
+                .if !fasterOSWRCH
+get4bppScreenByteFor2PixelsNonInlined:
                 and #$03                     ;mask out 2 pixels
-                tax
-                lda LE023,x                  ;form byte
-                ora ZORA
-                eor ZEOR
+                .get4bppScreenByteFor2Pixels
                 rts
+                .endif
 
 ;-------------------------------------------------------------------------
 ;

@@ -555,4 +555,12 @@ Inline the LSRs for 2 bpp text writing = further useful improvements.
 |    6 |  389 | 2570 |
 |    7 |  237 | 4219 |
 
+*** Inline get4bppScreenByteFor2Pixels
+
+| Mode | TIME |  cps |
+|------+------+------|
+|    2 |  988 | 1012 |
+
+26 extra bytes of code space... probably worth it, for a +20%!
+
 * eof

@@ -63,11 +63,10 @@ together, so the version numbers for all 3 variants stay in sync.
 
 ## D (under development)
 
+* All: improve OSWRCH speed when printing text at text cursor
 * 3.20D: bring in some of the MOS 3.50 code shuffling to free up space
-  for future improvements
-* 3.50D: further improve relocated language ROM Tube transfer speed 
-* All: improve OSWRCH speed when printing text at text cursor. Most
-  noticeable in modes 0/3/4/6/7 when printing only to screen
+  for future improvements 
+* 3.50D: further improve relocated language ROM Tube transfer speed
 * 3.50D: fix text printing speed in modes 1/5, which was previously
   needlessly a bit slower than in MOS 3.20
 
@@ -78,7 +77,7 @@ There is no version C.
 ## B
 
 * 3.20B, 3.50B: RTC year is assumed to be 20xx not 19xx
-* 3.20B, 3.50B: remove built-in  `*X` command
+* 3.20B, 3.50B: remove built-in `*X` command
 * 3.50B: fix handling of missing language ROM Tube relocation bitmaps
 * 3.50B: improve language ROM Tube transfer speed
 

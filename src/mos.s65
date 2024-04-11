@@ -270,7 +270,12 @@ handlePrintableChar:
                 lda #vduv.cursorFlags.noMoveCursorAfterPrint
                 bit vduv.cursorFlags
                 bne LC0C7                    ; taken if not moving cursor
+                .if fasterOSWRCH
+                .cerror vduv.cursorFlags.noMoveCursorAfterPrint!=$20
+                jsr LC276withAccumulator20
+                .else
                 jsr LC276
+                .endif
                 bra LC0C7
 
 LC0A9:
@@ -621,7 +626,15 @@ LC273:
                 jmp updateCRTCCursorAddress
 
 LC276:
-                .testVDU5State
+                .if fasterOSWRCH
+                .cerror STATE.isVDU5!=$20
+                lda #STATE.isVDU5
+LC276withAccumulator20:
+                and STATE
+                .else
+                jsr testVDU5StateNonInlined
+                .endif
+                ; .testVDU5State
                 bne LC235                    ; taken if VDU5
                 jsr moveTextCursor           ; A=0, so X+
                 bcc LC273

@@ -563,4 +563,17 @@ Inline the LSRs for 2 bpp text writing = further useful improvements.
 
 26 extra bytes of code space... probably worth it, for a +20%!
 
+*** Squeeze out 2 more cycles...
+
+| Mode | TIME |  cps |     x |
+|------+------+------+-------|
+|    0 |  371 | 2695 | 1.140 |
+|    1 |  603 | 1658 | 1.171 |
+|    2 |  987 | 1013 | 1.265 |
+|    3 |  374 | 2673 | 1.139 |
+|    4 |  386 | 2590 | 1.132 |
+|    5 |  626 | 1597 | 1.165 |
+|    6 |  387 | 2583 | 1.131 |
+|    7 |  235 | 4255 | 1.260 |
+
 * eof

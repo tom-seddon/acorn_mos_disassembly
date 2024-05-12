@@ -576,4 +576,17 @@ Inline the LSRs for 2 bpp text writing = further useful improvements.
 |    6 |  387 | 2583 | 1.131 |
 |    7 |  235 | 4255 | 1.260 |
 
+*** One more unroll can't hurt... right?
+
+| Mode | TIME |  cps |
+|------+------+------|
+|    0 |  365 | 2739 |
+|    1 |  604 | 1655 |
+|    2 |  987 | 1013 |
+|    3 |  368 | 2717 |
+|    4 |  379 | 2638 |
+|    5 |  626 | 1597 |
+|    6 |  381 | 2624 |
+|    7 |  235 | 4255 |
+
 * eof

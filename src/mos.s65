@@ -2911,6 +2911,13 @@ write1bppChar:
                 eor ZEOR
                 sta (ZMEMT),y
                 dey
+                .if fasterOSWRCH
+                lda (ZTEMPC),y
+                ora ZORA
+                eor ZEOR
+                sta (ZMEMT),y
+                dey
+                .endif                
                 bpl write1bppChar
                 rts
 

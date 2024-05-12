@@ -6316,7 +6316,10 @@ startupMessages: .block
                 .endif
 acornMOS:
                 .text 13
-                .if olivetti
+
+                .if refreshVersion
+                .text versionString
+                .elsif olivetti
                 .text "Olivetti MOS"
                 .elsif version==350
                 .if CFA3000

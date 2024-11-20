@@ -63,6 +63,7 @@ together, so the version numbers for all 3 variants stay in sync.
 
 ## D (under development)
 
+* All: print version number in startup banner instead of `Acorn MOS`
 * All: improve OSWRCH speed when printing text at text cursor
 * 3.20D: bring in some of the MOS 3.50 code shuffling to free up space
   for future improvements 

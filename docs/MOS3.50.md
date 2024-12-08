@@ -12,7 +12,7 @@ Some of the ADFS 2.03 code lives in the DFS 2.45 ROM, meaning ADFS
 2.03 won't work without DFS 2.45 also installed. Both need to go in
 their default banks: DFS in bank 9, ADFS in bank 13.
 
-DFS 2.45 appears to be self-contained... but I can't promise that!
+DFS 2.45 appears to be self-contained, and doesn't require ADFS 2.03.
 
 ## BASIC and EDIT
    
@@ -26,7 +26,8 @@ bank 12 and VIEW in bask 14.
    
 # Workarounds
 
-Patched ROMs are supplied to help work around the above restrictions.
+Patched ROMs are supplied to help work around some of the above
+restrictions.
 
 ## Not bothered about HIBASIC or HIEDIT? ##
 

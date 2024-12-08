@@ -8,16 +8,16 @@ Here are some notes about a DIY ROM I put together, containing the
 following ROMs, which might serve as an example of doing this sort of
 thing:
 
-| ROM | What |
-| --- | --- |
-| MOS | MOS 3.50r |
-| 15 | MOS 3.50r utils |
-| 14 | DFS 2.45 + relocation bitmaps + extra ADFS code |
-| 13 | The BASIC Editor (relocatable) |
-| 12 | BASIC 4r32 (relocatable) |
-| 11 | EDIT 1.50r (relocatable) |
-| 10 | ADFS 2.03 |
-| 9 | EXMON II |
+| ROM | What                                            |
+|-----|-------------------------------------------------|
+| MOS | MOS 3.50r                                       |
+| 15  | MOS 3.50r utils                                 |
+| 14  | DFS 2.45 + relocation bitmaps + extra ADFS code |
+| 13  | The BASIC Editor (relocatable)                  |
+| 12  | BASIC 4r32 (relocatable)                        |
+| 11  | EDIT 1.50r (relocatable)                        |
+| 10  | ADFS 2.03                                       |
+| 9   | EXMON II                                        |
 
 # Prerequisites
 

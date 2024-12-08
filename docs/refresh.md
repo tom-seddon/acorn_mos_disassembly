@@ -1,6 +1,23 @@
 **The refreshed MOS versions are experimental**
 
-The following refreshed new variants of the MOS are available,
+The refreshed versions of the MOS use the original Acorn code as a
+starting point for new builds with bug fixes, performance improvements
+and perhaps the odd new feature.
+
+Goals for the refreshed versions, roughly in priority order:
+
+1. fix any obvious MOS bugs: crash, hang, behaviour not matching
+   documentation, stuff fixed in a later version, that sort of thing
+2. retain compatibility with existing MOS versions
+3. improve performance where possible
+4. maybe add the occasional useful new user-facing quality-of-life
+   feature
+
+There are no plans to add new APIs.
+
+# variants available
+
+The following refreshed variants of the MOS are available,
 distinguished from the official versions with an alphabetic suffix,
 here indicated by `r`:
 
@@ -17,14 +34,14 @@ For Master 128, you can use either MOS 3.20r or MOS 3.50r.
 
 For Master Compact (or Olivetti PC128S), you need to use MOS 5.10r.
 
-# Download
+# download
 
 See the releases page for the refreshed versions:
 https://github.com/tom-seddon/acorn_mos_refreshed/releases
 
 The latest version is at the top.
 
-# How to use
+# how to use
 
 Each variant comes in two 16 KB parts: `mos.rom`, for programming into
 the MOS region, and `utils.rom`, for programming into bank 15. No
@@ -42,7 +59,7 @@ EDIT or ADFS.
 If you're feeling adventurous, I have some notes on putting together
 a [MOS 3.50 DIY build](./MOS3.50.DIY.md).
 
-# Other notes
+# other notes
 
 - The new version number can be seen in response to `*FX0` or `*HELP`
 - [OSBYTE &81 machine detection](https://beebwiki.mdfs.net/OSBYTE_%2681)
@@ -52,7 +69,18 @@ a [MOS 3.50 DIY build](./MOS3.50.DIY.md).
   MOS planned, but any useful changes may make their way into MOS
   5.10r
 
-# Version history
+# feedback
+
+If you have any problems or find any bugs, please post in the StarDot
+thread or open a GitHub issue.
+
+StarDot thread for this project:
+https://www.stardot.org.uk/forums/viewtopic.php?t=28879
+
+GitHub issues for this project:
+https://github.com/tom-seddon/acorn_mos_disassembly/issues
+
+# version history
 
 Version history is as follows, including the version currently in
 development (which is not available from the releases page, but can be

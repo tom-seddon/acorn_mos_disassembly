@@ -35,15 +35,10 @@ Alternatively, you can create them yourself, following
    assumptions documented with error or warning directives,
    facilitating addition or removal of code
 
-Goals 2 and 3 are intended to enable the possible creation of new
-versions of the MOS, but actually creating those versions is not a
-goal of this project.
-
 # new versions of the MOS
 
-Even though producing new versions of the MOS is not a goal of this
-project, there some **experimental** new versions of the MOS available
-anyway, for use at your own risk. These can be used in an emulator, or
+There some **experimental** new versions of the MOS available anyway,
+for use at your own risk. These can be used in an emulator, or
 programmed into a EPROM (or similar) and used in real hardware.
 
 **All new versions of the MOS are experimental.** Should you actually
@@ -51,14 +46,15 @@ use your 8-bit 1980s Acorn computer for anything important, please
 proceed with appropriate caution.
 
 [MOS 3.20(NT) and MOS 3.50(NT)](./docs/NT.md), for Master 128 only,
-have had the Terminal ROM taken out. All existing OS behaviour is
-(hopefully) maintained, but creation of new MegaROM images is much
-simplified.
+have had the bare minimum of changes required to remove the Terminal
+ROM, allowing the MOS code to be contained entirely in ROM 15 and the
+OS area. All existing OS behaviour is (hopefully) maintained, but
+creation of new MegaROM images is much simplified.
 
-[Refresh versions of MOS 3.20, MOS 3.50 and MOS 5.10](./docs/refresh.md),
-cover Master 128, Master Compact and Olivetti PC128S, using the
-existing OS code as a starting point for new versions with additional
-fixes and features.
+[Refresh versions of MOS 3.20, MOS 3.50 and MOS
+5.10](./docs/refresh.md), cover Master 128, Master Compact and
+Olivetti PC128S, and get a bit more adventurous by including bug
+fixes, performance improvements and new features.
 
 # history
 

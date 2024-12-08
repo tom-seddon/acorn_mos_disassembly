@@ -589,4 +589,27 @@ Inline the LSRs for 2 bpp text writing = further useful improvements.
 |    6 |  381 | 2624 |
 |    7 |  235 | 4255 |
 
+* Refreshed version release process
+
+Make sure =acorn_mos_disassembly= is looking good.
+
+Merge into relevant submodule in =acorn_mos_refreshed=.
+
+Update =appveyor.yml= in =acorn_mos_refreshed= as required to include
+any new assets in the release ZIP.
+
+Commit and push =acorn_mos_refreshed=. Release should follow.
+
+In separate =acorn_mos_disassembly= working copy: (don't do this in
+the submodule)
+
+- bump version nmuber in =src/refresh.65=
+- update =doc/refresh.md= to promote development version to a release
+  and add new development version
+
+Commit and push =acorn_mos_disassembly=.
+
+(Pushes to =acorn_mos_disassembly= will generate new releases, but
+whatever... it's just a zip of listing files.)
+
 * eof

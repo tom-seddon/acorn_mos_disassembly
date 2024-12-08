@@ -89,7 +89,9 @@ built from the code in the repo if you want to try it).
 All 3 variants are built from the same code, and are released
 together, so the version numbers for all 3 variants stay in sync. 
 
-## D (under development)
+## E (under development)
+
+## D
 
 * All: print version number in startup banner instead of `Acorn MOS`
 * All: improve OSWRCH speed when printing text at text cursor

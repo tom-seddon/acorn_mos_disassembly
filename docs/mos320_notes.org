@@ -593,6 +593,10 @@ Inline the LSRs for 2 bpp text writing = further useful improvements.
 
 Make sure =acorn_mos_disassembly= is looking good.
 
+Merge any doc stuff from the under development section of refresh.md
+to somewhere in the main document. The version history for released
+versions is just a summary.
+
 Merge into relevant submodule in =acorn_mos_refreshed=.
 
 Update =appveyor.yml= in =acorn_mos_refreshed= as required to include
@@ -633,6 +637,5 @@ Reset sequence:
 1. Clear RAM
 
 2. 
-
 
 * eof

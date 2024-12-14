@@ -612,4 +612,27 @@ Commit and push =acorn_mos_disassembly=.
 (Pushes to =acorn_mos_disassembly= will generate new releases, but
 whatever... it's just a zip of listing files.)
 
+* Reset stuff
+
+1. resetEntryPoint
+
+2. reset
+
+   MOS 3.50: in I/O region...
+   
+   Other MOS: in Terminal ROM
+
+   scanROMs: (reset.s65) - scan ROMs
+
+3. softResetPart2
+
+   This is just the suffix of reset in non-3.50
+
+Reset sequence:
+
+1. Clear RAM
+
+2. 
+
+
 * eof

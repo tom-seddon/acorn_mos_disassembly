@@ -915,7 +915,11 @@ currentSoftKey=$02c9
 keyboardFirstAutoRepeatCount=$02ca
 previousKeyPressedWhenReadingLastKey=$2cb
 previousKeyPressedWhenReadingFirstKey=$2cc
+
+; Not actually a key - some kind of flag to skip double sound
+; updates?? See LE718.
 previousKeyPressedWhenReadingOSBYTE=$2cd
+
 ; soundIsUpdatingFlag=$2ce
 bufferEmptyFlags=$2ce
 bufferStartIndices=$2d7
@@ -961,6 +965,7 @@ ExtendedVectorAddress: .function vectorAddress
 
 extendedVectorSpace=$d9f
 
+; internal key numbers
 key_space=$62
 key_comma=$66
 key_minus=$17
@@ -1130,10 +1135,21 @@ hasACCCONChanged:                ;dfdd
                 .if version>=350
 sramBankModes:
                 ; pseudo/absolute bank flags, as queried by OSBYTE $45
-                .else
-dfde:
                 .endif
                 .fill 1
+
+                .if refreshVersion
+bootModeFlags: .block
+                ; start up in OSCLI prompt with ROM FS selected
+safeMode=$01
+                
+                ; ignore all non-MOS ROMs (ROM 15 still gets
+                ; initialised)
+ignoreROMs=$02
+                .endblock
+                .fill 1
+                .endif
+                
                 .bend
                 .endv
 
@@ -1576,9 +1592,6 @@ L884A=$884a
 L884B=$884b
 L884C=$884c
 ellipseCountHeight=$884d
-
-                ; written to during startup
-LFE8E=$fe8e
 
 ;-------------------------------------------------------------------------
 

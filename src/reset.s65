@@ -9,7 +9,7 @@
                 stz hazel.hasACCCONChanged
                 .endif
                 .if version!=350
-                trb $0366
+                trb vduv.cursorFlags
                 .endif
                 cld
                 ldx #$FF
@@ -180,7 +180,20 @@ nonPowerOnReset:
                 .else
                 jsr interrogateKeyboard
                 .endif
-                cpx #$80        ;Z=0 C=1 if CTRL+BREAK
+                .if refreshVersion
+                bmi gotHardResetKeyState ; taken if CTRL+BREAK
+
+                ; If not CTRL+BREAK, check for - (numpad)+BREAK. That
+                ; counts as a hard BREAK too.
+                ldx #key_numpad_minus
+                .if version==350
+                jsr clearTSTAndInterrogateKeyboard
+                .else
+                jsr interrogateKeyboard
+                .endif
+gotHardResetKeyState:
+                .endif
+                cpx #$80
                 jsr updateKeyboardLEDs
                 stz lastBREAKType            ;softBREAK
                 ror a
@@ -326,7 +339,7 @@ L813D:
                 bne L813D
 
                 lda lastBREAKType
-                bne L8164
+                bne L8164       ; taken if power on or hard BREAK
                 stx execFileHandle
                 pla                          ;restore *SPOOL file handle
                 cmp #$04                     ;is it a TAPE or ROM handle?
@@ -576,6 +589,30 @@ L8211:
                 jsr selectTerminalROM
                 .endif
 
+                .if refreshVersion
+                ldx #$00        ; assume no boot mode flags
+                lda firstKeyPressedInternal
+                cmp #key_numpad_multiply
+                bne checkForSafeMode
+                ; OSCLI mode
+                ldx #hazel.bootModeFlags.safeMode
+                bra bootModeKeysDone
+checkForSafeMode:
+                cmp #key_numpad_minus
+                bne bootModeKeysDone
+                
+                ; Safe mode
+                ;
+                ; It's enough to just set ignoreROMs, and "This is not
+                ; a language" will bump you into the OSCLI prompt
+                ; anyway. But no harm in being a bit tidier.
+                ldx #hazel.bootModeFlags.safeMode|hazel.bootModeFlags.ignoreROMs
+
+bootModeKeysDone:
+                ; Annoyingly, HAZEL is paged out at this point. Save
+                ; boot mode on the stack.
+                phx
+                .endif
                 ldx softKeyConsistencyFlag
                 beq checkResetType
                 jsr osbyte12          
@@ -583,9 +620,10 @@ checkResetType:
                 lda lastBREAKType
                 beq romsScanned                    ;taken if soft BREAK
 
-                .if version==350
-scanROMs:
+                .if version==350&&!refreshVersion
+scanROMs: .block
                 .include "scan_roms.s65"
+                .endblock
                 .else
                 jmp scanROMs
                 .endif
@@ -782,6 +820,10 @@ softReset:
                 jsr tsbACCCON
                 .else
                 jsr selectHAZEL
+                .endif
+                .if refreshVersion
+                pla             ; restore boot mode flags
+                sta hazel.bootModeFlags
                 .endif
                 stz hazel.moveSrcHandle
                 stz hazel.moveDestHandle

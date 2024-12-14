@@ -15,6 +15,65 @@ Goals for the refreshed versions, roughly in priority order:
 
 There are no plans to add new APIs.
 
+# new features
+
+This section only deals with visible stuff that doesn't behave as per
+the original docs. For notes about bug fixes (bringing the code in
+line with the docs), performance improvements (hopefully not changing
+behaviour! Just quicker!), or other internal changes, please consult
+the version history.
+
+## y2k "compliance"
+
+The RTC year is now always 20xx rather than 19xx.
+
+## startup banner
+
+The startup banner prints the MOS version (as reported by `*FX0`)
+rather than a generic `Acorn MOS` (or similar).
+
+## `*X` is gone
+
+The mysterious MOS 3.xx `*X` command (["for internal use
+only"](https://www.beebmaster.co.uk/AcornLetters/Acorn%2011th%20November%201991.html))
+has been removed.
+
+## safe mode
+
+Use numpad `*`+BREAK to boot into safe mode: the OSCLI `*` prompt,
+bypassing the configured language. Use this if you have problems with
+the configured language ROM not starting properly.
+
+In safe mode, the system will always start up with the ROM filing
+system selected. If you'd like to use some other filing system, you'll
+have to select it manually. You can use its `*` command, or hold down
+its boot key and press BREAK. (The OSCLI `*` prompt will remain the
+current language.)
+
+## very safe mode
+
+Use numpad `-`+BREAK (which counts as a hard BREAK, similar to a
+CTRL+BREAK) to boot into very safe mode: the OSCLI `*` prompt, with
+ROM FS selected, same as safe mode, but also ignoring all non-MOS
+sideways ROMs, language ROMs and service ROMs alike. Use this if you
+have problems too serious for ordinary safe mode!
+
+You can't do much in very safe mode, but you can use `*ROMS`,
+`*CONFIGURE` and `*UNPLUG`, hopefully letting you get things back into
+a bootable state.
+
+## `*ROMS` notes ignored ROMs
+
+`*ROMS` will show a message `ignored` against non-unplugged ROMs that
+being ignored due to having an empty entry in the ROM information
+table.
+
+You will see this in super safe mode, to indicate that ROMs are being
+ignored.
+
+You may also see this if you use 3rd-party tools designed for the B/B+
+that disable ROMs by modifying the ROM information table.
+
 # variants available
 
 The following refreshed variants of the MOS are available,
@@ -25,10 +84,6 @@ here indicated by `r`:
 * MOS 3.50r - for Master 128, based on MOS 3.50 with Terminal removed
 * MOS 5.10r - for Master Compact (or Olivetti PC128S), based on MOS
   5.10
-
-The actual suffix for the first released refresh version is `A`,
-followed by `B`, `D`, `E` - and so on. (To avoid confusion with MOS
-I5.10C, there will be no refresh version `C`.)
 
 For Master 128, you can use either MOS 3.20r or MOS 3.50r.
 
@@ -91,6 +146,14 @@ together, so the version numbers for all 3 variants stay in sync.
 
 ## E (under development)
 
+* All: remove [mystery write to
+  $fe8e](https://stardot.org.uk/forums/viewtopic.php?p=328986&hilit=fe8e#p328986)
+  on startup
+* All: add new * (numpad)+BREAK safe mode shortcut
+* All: add new - (numpad)+BREAK very safe mode shortcut 
+* All: `*ROMS` notes with `ignored` ROMs that are being ignored
+  because their entries in the ROMs table have been removed
+
 ## D
 
 * All: print version number in startup banner instead of `Acorn MOS`
@@ -103,7 +166,8 @@ together, so the version numbers for all 3 variants stay in sync.
 
 ## C
 
-There is no version C.
+There is no version C, to avoid confusion with MOS I5.10C, used for
+the Olivetti PC 128 S.
 
 ## B
 

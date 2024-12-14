@@ -8,6 +8,19 @@
                 bcc currentROMInvalid        ;taken if ROM invalid
                 ldx $F4                      ;start from current ROM
                 ldy $F4                      ;start from current ROM
+                .if refreshVersion
+                cpx #terminalROM
+                beq currentROMMaybeValid ; taken if it's the terminal
+                                         ; ROM - i.e., a MOS sideways
+                                         ; ROM
+
+                pla             ; restore boot mode flags
+                pha             ; save boot mode flags
+                and #hazel.bootModeFlags.ignoreROMs
+                bne currentROMInvalid ; taken if ignoring non-MOS
+                                      ; sideways ROMs
+currentROMMaybeValid:
+                .endif
 nextOtherROM:
                 iny                          ;next other ROM
                 cpy #$10                     ;out of other ROMs?
@@ -78,7 +91,7 @@ currentROMValid:
                 .endif
                 bcc nextROM
                 .endif 
-                lda $8006
+                lda sidewaysROMType
                 sta romInformationTable,x 
                 and #$8F
                 bne nextROM       ;taken if any mandatory bits are set

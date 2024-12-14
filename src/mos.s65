@@ -7274,8 +7274,11 @@ resetEntryPoint:                ;e364
                 lda #$40        ; $40 = RTI
                 sta nmiEntryPoint ; make NMI routine a no-op
                 sei
+                .if !refreshVersion
+                ; https://www.stardot.org.uk/forums/viewtopic.php?p=329122
                 lda #$53                 ; ???
-                sta LFE8E                ; ???
+                sta $FE8E                ; ???
+                .endif
                 .if version==350
                 lda #~ACCCON.D
                 trb ACCCON
@@ -7342,7 +7345,7 @@ LE389:
 ;
 ; X = first ROM to scan
 ;
-                .if version!=350
+                .if version!=350||refreshVersion
 scanROMs: .proc
                 .include "scan_roms.s65"
                 jmp romsScanned     ;not sure why not RTS.
@@ -7417,7 +7420,18 @@ LE431:
                 tay
                 ldx hazel.currentFSROM
                 lda lastBREAKType ; Soft Break, use current filing system
-                beq LE454
+                beq LE454         ; taken if soft BREAK
+                .if refreshVersion
+                lda hazel.bootModeFlags
+                and #hazel.bootModeFlags.safeMode
+                beq bootConfiguredFS         ; taken if not safe mode
+
+                ; In safe mode, use ROM FS.
+                lda #$8D                     ; select ROM FS
+                jsr osbyte8C8D
+                bra LE4A3
+bootConfiguredFS:
+                .endif
                 jsr selectTerminalROM
                 .if useTableDrivenConfigure
                 ldx #configureTable.file.metadata-configureTable
@@ -7431,33 +7445,40 @@ LE431:
 
                 tax
 LE454:
-                bit romInformationTable,x
-                bpl LE478
-                jsr selectROMX
-                cpx #terminalROM
-                bne LE46C
+                bit romInformationTable,x    ; check ROM of interest
+                bpl LE478                    ; taken if no service entry
+                jsr selectROMX               ; select ROM of interest
+                cpx #terminalROM             ; is it the terminal ROM?
+                bne LE46C                    ; taken if not terminal ROM
+
+                ; SPACE+BREAK = RFS *RUN !BOOT when RFS is the default
+                ; FS
                 jsr osbyte7A
                 inx
-                beq LE47F
-                cpx #$63
-                beq LE47F
-                bra LE478
+                beq LE47F                    ; taken if no key pressed
+                cpx #key_space+1             ; +1 due to previous inx
+                beq LE47F                    ; taken if SPACE held
+                bra LE478                    ; wasn't space - just
+                                             ; ordinary ROM auto boot
 
 LE46C:
                 lda #romServiceCallAutoBoot  ; Filing System selection
-                jsr $8003
-                tax
+                jsr $8003                    ; pass to specific ROM
+                tax                          ; save service call result
                 jsr selectTerminalROM
-                txa
-                beq LE4A3
+                txa                          ; restore service call result
+                beq LE4A3                    ; taken if call was handled
 LE478:
                 ldx #romServiceCallAutoBoot
-                jsr makeROMServiceCall
-                beq LE4A3
+                jsr makeROMServiceCall     ; pass to highest priority ROM
+                beq LE4A3                    ; taken if call was handled
 LE47F:
-                tya
-                bne LE499
-                lda #$8D
+                tya                          ; A = boot file flag
+                bne LE499                    ; taken if not booting
+
+                ; Handle SPACE+BREAK, or boot mode in the absence of
+                ; any non-MOS FS.
+                lda #$8D                     ; select ROM filing system
                 jsr osbyte8C8D
                 ldx #<starRunBOOT
                 ldy #>starRunBOOT
@@ -7487,12 +7508,17 @@ LE4A3:
                 lda #$05                     ;
                 ldx printerDriverType        ; *FX5,<current printer>
                 jsr osbyteEntryPoint
+                .if refreshVersion
+                lda hazel.bootModeFlags
+                and #hazel.bootModeFlags.safeMode
+                bne LE509                    ; taken if not *+BREAK
+                .endif
                 lda lastBREAKType ; If not Soft Break, select default language
-                bne LE4BB
+                bne LE4BB         ; taken if hard break or power on
                 ldx currentLanguageROM      ; Get current language ROM
                 .if version==350&&!finmos329
                 txa
-                and #$bf
+                and #~$40
                 cmp #$10
                 .else
                 cpx #$10                     ; <16, normal ROM number, use it
@@ -12616,6 +12642,8 @@ resetAutoRepeatCounters:
 ;
 ; X=$80, N=1 if key pressed; X=$00, N=0 if key not pressed
 ;
+; Keyboard remains in manual scan mode
+;
 ; Preserves: A/C
 ;
                 .if version==350
@@ -12623,7 +12651,7 @@ clearTSTAndInterrogateKeyboard:
                 jsr withTSTClear
                 .endif
 interrogateKeyboard:
-                ldy #$03                     ;write to keyboard
+                ldy #0|3            ;reset latch B3 - manual scan mode
                 sty systemVIA.orb
                 ldy #$7F
                 sty systemVIA.ddra           ;bit 7=input, bits 6-0=output
@@ -12794,27 +12822,28 @@ osbyte7A:
                 ldx #$10
                 clv
                 sec
-                bra callKEYV
+                bra callKEYV                 ; C=1, V=0 - scan keyboard
 
 ;-------------------------------------------------------------------------
 
 scanKeyboard:
-                txa
-                bpl LF923
-                jsr interrogateKeyboard
+                txa                          ; A=start key
+                bpl scanKeyboardFromKey  ; taken if full keyboard scan
+                jsr interrogateKeyboard      ; query specific key
 enableKeyboardScanning:
+                ; Reinstate auto scan mode on exit
                 lda #8|3                     ;set latch B3 - auto scan mode
                 sta systemVIA.orb            ;set auto scan mode
                 txa
                 rts
 
-LF923:
-                stx previousKeyPressedWhenReadingLastKey
+scanKeyboardFromKey:
+                stx previousKeyPressedWhenReadingLastKey ; save start key
                 lda #$FF
                 sta previousKeyPressedWhenReadingFirstKey
                 ldx #$0C
                 lda #$7F
-                sta systemVIA.ddra
+                sta systemVIA.ddra  ;bit 7=input, bits0-6=output
                 lda #0|3            ;reset latch B3 - manual scan mode
                 sta systemVIA.orb
 loopKeyboardColumns:
@@ -12834,15 +12863,24 @@ loopKeyboardRows:
                 sta systemVIA.oraNoHandshake ;store key
                 bit systemVIA.iraNoHandshake ;pressed?
                 bpl loopKeyboardRows         ;taken if not
+                ; Key is pressed...
                 cmp previousKeyPressedWhenReadingLastKey
-                bcc loopKeyboardRows
+                bcc loopKeyboardRows         ;Taken if key<start key
+                                             ;value. The scan excludes
+                                             ;this key.
                 cmp previousKeyPressedWhenReadingFirstKey
-                bcs loopKeyboardRows
+                bcs loopKeyboardRows         ;Taken if key>=first key
+                                             ;value. Not sure why not
+                                             ;to simply break out of
+                                             ;thel loop though?
                 sta previousKeyPressedWhenReadingFirstKey
 tryNextKeyboardColumn:
                 dex
                 bpl loopKeyboardColumns
-                ldx previousKeyPressedWhenReadingFirstKey
+                ldx previousKeyPressedWhenReadingFirstKey ; X=key
+                                                          ; found, or
+                                                          ; $ff if
+                                                          ; none
                 bra enableKeyboardScanning
 
 scanKeyboardWithExclusion:
@@ -13945,6 +13983,11 @@ foundTube:
 continueSoftReset:
                 jmp softResetPart2
                 .endblock
+
+                .if refreshVersion
+                ; avoid a bit of mess in calling code
+romsScanned=reset.romsScanned
+                .endif
 
 ;-------------------------------------------------------------------------
 

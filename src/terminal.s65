@@ -759,7 +759,7 @@ readCommandLine:
 ;
 ; *ROMS [MasRef C.5-10]
 ; 
-starROMS:
+starROMS: .proc
                 jsr skipSpacesAndCheckForCRInStringInput
                 bne badCommandError869A
                 ldy #$0F
@@ -840,7 +840,18 @@ printInsertionStatus:
                 bne +
                 jsr alwaysPrintFollowingMessage
                 .text " unplugged",0
+                .if refreshVersion
+                ; If the ROM is unplugged, it's inherently ignored, so
+                ; don't print both statuses.
+                bra nextROM
+                .endif
 +
+                .if refreshVersion
+                ply                          ; restore ROM #
+                phy                          ; save ROM #
+                jsr printIgnoredMessage
+nextROM:
+                .endif
                 ply              
                 jsr OSNEWL       
                 dey              
@@ -852,6 +863,23 @@ invalidROM:
                 jsr OSWRCH                   
                 bra printInsertionStatus
 
+                .if refreshVersion
+printIgnoredMessage:
+                lda #<sidewaysROMType
+                sta $f6
+                lda >#sidewaysROMType
+                sta $f7
+                jsr osrdscEntryPoint
+                cmp romInformationTable,y
+                beq +
+                jsr alwaysPrintFollowingMessage
+                .text " ignored",0
++
+                rts
+                .endif
+                
+                .endproc
+                
 ;-------------------------------------------------------------------------
 
                 .if useTableDrivenConfigure

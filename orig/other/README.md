@@ -46,3 +46,11 @@ this:
     OSWORD &7F double-density select in
     drive.b3 does not work.
 	
+# BASIC Editor 1.46
+
+My updated version of The BASIC Editor. See
+https://github.com/tom-seddon/basic_editor/
+
+This is included because it's one of very few ROMs that has a
+relocatable version. The relocation bitmaps are annoying to set up, so
+might as well provide a prebuilt version for anybody that wants it.

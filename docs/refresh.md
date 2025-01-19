@@ -114,19 +114,6 @@ together, so the version numbers for all 3 variants stay in sync.
 * All: `*ROMS` notes with `ignored` ROMs that are being ignored
   because their entries in the ROMs table have been removed
   
-## E
-
-No code changes, but prebuilt full MegaROM images are now included in
-the zip file.
-
-* All: remove [mystery write to
-  $fe8e](https://stardot.org.uk/forums/viewtopic.php?p=328986&hilit=fe8e#p328986)
-  on startup
-* All: add new * (numpad)+BREAK safe mode shortcut
-* All: add new - (numpad)+BREAK very safe mode shortcut 
-* All: `*ROMS` notes with `ignored` ROMs that are being ignored
-  because their entries in the ROMs table have been removed
-
 ### safe mode
 
 Use numpad `*`+BREAK to boot into safe mode: the OSCLI `*` prompt,
@@ -157,11 +144,16 @@ a bootable state.
 being ignored due to having an empty entry in the ROM information
 table.
 
-You will see this in super safe mode, to indicate that ROMs are being
+You will see this in very safe mode, to indicate that ROMs are being
 ignored.
 
 You may also see this if you use 3rd-party tools designed for the B/B+
 that disable ROMs by modifying the ROM information table.
+
+## E
+
+No code changes, but prebuilt full MegaROM images are now included in
+the zip file.
 
 ## D
 

@@ -69,7 +69,9 @@ MOS 3.50(NT) or MOS 3.50r. This region is 2,304 bytes.
 
 Relocation bitmaps for BASIC 4r32 and EDIT 1.50r are produced during
 the build process: see `build/basic.4r32.relocation.dat` and
-`build/edit.1.50r.relocation.dat`. 609+444=1,053 bytes total.
+`build/edit.1.50r.relocation.dat` if building, or see inside the
+`350r` folder if using one of the release zips. 609+444=1,053 bytes
+total.
 
 The BASIC Editor's relocation bitmap is another 600-odd bytes. It all
 fits!

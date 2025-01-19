@@ -85,7 +85,20 @@ built from the code in the repo if you want to try it).
 All 3 variants are built from the same code, and are released
 together, so the version numbers for all 3 variants stay in sync. 
 
-## E (under development)
+## F (under development)
+
+* All: remove [mystery write to
+  $fe8e](https://stardot.org.uk/forums/viewtopic.php?p=328986&hilit=fe8e#p328986)
+  on startup
+* All: add new * (numpad)+BREAK safe mode shortcut
+* All: add new - (numpad)+BREAK very safe mode shortcut 
+* All: `*ROMS` notes with `ignored` ROMs that are being ignored
+  because their entries in the ROMs table have been removed
+  
+## E
+
+No code changes, but prebuilt full MegaROM images are now included in
+the zip file.
 
 ## D
 

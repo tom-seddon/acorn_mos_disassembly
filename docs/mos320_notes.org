@@ -638,4 +638,64 @@ Reset sequence:
 
 2. 
 
+* Prebuilds
+
+** ADFS patches
+
+See https://stardot.org.uk/forums/viewtopic.php?t=29533
+
+6 versions in zip
+
+| Version | System | Interface | Notes                          |
+|---------+--------+-----------+--------------------------------|
+|     150 |   3.20 | SCSI      | same as orig\320\adfs.1.50.rom |
+|     153 |   3.20 | IDE       |                                |
+|     203 |   3.50 | SCSI      | same as orig\350\adfs.2.03.rom |
+|     205 |   3.50 | IDE       |                                |
+|     130 |   B/B+ | SCSI      | irrelevant                     |
+|     133 |   B/B+ | IDE       | irrelevant                     |
+
+** Hoglet's BASIC 4r32 patch
+
+See https://github.com/hoglet67/BBCBasic4r32
+
+Old code:
+
+| Addr | Bytes | Code      |
+|------+-------+-----------|
+| a8cc | 18    | clc       |
+| a8cd | 69 0a | adc #$0a  |
+| a8cf | 88    | dey       |
+| a8d0 | 10 fb | bpl $a8cd |
+| a8d2 | 69 f1 | adc #$f1  |
+
+New code:
+
+| Addr | Bytes | Code      |
+|------+-------+-----------|
+| a8cc | 18    | clc       |
+| a8cd | 69 f0 | adc #$f0  |
+| a8cf | 69 0a | adc #$0a  |
+| a8d1 | 88    | dey       |
+| a8d2 | 10 fb | bpl $a8cf |
+|      |       |           |
+
+So the original relocation bitmap still applies (hopefully). There's
+only 1 potentially relocatable byte in both new and old code, and it's
+non-relocatable in both cases.
+
+** DFS 2.45 regions
+
+Stardot thread: https://www.stardot.org.uk/forums/viewtopic.php?t=28366
+
+DFS 2.45 ROM sections:
+
+| Begin | End  | What           | Notes                                          |
+|-------+------+----------------+------------------------------------------------|
+| 8000  | af00 | DFS 2.45       | sha1: 68f8fe0668d6352b1683bfeae905f864bbc964ae |
+| af00  | b800 | MOS 3.50 code  | ignore...                                      |
+| b800  | c000 | ADFS 2.03 code | sha1: ca99774e7aedd93c8519534d3cfe922c4960efdc |
+
+MegaROM build tool could detect this by hashes.
+
 * eof

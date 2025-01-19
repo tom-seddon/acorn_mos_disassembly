@@ -3,9 +3,9 @@ are some other ROMs, not part of the original MOS.
 
 The prebuilt versions use these.
 
-# IDE ADFS
+# `Acorn ADFS 153 (IDE).rom`; `Acorn ADFS 205 (IDE).rom`
 
-Stardot thread here:
+ADFS, patched to work with modern IDE interfaces. Stardot thread here:
 https://stardot.org.uk/forums/viewtopic.php?t=29533
 
 153 is a patched version of 1.50 from MOS 3.20.
@@ -15,7 +15,7 @@ https://stardot.org.uk/forums/viewtopic.php?t=29533
 I don't have relevant hardware, but I'm sure it's fine. What could
 possibly go wrong???
 
-# BASIC 4r33
+# `basic.4r33.rom`
 
 BASIC 4r32 patched as per description here:
 https://github.com/hoglet67/BBCBasic4r32
@@ -26,7 +26,7 @@ https://stardot.org.uk/forums/viewtopic.php?t=28393
 
 The patch doesn't affect the relocation bitmap.
 
-# DFS 2.29
+# `dfs.2.29.rom`
 
 Bug-fixed version of DFS 2.24 supplied on the Master 128 Welcome disk.
 
@@ -46,9 +46,17 @@ this:
     OSWORD &7F double-density select in
     drive.b3 does not work.
 	
-# BASIC Editor 1.46
+# `dfs.2.45.no_mos.rom`
 
-My updated version of The BASIC Editor. See
+MOS 3.50's DFS 2.45, but with the MOS ROM parts replaced with 0s.
+
+# `blank.rom`
+
+Not actually a valid ROM: just a 16 KB file consisting entirely of 0s.
+	
+# `basiced.1.46.rom`; `rbasiced.1.46.rom`; `rbasiced.1.46.relocation.dat`
+
+The BASIC Editor 1.46, my updated version of The BASIC Editor. See
 https://github.com/tom-seddon/basic_editor/
 
 This is included because it's one of very few ROMs that has a

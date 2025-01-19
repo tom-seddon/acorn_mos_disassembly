@@ -43,7 +43,7 @@ The latest version is at the top.
 
 # how to use
 
-Version D and later come with prebuilt ROM images in the zip, that you
+Version E and later come with prebuilt ROM images in the zip, that you
 can program and use straight away, and use as a base for further
 modification. For more details about what's included, see [the
 prebuilt versions notes](./prebuilt.md).

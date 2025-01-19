@@ -43,21 +43,17 @@ The latest version is at the top.
 
 # how to use
 
-Each variant comes in two 16 KB parts: `mos.rom`, for programming into
-the MOS region, and `utils.rom`, for programming into bank 15. No
-additional ROMs are required, so you can put whatever you like the
-other banks.
+Version D and later come with prebuilt ROM images in the zip, that you
+can program and use straight away, and use as a base for further
+modification. For more details about what's included, see [the
+prebuilt versions notes](./prebuilt.md).
 
-(Note that `mos.rom` and `utils.rom` are closely related and cannot be
-mixed freely. Both ROMs must come from the exact same build and
-variant!)
-
-Please bear in mind [the MOS 3.50 notes](./MOS3.50.md) if using
-MOS 3.50r and hoping to use the standard MOS 3.50 ROMs for DFS, BASIC,
-EDIT or ADFS.
-
-If you're feeling adventurous, I have some notes on putting together
-a [MOS 3.50 DIY build](./MOS3.50.DIY.md).
+You can also assemble your own ROM image starting from `mos.rom` (the
+MOS region code) and `utils.rom` (sideways ROM bank 15) and going from
+there. (Please bear in mind [the MOS 3.50 notes](./MOS3.50.md) if
+using MOS 3.50r and hoping to use the standard MOS 3.50 ROMs for DFS,
+BASIC, EDIT or ADFS. I have some notes on putting together a [MOS 3.50
+DIY build](./MOS3.50.DIY.md).)
 
 # other notes
 

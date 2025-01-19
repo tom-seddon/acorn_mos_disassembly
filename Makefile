@@ -232,6 +232,77 @@ tom_example:
 
 ##########################################################################
 ##########################################################################
+
+# Build prebuilt ROM images. Very similar to tom_example.
+.PHONY:prebuilt_versions
+prebuilt_versions: export _DEST:=$(BUILD)/prebuilt_versions
+prebuilt_versions:
+	$(_V)$(MAKE) all
+	$(_V)$(MAKE) _prebuilt_320r 
+	$(_V)$(MAKE) _prebuilt_350r
+	$(_V)$(MAKE) _prebuilt_510r
+
+.PHONY:_prebuilt_320r
+_prebuilt_320r: export _DEST:=$(_DEST)/320r
+_prebuilt_320r:
+# MOS 3.20r
+	$(_V)$(SHELLCMD) mkdir "$(_DEST)/roms"
+	$(_V)$(SHELLCMD) copy-file "$(BUILD)/320r/mos.rom" "$(_DEST)/roms/mos.rom"
+	$(_V)$(SHELLCMD) copy-file "$(BUILD)/320r/utils.rom" "$(_DEST)/roms/15.utils.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/other/blank.rom" "$(_DEST)/roms/14.blank.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/320/adfs.1.50.rom" "$(_DEST)/roms/13.adfs.1.50.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/other/Acorn ADFS 153 (IDE).rom" "$(_DEST)/roms/13.adfs.1.53.ide.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/320/basic.4.rom" "$(_DEST)/roms/12.basic.4.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/320/edit.1.00.rom" "$(_DEST)/roms/11.edit.1.00.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/other/basiced.1.46.rom" "$(_DEST)/roms/10.basiced.1.4.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/other/dfs.2.29.rom" "$(_DEST)/roms/09.dfs.2.29.rom"
+	$(_V)$(MAKE) _prebuilt_320r_2 ADFS="$(_DEST)/roms/13.adfs.1.50.rom" SUFFIX=
+	$(_V)$(MAKE) _prebuilt_320r_2 ADFS="$(_DEST)/roms/13.adfs.1.53.ide.rom" SUFFIX=_ide
+
+.PHONY:_prebuilt_320r_2
+_prebuilt_320r_2:
+	$(_V)$(SHELLCMD) concat --pad 16384 -o "$(_DEST)/320r$(SUFFIX).bin" "$(_DEST)/roms/mos.rom" "$(_DEST)/roms/09.dfs.2.29.rom" "$(_DEST)/roms/10.basiced.1.4.rom" "$(_DEST)/roms/11.edit.1.00.rom" "$(_DEST)/roms/12.basic.4.rom" "$(ADFS)" "$(_DEST)/roms/14.blank.rom" "$(_DEST)/roms/15.utils.rom"
+
+.PHONY:_prebuilt_350r
+_prebuilt_350r: export _DEST:=$(_DEST)/350r
+_prebuilt_350r: _BE_ROM:=orig/other/rbasiced.1.46.rom
+_prebuilt_350r: _BE_REL:=orig/other/rbasiced.1.46.relocation.dat
+# _prebuilt_350r: _BE_ROM:=../basic_editor/.build/rbasiced.rom
+# _prebuilt_350r: _BE_REL:=../basic_editor/.build/rbasiced.relocation.dat
+_prebuilt_350r:
+# MOS 3.50r
+	$(_V)$(SHELLCMD) mkdir "$(_DEST)/roms"
+	$(_V)$(SHELLCMD) copy-file "$(BUILD)/350r/mos.rom" "$(_DEST)/roms/mos.rom"
+	$(_V)$(SHELLCMD) copy-file "$(BUILD)/350r/utils.rom" "$(_DEST)/roms/15.utils.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/other/blank.rom" "$(_DEST)/roms/14.blank.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/350/adfs.2.03.rom" "$(_DEST)/roms/13.adfs.2.03.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/other/Acorn ADFS 205 (IDE).rom" "$(_DEST)/roms/13.adfs.2.05.ide.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/other/basic.4r33.rom" "$(_DEST)/roms/12.basic.4r33.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/350/edit.1.50r.rom" "$(_DEST)/roms/11.edit.1.50r.rom"
+	$(_V)$(SHELLCMD) copy-file "$(_BE_ROM)" "$(_DEST)/roms/10.rbasiced.1.46.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/other/dfs.2.45.no_mos.rom" "$(_DEST)/roms/09.dfs.2.45.rom"
+	$(_V)$(PYTHON) "submodules/beeb/bin/tube_relocation.py" $(_VERBOSE_OPTION) set-multi --bitmap-rom "$(_DEST)/roms/09.dfs.2.45.rom" 9 --begin 0xaf00 --end 0xb800 --rom "$(_DEST)/roms/12.basic.4r33.rom" "$(BUILD)/basic.4r32.relocation.dat" --rom "$(_DEST)/roms/11.edit.1.50r.rom" "$(BUILD)/edit.1.50r.relocation.dat" --rom "$(_DEST)/roms/10.rbasiced.1.46.rom" "$(_BE_REL)" --set-multi
+	$(_V)$(MAKE) _prebuilt_350r_2 ADFS="$(_DEST)/roms/13.adfs.2.03.rom" SUFFIX=
+	$(_V)$(MAKE) _prebuilt_350r_2 ADFS="$(_DEST)/roms/13.adfs.2.05.ide.rom" SUFFIX=_ide
+
+.PHONY:_prebuilt_350r_2
+_prebuilt_350r_2:
+	$(_V)$(SHELLCMD) concat --pad 16384 -o "$(_DEST)/350r$(SUFFIX).bin" "$(_DEST)/roms/mos.rom" "$(_DEST)/roms/09.dfs.2.45.rom" "$(_DEST)/roms/10.rbasiced.1.46.rom" "$(_DEST)/roms/11.edit.1.50r.rom" "$(_DEST)/roms/12.basic.4r33.rom" "$(ADFS)" "$(_DEST)/roms/14.blank.rom" "$(_DEST)/roms/15.utils.rom"
+
+.PHONY:_prebuilt_510r
+_prebuilt_510r: _DEST:=$(_DEST)/510r
+_prebuilt_510r:
+# MOS 5.10r
+	$(_V)$(SHELLCMD) mkdir "$(_DEST)/roms"
+	$(_V)$(SHELLCMD) copy-file "$(BUILD)/510r/mos.rom" "$(_DEST)/roms/mos.rom"
+	$(_V)$(SHELLCMD) copy-file "$(BUILD)/510r/utils.rom" "$(_DEST)/roms/15.utils.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/510/basic.4.rom" "$(_DEST)/roms/14.basic.4.rom"
+	$(_V)$(SHELLCMD) copy-file "orig/510/adfs.2.10.rom" "$(_DEST)/roms/13.adfs.2.10.rom"
+
+	$(_V)$(SHELLCMD) concat --pad 16384 -o "$(_DEST)/510r.bin" "$(_DEST)/roms/mos.rom" "$(_DEST)/roms/13.adfs.2.10.rom" "$(_DEST)/roms/14.basic.4.rom" "$(_DEST)/roms/15.utils.rom"
+
+##########################################################################
+##########################################################################
 #
 # Test stuff, for me on my laptop.
 #

@@ -235,7 +235,7 @@ tom_example:
 
 # Build prebuilt ROM images. Very similar to tom_example.
 .PHONY:prebuilt_versions
-prebuilt_versions: export _DEST:=$(BUILD)/prebuilt_versions
+prebuilt_versions: export _DEST:=$(BUILD)
 prebuilt_versions:
 	$(_V)$(MAKE) all
 	$(_V)$(MAKE) _prebuilt_320r 

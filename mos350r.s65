@@ -13,6 +13,7 @@ correctlyHandleMissingTubeRelocationBitmap=true
 assumedRTCCenturyBCD=$20
 fasterTubeRelocation=true
 fasterOSWRCH=true
+tubeHostBrkAndIdleInMainRAM=true
                 
 *=$8000
                 .dsection utils

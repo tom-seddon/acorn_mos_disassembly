@@ -94,6 +94,21 @@ fasterTubeRelocation=false
                 ; This means more code in the MOS area.
 fasterOSWRCH=false
 
+                ; If true, put Tube BRK handler and idle loop in main
+                ; RAM rather than zero page.
+                ;
+                ; It appears to be in zero page to save 1 cycle in
+                ; some self-modifying code in the idle loop, for which
+                ; the 65c02 jmp (abs,x) is a valid replacement that's
+                ; actually quicker.
+                ;
+                ; The Tube language ROM relocation code (which does
+                ; benefit from being in zero page) pushes the total
+                ; zero page usage of the Tube host code well past the
+                ; MOS 3.50 value, a needless source of potential
+                ; incompatibility.
+tubeHostBrkAndIdleInMainRAM=false
+
                 .endweak
                 
 ;-------------------------------------------------------------------------
@@ -1613,6 +1628,9 @@ tubeClaimantID: .fill 1
 tubeRelocationDelta: .fill 1
 tubeRelocationBitmapByte: .fill 1
                 .endif
+                .if refreshVersion
+tubeLanguageParasiteAddr: .fill 4
+                .endif
 tubeZeroPageCodeAddr:
                 ; Tube handler zero-page code sits here.
                 .endv
@@ -1621,8 +1639,20 @@ tubeStringBuffer=$700
 tubeOSWORDBuffer=$0128
 
 
-                ; Need to tidy this one up...
+                ; Need to tidy these up...
+                .if !refreshVersion
 tubeLanguageParasiteAddr=tubeHost.zeroPageCode.languageParasiteAddr
+                .endif
+
+                .if tubeHostBrkAndIdleInMainRAM
+tubeHostBrkHandler=tubeHost.brkHandler
+tubeHostIdleStartup=tubeHost.idleStartup
+tubeHostIdleLoop=tubeHost.idleLoop
+                .else
+tubeHostBrkHandler=tubeHost.zeroPageCode.brkHandler
+tubeHostIdleStartup=tubeHost.zeroPageCode.idleStartup
+tubeHostIdleLoop=tubeHost.zeroPageCode.idleLoop
+                .endif
                 
                 .endif
 

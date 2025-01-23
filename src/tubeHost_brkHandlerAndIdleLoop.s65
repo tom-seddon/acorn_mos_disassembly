@@ -1,0 +1,44 @@
+brkHandler:
+                lda #$FF
+                jsr sendR4       ;send $ff via R4 to interrupt copro
+                lda tube.data2   ;get ACK byte from copro
+                lda #$00
+                jsr sendR2A       ;send $00 via R2 to specify ERROR
+                tay               ;Y=0
+                lda ($FD),y       ;get error number
+                jsr sendR2A       ;send error number via R2
+-
+                iny             ;next char
+                lda ($FD),y     ;fetch error string char
+                jsr sendR2A     ;send via R2
+                tax             ;set N/Z as per error string char
+                bne -           ;repeat until terminating $00 sent
+idleStartup:
+                ldx #$FF
+                txs             ;clear stack
+                cli
+idleLoop:
+                bit tube.status1 ;is there a char in R1?
+                bpl LAB58        ;branch taken if no char in R1
+handleOSWRCH:
+                lda tube.data1  ;get char from R1
+                jsr OSWRCH      ;pass to OSWRCH
+LAB58:
+                bit tube.status2 ;is there a command in R2?
+                bpl idleLoop     ;branch taken if no command in R2
+                bit tube.status1 ;is there a char in R1?
+                bmi handleOSWRCH ;branch taken if char in R1
+                ldx tube.data2   ;get command from R2
+
+                .if tubeHostBrkAndIdleInMainRAM
+
+                jmp (tubeHost.commandRoutines,x)
+
+                .else
+                
+                stx callCommandRoutine+1 ;use as index into command
+                                         ;table
+callCommandRoutine:
+                jmp (tubeHost.commandRoutines)
+
+                .endif

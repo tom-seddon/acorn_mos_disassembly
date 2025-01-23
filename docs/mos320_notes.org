@@ -734,4 +734,31 @@ keycode number &80-&FF. On exit, &023C=translated keypress,
 Y.b1=keyboard repeat needs to be cleared.
 #+end_quote
 
+* MOS 3.50 Tube host zero page rearrangement
+
+** Before
+
+With a minor tweak to the idle loop so it uses jmp (abs,x), saving 2
+bytes and making it no quicker to run from zero page:
+
+0018 - brk handler + idle loop - 59 (0x3b)
+0053 - languageParasiteAddr - 4
+0057 - transferRelocatedPage - 37 (0x25)
+007c - end
+
+(MOS 3.20 equivalent runs from 0x16 - 0x51)
+
+06bb - free space - 69 (0x45)
+
+** After
+
+001c - zero page code start
+001c - transferRelocatedPage
+0041 - end
+
+06f6 - free space - 10 (0xa)
+
+Not tons of room, but there's scope for having Tube host code in the
+MOS area if needs be.
+
 * eof

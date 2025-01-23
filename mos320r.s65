@@ -12,6 +12,7 @@ assumedRTCCenturyBCD=$20
 ; useTableDrivenConfigure=true
 soundStuffInExtROM=true
 fasterOSWRCH=true
+tubeHostBrkAndIdleInMainRAM=true
                 
 *=$8000
                 .dsection utils

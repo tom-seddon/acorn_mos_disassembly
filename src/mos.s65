@@ -251,7 +251,7 @@ handleControlChar:
                 sta vduQueueNegativeLength ;initialise initial VDU queue length
                 txa                          ; Restore original MSB value
                 .if version==350&&!fasterOSWRCH
-                jsr LE520
+                jsr lsr4
                 .else
                 lsr a                        ;
                 lsr a                        ;
@@ -1805,7 +1805,7 @@ LC895:
                 cmp vduv.textWindowLeft,x
                 bne LC8D3
                 .if version==400||version==350
-                cpy #0
+                cpy #0                       ; also sets C
                 .else
                 sec
                 iny
@@ -2965,7 +2965,7 @@ write2bppChar:
                 sta (ZTEMPD),y               ;write to right column
                 lda (ZTEMPC),y               ;get font byte
                 .if version==350&&!fasterOSWRCH
-                jsr LE520
+                jsr lsr4
                 .else
                 lsr a                        ;
                 lsr a                        ;
@@ -7408,7 +7408,7 @@ LE431:
                 jsr LEE64                    ; Set default ROMFS/TAPEFS settings
                 jsr osbyte76                    ; Test Shift and Ctrl keys
                 .if version==350
-                jsr LE520
+                jsr lsr4
                 .else
                 lsr a                        ; Move SHIFT status from b7 to b3
                 lsr a
@@ -7654,7 +7654,7 @@ rtsE564:
 ;-------------------------------------------------------------------------
 
                 .if version==350
-LE520:
+lsr4:
                 lsr a
                 lsr a
                 lsr a
@@ -9220,7 +9220,7 @@ handleFunctionKey:
                 .endif
                 .if version==350
                 pha
-                jsr LE520
+                jsr lsr4
                 .else
                 pha
                 tya
@@ -9274,16 +9274,16 @@ readFromInputBufferX:
                 .if version<500&&version!=350
                 bcs rtsEB28           ;taken if buffer empty
                 .elsif version>=500||version==350
-                bcs LEC0D
-                tay
-                bne LEAC8
+                bcs LEC0D                    ; taken if buffer empty
+                tay                          ; Y=char removed???
+                bne LEAC8                    ; taken if non-zero
                 .if version>=511||version==350
-                txa
-                and rs423InputInterpretationStatus
+                txa                          ; A=buffer number
+                and rs423InputInterpretationStatus ; 
                 bne LEC29
                 .endif
                 .if version==350&&!finmos329
-                jsr LEB75
+                jsr osbyte91Loop
                 .else
                 jsr osbyte91
                 .endif
@@ -9460,15 +9460,28 @@ handleCopyKeyThunk:
                 jmp handleCopyKey
 
 ;-------------------------------------------------------------------------
+;
+; Call OSBYTE $91 (Get character from buffer) (MasRef D.2-45) in a
+; loop, until a character is extracted or ESCAPE is pressed.
+;
+; Entry:
+;
+; X = buffer number
+;
+; Exit:
+;
+; C=0 - character was extracted
+; C=1 - ESCAPE was pressed
 
                 .if version==350&&!finmos329
-LEB75:
-                jsr osbyte91
-                bcc LEB7E
-                bit $ff
-                bpl LEB75
-LEB7E:
+osbyte91Loop: .proc
+                jsr osbyte91                 ; remove from buffer
+                bcc done                    ; taken if buffer non-empty
+                bit $ff                      ; check ESCAPE
+                bpl osbyte91Loop                    ; taken if not ESCAPE
+done:
                 rts
+                .endproc
                 .endif
 
 ;-------------------------------------------------------------------------

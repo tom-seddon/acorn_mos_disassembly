@@ -479,7 +479,7 @@ storeBCDByteString:
                 jsr storeNybbleString
                 pla
                 .if version==350
-                jsr LE520
+                jsr lsr4
                 .else
                 lsr a
                 lsr a

@@ -698,4 +698,40 @@ DFS 2.45 ROM sections:
 
 MegaROM build tool could detect this by hashes.
 
+* MOS 3.50 changes
+
+** nextFontChar
+
+jsr getSoftCharacterDefinitionAddress - why?
+
+** handleCopyKey
+
+Reset Econet interception flag before calling OSBYTE $87
+
+** handleUnrecogisedInterrupt
+
+Additional sta $fc before passing on to IRQ2V
+
+** handleCursorKeysAndCopy
+
+Some 5.00 stuff
+
+** implementShift
+
+Key stuff from MOS 5.xx - handle Shift+@ and Shift+0 specially on
+Master 128
+
+** checkForKeyAutoRepeat
+
+calls hook (LF5E5_511) for calling ROM service call $30
+
+https://beebwiki.mdfs.net/Service_calls
+
+#+begin_quote
+Translate Internationalised keyboard keypress. On entry, Y=hardware
+keycode number &80-&FF. On exit, &023C=translated keypress,
+&023D=flags, Y.b0=modifier key, no keypress to enter keyboard buffer,
+Y.b1=keyboard repeat needs to be cleared.
+#+end_quote
+
 * eof

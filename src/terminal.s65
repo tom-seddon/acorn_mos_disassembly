@@ -1662,7 +1662,7 @@ L91F5:
                 pha                          ;save line number LSB
                 php                          ;save C
                 .if version==350
-                jsr LE520
+                jsr lsr4
                 .else
                 lsr a
                 lsr a
@@ -1680,7 +1680,7 @@ printPossiblyLeading0s:
                 pha                          ;save value
                 php                          ;save C
                 .if version==350
-                jsr LE520
+                jsr lsr4
                 .else
                 lsr a
                 lsr a
@@ -5681,7 +5681,7 @@ printSpaceThenPrintHexByte:
 printHexByte:
                 pha
                 .if version==350
-                jsr LE520
+                jsr lsr4
                 .else
                 lsr a
                 lsr a

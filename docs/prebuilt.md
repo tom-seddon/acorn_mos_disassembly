@@ -87,10 +87,10 @@ Any ROM not marked "Required" in its Notes column can be replaced. The
 Offset column is a hex number indicating where in the MegaROM image
 each one begins, if your preferred tools let you edit in place.
 
-Alternatively, concatenate the files in each versions `roms` folder to
-produce a new image: MOS first, then the ROM images in ascending order
-of ROM number, replacing any replaceable images with the alternative
-image you'd prefer.
+Alternatively, concatenate the files in each version's `roms` folder
+to produce a new image: MOS first, then the ROM images in ascending
+order of ROM number, replacing any replaceable images with the
+alternative image you'd prefer.
 
 (Yes, sorry, this is the other way round from the tables above, which
 are arranged to roughly match the output from `*ROMS`.)

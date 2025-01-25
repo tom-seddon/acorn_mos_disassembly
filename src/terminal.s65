@@ -6278,7 +6278,6 @@ tubeLanguageHostAddr=*+1
 
                 asl a
                 bne gotBitmapBit
-                jsr fetchTubeRelocationBitmapByte
 
                 ; The standard MOS 3.50 code tries to handle table
                 ; exhaustion by monitoring the remaining bitmap size
@@ -6290,17 +6289,34 @@ tubeLanguageHostAddr=*+1
                 ; short bitmaps, by arranging the ROM just so. But
                 ; it's not worth the reduced relocation speed.)
                 
+                ; The last bit shifted out is always a 1, so C is set.
+                sec
+                lda tubeRelocationBitmapPtr+0
+                sbc #1
+                sta tubeRelocationBitmapPtr+0
+                bcs +
+                dec tubeRelocationBitmapPtr+1
++
+                ldx $f4
+tubeRelocationBitmapROMBank=*+1
+                lda #$ff
+                sta $f4
+                sta ROMSEL
+tubeRelocationBitmapPtr=*+1
+                lda $ffff
+                stx $f4
+                stx ROMSEL
+                
                 sec
                 rol a
 gotBitmapBit:
                 bcc transferByte
-                sta relda+1
+                tax
                 tya
 relocationDelta=*+1
                 adc #$ff
                 tay
-relda:
-                lda #$ff
+                txa
 transferByte:
                 sty tube.data3               ; +4 21
                 inc tubeLanguageHostAddr+0   ; +5 5

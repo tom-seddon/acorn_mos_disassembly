@@ -177,12 +177,20 @@ tubeHostAddr=$400
                 .cwarn tubeHost.page4End>$4f5
                 
                 ; MOS 3.50 parasite language relocation workspace?
+                .if fasterTubeRelocation
+tubeRelocationBitmapPtr=tubeHost.zeroPageCode.tubeRelocationBitmapPtr
+                .else
 tubeRelocationBitmapPtr=2
+                .endif
 tubeRelocationBitmapSizeBytes=$4f5
                 .if !fasterTubeRelocation
 tubeRelocationBitmapByte=$4f7
                 .endif
+                .if fasterTubeRelocation
+tubeRelocationBitmapROMBank=tubeHost.zeroPageCode.tubeRelocationBitmapROMBank
+                .else
 tubeRelocationBitmapROMBank=$04f8
+                .endif
 tubeRelocationPageOffset=$04f9
 
                 .if !fasterTubeRelocation

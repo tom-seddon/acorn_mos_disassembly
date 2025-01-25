@@ -13830,24 +13830,20 @@ noTubeRelocationBitmap:
                 rts
 
 ;-------------------------------------------------------------------------
+.if fasterTubeRelocation
+; The zero page code has its own inlined copy, but it needs to be
+; available as a subroutine too for fetching the $C0DE header and the
+; bitmap size. The code here has been tweaked for size rather than
+; speed.
+.endif
 
 fetchTubeRelocationBitmapByte: .block
-                .if fasterTubeRelocation
-                sec
-                lda tubeRelocationBitmapPtr+0
-                sbc #1
-                sta tubeRelocationBitmapPtr+0
-                bcs +
-                dec tubeRelocationBitmapPtr+1
-                .else
-                ; decrement (2)
                 .forcew lda,tubeRelocationBitmapPtr+0
                 php
                 .forcew dec,tubeRelocationBitmapPtr+0
                 plp
                 bne +
                 .forcew dec,tubeRelocationBitmapPtr+1
-                .endif
 +
                 
                 .if fasterTubeRelocation

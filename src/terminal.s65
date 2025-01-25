@@ -3352,7 +3352,7 @@ i2cTransmitBit:
 ;
 ; Set the I2C clock line high.
 ;
-; preserves: A/C
+; preserves: A/X/Y/C
 ; 
                 .if version>=500
 i2cSetClockHigh:
@@ -3369,7 +3369,7 @@ i2cSetClockHigh:
 ;
 ; Set the I2C clock line low.
 ;
-; preserves: A/C
+; preserves: A/X/Y/C
 ; 
                 .if version>=500
 i2cSetClockLow:
@@ -3386,7 +3386,7 @@ i2cSetClockLow:
 ; "A change in the state of the data line, from HIGH to LOW, while the
 ; clock is HIGH, defines the START condition."
 ;
-; preserves: P
+; preserves: X/Y/P
                 .if version>=500
 i2cStartDataTransfer:
                 php
@@ -3407,7 +3407,7 @@ i2cStartDataTransfer:
 ;
 ; Set the I2C data line low.
 ;
-; preserves: A/C
+; preserves: A/X/Y/C
 ; 
                 .if version>=500
 i2cSetDataLow:
@@ -3472,7 +3472,7 @@ i2cSetData:
 ;
 ; Set the I2C data line high.
 ;
-; preserves: A/C
+; preserves: A/X/Y/C
 ; 
                 .if version>=500
 i2cSetDataHigh:
@@ -6260,7 +6260,7 @@ zeroPageCode: .block
                 .if !refreshVersion
                 ; this doesn't need an initial value, so in the
                 ; refresh versions it's best to have it in the
-                ; uninitialised zero page area in case that would
+                ; uninitialised zero page area, in case that would
                 ; allow the zeroPageCode block to become empty,
                 ; eliminating the need to copy it.
 languageParasiteAddr:
@@ -6286,9 +6286,9 @@ tubeLanguageHostAddr=*+1
                 ; relocation - but I don't think there's any point.
                 ; Just form your bitmaps correctly, damnit!
                 ;
-                ; (In this could have been used to create short
-                ; bitmaps, by arranging the ROM just so. But it's not
-                ; worth the reduced relocation speed.)
+                ; (In theory, this could have been used to create
+                ; short bitmaps, by arranging the ROM just so. But
+                ; it's not worth the reduced relocation speed.)
                 
                 sec
                 rol a
@@ -6426,6 +6426,8 @@ enterNewLanguage: .proc
                 jsr getLanguageParasiteAddr ;sort out addresses
 
                 .if fasterTubeRelocation
+                ; -1, as C will be set when the time comes to use this
+                ; -value.
                 lda tubeRelocationPageOffset
                 dec a
                 sta tubeRelocationDelta

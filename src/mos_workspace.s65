@@ -646,7 +646,7 @@ oshwm: .fill 1
 
 ; OSBYTE 181 (&B5) Read/write RS243 input interpretation [MasRef D.2-54]
 rs423InputInterpretationStatus: .fill 1
-
+
 ; OSBYTE 182 (&B6) Read NOIGNORE state [MasRef D.2-55]
 ;
 ; TODO - not a great name, no matter how official - should probably be usePrinterIgnoreChar or something
@@ -840,7 +840,11 @@ asciiKeys=1                     ;edit keys are ASCII 135-139
 functionKeys=2                  ;edit keys are F keys 11-15
                 .fill 1
                 .endblock
-
+                
+;-------------------------------------------------------------------------
+; variables reset up to here on soft BREAK
+;-------------------------------------------------------------------------
+                
 ; OSBYTE 238 (&EE) Read/write numeric keypad [MasRef D.2-78]
 numericKeypadInterpretation: .fill 1
 
@@ -875,6 +879,10 @@ printerDriverType: .fill 1
 ; OSBYTE 246 (&F6) Read/write printer ignore character [MasRef D.2-81]
 printerIgnoreChar: .fill 1
 
+;-------------------------------------------------------------------------
+; variables reset up to here on hard BREAK
+;-------------------------------------------------------------------------
+                
 ; OSBYTE 247 (&F7) Read/write BREAK intercept vector [MasRef D.2-82]
 breakVectorByte0: .fill 1
 
@@ -892,7 +900,11 @@ displayMemory: .fill 1
 
 ; OSBYTE 252 (&FC) Read/write current language ROM number [MasRef D.2-83]
 currentLanguageROM: .fill 1
-                
+
+;-------------------------------------------------------------------------
+; variables reset up to here on power-on reset
+;-------------------------------------------------------------------------
+
 ; OSBYTE 253 (&FD) Read last BREAK type [MasRef D.2-83]
 lastBREAKType: .block
                 .fill 1
@@ -931,6 +943,8 @@ keyboardFirstAutoRepeatCount=$02ca
 previousKeyPressedWhenReadingLastKey=$2cb
 previousKeyPressedWhenReadingFirstKey=$2cc
 
+; Anything past $2cd is reset to $ff rather than $00
+                
 ; Not actually a key - some kind of flag to skip double sound
 ; updates?? See LE718.
 previousKeyPressedWhenReadingOSBYTE=$2cd

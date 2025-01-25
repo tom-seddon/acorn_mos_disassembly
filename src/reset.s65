@@ -37,8 +37,10 @@
                 jsr clearAllSoundChannelBuffers
                 .endif
                 .else
+                .if !refreshVersion
                 lda defaultVectorTable+0 ;what is this.
                 lda defaultVectorTable+0 ;what is this.
+                .endif
                 .endif
                 .if version==350
                 jsr ldaSystemVIAIER
@@ -46,7 +48,7 @@
                 lda systemVIA.ier
                 .endif
                 asl a
-                pha
+                pha             ; save initial IER<<1. 0 if power on
                 .if version==350
                 bne nonPowerOnReset
                 jsr resetCRTC
@@ -193,19 +195,21 @@ nonPowerOnReset:
                 .endif
 gotHardResetKeyState:
                 .endif
-                cpx #$80
+                cpx #$80        ; C=1 if hard reset
                 jsr updateKeyboardLEDs
-                stz lastBREAKType            ;softBREAK
-                ror a
-                ldx #$9c                     ;what is this?
-                ldy #$8D                     ;what is this?
-                pla
-                beq L80AD
-                ldy #$7E                     ;what is this?
-                bcc L80DF
-                ldy #$87                     ;what is this?
+                stz lastBREAKType            ;assume softBREAK
+                ror a                        ;restore C=1 if hard reset
+                ldx #<intervalTimer ; retain TIME, but reset everything else
+                ldy #<currentLanguageROM+1 ; reset all the MOS variables
+                pla             ; restore initial IER<<1
+                beq isPowerOnBREAK
+isHardBREAK:
+                ldy #<editKeysMode+1 ; assume reset the soft BREAK set
+                bcc L80DF            ; taken if soft reset
+                ldy #<printerIgnoreChar+1 ; hard reset - reset the
+                                          ; hard BREAK set
                 inc lastBREAKType
-L80AD:
+isPowerOnBREAK:
                 inc lastBREAKType
                 phy
                 .if version==350&&CFA3000
@@ -258,9 +262,10 @@ LFCBF:
 L80D4:
                 sta vduv.cursorFlags
                 jsr restoreFont32To255
-                ply
-                ldx #$92
+                ply             ; restore Y=what is this
+                ldx #<timer0    ; reset everything, TIME included
                 bra initializePage2Loop
+
 L80DF:
                 .if version>=500
                 jsr L9E58
@@ -288,7 +293,7 @@ initializePage2Loop:
                 bcs nextPage2Byte
 clearPage2Byte:
                 stz $0200,x
-                cpx #$CD
+                cpx #$CD        ; how to derive this value??
                 bcc nextPage2Byte
                 dec $0200,x                  ;initialize later values to $ff
 nextPage2Byte:
@@ -298,6 +303,10 @@ nextPage2Byte:
                 .if version==350
                 lda TEMPA
                 .endif
+
+                ; Is this a bug? This will clear $CF, part of FS
+                ; persistent workspace. Surely it should clear all of
+                ; it or none of it!
                 ldx #$CF
 initializeZeroPageLoop:
                 stz $00,x                    

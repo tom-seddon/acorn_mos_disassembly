@@ -761,4 +761,31 @@ bytes and making it no quicker to run from zero page:
 Not tons of room, but there's scope for having Tube host code in the
 MOS area if needs be.
 
+* what is this
+
+Page 2 layout:
+
+| Begin | What           |
+|-------+----------------|
+|  0200 | Vectors        |
+|  0236 | MOS variables  |
+|  0290 | *TV stuff      |
+|  0292 | Timer 0        |
+|  0297 | Timer 1        |
+|  029c | Interval timer |
+|   2a1 | ROM table      |
+|   2b1 | random crap... |
+|       |                |
+
+Possible X values:
+
+- $9c :: clear interval timer, leave =TIME=
+- $92 :: clear interval timer and =TIME=
+
+Possible Y values:
+
+- $8d :: lastBREAKType
+- $7e :: numericKeypadInterpretation
+- $87 :: breakVectorByte0
+
 * eof

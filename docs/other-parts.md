@@ -15,9 +15,13 @@ http://8bs.com/basic/basic4.htm
 
 https://github.com/hoglet67/ADFS/blob/master/src/adfs150.asm
 
+https://github.com/dominicbeesley/ADFS-multi-target/
+
 # DFS
 
 http://regregex.bbcmicro.net/dfs224.asm.txt
+
+https://github.com/tom-seddon/acorn_1770_dfs_disassembly/ (based on the above)
 
 # Edit
 

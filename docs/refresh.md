@@ -113,7 +113,8 @@ together, so the version numbers for all 3 variants stay in sync.
 * All: add new - (numpad)+BREAK very safe mode shortcut 
 * All: `*ROMS` notes with `ignored` ROMs that are being ignored
   because their entries in the ROMs table have been removed
-* 3.20F, 3.50F: reduce amount of zero page used by Tube host code
+* 3.20F, 3.50F: reduce amount of zero page used by Tube host code, so
+  it now uses no more than the Acorn MOS did
   
 ### safe mode
 

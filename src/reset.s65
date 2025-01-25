@@ -310,7 +310,7 @@ nextPage2Byte:
                 ldx #$CF
 initializeZeroPageLoop:
                 stz $00,x                    
-                inx                          
+                inx
                 bne initializeZeroPageLoop
                 .if version==350
                 sta TEMPA

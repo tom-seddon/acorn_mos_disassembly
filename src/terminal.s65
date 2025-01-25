@@ -6296,7 +6296,8 @@ gotBitmapBit:
                 bcc transferByte
                 sta relda+1
                 tya
-                adc tubeRelocationDelta
+relocationDelta=*+1
+                adc #$ff
                 tay
 relda:
                 lda #$ff

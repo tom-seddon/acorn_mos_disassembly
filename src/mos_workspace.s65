@@ -1639,7 +1639,7 @@ tubeTransferAddr: .fill 2
 tubeNotClaimed: .fill 1            ;bit 7 clear if tube claimed
 tubeClaimantID: .fill 1
                 .if fasterTubeRelocation
-tubeRelocationDelta: .fill 1
+tubeRelocationDelta=tubeHost.zeroPageCode.relocationDelta
 tubeRelocationBitmapByte: .fill 1
                 .endif
                 .if refreshVersion

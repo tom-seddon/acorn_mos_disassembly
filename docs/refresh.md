@@ -115,6 +115,8 @@ together, so the version numbers for all 3 variants stay in sync.
   because their entries in the ROMs table have been removed
 * 3.20F, 3.50F: reduce amount of zero page used by Tube host code, so
   it now uses no more than the Acorn MOS did
+* 3.50F: further slightly improve relocated language ROM Tube transfer
+  speed
   
 ### safe mode
 

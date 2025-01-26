@@ -6298,6 +6298,7 @@ tubeLanguageHostAddr=*+1
                 sta tubeRelocationBitmapPtr+0
                 bcs +
                 dec tubeRelocationBitmapPtr+1
+                sec
 +
                 ldx $f4
 tubeRelocationBitmapROMBank=*+1
@@ -6308,8 +6309,8 @@ tubeRelocationBitmapPtr=*+1
                 lda $ffff
                 stx $f4
                 stx ROMSEL
-                
-                sec
+
+                ; C=1 at this point
                 rol a
 gotBitmapBit:
                 bcc transferByte

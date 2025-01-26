@@ -6288,9 +6288,11 @@ tubeLanguageHostAddr=*+1
                 ; (In theory, this could have been used to create
                 ; short bitmaps, by arranging the ROM just so. But
                 ; it's not worth the reduced relocation speed.)
-                
-                ; The last bit shifted out is always a 1, so C is set.
-                sec
+
+                ; C=1 here - the values are arranged so that this is
+                ; the case when the next byte needs reading. See
+                ; checkForTubeRelocationBitmap for the initial case,
+                ; and the sec below for subsequent ones.
                 lda tubeRelocationBitmapPtr+0
                 sbc #1
                 sta tubeRelocationBitmapPtr+0

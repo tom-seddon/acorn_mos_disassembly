@@ -13797,7 +13797,14 @@ gotRelocationBitmapROMBank:
                 jsr fetchTubeRelocationBitmapByte ;fetch hopefully $C0
                 eor #$C0                  ; check for $CODE identifier
                 bne invalidTubeRelocationBitmap ; taken if $CODE not found
-                sta tubeRelocationBitmapByte    ; A=0
+                .if fasterTubeRelocation
+                ; Each iteration does (in essence) asl a:beq <<fetch
+                ; bitmap byte>>, so either $80 or $00 will suffice as
+                ; the initial value. But it'd be useful for C=1 after
+                ; the shift in every case.
+                lda #$80
+                .endif
+                sta tubeRelocationBitmapByte
                 jsr fetchTubeRelocationBitmapByte ; fetch bitmap size MSB
                 sta tubeRelocationBitmapSizeBytes+1
                 jsr fetchTubeRelocationBitmapByte ; fetch bitmap size LSB

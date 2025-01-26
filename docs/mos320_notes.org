@@ -788,4 +788,11 @@ Possible Y values:
 - $7e :: numericKeypadInterpretation
 - $87 :: breakVectorByte0
 
+* More Tube relocation
+
+fetchTubeRelocationBitmapByte
+
+- faster :: (- #xfb66 #xfb4a) 28
+- acorn :: (- #xface #xfaaf) 31
+
 * eof

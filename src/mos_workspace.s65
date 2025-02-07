@@ -1886,6 +1886,14 @@ country:
                 .fill 1
                 .endif
                 .endif
+
+                .if refreshVersion&&includeTubeSupport
+defaults4: .block
+                .fill 1
+tubePowerOnDelayMask=15                    ; max 15 seconds
+tubePowerOnDelayShift=0
+                .endblock
+                .endif
                 
                 .endstruct
 

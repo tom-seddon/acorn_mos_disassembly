@@ -795,4 +795,46 @@ fetchTubeRelocationBitmapByte
 - faster :: (- #xfb66 #xfb4a) 28
 - acorn :: (- #xface #xfaaf) 31
 
+* Tube power-on delay
+
+Combinations, assuming =*CONFIGURE TUBE= and a delay long enough for
+pi to boot:
+
+| TUBE | ext   | int   | Delay    | Notes          |
+|------+-------+-------+----------+----------------|
+| in   | no    | no    | needless | Standard setup |
+| in   | no    | acorn | none     |                |
+| in   | no    | pi    | required |                |
+| in   | acorn | no    | needless |                |
+| in   | acorn | acorn | none     |                |
+| in   | acorn | pi    | none     |                |
+| in   | pi    | no    | required |                |
+| in   | pi    | acorn | none     |                |
+| in   | pi    | pi    | required |                |
+| ext  | no    | no    | needless | Standard setup |
+| ext  | no    | acorn | needless | Master Turbo   |
+| ext  | no    | pi    | required |                |
+| ext  | acorn | no    | none     |                |
+| ext  | acorn | acorn | none     |                |
+| ext  | acorn | pi    | none     |                |
+| ext  | pi    | no    | required |                |
+| ext  | pi    | acorn | required |                |
+| ext  | pi    | pi    | required |                |
+
+3 standard cases with a needless delay, so the delay should probably
+be configurable.
+
+isSecondProcessorPresent - ~22 cycles/iteration, 90,909 iterations/sec
+
+Suppose ~30 cycles/iteration - 66,666 iterations/sec, close enough to
+65,536. Could have a *CONFIG value for # seconds to wait. And 0
+seconds = 1 iteration, as currently the case.
+
+Looks like the *CONFIGURE aspect of this can be dealt with same as
+MODE, LANG or FILE. Refresh versions are all table driven configure so
+no problem.
+
+
+
+
 * eof

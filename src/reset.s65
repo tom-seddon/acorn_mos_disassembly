@@ -817,6 +817,9 @@ LFEA2:
                 .byte 1<<CMOSBytes.defaults2.fx5SettingShift|3<<CMOSBytes.defaults2.serialBaudRateIndexShift ; defaults2
                 .endif
                 .byte 4<<CMOSBytes.defaults3.serialDataFormatShift|CMOSBytes.defaults3.loudMask
+                .if refreshVersion&&includeTubeSupport
+                .byte 0<<CMOSBytes.defaults4.tubePowerOnDelayShift 
+                .endif
                 .cerror *-LFEA2!=size(CMOSBytes)-1
 
 .endif

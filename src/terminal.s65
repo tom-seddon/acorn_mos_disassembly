@@ -908,11 +908,7 @@ starUNPLUG:
 starINSERTOrStarUNPLUG:
                 php
                 jsr skipSpacesAndCheckForCRInStringInput
-                .if useTableDrivenConfigure
-                jsr L8953
-                .else
                 jsr parseSingle4BitNumberFromCommandLine
-                .endif
                 tay                          ;Y=ROM number
                 jsr getROMInsertedFlagRTCAddressAndMask
                 pha
@@ -3215,7 +3211,7 @@ readDefaults3:
 ;
 ; exit:
 ;
-; Y = byte read
+; A = Y = byte read
 
                 .if version>=500
 readCMOSByte:

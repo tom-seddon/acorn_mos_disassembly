@@ -1,4 +1,4 @@
-byte2: .macro value,value350
+Sbyte2: .macro value,value350
                 .if version==350
                 .byte \value350
                 .else
@@ -35,16 +35,28 @@ byte2: .macro value,value350
                 ; |N1 |RTCByteIndex   |ShiftCount |
                 ; +---+---+---+---+---+---+---+---+
                 ;
-                ; N1 = tested by L8ADF
+                ; N1 is tested when printing stuff. Search for "N1 set"
 
                 ; The RTC byte indexes in the table are actually
-                ; offset.
+                ; offset. For 3.50 the possible range is 1-17;
+                ; otherwise, 5-21.
                 .if version==350
-rtcByteIndexOffset=cmosBytesOffset+CMOSBytes.fileServerStationNumber
+metadataRTCByteIndexOffset=cmosBytesOffset+CMOSBytes.fileServerStationNumber
                 .else
-rtcByteIndexOffset=cmosBytesOffset+CMOSBytes.defaultROMs
+metadataRTCByteIndexOffset=cmosBytesOffset+CMOSBytes.defaultROMs
+                .endif
+                .if refreshVersion
+metadataRTCByteHighIndexOffset=metadataRTCByteIndexOffset+16
                 .endif
 
+                ; Entry conditions to the routine:
+                ;
+                ; V=1 to print value then newline
+                
+                ; C=1 to print help string
+                
+                ; Z=1 to reset value (not sure what the conditions are
+                ; for this)
 itemWithAddress: .macro name,addr
                 .text \name
 metadata:
@@ -74,6 +86,8 @@ n=0
                 .endif
                 .endfunction n
 
+;-------------------------------------------------------------------------
+
 itemMaskInfo: .macro value
 shift=countLS0s(\value)
 unshiftedMask=(\value)>>shift
@@ -82,17 +96,30 @@ maskWidth=countLS0s(~unshiftedMask)
                 .cerror !(maskWidth>=1&&maskWidth<=8),format("bad mask: $%02x",\value)
                 .endmacro
 
+;-------------------------------------------------------------------------
+
 itemMetadata: .macro topMask,rtcByteIndex,mask,matchValue,n1
-                ; constants need some rationalisation here...
-                .cerror (\rtcByteIndex)<(rtcByteIndexOffset)-cmosBytesOffset
-                .cerror (\rtcByteIndex)>=(rtcByteIndexOffset)+16-cmosBytesOffset
+                ; constants need some rationalisation here. The byte
+                ; index is a 4-bit field.
+
+                .cerror *<configureTable||*>=configureTable+size(configureTable),"itemMetadata is only valid as part of configureTable"
+
+indexOffset:=metadataRTCByteIndexOffset
+                .if refreshVersion
+                .if *>=configureTable.metadataHighIndexStart
+indexOffset:=metadataRTCByteHighIndexOffset
+                .endif
+                .endif
+                
+                .cerror (\rtcByteIndex)<(indexOffset)-cmosBytesOffset
+                .cerror (\rtcByteIndex)>=(indexOffset)+16-cmosBytesOffset
                 .cerror !((\matchValue)>=0&&(\matchValue)<8)
                 .cerror (\mask)<0||(\mask)>256,format("Bad mask: $%02x",\mask)
 
 info: .itemMaskInfo (\mask)
 
                 .byte (\topMask)|((info.maskWidth-1)<<3)|(\matchValue)
-                .byte ((\n1)?$80:$00)|((\rtcByteIndex-(rtcByteIndexOffset-cmosBytesOffset))<<3)|info.shift
+                .byte ((\n1)?$80:$00)|((\rtcByteIndex-(metadataRTCByteIndexOffset-cmosBytesOffset))<<3)|info.shift
                 .endmacro
 
 itemWithMetadata: .macro name,rtcByteIndex,mask,matchValue,n1
@@ -100,6 +127,8 @@ itemWithMetadata: .macro name,rtcByteIndex,mask,matchValue,n1
 metadata:
                 .itemMetadata $c0,(\rtcByteIndex),(\mask),(\matchValue),(\n1)
                 .endmacro
+
+;-------------------------------------------------------------------------
 
 configureTable: .block
                 .itemWithAddress ".",printConfigureOrStatusHeader
@@ -150,6 +179,9 @@ lastShChar=shCaps+1
                 .if includeTubeSupport
                 .itemWithMetadata "Tube",CMOSBytes.defaults2,CMOSBytes.defaults2.tubeOnMask,1,false
                 .endif
+                .if refreshVersion&&includeTubeSupport
+                .itemWithAddress "TubeDelay",handleTubeDelay
+                .endif
                 .if version>=500
                 .itemWithMetadata "Proportional",CMOSBytes.joystick,CMOSBytes.joystick.isSwitchedMask,0,false
                 .endif
@@ -160,16 +192,35 @@ lastShChar=shCaps+1
                 .itemWithMetadata "Stick",CMOSBytes.joystick,CMOSBytes.joystick.stickMask,0,true
                 .endif
                 .itemWithAddress "TV",handleTV
+                ; Terminator for data-driven table
                 .byte 0
-L8603:
+
+                ; Metadata entries referred to by routines start here.
+                ; These aren't associated with any name; code loads
+                ; the offset so that it can reuse the generic metadata
+                ; handling routines.
+printerIgnoreCharMetadata:
                 .if version==350
                 .itemMetadata $00,CMOSBytes.defaults2,CMOSBytes.defaults2.usePrinterIgnoreCharMask,0,false
                 .else
                 ; This must be a bug, surely? The mask looks wrong.
                 .itemMetadata $00,CMOSBytes.defaults2,3<<1,0,false
                 .endif
-L8605:
+tvMetadata:
                 .itemMetadata $00,CMOSBytes.defaults0,CMOSBytes.defaults0.interlaceMask|(CMOSBytes.defaults0.tvMask<<CMOSBytes.defaults0.tvShift),0,false
+
+                .if refreshVersion
+                ; Metadata entries after this point refer to RTC bytes
+                ; outside the default possible range. 
+metadataHighIndexStart:
+                .if includeTubeSupport
+tubeDelayMetadata:
+                .itemMetadata $00,CMOSBytes.defaults4,CMOSBytes.defaults4.tubePowerOnDelayMask<<CMOSBytes.defaults4.tubePowerOnDelayShift,0,true
+                .endif
+
+                .endif
+                
+                ; Text snippets.
 ectory:
                 .text "ectory",$ff
                 .if includeTubeSupport
@@ -178,6 +229,11 @@ ternal:
                 .endif
 ift:
                 .text "ift",$ff
+
+                ; Configure table ends. TODO: rearrange .endblock so
+                ; this is clearer - and follow through
+
+;-------------------------------------------------------------------------
                 
 textSnippetInsertPointOffsets:
                 .text lastDirChar-configureTable   ;"Directory"
@@ -234,7 +290,7 @@ foundCONFIGOrSTATUSTopic:
                 jsr skipSpacesAndCheckForCRInStringInput
                 plp
                 bvc L8884
-                jsr L895D
+                jsr ensureCommandLineTailEmpty
 
 ;-------------------------------------------------------------------------
 
@@ -261,8 +317,8 @@ L8895:
                 bvs L88D9
                 bcs print1NumberHelp
                 bmi L88A5
-                jsr L895D
-                bra jmpL88EE
+                jsr ensureCommandLineTailEmpty
+                bra jmpSetConfigurationBitfield
 
 ;-------------------------------------------------------------------------
 
@@ -291,17 +347,18 @@ L88B4:
 L88C1:
                 jsr getMaskCount
                 cmp maskByBitCount,y
-                beq jmpL88EE
+                beq jmpSetConfigurationBitfield
                 bcs jmpBadCommandError8B68
 
 
-jmpL88EE:
-                jmp L88EE
+jmpSetConfigurationBitfield:
+                jmp setConfigurationBitfield
 
 ;-------------------------------------------------------------------------
 
 print1NumberHelp:
                 bpl L88D8
+print1NumberHelp2: ; haven't quite figured out the logic for this yet
                 jsr alwaysPrintFollowingMessage
                 .text "<D>",13,0
 L88D8:
@@ -330,13 +387,24 @@ jmpBadCommandError8B68:
                 jmp badCommandError
 
 ;-------------------------------------------------------------------------
+;
+; Insert value into bitfield for an item and write the value to NVRAM.
+;
+; Entry:
+;
+; A = value to insert
+; X = offset into configure table for item's metadata
+;
+; Exit:
+;
+; NVRAM byte updated appropriately
 
-L88EE: .block
+setConfigurationBitfield: .block;L88EE: .block
                 sta $B0         ;save value
-                jsr getMaskCount
-                lda maskByBitCount,y
-                jsr getShiftCount
-                bra shift
+                jsr getMaskCount ; get mask bit count in Y
+                lda maskByBitCount,y ; get appropriate bit mask
+                jsr getShiftCount    ; get shift count in Y
+                bra shift            ; start shifting as required
 shiftLoop:
                 asl a           ;shift mask
                 asl $B0         ;shift value
@@ -344,12 +412,14 @@ shiftLoop:
 shift:
                 dey
                 bpl shiftLoop
-                sta $B1         ;store shifted value
-                jsr getRTCByteIndex
+
+                ; A = shifted mask, ?$B0=shifted value
+                sta $B1         ;store shifted mask
+                jsr getRTCByteIndex ; get actual RTC byte index in X
                 jsr readRTCByte ;get previous value
-                ora $B1         ;set all masked bits to 1
-                eor $B1         ;set all masked bits to 0
-                ora $B0         ;insert value
+                ora $B1         ;set all field's bits to 1
+                eor $B1         ;set all field's bits to 0
+                ora $B0         ;insert field's value
                 tay             ;Y=byte to write
                 .endblock
                 
@@ -367,20 +437,17 @@ handlePrinterIgnoreChar:
                 lda #0
                 jsr L8929
                 ply
-                ldx #$E+cmosBytesOffset
+                ldx #CMOSBytes.printerIgnoreChar+cmosBytesOffset
                 bra jmpWriteRTCByte
 
 ;-------------------------------------------------------------------------
 
 L8927:
                 lda #1
-
-;-------------------------------------------------------------------------
-
 L8929:
-                ldx #configureTable.L8603-configureTable
+                ldx #configureTable.printerIgnoreCharMetadata-configureTable
 L892B:
-                bra jmpL88EE
+                bra jmpSetConfigurationBitfield
 
 ;-------------------------------------------------------------------------
 
@@ -408,23 +475,18 @@ print1OptionalNumberHelp:
 
 ;-------------------------------------------------------------------------
 
-L8953:
-
+parseSingle4BitNumberFromCommandLine:
                 jsr parseNumberFromString
-
-L8956:
+bccBadCommandError:
                 bcc jmpBadCommandError8B68
                 txa
                 cmp #$10
-
-L895B:
+bcsBadCommandError:
                 bcs jmpBadCommandError8B68
-
-L895D:
+ensureCommandLineTailEmpty:
                 pha
                 jsr skipSpacesAndCheckForCRInStringInput
-
-L8961:
+bneBadCommandError:
                 bne jmpBadCommandError8B68
                 pla
                 rts
@@ -436,11 +498,11 @@ handleTV:
                 bcs printTVHelp
                 beq L8992
                 jsr parseNumberFromString
-                bcc L8956
+                bcc bccBadCommandError
                 cpx #$FC
                 bcs L8978
                 cpx #4
-                bcs L895B
+                bcs bcsBadCommandError
 
 L8978:
                 txa
@@ -451,7 +513,7 @@ L8978:
                 beq L898B
                 jsr L89B5
                 cmp #2
-                bcs L895B
+                bcs bcsBadCommandError
                 tax
 
 L898B:
@@ -459,7 +521,7 @@ L898B:
                 ora $B1
 
 L898E:
-                ldx #configureTable.L8605-configureTable
+                ldx #configureTable.tvMetadata-configureTable
                 bra L892B
 
 ;-------------------------------------------------------------------------
@@ -489,15 +551,15 @@ printTVHelp:
 
 L89B5:
                 jsr parseNumberFromString
-                bcc L8956
+                bcc bccBadCommandError
                 txa
-                bra L895D
+                bra ensureCommandLineTailEmpty
 
 
 ;-------------------------------------------------------------------------
 
 printConfigureOrStatusHeader: .block
-                bne L8961
+                bne bneBadCommandError
                 php
                 phy
                 jsr alwaysPrintFollowingMessage
@@ -743,7 +805,11 @@ L8B08:
                 bcs L8B30
 
 printOrdinaryItem:
+                .if refreshVersion
+                ldx #11
+                .else
                 ldx #9
+                .endif
                 jsr printConfigureTableString
                 and #$40
                 beq printSpaces       ;taken if V0 clear
@@ -877,7 +943,7 @@ unknownCONFIGOrStatus:
 ;
 ; Exit:
 ;
-; X = index of byte read
+; X = index of byte
 ;
 ; Preserves: Y/C
 
@@ -886,8 +952,15 @@ getRTCByteIndex:
                 and #%01111000
                 lsr a
                 lsr a
-                lsr a
-                adc #rtcByteIndexOffset
+                lsr a           ; C=0
+                .if refreshVersion
+                cpx #configureTable.metadataHighIndexStart-configureTable
+                bcc +
+                ; insert offset. -1 because C=1. C=0 afterwards.
+                adc #metadataRTCByteHighIndexOffset-metadataRTCByteIndexOffset-1
++
+                .endif
+                adc #metadataRTCByteIndexOffset
                 tax
                 rts
 
@@ -914,7 +987,6 @@ getShiftCount:
                 pla
                 rts
 
-
 ;-------------------------------------------------------------------------
 ;
 ; Get mask bit count for configure item's data, given offset in
@@ -932,11 +1004,11 @@ getShiftCount:
 ; 
 getMaskCount:
                 pha
-                lda configureTable,x; "."
-                lsr a
-                lsr a
-                lsr a
-                and #7
+                lda configureTable+0,x; "."
+                lsr a                 ; MaskCount<<2|(other stuff)
+                lsr a                 ; MaskCount<<1|(other stuff)
+                lsr a                 ; MaskCount<<0|(other stuff)
+                and #7                ; MaskCount
                 tay
                 pla
                 rts
@@ -1034,7 +1106,7 @@ clearTSTAndReadDefaultTVSettings
                 jsr withTSTClear
                 .endif
 readDefaultTVSettings:
-                ldx #configureTable.L8605-configureTable
+                ldx #configureTable.tvMetadata-configureTable
                 jsr readConfigurationByte
                 lsr a
                 bit #%00000100
@@ -1048,3 +1120,28 @@ L8BE2:
                 rts
 
 ;-------------------------------------------------------------------------
+
+                .if refreshVersion&&includeTubeSupport
+handleTubeDelay: .proc
+                bvs printValue
+                bcs printHelp
+                bne setValue
+                ; Z=1 means reset value?
+                
+                lda #0
+setValue:
+                jsr parseSingle4BitNumberFromCommandLine
+                ldx #configureTable.tubeDelayMetadata-configureTable
+                jmp setConfigurationBitfield
+                
+printValue:
+                ldx #CMOSBytes.defaults4+cmosBytesOffset
+                jsr readRTCByte
+                and #CMOSBytes.defaults4.tubePowerOnDelayMask<<CMOSBytes.defaults4.tubePowerOnDelayShift
+                jmp printDecimalByteAThenNewLine
+
+printHelp:
+                jmp print1NumberHelp2
+
+                .endproc
+                .endif

@@ -331,7 +331,7 @@ tom_laptop:
 .PHONY:tom_reset
 tom_reset: _CURL:=curl --no-progress-meter
 tom_reset:
-	$(_CURL) -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
+	$(_CURL) -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)" --connect-timeout 0.25
 
 .PHONY:tom_tube_transfer
 tom_tube_transfer: _CURL:=curl --no-progress-meter

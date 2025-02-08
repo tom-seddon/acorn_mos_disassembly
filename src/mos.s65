@@ -13968,7 +13968,7 @@ LFB2F:
 LFB31:
                 phx
                 ldy #0
-                cpx #size(CMOSBytes)
+                cpx #cmosBytesSize
                 bcs LFB3B
                 ldy reset.LFEA2-1,x
 LFB3B:

@@ -1799,7 +1799,18 @@ cmosBytesOffset=RTC.ram
                 .elsif version>=500
 cmosBytesOffset=0
                 .endif
-                
+
+; The CMOSBytes struct covers all versions, to ensure that the offsets
+; are consistent. This means there are gaps and useless entries in
+; some cases!
+;
+; The 30 bytes reserved for the OS aren't currently in danger of
+; running out.
+;
+; Some of the labels are removed based on configuration. The offsets
+; and bits are still reserved.
+;
+; For allocations, see: https://beebwiki.mdfs.net/CMOS_configuration_RAM_allocation
 CMOSBytes: .struct
 econetStationNumber: .fill 1
 fileServerStationNumber: .fill 1
@@ -1867,15 +1878,18 @@ serialDataFormatShift=5
                 .endblock
 
                 .if version>=500
-                ; Purpose currently unknown. Is it even used?
+                ; Reserved for ANFS
 unknown11:
+                .endif
                 .fill 1
 
+                .if version>=500
 joystick: .block
 stickMask=$f
 isSwitchedMask=32
-                .fill 1
                 .endblock
+                .endif
+                .fill 1
 
                 .if version>=511||olivetti
                 ; 5.11 doesn't appear to use this byte, but it does
@@ -1883,19 +1897,28 @@ isSwitchedMask=32
                 ; presumably there was space booked for it somewhere
                 ; in the original code.
 country:
+                .endif
                 .fill 1
-                .endif
-                .endif
 
-                .if refreshVersion&&includeTubeSupport
+                .if refreshVersion
 defaults4: .block
                 .fill 1
+                ; bits 0-3 are for JGH's ARM Modules
 tubePowerOnDelayMask=15                    ; max 15 seconds
-tubePowerOnDelayShift=0
+tubePowerOnDelayShift=4
                 .endblock
                 .endif
-                
                 .endstruct
+
+                .if refreshVersion
+cmosBytesSize=size(CMOSBytes)
+                .elif version==320||version==350||version==400
+cmosBytesSize=CMOSBytes.defaults3+1
+                .elif version>=511||olivetti
+cmosBytesSize=CMOSBytes.country+1
+                .elif version==500||version==510
+cmosBytesSize=CMOSBytes.joystick+1
+                .endif
 
 originalA=$ef
 originalX=$f0

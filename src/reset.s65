@@ -685,7 +685,7 @@ L82A9:
                 jsr writeCMOSByte
                 plx
                 dex
-                cpx #size(CMOSBytes)
+                cpx #cmosBytesSize
                 bcs L82A9
                 bra resetCMOSRAM
                 .endif
@@ -708,7 +708,7 @@ resetCMOSRAMLoop:
                 phx                          
                 ldy #$00                     
                 .if version==350
-                cpx #size(CMOSBytes)
+                cpx #cmosBytesSize
                 bcs LFE91
                 ldy LFEA2-1,x
 LFE91:
@@ -734,7 +734,7 @@ LFE91:
                 .endif
                 .else
 resetCMOSRAM:                                ;82bb in MOS 5.10
-                ldx #size(CMOSBytes)
+                ldx #cmosBytesSize
 resetCMOSRAMLoop:
                 phx
                 dex
@@ -817,10 +817,17 @@ LFEA2:
                 .byte 1<<CMOSBytes.defaults2.fx5SettingShift|3<<CMOSBytes.defaults2.serialBaudRateIndexShift ; defaults2
                 .endif
                 .byte 4<<CMOSBytes.defaults3.serialDataFormatShift|CMOSBytes.defaults3.loudMask
-                .if refreshVersion&&includeTubeSupport
-                .byte 0<<CMOSBytes.defaults4.tubePowerOnDelayShift 
+                .if refreshVersion
+                .byte 0         ; unknown11 (unused)
+                .byte 0         ; joystick (unused)
+                .byte 0         ; country (unused)
+                .if includeTubeSupport
+                .byte 0<<CMOSBytes.defaults4.tubePowerOnDelayShift ; defaults4
+                .else
+                .byte 0         ; defaults4
                 .endif
-                .cerror *-LFEA2!=size(CMOSBytes)-1
+                .endif
+                .cwarn *-LFEA2!=cmosBytesSize-1
 
 .endif
 

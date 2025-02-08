@@ -3249,7 +3249,7 @@ readRTCByte: .block
                 bcc addressIsValid           ; taken if read succeeded
 readDefaultByte:
                 ldy #0                 ; default failure result is 0
-                cpx #size(CMOSBytes)   ; trying to read a known value?
+                cpx #cmosBytesSize     ; trying to read a known value?
                 bcs gotResult   ; taken if failed to read an unknown value
                 ldy defaultEEPROMContents,x ; use a default value for failed read
                 bra gotResult
@@ -3292,10 +3292,13 @@ defaultEEPROMContents:
                 .byte 4<<CMOSBytes.defaults3.serialDataFormatShift ; defaults3
                 .byte 0                      ; unknown11
                 .byte 3                      ; joystick
-                .if version>=511||olivetti
+                .if refreshVersion||version>=511||olivetti
                 .byte 4                      ; country
                 .endif
-                .cerror *-defaultEEPROMContents!=size(CMOSBytes)
+                .if refreshVersion
+                .byte 0                      ; defaults4
+                .endif
+                .cwarn *-defaultEEPROMContents!=cmosBytesSize
                 .endif
 
 ;-------------------------------------------------------------------------

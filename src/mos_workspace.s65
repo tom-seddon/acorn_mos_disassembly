@@ -1633,6 +1633,14 @@ ellipseCountHeight=$884d
 ;-------------------------------------------------------------------------
 
                 .if includeTubeSupport
+                
+                .if refreshVersion
+                .virtual $00
+tubePowerOnDelayCounter1: .fill 1
+tubePowerOnDelayCounter2: .fill 1
+                .endvirtual
+                .endif
+                
                 .virtual $00
                 .union
 tubeOSFILEParameterBlock: .dstruct OSFILEParameterBlock
@@ -1655,7 +1663,7 @@ tubeLanguageParasiteAddr: .fill 4
                 .endif
 tubeZeroPageCodeAddr:
                 ; Tube handler zero-page code sits here.
-                .endv
+                .endvirtual
 
 tubeStringBuffer=$700
 tubeOSWORDBuffer=$0128

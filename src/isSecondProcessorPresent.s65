@@ -16,12 +16,65 @@ isSecondProcessorPresent:
                 .if version==350
                 jsr withTSTClear
                 .endif
+isSecondProcessorPresent2:
+                ; (+ 6 2 4 4 2 2 4 4 2 6) = 36
                 ldx #$01                     
-                stx $fee0;tube.status1
-                lda $fee0;tube.status1                   
+                stx $fee0       ;tube.status1
+                lda $fee0       ;tube.status1                   
                 eor #$01
                 ldx #$81                     
-                stx $fee0;tube.status1             
-                and $fee0;tube.status1       ; Cy=0 if no Tube, Cy=1 if Tube
+                stx $fee0       ;tube.status1             
+                and $fee0 ;tube.status1       ; Cy=0 if no Tube, Cy=1 if Tube
                 ror a
                 rts
+
+;-------------------------------------------------------------------------
+;
+; Check if a coprocessor is attached to the Tube, with a timeout to
+; accommodate PiTube bootup time.
+;
+; exit:
+;
+; C=0 = no Tube
+;
+; C=1 = Tube
+;
+                .if refreshVersion
+timedIsSecondProcessorPresent: .proc
+                .if version==350
+                jsr withTSTClear
+                .endif
+
+                ; Do the timeout for power-on reset only.
+                lda lastBREAKType
+                .cerror lastBREAKType.powerOn!=1
+                dec a
+                bne isSecondProcessorPresent2 ; taken if not power-on reset
+
+                ; Get Tube power on delay
+                ldx #configureTable.tubeDelayMetadata-configureTable
+                jsr readConfigurationByte
+                cmp #$00
+                beq isSecondProcessorPresent2 ; taken if 0 - test once
+                sta tubePowerOnDelayCounter2
+loop1Iteration:
+                ; Round trip time for the whole loop is ~43 cycles.
+                ; 46482 iterations = 1 second.
+                ldy #<-46482
+                lda #>-46482
+                sta tubePowerOnDelayCounter1
+
+loop1Second:
+                jsr isSecondProcessorPresent2 ; +36
+                bcs done                      ; +2
+                iny                           ; +2
+                bne loop1Second               ; +(255*3+2)/256
+                inc tubePowerOnDelayCounter1  ; +5/256
+                bne loop1Second               ; +(255*3+2)/256/256
+                dec tubePowerOnDelayCounter2
+                bne loop1Iteration
+                ; C=0 at this point
+done:
+                rts
+                .endproc                
+                .endif

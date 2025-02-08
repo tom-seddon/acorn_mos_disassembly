@@ -182,7 +182,7 @@ lastShChar=shCaps+1
                 .itemWithMetadata "Tube",CMOSBytes.defaults2,CMOSBytes.defaults2.tubeOnMask,1,false
                 .endif
                 .if refreshVersion&&includeTubeSupport
-                .itemWithAddress "TubeDelay",handleTubeDelay
+                .itemWithAddress "TubeWait",handleTubeDelay
                 .endif
                 .if version>=500
                 .itemWithMetadata "Proportional",CMOSBytes.joystick,CMOSBytes.joystick.isSwitchedMask,0,false
@@ -808,7 +808,7 @@ L8B08:
 
 printOrdinaryItem:
                 .if refreshVersion
-                ldx #11
+                ldx #10
                 .else
                 ldx #9
                 .endif
@@ -1137,10 +1137,8 @@ setValue:
                 jmp setConfigurationBitfield
                 
 printValue:
-                ldx #CMOSBytes.defaults4+cmosBytesOffset
-                jsr readRTCByte
-                and #CMOSBytes.defaults4.tubePowerOnDelayMask<<CMOSBytes.defaults4.tubePowerOnDelayShift
-                jmp printDecimalByteAThenNewLine
+                ldx #configureTable.tubeDelayMetadata-configureTable
+                jmp printDecimalConfigurationByte
 
 printHelp:
                 jmp print1NumberHelp2

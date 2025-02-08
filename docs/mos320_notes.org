@@ -797,6 +797,8 @@ fetchTubeRelocationBitmapByte
 
 * Tube power-on delay
 
+** Delay cases
+
 Combinations, assuming =*CONFIGURE TUBE= and a delay long enough for
 pi to boot:
 
@@ -824,17 +826,42 @@ pi to boot:
 3 standard cases with a needless delay, so the delay should probably
 be configurable.
 
-isSecondProcessorPresent - ~22 cycles/iteration, 90,909 iterations/sec
-
-Suppose ~30 cycles/iteration - 66,666 iterations/sec, close enough to
-65,536. Could have a *CONFIG value for # seconds to wait. And 0
-seconds = 1 iteration, as currently the case.
-
 Looks like the *CONFIGURE aspect of this can be dealt with same as
 MODE, LANG or FILE. Refresh versions are all table driven configure so
 no problem.
 
+** Actual boot time
 
+https://www.stardot.org.uk/forums/viewtopic.php?p=447412#p447412
 
+#+begin_quote
+In my experience, not having actually measured it, it's between 1s (on
+a Pi Zero) and about 4s (on a Pi 4).
+#+end_quote
+
+A 4-bit delay time in seconds should be fine.
+
+** Interrupts...?
+
+From a sample boot of MOS 3.50, looks like IRQs are disabled during
+the period of interest.
+
+- +814 :: sei
+- +75559 :: isSecondProcessorPresent
+- +155262 :: first meaningful CLI
+
+So the loop will probably have to be hand timed. Will this cause any
+problems anywhere, if the bootup process takes ages??
+
+The timing should be straightforward.
+
+isSecondProcessorPresent - ~22 cycles/iteration, 90,909 iterations/sec
+
+Suppose ~30 cycles/iteration - 66,666 iterations/sec, close enough to
+65,536. What'd be the error with that over 15 seconds? Hopefully low
+enough that it'd be enough to describe the value as corresponding to
+roughly N seconds...
+
+0 seconds must = 1 iteration, as currently the case.
 
 * eof

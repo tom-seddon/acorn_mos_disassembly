@@ -898,7 +898,11 @@ L829D:
                 tsb ACCCON
                 .endif
 L82B4:
+                .if refreshVersion
+                jsr timedIsSecondProcessorPresent
+                .else
                 jsr isSecondProcessorPresent
+                .endif
                 bcs foundTube
 
                 .if version==350
@@ -912,7 +916,11 @@ L82B4:
                 .else
                 sta ACCCON
                 .endif
-                
-                jsr isSecondProcessorPresent
 
+                .if refreshVersion
+                jsr timedIsSecondProcessorPresent
+                .else
+                jsr isSecondProcessorPresent
+                .endif
+                
                 .endif

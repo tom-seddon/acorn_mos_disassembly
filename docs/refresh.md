@@ -117,6 +117,8 @@ together, so the version numbers for all 3 variants stay in sync.
   it now uses no more than the Acorn MOS did
 * 3.50F: further slightly improve relocated language ROM Tube transfer
   speed
+* 3.20F: bring in more of the MOS 3.50 code shuffling so the versions
+  are more similar internally
   
 ### safe mode
 

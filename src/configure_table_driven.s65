@@ -1,5 +1,5 @@
 Sbyte2: .macro value,value350
-                .if version==350
+                .if version<500
                 .byte \value350
                 .else
                 .byte \value
@@ -39,8 +39,10 @@ Sbyte2: .macro value,value350
 
                 ; The RTC byte indexes in the table are actually
                 ; offset. For 3.50 the possible range is 1-17;
-                ; otherwise, 5-21.
-                .if version==350
+                ; otherwise, 5-21. (And the latter makes much more
+                ; sense, as bytes 1-4 are managed by ANFS... a useful
+                ; future improvement.)
+                .if version<500
 metadataRTCByteIndexOffset=cmosBytesOffset+CMOSBytes.fileServerStationNumber
                 .else
 metadataRTCByteIndexOffset=cmosBytesOffset+CMOSBytes.defaultROMs
@@ -148,10 +150,10 @@ lastExChar=extube+1
                 .endif
                 .itemWithMetadata "Fdrive",CMOSBytes.defaults1,CMOSBytes.defaults1.fdriveMask,0,true
 file: .itemWithMetadata "File",CMOSBytes.defaultROMs,$f<<CMOSBytes.defaultROMs.fsShift,0,true
-                .if version==350
+                .if version<500
                 .itemWithMetadata "Floppy",CMOSBytes.defaults1,CMOSBytes.defaults1.floppyDrive,1,false
                 .endif
-                .if version==350
+                .if version<500
                 .itemWithMetadata "Hard",CMOSBytes.defaults1,CMOSBytes.defaults1.floppyDrive,0,false
                 .endif
 ignore: .itemWithAddress "Ignore",handlePrinterIgnoreChar
@@ -200,7 +202,7 @@ lastShChar=shCaps+1
                 ; the offset so that it can reuse the generic metadata
                 ; handling routines.
 printerIgnoreCharMetadata:
-                .if version==350
+                .if version<500
                 .itemMetadata $00,CMOSBytes.defaults2,CMOSBytes.defaults2.usePrinterIgnoreCharMask,0,false
                 .else
                 ; This must be a bug, surely? The mask looks wrong.
@@ -309,7 +311,7 @@ L8884:
 
 L8895:
                 and #7
-                .if version==350
+                .if version<500
                 dec configureTable+1,x
                 .else
                 inc configureTable+1,x

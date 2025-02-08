@@ -58,6 +58,19 @@ timedIsSecondProcessorPresent: .proc
                 beq isSecondProcessorPresent2 ; taken if 0 - test once
                 sta tubePowerOnDelayCounter2
 loop1Iteration:
+                ; alwaysPrintFollowingMessage uses OSASCI, so it can't
+                ; print a lone 13 itself.
+                jsr printCR
+
+                jsr alwaysPrintFollowingMessage
+                .text "Tube Wait: ",0
+
+                lda tubePowerOnDelayCounter2
+                jsr printDecimalByteA
+
+                jsr alwaysPrintFollowingMessage
+                .text 32,8,0
+
                 ; Round trip time for the whole loop is ~43 cycles.
                 ; 46482 iterations = 1 second.
                 ldy #<-46482
@@ -66,7 +79,7 @@ loop1Iteration:
 
 loop1Second:
                 jsr isSecondProcessorPresent2 ; +36
-                bcs done                      ; +2
+                bcs found                     ; +2
                 iny                           ; +2
                 bne loop1Second               ; +(255*3+2)/256
                 inc tubePowerOnDelayCounter1  ; +5/256
@@ -74,7 +87,20 @@ loop1Second:
                 dec tubePowerOnDelayCounter2
                 bne loop1Iteration
                 ; C=0 at this point
-done:
+notFound:
+                jsr printCR
+                ldx #15
+-
+                jsr printSpace
+                dex
+                bne -
+                jsr printCR
+                clc
+                rts
+
+found:
+                jsr notFound    ; tidy up the output
+                sec
                 rts
                 .endproc                
                 .endif

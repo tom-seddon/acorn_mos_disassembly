@@ -167,14 +167,11 @@ the Master PSU (as is the case if fitted internally).
 Use `*CONFIGURE TUBEWAIT <n>` to set this value. `<n>` is a value from
 0 to 15 inclusive, approximately the maximum number of seconds to wait
 for. The wait time depends on the type of Pi, so you'll have to
-experiment to find the right value for your setup.
+experiment to find the right value for your setup. 
 
 (This is a maximum; if it becomes ready sooner, the 2nd processor will
-be detected then.)
-
-(The timeout is approximate, and begins after some part of the usual
-MOS startup, so you'll struggle to make it match your stopwatch.
-However total relative bootup time should be about as expected.)
+be detected then. But if the configured 2nd processor isn't connected,
+you'll be waiting for the full period.)
 
 The delay is ignored when `*CONFIGURE NOTUBE`, and always applies to
 power-on reest only.

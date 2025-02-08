@@ -917,10 +917,9 @@ L82B4:
                 sta ACCCON
                 .endif
 
-                .if refreshVersion
-                jsr timedIsSecondProcessorPresent
-                .else
+                ; Don't do a timed version for the other Tube. If the
+                ; preferred one times out, the delay for the other one
+                ; is covered.
                 jsr isSecondProcessorPresent
-                .endif
                 
                 .endif

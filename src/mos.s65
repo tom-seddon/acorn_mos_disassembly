@@ -14390,6 +14390,9 @@ OSASCI:
 OSNEWL:
                 lda #$0A                     ; FFE7
                 jsr OSWRCH                   ; FFE9
+printCR:
+                ; not an official entry point, but saves 2 bytes if
+                ; you just want to print a 13.
                 lda #$0D                     ; FFEC
 OSWRCH:
                 jmp (WRCHV)                  ; FFEE

@@ -12,7 +12,11 @@ systems. For more details, see
 
 Prebuilt listing files are available from the latest release page:
 https://github.com/tom-seddon/acorn_mos_disassembly/releases/latest -
-download the -lst zip. 
+download the -lst zip.
+
+I also occasionally upload updated copies to GitHub:
+https://github.com/tom-seddon/acorn_mos_disassembly/tree/master/dist
+(the files there may be outdated as this step is not automated).
 
 Alternatively, you can create them yourself, following
 [the building instructions](./docs/build.md).

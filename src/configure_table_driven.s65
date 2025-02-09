@@ -98,23 +98,38 @@ maskWidth=countLS0s(~unshiftedMask)
 
 ;-------------------------------------------------------------------------
 
+                .if refreshVersion
+; Records offsets in configureTable of the metadata for items with a
+; so-called high index - i.e., past the normally encodable range. It's
+; a 4-bit field so an additional offset of 16 is added in these cases.
+highIndexItemMetadataOffsetsList:=[]
+                .endif
+
+; TODO: the naming and the constants need some work here! rtcByteIndex
+; is an index into CMOS RAM. This stuff is all super unclear.
+
 itemMetadata: .macro topMask,rtcByteIndex,mask,matchValue,n1
-                ; constants need some rationalisation here. The byte
-                ; index is a 4-bit field.
 
                 .cerror *<configureTable||*>=configureTable+size(configureTable),"itemMetadata is only valid as part of configureTable"
 
-indexOffset=metadataRTCByteIndexOffset
-                
-                .cerror (\rtcByteIndex)<(indexOffset)-cmosBytesOffset
-                .cerror (\rtcByteIndex)>=(indexOffset)+16-cmosBytesOffset
+indexOffset:=metadataRTCByteIndexOffset
+
+                .cerror (\rtcByteIndex)<indexOffset-cmosBytesOffset
+                .if refreshVersion
+                .if (\rtcByteIndex)>=indexOffset+16-cmosBytesOffset
+indexOffset:=indexOffset+16
+highIndexItemMetadataOffsetsList..=[*-configureTable]
+                .endif
+                .endif
+                .cerror (\rtcByteIndex)>=indexOffset+16-cmosBytesOffset
+                .cerror (\rtcByteIndex)>=30+cmosBytesOffset,"MOS CMOS bytes must not run into the user area"
                 .cerror !((\matchValue)>=0&&(\matchValue)<8)
                 .cerror (\mask)<0||(\mask)>256,format("Bad mask: $%02x",\mask)
 
 info: .itemMaskInfo (\mask)
 
                 .byte (\topMask)|((info.maskWidth-1)<<3)|(\matchValue)
-                .byte ((\n1)?$80:$00)|((\rtcByteIndex-(metadataRTCByteIndexOffset-cmosBytesOffset))<<3)|info.shift
+                .byte ((\n1)?$80:$00)|((\rtcByteIndex-(indexOffset-cmosBytesOffset))<<3)|info.shift
                 .endmacro
 
 itemWithMetadata: .macro name,rtcByteIndex,mask,matchValue,n1
@@ -166,7 +181,7 @@ lastNoDirChar:=noDir.metadata-1
                 .itemWithMetadata "NoTube",CMOSBytes.defaults2,CMOSBytes.defaults2.tubeOnMask,0,false
                 .endif
                 .if refreshVersion&&version==350
-noWipeSWR: .itemWithMetadata "NoWipeSWR",CMOSBytes.defaults3,CMOSBytes.defaults3.noWipeSWR,1,false
+noWipeSWR: .itemWithMetadata "NoWipeSWR",CMOSBytes.defaults5,CMOSBytes.defaults5.noWipeSWR,1,false
                 .endif
 print: .itemWithMetadata "Print",CMOSBytes.defaults2,CMOSBytes.defaults2.fx5SettingMask<<CMOSBytes.defaults2.fx5SettingShift,0,true
                 .itemWithMetadata "Quiet",CMOSBytes.defaults3,CMOSBytes.defaults3.loudMask,0,false
@@ -191,7 +206,7 @@ lastShChar=shCaps+1
                 .endif
                 .itemWithAddress "TV",handleTV
                 .if refreshVersion&&version==350
-                .itemWithMetadata "WipeSWR",CMOSBytes.defaults3,CMOSBytes.defaults3.noWipeSWR,0,false
+                .itemWithMetadata "WipeSWR",CMOSBytes.defaults5,CMOSBytes.defaults5.noWipeSWR,0,false
                 .endif
                 ; Terminator for data-driven table
                 .byte 0
@@ -232,6 +247,15 @@ ift:
 
                 ; Configure table ends. TODO: rearrange .endblock so
                 ; this is clearer - and follow through
+
+;-------------------------------------------------------------------------
+
+;                 .if refreshVersion
+;                 .if len(highIndexItemMetadataOffsetsList)>0
+; highIndexItemMetadataOffsets:
+;                 .byte highIndexItemMetadataOffsetsList
+;                 .endif
+;                 .endif
 
 ;-------------------------------------------------------------------------
                 
@@ -945,17 +969,68 @@ unknownCONFIGOrStatus:
 ;
 ; X = index of byte
 ;
-; Preserves: Y/C
+; Preserves: Y
 
-getRTCByteIndex:
+getRTCByteIndex: .proc
+                .if refreshVersion
+                .if len(highIndexItemMetadataOffsetsList)>0
+                
+                ; Set V flag according to whether this item has a high
+                ; index.
+                ;
+                ; This approach: 16 bytes here + 4 bytes later + 1
+                ; byte per entry in the table = 20+n bytes
+                ;
+                ; Inlined cpx#: 4 bytes per offset + adc#16 + clc =
+                ; 3+4n bytes
+                ;
+                ; 3+4n>=20+n; 4n>=17+n; 3n>=17; n>=17/3; n>=5.666 -
+                ; you need 6 items for the generic code to be shorter.
+                .cwarn len(highIndexItemMetadataOffsetsList)>=6,"time to reconsider..."
+                
+;                 txa             ; A=offset
+;                 clv             ; V=0 - item not found
+;                 ldx #len(highIndexItemMetadataOffsetsList)-1
+; loop:
+;                 cmp highIndexMetadataOffsets,x
+;                 bne +
+;                 bit valueFF     ; V=1 - item found
+; +
+;                 dex
+;                 bpl loop
+;                 tax             ; X=offset again
+                 .endif
+                .endif
+
                 lda configureTable+1,x
                 and #%01111000
                 lsr a
                 lsr a
                 lsr a           ; C=0
+                ; .if refreshVersion&&len(highIndexItemMetadataOffsetsList)>0
+                ; bvc +           ; taken if not high index
+                ; adc #16         ; add high index offset
+                ; ; C=0
+                ; .endif
+                .if refreshVersion
+                .if len(highIndexItemMetadataOffsetsList)>0
+                .for _i=0,_i<len(highIndexItemMetadataOffsetsList),_i+=1
+                cpx #highIndexItemMetadataOffsetsList[_i]
+                .if _i<len(highIndexItemMetadataOffsetsList)-1
+                beq isHighIndexOffset
+                .endif
+                .endfor
+                bne addOffset
+isHighIndexOffset:
+                adc #16-1       ; -1 as C=1 at this point
+addOffset:
+                clc
+                .endif
+                .endif
                 adc #metadataRTCByteIndexOffset
                 tax
                 rts
+                .endproc
 
 ;-------------------------------------------------------------------------
 ;

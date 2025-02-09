@@ -54,8 +54,9 @@
                 jsr resetCRTC
                 .if refreshVersion
                 jsr selectTerminalROM
-                jsr clearTSTAndReadDefaults3
-                and #CMOSBytes.defaults3.noWipeSWR
+                ldx #CMOSBytes.defaults5+cmosBytesOffset
+                jsr clearTSTAndReadRTCByte
+                and #CMOSBytes.defaults5.noWipeSWR
                 bne startClearRAM ; taken if *CONFIGURE NOWIPESWR
                 .endif
                 ldx #7
@@ -845,6 +846,7 @@ LFEA2:
                 .else
                 .byte 0         ; defaults4
                 .endif
+                .byte 0         ; defaults5
                 .endif
                 .cwarn *-LFEA2!=cmosBytesSize-1
 

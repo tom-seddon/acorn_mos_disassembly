@@ -1875,10 +1875,7 @@ fx5SettingShift=5
 
 defaults3: .block
                 .fill 1
-                .if version==350
-                ; Annoying backwards naming so that 0 means wipe.
-noWipeSWR=1
-                .endif
+; bit 0 is for Master Emulation ROM's *CONFIGURE SHADOW
 loudMask=2
                 .if includeTubeSupport
 extTubeMask=4
@@ -1914,15 +1911,25 @@ country:
 
                 .if refreshVersion
 defaults4: .block
-                .fill 1
                 ; bits 0-3 are for JGH's ARM Modules
 tubePowerOnDelayMask=15                    ; max 15 seconds
 tubePowerOnDelayShift=4
                 .endblock
-
                 .endif
-
                 
+                .fill 1
+
+                .if refreshVersion
+defaults5: .block
+                .if version==350
+noWipeSWR=1
+                .endif
+                .endblock
+                .endif
+                
+                .fill 1
+                
+
                 .endstruct
 
                 .if refreshVersion

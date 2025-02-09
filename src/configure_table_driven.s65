@@ -38,17 +38,15 @@ Sbyte2: .macro value,value350
                 ; N1 is tested when printing stuff. Search for "N1 set"
 
                 ; The RTC byte indexes in the table are actually
-                ; offset. For 3.50 the possible range is 1-17;
-                ; otherwise, 5-21. (And the latter makes much more
-                ; sense, as bytes 1-4 are managed by ANFS... a useful
-                ; future improvement.)
-                .if version<500
+                ; offset.
+                .if !refreshVersion&&version<500
+                ; The possible range is 1-17. A bit wasteful as bytes
+                ; 1-4 are set by ANFS. Though perhaps the original
+                ; intention was for the MOS to manage them.
 metadataRTCByteIndexOffset=cmosBytesOffset+CMOSBytes.fileServerStationNumber
                 .else
+                ; The possible range is 5-21.
 metadataRTCByteIndexOffset=cmosBytesOffset+CMOSBytes.defaultROMs
-                .endif
-                .if refreshVersion
-metadataRTCByteHighIndexOffset=metadataRTCByteIndexOffset+16
                 .endif
 
                 ; Entry conditions to the routine:
@@ -106,12 +104,7 @@ itemMetadata: .macro topMask,rtcByteIndex,mask,matchValue,n1
 
                 .cerror *<configureTable||*>=configureTable+size(configureTable),"itemMetadata is only valid as part of configureTable"
 
-indexOffset:=metadataRTCByteIndexOffset
-                .if refreshVersion
-                .if *>=configureTable.metadataHighIndexStart
-indexOffset:=metadataRTCByteHighIndexOffset
-                .endif
-                .endif
+indexOffset=metadataRTCByteIndexOffset
                 
                 .cerror (\rtcByteIndex)<(indexOffset)-cmosBytesOffset
                 .cerror (\rtcByteIndex)>=(indexOffset)+16-cmosBytesOffset
@@ -212,9 +205,6 @@ tvMetadata:
                 .itemMetadata $00,CMOSBytes.defaults0,CMOSBytes.defaults0.interlaceMask|(CMOSBytes.defaults0.tvMask<<CMOSBytes.defaults0.tvShift),0,false
 
                 .if refreshVersion
-                ; Metadata entries after this point refer to RTC bytes
-                ; outside the default possible range. 
-metadataHighIndexStart:
                 .if includeTubeSupport
 tubeDelayMetadata:
                 .itemMetadata $00,CMOSBytes.defaults4,CMOSBytes.defaults4.tubePowerOnDelayMask<<CMOSBytes.defaults4.tubePowerOnDelayShift,0,true
@@ -311,7 +301,7 @@ L8884:
 
 L8895:
                 and #7
-                .if version<500
+                .if !refreshVersion&&version<500
                 dec configureTable+1,x
                 .else
                 inc configureTable+1,x
@@ -955,13 +945,6 @@ getRTCByteIndex:
                 lsr a
                 lsr a
                 lsr a           ; C=0
-                .if refreshVersion
-                cpx #configureTable.metadataHighIndexStart-configureTable
-                bcc +
-                ; insert offset. -1 because C=1. C=0 afterwards.
-                adc #metadataRTCByteHighIndexOffset-metadataRTCByteIndexOffset-1
-+
-                .endif
                 adc #metadataRTCByteIndexOffset
                 tax
                 rts

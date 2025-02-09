@@ -121,6 +121,9 @@ together, so the version numbers for all 3 variants stay in sync.
   are more similar internally
 * 3.20F, 3.50F: add Tube power-on boot delay to accommodate slower
   PiTube startup time
+* 3.50F: add `WIPESWR`/`NOWIPESWR` configuration options
+* 3.50F: add experimental mitigations for EEPROMs that become
+  unresponsive when written to
   
 ### safe mode
 
@@ -158,7 +161,7 @@ ignored.
 You may also see this if you use 3rd-party tools designed for the B/B+
 that disable ROMs by modifying the ROM information table.
 
-### Tube power-on boot delay
+### Tube power-on boot delay (3.20/3.50 only)
 
 The MOS can wait longer on initial power up for the 2nd processor to
 become ready, to accomodate PiTube startup time when it's powered by
@@ -175,6 +178,19 @@ you'll be waiting for the full period.)
 
 The delay is ignored when `*CONFIGURE NOTUBE`, and always applies to
 power-on reest only.
+
+### retain sideways RAM on power-on reset (3.50 only)
+
+MOS 3.50 erase sideways RAM if it detects a power-on reset. This is
+now configurable.
+
+`*CONFIGURE WIPESWR` (shown as `Wipe SWR` in the `*STATUS` output),
+the default, will erase sideways RAM on a power-on reset. This is the
+Acorn MOS 3.50 behaviour.
+
+`*CONFIGURE NOWIPESWR` (shown as `No Wipe SWR` in the `*STATUS`
+output) will leave sideways RAM contents alone on a power-on reset -
+the behaviour for other Acorn MOS versions.
 
 ## E
 

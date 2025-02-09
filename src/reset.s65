@@ -52,31 +52,50 @@
                 .if version==350
                 bne nonPowerOnReset
                 jsr resetCRTC
+                .if refreshVersion
+                jsr selectTerminalROM
+                jsr clearTSTAndReadDefaults3
+                and #CMOSBytes.defaults3.noWipeSWR
+                bne startClearRAM ; taken if *CONFIGURE NOWIPESWR
+                .endif
                 ldx #7
-
-LFC34:
+clearSidewaysRAMLoop:
                 jsr selectROMX
                 ldy #$80        ; ''
                 sty 1
                 stz 0
                 tay
 
-LFC3E:
+clearSidewaysRAMBankLoop:
                 sta (0),y
                 iny
-                bne LFC3E
+                bne clearSidewaysRAMBankLoop
                 inc 1
                 bit 1
-                bvc LFC3E
+                bvc clearSidewaysRAMBankLoop
                 dex
                 cpx #4
-                bcs LFC34
-                jsr selectTerminalROM
-                tya
+                bcs clearSidewaysRAMLoop
 
+                .if refreshVersion
+                ; the same delay should cover all banks
+                jsr delayAfterPossibleEEPROMWrite
+                .endif
+                
+                jsr selectTerminalROM
+                
+                .if refreshVersion   
+
+startClearRAM:                       
+                ldy #$00             
+                                     
+                .else                
+
+                tya
 startClearRAM:
                 tay
 
+                .endif
 LFC53:
                 ldx TEMPA
                 tya

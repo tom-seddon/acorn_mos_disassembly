@@ -1875,6 +1875,10 @@ fx5SettingShift=5
 
 defaults3: .block
                 .fill 1
+                .if version==350
+                ; Annoying backwards naming so that 0 means wipe.
+noWipeSWR=1
+                .endif
 loudMask=2
                 .if includeTubeSupport
 extTubeMask=4
@@ -1915,7 +1919,10 @@ defaults4: .block
 tubePowerOnDelayMask=15                    ; max 15 seconds
 tubePowerOnDelayShift=4
                 .endblock
+
                 .endif
+
+                
                 .endstruct
 
                 .if refreshVersion

@@ -13982,6 +13982,42 @@ LFB3B:
                 .endif
 
 ;-------------------------------------------------------------------------
+;
+; Delay after a possible EEPROM write, to give the device time to time
+; out out of write mode. Trying to stay reasonably under 10 ms. Don't
+; interfere with the 100 Hz timer, but give the 100 Hz routine at
+; least a bit of time to run.
+;
+; 256 times round inner loop=2+256*2+255*3+2=1281 cycles
+;
+; 1281 cycles = 0.6405 ms
+;
+; 12 iterations = 15372+(a bit) cycles=~7.7 ms
+;
+; This can be revisited if required.
+;
+; Preserves: A/X/P
+
+                .if version==350&&refreshVersion
+delayAfterPossibleEEPROMWrite: .proc
+                php
+                pha
+                sei
+                ldy #12
+outerLoop:
+                lda #0
+innerLoop:
+                inc a                          
+                bne innerLoop
+                dey
+                bne outerLoop
+                pla
+                plp
+                rts
+                .endproc
+                .endif
+
+;-------------------------------------------------------------------------
 
 mosUnusedBegin:
                 .fill $fc00-*,$ff

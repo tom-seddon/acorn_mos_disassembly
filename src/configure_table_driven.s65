@@ -40,12 +40,12 @@ Sbyte2: .macro value,value350
                 ; The RTC byte indexes in the table are actually
                 ; offset.
                 .if !refreshVersion&&version<500
-                ; The possible range is 1-17. A bit wasteful as bytes
+                ; The possible range is 1-16. A bit wasteful as bytes
                 ; 1-4 are set by ANFS. Though perhaps the original
                 ; intention was for the MOS to manage them.
 metadataRTCByteIndexOffset=cmosBytesOffset+CMOSBytes.fileServerStationNumber
                 .else
-                ; The possible range is 5-21.
+                ; The possible range is 5-20.
 metadataRTCByteIndexOffset=cmosBytesOffset+CMOSBytes.defaultROMs
                 .endif
 
@@ -165,6 +165,9 @@ lastNoDirChar:=noDir.metadata-1
                 .if includeTubeSupport
                 .itemWithMetadata "NoTube",CMOSBytes.defaults2,CMOSBytes.defaults2.tubeOnMask,0,false
                 .endif
+                .if refreshVersion&&version==350
+noWipeSWR: .itemWithMetadata "NoWipeSWR",CMOSBytes.defaults3,CMOSBytes.defaults3.noWipeSWR,1,false
+                .endif
 print: .itemWithMetadata "Print",CMOSBytes.defaults2,CMOSBytes.defaults2.fx5SettingMask<<CMOSBytes.defaults2.fx5SettingShift,0,true
                 .itemWithMetadata "Quiet",CMOSBytes.defaults3,CMOSBytes.defaults3.loudMask,0,false
                 .itemWithMetadata "Repeat",CMOSBytes.keyboardAutoRepeatRate,$ff,0,true
@@ -187,6 +190,9 @@ lastShChar=shCaps+1
                 .itemWithMetadata "Stick",CMOSBytes.joystick,CMOSBytes.joystick.stickMask,0,true
                 .endif
                 .itemWithAddress "TV",handleTV
+                .if refreshVersion&&version==350
+                .itemWithMetadata "WipeSWR",CMOSBytes.defaults3,CMOSBytes.defaults3.noWipeSWR,0,false
+                .endif
                 ; Terminator for data-driven table
                 .byte 0
 
@@ -209,6 +215,8 @@ tvMetadata:
 tubeDelayMetadata:
                 .itemMetadata $00,CMOSBytes.defaults4,CMOSBytes.defaults4.tubePowerOnDelayMask<<CMOSBytes.defaults4.tubePowerOnDelayShift,0,true
                 .endif
+
+                .cerror *-configureTable>=256,"configureTable is too large"
 
                 .endif
                 

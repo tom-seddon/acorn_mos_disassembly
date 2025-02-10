@@ -196,7 +196,8 @@ srWipe: .itemWithMetadata "SRWipe",CMOSBytes.defaults5,CMOSBytes.defaults5.noWip
                 .itemWithMetadata "Tube",CMOSBytes.defaults2,CMOSBytes.defaults2.tubeOnMask,1,false
                 .endif
                 .if refreshVersion&&includeTubeSupport
-                .itemWithAddress "TubeWait",handleTubeDelay
+tubeWait: .itemWithMetadata "TubeWait",CMOSBytes.defaults4,CMOSBytes.defaults4.tubePowerOnDelayMask<<CMOSBytes.defaults4.tubePowerOnDelayShift,0,true
+                ; .itemWithAddress "TubeWait",handleTubeDelay
                 .endif
                 .if version>=500
                 .itemWithMetadata "Proportional",CMOSBytes.joystick,CMOSBytes.joystick.isSwitchedMask,0,false
@@ -225,15 +226,8 @@ printerIgnoreCharMetadata:
 tvMetadata:
                 .itemMetadata $00,CMOSBytes.defaults0,CMOSBytes.defaults0.interlaceMask|(CMOSBytes.defaults0.tvMask<<CMOSBytes.defaults0.tvShift),0,false
 
-                .if refreshVersion
-                .if includeTubeSupport
-tubeDelayMetadata:
-                .itemMetadata $00,CMOSBytes.defaults4,CMOSBytes.defaults4.tubePowerOnDelayMask<<CMOSBytes.defaults4.tubePowerOnDelayShift,0,true
-                .endif
-
                 .cerror *-configureTable>=256,"configureTable is too large"
 
-                .endif
                 
                 ; Text snippets.
 ectory:
@@ -1196,26 +1190,3 @@ L8BE2:
                 rts
 
 ;-------------------------------------------------------------------------
-
-                .if refreshVersion&&includeTubeSupport
-handleTubeDelay: .proc
-                bvs printValue
-                bcs printHelp
-                bne setValue
-                ; Z=1 means reset value?
-                
-                lda #0
-setValue:
-                jsr parseSingle4BitNumberFromCommandLine
-                ldx #configureTable.tubeDelayMetadata-configureTable
-                jmp setConfigurationBitfield
-                
-printValue:
-                ldx #configureTable.tubeDelayMetadata-configureTable
-                jmp printDecimalConfigurationByte
-
-printHelp:
-                jmp print1NumberHelp2
-
-                .endproc
-                .endif

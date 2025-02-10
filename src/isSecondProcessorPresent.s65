@@ -52,7 +52,7 @@ timedIsSecondProcessorPresent: .proc
                 bne isSecondProcessorPresent2 ; taken if not power-on reset
 
                 ; Get Tube power on delay
-                ldx #configureTable.tubeDelayMetadata-configureTable
+                ldx #configureTable.tubeWait.metadata-configureTable
                 jsr readConfigurationByte
                 cmp #$00
                 beq isSecondProcessorPresent2 ; taken if 0 - test once

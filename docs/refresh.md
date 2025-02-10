@@ -184,11 +184,11 @@ power-on reest only.
 MOS 3.50 erase sideways RAM if it detects a power-on reset. This is
 now configurable.
 
-`*CONFIGURE WIPESWR` (shown as `Wipe SWR` in the `*STATUS` output),
+`*CONFIGURE SRWIPE` (shown as `SRAM Wipe` in the `*STATUS` output),
 the default, will erase sideways RAM on a power-on reset. This is the
 Acorn MOS 3.50 behaviour.
 
-`*CONFIGURE NOWIPESWR` (shown as `No Wipe SWR` in the `*STATUS`
+`*CONFIGURE NOSRWIPE` (shown as `No SRAM Wipe` in the `*STATUS`
 output) will leave sideways RAM contents alone on a power-on reset -
 the behaviour for other Acorn MOS versions.
 

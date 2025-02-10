@@ -181,7 +181,7 @@ lastNoDirChar:=noDir.metadata-1
                 .itemWithMetadata "NoTube",CMOSBytes.defaults2,CMOSBytes.defaults2.tubeOnMask,0,false
                 .endif
                 .if refreshVersion&&version==350
-noWipeSWR: .itemWithMetadata "NoWipeSWR",CMOSBytes.defaults5,CMOSBytes.defaults5.noWipeSWR,1,false
+noSRWipe: .itemWithMetadata "NoSRWipe",CMOSBytes.defaults5,CMOSBytes.defaults5.noWipeSWR,1,false
                 .endif
 print: .itemWithMetadata "Print",CMOSBytes.defaults2,CMOSBytes.defaults2.fx5SettingMask<<CMOSBytes.defaults2.fx5SettingShift,0,true
                 .itemWithMetadata "Quiet",CMOSBytes.defaults3,CMOSBytes.defaults3.loudMask,0,false
@@ -189,6 +189,9 @@ print: .itemWithMetadata "Print",CMOSBytes.defaults2,CMOSBytes.defaults2.fx5Sett
                 .itemWithMetadata "Scroll",CMOSBytes.defaults3,CMOSBytes.defaults3.protectedScrollingMask,0,false
 shCaps: .itemWithMetadata "ShCaps",CMOSBytes.defaults1,CMOSBytes.defaults1.shiftLockMask|CMOSBytes.defaults1.noLockMask|CMOSBytes.defaults1.capsLockMask,1,false
 lastShChar=shCaps+1
+                .if refreshVersion&&version==350
+srWipe: .itemWithMetadata "SRWipe",CMOSBytes.defaults5,CMOSBytes.defaults5.noWipeSWR,0,false
+                .endif
                 .if includeTubeSupport
                 .itemWithMetadata "Tube",CMOSBytes.defaults2,CMOSBytes.defaults2.tubeOnMask,1,false
                 .endif
@@ -205,9 +208,6 @@ lastShChar=shCaps+1
                 .itemWithMetadata "Stick",CMOSBytes.joystick,CMOSBytes.joystick.stickMask,0,true
                 .endif
                 .itemWithAddress "TV",handleTV
-                .if refreshVersion&&version==350
-                .itemWithMetadata "WipeSWR",CMOSBytes.defaults5,CMOSBytes.defaults5.noWipeSWR,0,false
-                .endif
                 ; Terminator for data-driven table
                 .byte 0
 
@@ -244,6 +244,10 @@ ternal:
                 .endif
 ift:
                 .text "ift",$ff
+                .if refreshVersion&&version==350
+am_:
+                .text "AM ",$ff
+                .endif
 
                 ; Configure table ends. TODO: rearrange .endblock so
                 ; this is clearer - and follow through
@@ -258,26 +262,30 @@ ift:
 ;                 .endif
 
 ;-------------------------------------------------------------------------
+
+_:=[]
+_..=[(lastDirChar,ectory)]
+_..=[(lastNoDirChar,ectory)]
+                .if includeTubeSupport
+_..=[(lastExChar,ternal)]
+_..=[(lastInChar,ternal)]
+                .endif
+_..=[(lastShChar,ift)]
+                .if refreshVersion&&version==350
+_..=[(srWipe+1,am_)]
+_..=[(noSRWipe+3,am_)]
+                .endif
+textSnippets=_
                 
 textSnippetInsertPointOffsets:
-                .text lastDirChar-configureTable   ;"Directory"
-                .byte lastNoDirChar-configureTable ;"NoDirectory"
-                .if includeTubeSupport
-                .byte lastExChar-configureTable    ;"External"
-                .byte lastInChar-configureTable    ;"Internal"
-                .endif
-                .byte lastShChar-configureTable    ;"Shift"
-textSnippetsCount=*-textSnippetInsertPointOffsets
+                .for _i=0,_i<len(textSnippets),_i+=1
+                .byte textSnippets[_i][0]-configureTable
+                .endfor
                 
 textSnippetOffsets:
-                .byte configureTable.ectory-configureTable
-                .byte configureTable.ectory-configureTable
-                .if includeTubeSupport
-                .byte configureTable.ternal-configureTable
-                .byte configureTable.ternal-configureTable
-                .endif
-                .byte configureTable.ift-configureTable
-                .cerror *-textSnippetOffsets!=textSnippetsCount
+                .for _i=0,_i<len(textSnippets),_i+=1
+                .byte textSnippets[_i][1]-configureTable
+                .endfor
 
                 .endblock
                 
@@ -885,7 +893,7 @@ printConfigureTableStringLoop:
 
                 ; If we're at a snippet insert point, insert the
                 ; snippet, recursively.
-                ldy #configureTable.textSnippetsCount-1
+                ldy #len(configureTable.textSnippets)-1
 findSnippetInsertPointLoop:
                 cmp configureTable.textSnippetInsertPointOffsets,y
                 bne nextSnippetInsertPoint

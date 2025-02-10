@@ -57,7 +57,7 @@
                 ldx #CMOSBytes.defaults5+cmosBytesOffset
                 jsr clearTSTAndReadRTCByte
                 and #CMOSBytes.defaults5.noWipeSWR
-                bne startClearRAM ; taken if *CONFIGURE NOWIPESWR
+                bne startClearRAM ; taken if *CONFIGURE NOSRWIPE
                 .endif
                 ldx #7
 clearSidewaysRAMLoop:

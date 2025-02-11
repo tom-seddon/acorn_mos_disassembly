@@ -10903,7 +10903,9 @@ osbyte06:                       ;f0b3
 ; OSBYTE 114 (&72) Write usage of shadow memory [MasRef D.2-32]
 ;
 osbyte72:                       ;f0b8
-                lda #$1F
+                lda #<(shadowRAMState-mosVariables+firstMOSVariableOSBYTE^osbyte01.magic)
+
+                ; $1f;<shadowRAMState^osbyte01.magic
                 bra LF0CC
 
 ;-------------------------------------------------------------------------
@@ -10930,9 +10932,12 @@ LF0CC:
 ;
 ; OSBYTE 1 (&01) Write user flag [MasRef D.2-18]
 ;
-osbyte01:
-                eor #firstMOSVariableOSBYTE+(userFlag-mosVariables)-1 ;-1 because OSBYTE 1
+osbyte01: .block
+; Magic value that turns 1 into the OSBYTE number for the user flag.
+magic=firstMOSVariableOSBYTE+(userFlag-mosVariables)-1
+                eor #magic
                 bra osbyteA6X  ;jump to standard MOS variable handling
+                .endblock
 
 ;-------------------------------------------------------------------------
 ;
@@ -10946,8 +10951,7 @@ osbyte0C:
 ; OSBYTE 11 (&0B) Write keyboard auto-repeat delay [MasRef D.2-22]
 ;
 osbyte0B:
-                ; TODO - turn this constant into an expression
-                adc #$CF
+                adc #firstMOSVariableOSBYTE+(keyboardAutoRepeatDelay-mosVariables)+$b
 
                 ;if osbyte0C, A=$db
                 ;if osbyteOD, A=$dc

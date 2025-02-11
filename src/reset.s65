@@ -825,7 +825,7 @@ LFEA2:
                 .cerror !(defaultMODE>=0&&defaultMODE<=7||defaultMODE>=128&&defaultMODE<=135)
                 .byte (defaultMODE&7)<<CMOSBytes.defaults0.modeShift|((defaultMODE&$80)!=0?CMOSBytes.defaults0.shadowMask:0)|CMOSBytes.defaults0.interlaceMask|0<<CMOSBytes.defaults0.tvShift ; defaults0
                 ;.byte $17
-                .byte $60
+                .byte CMOSBytes.defaults1.adfsLoadDirMask|CMOSBytes.defaults1.capsLockMask ; defaults1
                 .byte $32       ; keyboardAutoRepeatDelay
                 .byte 8         ; keyboardAutoRepeatRate
                 .byte $A        ; printerIgnoreChar

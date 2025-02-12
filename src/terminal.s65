@@ -3270,35 +3270,11 @@ readDefaultCMOSByte:
                 bra readRTCByte.readDefaultByte
 
 defaultEEPROMContents:
-                ; Default EEPROM contents - for use if the EEPROM runs
-                ; out of write cycles?
+                ; Default EEPROM contents - seemingly also for use if
+                ; the EEPROM runs out of write cycles?
+                
                 .byte 0                      ; econetStationNumber
-                .byte 254                    ; fileServerStationNumber
-                .byte 0                      ; fileServerNetworkNumber
-                .byte $EB                    ; printerServerStationNumber
-                .byte 0                      ; printerServerNetworkNumber
-                .byte 14<<CMOSBytes.defaultROMs.languageShift|13<<CMOSBytes.defaultROMs.fsShift
-                .byte $FF                    ; insertedROMS 8-15
-                .byte $FF                    ; insertedROMS 0-7
-                .byte 0                      ; editROMBytes
-                .byte 0                      ; telecommsByte
-                .cerror !(defaultMODE>=0&&defaultMODE<=7||defaultMODE>=128&&defaultMODE<=135)
-                .byte (defaultMODE&7)<<CMOSBytes.defaults0.modeShift|((defaultMODE&$80)!=0?CMOSBytes.defaults0.shadowMask:0)|CMOSBytes.defaults0.interlaceMask|7<<CMOSBytes.defaults0.tvShift ; defaults0
-                .byte 3<<CMOSBytes.defaults1.fdriveShift|CMOSBytes.defaults1.capsLockMask|CMOSBytes.defaults1.adfsLoadDirMask|CMOSBytes.defaults1.floppyDrive ; defaults1
-                .byte 32                     ; keyboardAutoRepeatDelay
-                .byte 8                      ; keyboardAutoRepeatRate
-                .byte $A                     ; printerIgnoreChar
-                .byte 1<<CMOSBytes.defaults2.fx5SettingShift|3<<CMOSBytes.defaults2.serialBaudRateIndexShift ; defaults2
-                .byte 4<<CMOSBytes.defaults3.serialDataFormatShift ; defaults3
-                .byte 0                      ; unknown11
-                .byte 3                      ; joystick
-                .if refreshVersion||version>=511||olivetti
-                .byte 4                      ; country
-                .endif
-                .if refreshVersion
-                .byte 0                      ; defaults4
-                .byte 0                      ; defaults5
-                .endif
+                .include "default_nvram_contents.s65"
                 .cwarn *-defaultEEPROMContents!=cmosBytesSize
                 .endif
 

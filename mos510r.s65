@@ -7,7 +7,6 @@
 version=510
 includeTerminalROM=false
 versionString=refreshVersionString("5.10")
-defaultMODE=7
                 
 *=$8000
                 .dsection utils

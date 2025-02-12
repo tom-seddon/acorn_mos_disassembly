@@ -1,0 +1,116 @@
+; Excludes econet station number.
+
+; fileServerStationNumber
+                .byte $fe
+
+; fileServerNetworkNumber
+                .byte $00
+
+; printerServerStationNumber
+                .byte $eb
+
+; printerServerNetworkNumber
+                .byte $00
+
+; defaultROMs
+                .if version>=500
+                .byte 14<<CMOSBytes.defaultROMs.languageShift|13<<CMOSBytes.defaultROMs.fsShift
+                .elsif CFA3000
+                .byte 7<<CMOSBytes.defaultROMs.languageShift|13<<CMOSBytes.defaultROMs.fsShift
+                .else
+                .byte 12<<CMOSBytes.defaultROMs.languageShift|13<<CMOSBytes.defaultROMs.fsShift
+                .endif
+
+; insertedROMs
+                .byte $FF       ; insertedROMs 8-15
+                .byte $FF       ; insertedROMs 0-7
+
+; editROMByte
+                .if version>=500
+                .byte $00
+                .else
+                .byte $15
+                .endif
+                
+; telecommsByte
+                .byte 0
+
+; defaults0
+                .if version>=511||olivetti
+                .byte 1<<CMOSBytes.defaults0.modeShift|CMOSBytes.defaults0.shadowMask|CMOSBytes.defaults0.interlaceMask|7<<CMOSBytes.defaults0.tvShift
+                .elsif version>=500
+                .byte 7<<CMOSBytes.defaults0.modeShift|CMOSBytes.defaults0.interlaceMask|7<<CMOSBytes.defaults0.tvShift
+                .else
+                .byte 7<<CMOSBytes.defaults0.modeShift|CMOSBytes.defaults0.interlaceMask|0<<CMOSBytes.defaults0.tvShift
+                .endif
+
+; defaults1
+                .if version>=500
+                .byte 3<<CMOSBytes.defaults1.fdriveShift|CMOSBytes.defaults1.capsLockMask|CMOSBytes.defaults1.adfsLoadDirMask|CMOSBytes.defaults1.floppyDrive ; defaults1
+                .else
+                .byte CMOSBytes.defaults1.adfsLoadDirMask|CMOSBytes.defaults1.capsLockMask
+                .endif
+
+; keyboardAutoRepeatDelay
+                .if version>=500
+                .byte 32
+                .else
+                .byte $32
+                .endif
+                
+; keyboardAutoRepeatRate
+                .byte 8
+
+; printerIgnoreChar
+                .byte $A
+
+; defaults2
+                .if version>=500
+                .byte 1<<CMOSBytes.defaults2.fx5SettingShift|3<<CMOSBytes.defaults2.serialBaudRateIndexShift
+                .elsif CFA3000
+                .byte 1<<CMOSBytes.defaults2.fx5SettingShift|6<<CMOSBytes.defaults2.serialBaudRateIndexShift ; defaults2
+                .elsif includeTubeSupport
+                .byte 1<<CMOSBytes.defaults2.fx5SettingShift|3<<CMOSBytes.defaults2.serialBaudRateIndexShift|CMOSBytes.defaults2.tubeOnMask ; defaults2
+                .else
+                .byte 1<<CMOSBytes.defaults2.fx5SettingShift|3<<CMOSBytes.defaults2.serialBaudRateIndexShift ; defaults2
+                .endif
+
+; defaults3
+                .if version>=500
+                .byte 4<<CMOSBytes.defaults3.serialDataFormatShift
+                .else
+                .byte 4<<CMOSBytes.defaults3.serialDataFormatShift|CMOSBytes.defaults3.loudMask
+                .endif
+
+; unknown11
+                .if refreshVersion||version>=500
+                .byte 0
+                .endif
+
+; joystick
+                .if version>=500
+                .byte 3
+                .elsif refreshVersion
+                .byte 0
+                .endif
+
+; country
+                .if version>=511||olivetti
+                .byte 4
+                .elsif refreshVersion
+                .byte 0
+                .endif
+
+; defaults4
+                .if refreshVersion
+                .if includeTubeSupport
+                .byte 0<<CMOSBytes.defaults4.tubePowerOnDelayShift ; defaults4
+                .else
+                .byte 0
+                .endif
+                .endif
+
+; defaults5
+                .if refreshVersion
+                .byte 0
+                .endif

@@ -5,7 +5,6 @@
 version=350
 versionString="MOS 3.5a"
 CFA3000=true
-defaultMODE=7
                 
 *=$af00
                 .dsection ext

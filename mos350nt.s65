@@ -4,7 +4,6 @@
 version=350
 versionString="MOS 3.50(NT)"
 includeTerminalROM=false
-defaultMODE=7
                 
 *=$8000
                 .dsection utils

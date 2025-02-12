@@ -76,7 +76,9 @@ DIY build](./MOS3.50.DIY.md).)
 
 # other notes
 
-- The new version number can be seen in response to `*FX0` or `*HELP`
+- The new version number can be seen in the startup banner (if running
+  without 2nd processor), or in response to `*FX0`, `*HELP`, or `*HELP
+  MOS`
 - [OSBYTE &81 machine detection](https://beebwiki.mdfs.net/OSBYTE_%2681)
   results are deliberately unchanged
 - There will be no updates to MOS 4.00 for the Master ET
@@ -121,9 +123,11 @@ together, so the version numbers for all 3 variants stay in sync.
   are more similar internally
 * 3.20F, 3.50F: add Tube power-on boot delay to accommodate slower
   PiTube startup time
-* 3.50F: add `WIPESWR`/`NOWIPESWR` configuration options
+* 3.50F: add `SRWIPE`/`NOSRWIPE` configuration options
 * 3.50F: add experimental mitigations for EEPROMs that become
   unresponsive when written to
+* All: fix `*CONFIGURE` help output, now showing the actual terms to
+  use rather than the friendlier names printed by `*STATUS`
   
 ### safe mode
 
@@ -181,7 +185,7 @@ power-on reest only.
 
 ### retain sideways RAM on power-on reset (3.50 only)
 
-MOS 3.50 erase sideways RAM if it detects a power-on reset. This is
+MOS 3.50 erases sideways RAM if it detects a power-on reset. This is
 now configurable.
 
 `*CONFIGURE SRWIPE` (shown as `SRAM Wipe` in the `*STATUS` output),

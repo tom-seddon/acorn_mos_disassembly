@@ -880,10 +880,19 @@ done:
 ;-------------------------------------------------------------------------
 
 printConfigureTableStringLoop:
+                .if refreshVersion
+                php             ; save V
+                .endif
                 jsr OSWRCH      ;print char
+                .if refreshVersion
+                plp             ; restore V
+                .endif
                 pha             ;save A (char to print)
                 phy             ;save Y (table offset)
                 tya             ;get table offset in A
+                .if refreshVersion
+                bvc printConfigureTableChar ; taken if *CONFIGURE
+                .endif
 
                 ; If we're at a snippet insert point, insert the
                 ; snippet, recursively.
@@ -900,6 +909,9 @@ findSnippetInsertPointLoop:
 nextSnippetInsertPoint
                 dey
                 bpl findSnippetInsertPointLoop
+                .if refreshVersion
+printConfigureTableChar:
+                .endif
                 ply             ;restore Y (table offset)
                 pla             ;restore A (char to print)
                 iny             ;next byte in table
@@ -909,10 +921,19 @@ nextSnippetInsertPoint
                 and #%10100000
                 bne printConfigureTableString
 
+                .if refreshVersion
+                bvc printConfigureTableString ; taken if *CONFIGUER
+                .endif
                 ; if char case changed, but it wasn't the end of the
                 ; string, pop a space in.
                 lda #' '
+                .if refreshVersion
+                php             ; save V
+                .endif
                 jsr OSWRCH
+                .if refreshVersion
+                plp             ; restore V
+                .endif
                 dex
                 .cerror *!=printConfigureTableString
 

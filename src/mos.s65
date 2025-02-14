@@ -10424,7 +10424,7 @@ LEEE0:
                 ldy originalY
                 bcs +
                 ldy #$00            ;??? - is this actually desirable?
-                lda ($F0)           ;fetch 0th byte of parameter block
+                lda (originalX)     ;fetch 0th byte of parameter block
 +
                 sec
                 .if version==350

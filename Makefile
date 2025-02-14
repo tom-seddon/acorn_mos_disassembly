@@ -341,6 +341,14 @@ tom_tube_transfer:
 	$(_CURL) -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
 	$(_CURL) "http://localhost:48075/paste/b2" -H "Content-Type:text/plain" -H "Content-Encoding:utf-8" --upload-file build/language_relocate_speed.dat
 
+.PHONY:tom_wordspd
+tom_wordspd: _CURL:=curl --no-progress-meter
+tom_wordspd: _SSD:=build/wordspd.ssd
+tom_wordspd:
+	$(PYTHON) "submodules/beeb/bin/ssd_create.py" -o "$(_SSD)" -b "*BASIC" -b "CHAIN\"WORDSPD\"" "beeb/acorn_mos_disassembly/0/$$.WORDSPD"
+	$(_CURL) --connect-timeout 0.25 -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
+	$(_CURL) -H "Content-Type:application/binary" --upload-file "$(_SSD)" "http://localhost:48075/run/b2?name=$(_SSD)"
+
 .PHONY:tom_wrchspd
 tom_wrchspd: _CURL:=curl --no-progress-meter
 tom_wrchspd: _SSD:=build/wrchspd.ssd

@@ -864,4 +864,61 @@ roughly N seconds...
 
 0 seconds must = 1 iteration, as currently the case.
 
+* Optimisation ideas
+
+https://github.com/tom-seddon/acorn_mos_disassembly/issues/71
+
+** OSBYTE/OSWORD
+
+This handling subroutine could be inlined now.
+
+: 11378 .f198                                           LF198:
+: 11379 .f198           ca              dex                             dex
+: 11380 .f199           10 03           bpl $f19e                       bpl LF19E
+: 11381 .f19b           20 16 f3        jsr $f316                       jsr withTerminalROM
+: 11382 .f19e                                           LF19E:
+: 11383 .f19e           a6 f0           ldx $f0                         ldx originalX
+: 11384 .f1a0           6c fa 00        jmp ($00fa)                     jmp (SEIWKA)
+
+Called by the OSWORD/OSBYTE handling:
+
+: 10431 .ee72           20 98 f1        jsr $f198                       jsr LF198
+
+X is set by bit 14 of the routine address - auto-select Terminal ROM
+depending on routine. There's a couple of =selectTerminalROMAndXXX=
+routines in the osbyte/osword table. Could they be used instead?
+
+** =selectTerminalROM=, =selectROMA=, etc.
+
+Could inline calls on hot-looking paths?
+
+** initWithRoutineStack and friends
+
+Worth ekeing a bit more out of this?
+
+* zx02
+
+https://github.com/tom-seddon/acorn_mos_disassembly/issues/63
+
+** Memory fill data
+
+| What       | Uncompressed | Compressed | Notes                 |
+|------------+--------------+------------+-----------------------|
+| 16384 x 00 |        16384 |          7 | fill sideways bank    |
+| 32768 x 00 |        32768 |          8 |                       |
+| 57344 x 00 |        57344 |          8 | fill RAM as per LFC5A |
+| Init RAM   |        57344 |         48 | has RTI at 0xd00      |
+
+* OSWORD throughput
+
+Initial results:
+
+MOS 3.20: 634
+MOS 3.50: 664
+MOS 3.20F: 635
+MOS 3.50F: 664
+
+
+
+
 * eof

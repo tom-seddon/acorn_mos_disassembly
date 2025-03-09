@@ -38,6 +38,73 @@ The mysterious MOS 3.xx `*X` command (["for internal use
 only"](https://www.beebmaster.co.uk/AcornLetters/Acorn%2011th%20November%201991.html))
 has been removed.
 
+## safe mode
+
+Use numpad `*`+BREAK to boot into safe mode: the OSCLI `*` prompt,
+bypassing the configured language. Use this if you have problems with
+the configured language ROM not starting properly.
+
+In safe mode, the system will always start up with the ROM filing
+system selected. If you'd like to use some other filing system, you'll
+have to select it manually. You can use its `*` command, or hold down
+its boot key and press BREAK. (The OSCLI `*` prompt will remain the
+current language.)
+
+## very safe mode
+
+Use numpad `-`+BREAK (which counts as a hard BREAK, similar to a
+CTRL+BREAK) to boot into very safe mode: the OSCLI `*` prompt, with
+ROM FS selected, same as safe mode, but also ignoring all non-MOS
+sideways ROMs, language ROMs and service ROMs alike. Use this if you
+have problems too serious for ordinary safe mode!
+
+You can't do much in very safe mode, but you can use `*ROMS`,
+`*CONFIGURE` and `*UNPLUG`, hopefully letting you get things back into
+a bootable state.
+
+## `*ROMS` notes ignored ROMs
+
+`*ROMS` will show a message `ignored` against non-unplugged ROMs that
+being ignored due to having an empty entry in the ROM information
+table.
+
+You will see this in very safe mode, to indicate that ROMs are being
+ignored.
+
+You may also see this if you use 3rd-party tools designed for the B/B+
+that disable ROMs by modifying the ROM information table.
+
+## Tube power-on boot delay (3.20/3.50 only)
+
+The MOS can wait longer on initial power up for the 2nd processor to
+become ready, to accomodate PiTube startup time when it's powered by
+the Master PSU (as is the case if fitted internally).
+
+Use `*CONFIGURE TUBEWAIT <n>` to set this value. `<n>` is a value from
+0 to 15 inclusive, approximately the maximum number of seconds to wait
+for. The wait time depends on the type of Pi, so you'll have to
+experiment to find the right value for your setup. 
+
+(This is a maximum; if it becomes ready sooner, the 2nd processor will
+be detected then. But if the configured 2nd processor isn't connected,
+you'll be waiting for the full period.)
+
+The delay is ignored when `*CONFIGURE NOTUBE`, and always applies to
+power-on reest only.
+
+## retain sideways RAM on power-on reset (3.50 only)
+
+MOS 3.50 erases sideways RAM if it detects a power-on reset. This is
+now configurable.
+
+`*CONFIGURE SRWIPE` (shown as `SRAM Wipe` in the `*STATUS` output),
+the default, will erase sideways RAM on a power-on reset. This is the
+Acorn MOS 3.50 behaviour.
+
+`*CONFIGURE NOSRWIPE` (shown as `No SRAM Wipe` in the `*STATUS`
+output) will leave sideways RAM contents alone on a power-on reset -
+the behaviour for other Acorn MOS versions.
+
 # variants available
 
 The following refreshed variants of the MOS are available,
@@ -106,7 +173,9 @@ built from the code in the repo if you want to try it).
 All 3 variants are built from the same code, and are released
 together, so the version numbers for all 3 variants stay in sync. 
 
-## F (under development)
+## G (under development)
+
+## F
 
 * All: remove [mystery write to
   $fe8e](https://stardot.org.uk/forums/viewtopic.php?p=328986&hilit=fe8e#p328986)
@@ -129,73 +198,6 @@ together, so the version numbers for all 3 variants stay in sync.
 * All: fix `*CONFIGURE` help output, now showing the actual terms to
   use rather than the friendlier names printed by `*STATUS`
   
-### safe mode
-
-Use numpad `*`+BREAK to boot into safe mode: the OSCLI `*` prompt,
-bypassing the configured language. Use this if you have problems with
-the configured language ROM not starting properly.
-
-In safe mode, the system will always start up with the ROM filing
-system selected. If you'd like to use some other filing system, you'll
-have to select it manually. You can use its `*` command, or hold down
-its boot key and press BREAK. (The OSCLI `*` prompt will remain the
-current language.)
-
-### very safe mode
-
-Use numpad `-`+BREAK (which counts as a hard BREAK, similar to a
-CTRL+BREAK) to boot into very safe mode: the OSCLI `*` prompt, with
-ROM FS selected, same as safe mode, but also ignoring all non-MOS
-sideways ROMs, language ROMs and service ROMs alike. Use this if you
-have problems too serious for ordinary safe mode!
-
-You can't do much in very safe mode, but you can use `*ROMS`,
-`*CONFIGURE` and `*UNPLUG`, hopefully letting you get things back into
-a bootable state.
-
-### `*ROMS` notes ignored ROMs
-
-`*ROMS` will show a message `ignored` against non-unplugged ROMs that
-being ignored due to having an empty entry in the ROM information
-table.
-
-You will see this in very safe mode, to indicate that ROMs are being
-ignored.
-
-You may also see this if you use 3rd-party tools designed for the B/B+
-that disable ROMs by modifying the ROM information table.
-
-### Tube power-on boot delay (3.20/3.50 only)
-
-The MOS can wait longer on initial power up for the 2nd processor to
-become ready, to accomodate PiTube startup time when it's powered by
-the Master PSU (as is the case if fitted internally).
-
-Use `*CONFIGURE TUBEWAIT <n>` to set this value. `<n>` is a value from
-0 to 15 inclusive, approximately the maximum number of seconds to wait
-for. The wait time depends on the type of Pi, so you'll have to
-experiment to find the right value for your setup. 
-
-(This is a maximum; if it becomes ready sooner, the 2nd processor will
-be detected then. But if the configured 2nd processor isn't connected,
-you'll be waiting for the full period.)
-
-The delay is ignored when `*CONFIGURE NOTUBE`, and always applies to
-power-on reest only.
-
-### retain sideways RAM on power-on reset (3.50 only)
-
-MOS 3.50 erases sideways RAM if it detects a power-on reset. This is
-now configurable.
-
-`*CONFIGURE SRWIPE` (shown as `SRAM Wipe` in the `*STATUS` output),
-the default, will erase sideways RAM on a power-on reset. This is the
-Acorn MOS 3.50 behaviour.
-
-`*CONFIGURE NOSRWIPE` (shown as `No SRAM Wipe` in the `*STATUS`
-output) will leave sideways RAM contents alone on a power-on reset -
-the behaviour for other Acorn MOS versions.
-
 ## E
 
 No code changes, but prebuilt full MegaROM images are now included in

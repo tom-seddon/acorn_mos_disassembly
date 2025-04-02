@@ -827,8 +827,14 @@ printROMVersion:
                 sta $F7
                 jsr osrdscEntryPoint
                 jsr printSpaceThenPrintHexByte
+                .if refreshVersion
+                clc                          ; indicate ROM is good
+                .endif
 printInsertionStatus:
                 phy
+                .if refreshVersion
+                php                          ; save bad ROM flag
+                .endif
                 .if !useTableDrivenConfigure
                 jsr getROMInsertedFlagRTCAddressAndMask
                 sta starROMSWorkspace.insertedFlagMask
@@ -836,6 +842,9 @@ printInsertionStatus:
                 and starROMSWorkspace.insertedFlagMask
                 .else
                 jsr L873F
+                .endif
+                .if refreshVersion
+                plp                          ; restore bad ROM flag
                 .endif
                 bne +
                 jsr alwaysPrintFollowingMessage
@@ -847,34 +856,48 @@ printInsertionStatus:
                 .endif
 +
                 .if refreshVersion
+                bcs nextROM                  ; taken if bad ROM -
+                                             ; never print the ignored
+                                             ; message
+                                             
                 ply                          ; restore ROM #
                 phy                          ; save ROM #
-                jsr printIgnoredMessage
+                jsr maybePrintIgnoredMessage
 nextROM:
                 .endif
                 ply              
                 jsr OSNEWL       
-                dey              
+                dey
+                .if refreshVersion
+                bmi rtsMaybePrintIgnoredMessage
+                jmp printROMsLoop
+                .else
                 bpl printROMsLoop
-                rts              
+                rts
+                .endif            
 
 invalidROM:
                 lda #'?'                     
-                jsr OSWRCH                   
+                jsr OSWRCH
+                .if refreshVersion
+                sec                          ; indicate ROM is bad
+                .endif
                 bra printInsertionStatus
 
                 .if refreshVersion
-printIgnoredMessage:
+maybePrintIgnoredMessage:
                 lda #<sidewaysROMType
                 sta $f6
-                lda >#sidewaysROMType
-                sta $f7
+
+                ; MSB already in place from last read.
+                ; lda >#sidewaysROMType
+                ; sta $f7
                 jsr osrdscEntryPoint
                 cmp romInformationTable,y
-                beq +
+                beq rtsMaybePrintIgnoredMessage
                 jsr alwaysPrintFollowingMessage
                 .text " ignored",0
-+
+rtsMaybePrintIgnoredMessage:
                 rts
                 .endif
                 

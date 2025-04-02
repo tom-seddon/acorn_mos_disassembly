@@ -175,6 +175,10 @@ together, so the version numbers for all 3 variants stay in sync.
 
 ## G (under development)
 
+* All: fix `*ROMS` displaying spurious `Ignored` (particularly likely
+  in Mode 7) for banks corresponding to unoccupied sockets or
+  cartridge ports
+
 ## F
 
 * All: remove [mystery write to

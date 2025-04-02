@@ -920,5 +920,8 @@ MOS 3.50F: 664
 
 
 
+* Multi-OS
+
+ST M29F040B @PLCC32
 
 * eof

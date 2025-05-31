@@ -29,7 +29,8 @@ https://github.com/SteveFosdick/edit4/
 
 # View
 
-Nobody appears to have disassembled View.
+https://github.com/davidgiven/view - VIEW B3.0 from MOS 3.20. [StarDot
+thread](https://www.stardot.org.uk/forums/viewtopic.php?t=31121).
 
 # ViewSheet
 

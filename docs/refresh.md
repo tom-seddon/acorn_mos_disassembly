@@ -15,6 +15,28 @@ Goals for the refreshed versions, roughly in priority order:
 
 There are no plans to add new APIs.
 
+# download and install
+
+Get the latest version from this page:
+https://github.com/tom-seddon/acorn_mos_refreshed/releases/latest
+
+There are 3 builds available, with an alphabetic suffix (here
+indicated by `r`) indicating the refreshed version:
+
+* MOS 3.20r - for Master 128, based on MOS 3.20 with Terminal removed
+* MOS 3.50r - for Master 128, based on MOS 3.50 with Terminal removed
+* MOS 5.10r - for Master Compact (or Olivetti PC128S), based on MOS
+  5.10
+
+(For Master 128, you can use either MOS 3.20r or MOS 3.50r. For Master
+Compact (or Olivetti PC128S), you need to use MOS 5.10r.)
+
+Easiest way to install it is to use one of the prebuilt images
+supplied in the zip, which comes with everything you need to get
+started right away. See [the prebuilt versions notes](./prebuilt.md)
+for the full list of prebuilt images and the specific ROMs they
+contain.
+
 # new features
 
 This section only deals with visible stuff that doesn't behave as per
@@ -105,42 +127,6 @@ Acorn MOS 3.50 behaviour.
 output) will leave sideways RAM contents alone on a power-on reset -
 the behaviour for other Acorn MOS versions.
 
-# variants available
-
-The following refreshed variants of the MOS are available,
-distinguished from the official versions with an alphabetic suffix,
-here indicated by `r`:
-
-* MOS 3.20r - for Master 128, based on MOS 3.20 with Terminal removed
-* MOS 3.50r - for Master 128, based on MOS 3.50 with Terminal removed
-* MOS 5.10r - for Master Compact (or Olivetti PC128S), based on MOS
-  5.10
-
-For Master 128, you can use either MOS 3.20r or MOS 3.50r.
-
-For Master Compact (or Olivetti PC128S), you need to use MOS 5.10r.
-
-# download
-
-See the releases page for the refreshed versions:
-https://github.com/tom-seddon/acorn_mos_refreshed/releases
-
-The latest version is at the top.
-
-# how to use
-
-Version E and later come with prebuilt ROM images in the zip, that you
-can program and use straight away, and use as a base for further
-modification. For more details about what's included, see [the
-prebuilt versions notes](./prebuilt.md).
-
-You can also assemble your own ROM image starting from `mos.rom` (the
-MOS region code) and `utils.rom` (sideways ROM bank 15) and going from
-there. (Please bear in mind [the MOS 3.50 notes](./MOS3.50.md) if
-using MOS 3.50r and hoping to use the standard MOS 3.50 ROMs for DFS,
-BASIC, EDIT or ADFS. I have some notes on putting together a [MOS 3.50
-DIY build](./MOS3.50.DIY.md).)
-
 # other notes
 
 - The new version number can be seen in the startup banner (if running
@@ -167,11 +153,15 @@ https://github.com/tom-seddon/acorn_mos_disassembly/issues
 # version history
 
 Version history is as follows, including the version currently in
-development (which is not available from the releases page, but can be
-built from the code in the repo if you want to try it).
+development (which is not available from the GitHub releases page, but
+can be built from the code in the repo if you want to try it).
 
 All 3 variants are built from the same code, and are released
-together, so the version numbers for all 3 variants stay in sync. 
+together, so the version numbers for all 3 variants stay in sync.
+
+(Versions A, B and D aren't available from the GitHub releases page,
+but you can build them yourself from the code in the repo if you
+want.)
 
 ## G (under development)
 

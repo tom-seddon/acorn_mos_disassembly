@@ -32,7 +32,7 @@ ROMs:
 Find inside the `350r` folder in the zip.
 
 There are two versions. The standard version (`350r.bin`) contains the
-standard ADFS 2.03 ROM supplied with MOS 3.20, which supports SCSI
+standard ADFS 2.03 ROM supplied with MOS 3.50, which supports SCSI
 hard drives; the IDE version (`350r_ide.bin`) contains a patched
 version (reporting itself as version 2.05) that supports modern IDE
 interfaces.

@@ -919,9 +919,14 @@ MOS 3.20F: 635
 MOS 3.50F: 664
 
 
-
 * Multi-OS
 
 ST M29F040B @PLCC32
+
+* .dir-locals.el
+
+#+begin_src elisp
+  ((nil . ((compile-command . "cd ~/beeb/mos320 && make tom_laptop"))))
+#+end_src
 
 * eof

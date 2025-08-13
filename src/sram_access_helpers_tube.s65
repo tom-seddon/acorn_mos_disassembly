@@ -12,7 +12,7 @@ transferBetweenSidewaysRAMAndRAMLoop:
                 lda 1,x
                 cmp sramWorkspace.length+1
                 bne transferBetweenSidewaysRAMAndRAMLoop
-                jmp selectTerminalROM
+                jmp selectUtilsROM
                 
 ;-------------------------------------------------------------------------
 
@@ -27,7 +27,7 @@ transferParasiteToSidewaysRAMLoop:
                 lda 1,x
                 cmp sramWorkspace.length+1
                 bne transferParasiteToSidewaysRAMLoop
-                jmp selectTerminalROM
+                jmp selectUtilsROM
 
 ;-------------------------------------------------------------------------
 
@@ -44,7 +44,7 @@ transferSidewaysRAMToParasiteLoop:
                 lda 1,x
                 cmp sramWorkspace.length+1
                 bne transferSidewaysRAMToParasiteLoop
-                jmp selectTerminalROM
+                jmp selectUtilsROM
 
 ;-------------------------------------------------------------------------
 
@@ -53,7 +53,7 @@ transferSidewaysRAMLoopUpdate:
                 bne LF800
                 inc sramTransferPointers.src+1
                 inc sramTransferPointers.dest+1
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 jsr L8D0F
                 jsr selectROMA
 LF800:

@@ -1,5 +1,5 @@
                 .if version==350
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 .endif
                 .if version!=350
                 lda #~ACCCON.D
@@ -53,7 +53,7 @@
                 bne nonPowerOnReset
                 jsr resetCRTC
                 .if refreshVersion
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 ldx #CMOSBytes.defaults5+cmosBytesOffset
                 jsr clearTSTAndReadRTCByte
                 and #CMOSBytes.defaults5.noWipeSWR
@@ -83,7 +83,7 @@ clearSidewaysRAMBankLoop:
                 jsr delayAfterPossibleEEPROMWrite
                 .endif
                 
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 
                 .if refreshVersion   
 
@@ -118,7 +118,7 @@ LFC5A:
                 lda #ACCCON.X
                 jsr trbACCCON
                 bne LFC53
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 .else
                 .if version<400
                 beq startClearRAM       ; branch taken if power on
@@ -334,7 +334,7 @@ initializeZeroPageLoop:
                 bne initializeZeroPageLoop
                 .if version==350
                 sta TEMPA
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 .endif
 
                 lda lastBREAKType
@@ -414,7 +414,7 @@ gotKeyboardStatusByte:
                 .if version==350
                 jsr clearTSTAndResetKeyRepeat
                 .else
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 jsr resetKeyRepeat
                 .endif
                 lda lastBREAKType
@@ -615,7 +615,7 @@ L81DD:
                 sta bellSound
 L8211:
                 .if version!=350
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 .endif
 
                 .if refreshVersion

@@ -43,7 +43,7 @@ restoreFont32ToN:
 
 restoreFontPart:
                 sta $FB                      ;save MSB of dest
-                jsr selectTerminalROMAndANDY2
+                jsr selectUtilsROMAndANDY2
                 .cwarn *<$9000,format("Code inside ANDY at: $%04x",*) ; following code can't be inside the ANDY region!
                 phy                          ;
                 ldy #$00                     ;
@@ -60,7 +60,7 @@ restoreFontPart:
                 bne -
                 ply
                 plp
-                jmp selectTerminalROM
+                jmp selectUtilsROM
 
 ;-------------------------------------------------------------------------
 

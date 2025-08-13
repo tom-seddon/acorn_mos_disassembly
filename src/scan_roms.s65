@@ -10,9 +10,8 @@
                 ldy $F4                      ;start from current ROM
                 .if refreshVersion
                 cpx #utilsROM
-                beq currentROMMaybeValid ; taken if it's the terminal
-                                         ; ROM - i.e., a MOS sideways
-                                         ; ROM
+                beq currentROMMaybeValid ; taken if it's the utils ROM
+                                         ; - i.e., a MOS sideways ROM
 
                 pla             ; restore boot mode flags
                 pha             ; save boot mode flags
@@ -108,5 +107,5 @@ nextROM:
                 inx
                 cpx #$10
                 bcc scanROMs
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 

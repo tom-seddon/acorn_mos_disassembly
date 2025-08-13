@@ -1762,7 +1762,7 @@ StarROMSWorkspace: .struct
 insertedFlagMask: .fill 1
                 .endstruct
 
-TerminalHELPWorkspace: .struct
+UtilsHELPWorkspace: .struct
 tablePtr: .fill 2
                 .endstruct
 
@@ -1776,7 +1776,7 @@ osgbpbWorkspace: .dstruct OSGBPBWorkspace
 parseFileNameFSWorkspace: .dstruct ParseFileNameFSWorkspace
 oscliWorkspace: .dstruct OSCLIWorkspace
 starROMSWorkspace: .dstruct StarROMSWorkspace
-terminalHELPWorkspace: .dstruct TerminalHELPWorkspace
+utilsHELPWorkspace: .dstruct UtilsHELPWorkspace
                 .endunion
                 .endvirtual
 

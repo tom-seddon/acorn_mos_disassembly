@@ -796,7 +796,7 @@ L86DA:
                 .if version<400&&version!=350
                 plx                          ;restore ROM number
                 .endif
-                jsr isROMValidThenSelectTerminalROM
+                jsr isROMValidThenSelectUtilsROM
                 .if version<400&&version!=350
                 dey
                 .endif
@@ -2280,7 +2280,7 @@ printKeyDefinition:
                 jsr OSWRCH
                 lda $F4
                 pha
-                jsr selectTerminalROMAndANDY2
+                jsr selectUtilsROMAndANDY2
                 .cwarn *<$9000,format("Code inside ANDY at: $%04x",*)
                 lda andy.softKeys.stringLSBs,x
                 sta stringInputBufferAddress+0
@@ -2334,7 +2334,7 @@ starKEY: .proc
                 jsr parseSoftKeyNumberFromCommandLine
                 lda $F4                      
                 pha                          
-                jsr selectTerminalROMAndANDY 
+                jsr selectUtilsROMAndANDY 
                 jsr skipSpacesAndCheckForCRInStringInput
                 stz starKEYWorkspace.newStringLength
                 beq commandLineTailEmpty
@@ -3900,11 +3900,11 @@ mosHelpSubject: .text "SOM"
 L9E95:
                 jsr L9EFC
                 lda #<mosCommandTable
-                sta terminalHELPWorkspace.tablePtr+0
+                sta utilsHELPWorkspace.tablePtr+0
                 lda #>mosCommandTable
-                sta terminalHELPWorkspace.tablePtr+1
+                sta utilsHELPWorkspace.tablePtr+1
 L9EA0:
-                lda (terminalHELPWorkspace.tablePtr)
+                lda (utilsHELPWorkspace.tablePtr)
                 bmi L9EF4
                 .if version==400
                 cmp #'a'
@@ -3912,7 +3912,7 @@ L9EA0:
                 .endif
                 jsr printSpace
                 jsr printSpace
-                lda (terminalHELPWorkspace.tablePtr)
+                lda (utilsHELPWorkspace.tablePtr)
 L9EAC:
                 .if version==400
                 cmp #'a'
@@ -3920,20 +3920,20 @@ L9EAC:
                 .endif
                 jsr L9F0E
 LA711:
-                inc terminalHELPWorkspace.tablePtr+0
+                inc utilsHELPWorkspace.tablePtr+0
                 bne L9EB5
-                inc terminalHELPWorkspace.tablePtr+1
+                inc utilsHELPWorkspace.tablePtr+1
 L9EB5:
-                lda (terminalHELPWorkspace.tablePtr)
+                lda (utilsHELPWorkspace.tablePtr)
                 bpl L9EAC
 
                 ; add 4 to tablePtr
                 lda #$04
                 clc
-                adc terminalHELPWorkspace.tablePtr+0
-                sta terminalHELPWorkspace.tablePtr+0
+                adc utilsHELPWorkspace.tablePtr+0
+                sta utilsHELPWorkspace.tablePtr+0
                 bcc +
-                inc terminalHELPWorkspace.tablePtr+1
+                inc utilsHELPWorkspace.tablePtr+1
 +
                 jsr LE25C
                 cpx #19
@@ -7047,9 +7047,9 @@ terminalROM=utilsROM
 
 ; Unused space
 ; ============
-terminalUnusedBegin:
+utilsUnusedBegin:
                 .fill $b900-*,$ff
-terminalUnusedSize=*-terminalUnusedBegin
+utilsUnusedSize=*-utilsUnusedBegin
 
 ; Default font
 ; ============

@@ -18,11 +18,11 @@ def main(argv):
         return int(data[i:j])
 
     mosn=find(b'mosUnusedSize')
-    terminaln=find(b'terminalUnusedSize')
+    utilsn=find(b'utilsUnusedSize')
 
     print('%s: %d (utils: %d; MOS: %d)'%(os.path.splitext(os.path.basename(argv[0]))[0],
-                                         terminaln+mosn,
-                                         terminaln,
+                                         utilsn+mosn,
+                                         utilsn,
                                          mosn))
 
 if __name__=='__main__': main(sys.argv[1:])

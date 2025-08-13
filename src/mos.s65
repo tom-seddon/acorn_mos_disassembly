@@ -5912,7 +5912,7 @@ bitmapMode:
                 jsr LDE56
                 lda $F4
                 pha
-                jsr selectTerminalROMAndANDY
+                jsr selectUtilsROMAndANDY
                 lda #$20
                 tax                          ;X = ASCII code for char
                 jsr getSoftCharacterDefinitionAddress
@@ -6280,7 +6280,7 @@ selectExtROMAndPlotEllipseOutline:
                 jsr selectROMX
                 jsr plotEllipseOutline
 LDFF1:
-                jmp selectTerminalROMAndANDY
+                jmp selectUtilsROMAndANDY
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -7290,7 +7290,7 @@ resetEntryPoint:                ;e364
                 jsr staTEMPAAndACCCON
                 jmp reset
                 .else
-                jsr selectTerminalROM ; Page in ROM 15 and continue
+                jsr selectUtilsROM ; Page in ROM 15 and continue
                 jmp reset
                 .endif
 
@@ -7322,12 +7322,12 @@ LE389:
                 phy
                 phx
                 .if useTableDrivenConfigure
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 jsr L873F
                 .else
                 jsr getROMInsertedFlagRTCAddressAndMask
                 sta TEMPA                    ;save mask
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 jsr readRTCByte     ;read inserted flag
                 tya                          ;A = byte read
                 and TEMPA                    ;do mask
@@ -7432,7 +7432,7 @@ LE431:
                 bra LE4A3
 bootConfiguredFS:
                 .endif
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 .if useTableDrivenConfigure
                 ldx #configureTable.file.metadata-configureTable
                 jsr readConfigurationByte
@@ -7448,8 +7448,8 @@ LE454:
                 bit romInformationTable,x    ; check ROM of interest
                 bpl LE478                    ; taken if no service entry
                 jsr selectROMX               ; select ROM of interest
-                cpx #utilsROM             ; is it the terminal ROM?
-                bne LE46C                    ; taken if not terminal ROM
+                cpx #utilsROM                ; is it the utils ROM?
+                bne LE46C                    ; taken if not utils ROM
 
                 ; SPACE+BREAK = RFS *RUN !BOOT when RFS is the default
                 ; FS
@@ -7465,7 +7465,7 @@ LE46C:
                 lda #romServiceCallAutoBoot  ; Filing System selection
                 jsr $8003                    ; pass to specific ROM
                 tax                          ; save service call result
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 txa                          ; restore service call result
                 beq LE4A3                    ; taken if call was handled
 LE478:
@@ -7531,7 +7531,7 @@ LE4A3:
                 .endif
                 beq LE509
 LE4BB:
-                jsr selectTerminalROM     ; Page in ROM 15 - UTILS ROM
+                jsr selectUtilsROM     ; Page in ROM 15 - UTILS ROM
                 .if useTableDrivenConfigure
                 ldx #configureTable.lang.metadata-configureTable
                 jsr readConfigurationByte
@@ -7687,15 +7687,15 @@ defaultBRKHandler:
 ;-------------------------------------------------------------------------
 
 startCommandLineUI:
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 jmp commandLineUI
 
 ;-------------------------------------------------------------------------
 ;
-; Select paged ROM bank 15 - TERMINAL - with ANDY paged in,
+; Select utils ROM with ANDY paged in.
 ;
 ; Preserves A/Y
-selectTerminalROMAndANDY:   ;e57f
+selectUtilsROMAndANDY:   ;e57f
                 ldx #$80|utilsROM
                 ; fall through into selectROMX
 
@@ -7716,10 +7716,10 @@ selectROMX:   ;e581
 
 ;-------------------------------------------------------------------------
 ;
-isROMValidThenSelectTerminalROM:
+isROMValidThenSelectUtilsROM:
                 phy
                 jsr isROMValid
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 ply
                 rts
 
@@ -7728,7 +7728,7 @@ isROMValidThenSelectTerminalROM:
 ; Select paged ROM bank 15 - 
 ;
 ; Preserves X/Y
-selectTerminalROM:            ;e590
+selectUtilsROM:            ;e590
                 lda #utilsROM
                 ; fall through into selectROMA
 
@@ -7746,13 +7746,13 @@ selectROMA:                   ;e592
 
 ;-------------------------------------------------------------------------
 ;
-; Select paged ROM bank 15 - TERMINAL - with ANDY paged in,
+; Select utils ROM with ANDY paged in,
 ;
 ; Preserves A/X/Y
 
-selectTerminalROMAndANDY2:
+selectUtilsROMAndANDY2:
                 phx
-                jsr selectTerminalROMAndANDY
+                jsr selectUtilsROMAndANDY
                 plx
                 rts
 
@@ -7859,7 +7859,7 @@ LE616:
                 dex
                 bmi LE64E
                 bvs rtsE64D
-                jsr withTerminalROM
+                jsr withUtilsROM
                 jmp LA45D
 
 LE623:
@@ -8551,7 +8551,7 @@ emptyCommandLine=*+1                         ;arbitrary place that's
 +
                 ldy #>hazel.commandLine
                 ldx #<hazel.commandLine
-                jsr withTerminalROM
+                jsr withUtilsROM
                 jmp oscli
                 .endblock
 
@@ -8600,7 +8600,7 @@ LE833:
                 pha          ;S=[old ROMSEL; old ACCCON; ch; y; x; ch]
                 lda #$80|utilsROM
                 sta $F4
-                sta ROMSEL                   ;page in ANDY+Terminal
+                sta ROMSEL                   ;page in ANDY+Utils
                 txa                          ;A=char to print
                 jsr outputToVDU
                 pla
@@ -8908,8 +8908,8 @@ LE9A4:
 ; D.2-33
 ;
                 .if version!=350
-selectTerminalROMAndOSBYTE77:
-                jsr withTerminalROM
+selectUtilsROMAndOSBYTE77:
+                jsr withUtilsROM
                 jmp osbyte77
                 .endif
 
@@ -9373,7 +9373,7 @@ LEC70:
                 .endif
                 lda $F4
                 pha
-                jsr selectTerminalROMAndANDY2
+                jsr selectUtilsROMAndANDY2
                 lda (softKeyExpansionPtr)
                 plx
                 jsr selectROMX
@@ -9424,7 +9424,7 @@ LEB32:
 
                 lda $F4
                 pha                           ;save old ROMSEL
-                jsr selectTerminalROMAndANDY2
+                jsr selectUtilsROMAndANDY2
                 jsr getSoftKeyStringLength
                 sta softKeyStringLength
                 lda andy.softKeys.stringLSBs,y
@@ -9506,7 +9506,7 @@ osbyte7E:                       ;ec3c
                 bne LEC54
                 cli
                 stz pagedModeCounter
-                jsr withTerminalROM
+                jsr withUtilsROM
                 jsr starEXEC
                 jsr LE947
 LEC54:
@@ -9973,7 +9973,7 @@ osbyteUnused:                   ;ed84
 
                 .if version!=350
 osbyteA1:
-                jsr withTerminalROM
+                jsr withUtilsROM
                 jmp readCMOSByte
                 .endif
 
@@ -9981,7 +9981,7 @@ osbyteA1:
 
                 .if version!=350
 osbyteA2:
-                jsr withTerminalROM
+                jsr withUtilsROM
                 jmp writeCMOSByte
                 .endif
 
@@ -10325,10 +10325,10 @@ osword00To0F:
 ;-------------------------------------------------------------------------
 
                 .if version>=350
-selectTerminalROMAndOSWORD0E:
+selectUtilsROMAndOSWORD0E:
                 cmp #3
                 bcs handleUnrecognisedOSWORD
-                jsr withTerminalROM
+                jsr withUtilsROM
                 jmp osword0E
                 .endif
 
@@ -10396,10 +10396,10 @@ LEEE0:
                 .if version>=500
                 lda $f4
                 pha
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 .elsif version==350
                 ldx $f4
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 .endif
                 .if version==350
                 lda osbyteAndOSWORDRoutineTable,y
@@ -10488,10 +10488,10 @@ LEF1B: .LEF1BMacro
 ; OSWORD 14 (&0E) Read CMOS clock [MasRef D.3-22]
 ;
                 .if version<350
-selectTerminalROMAndOSWORD0E:
+selectUtilsROMAndOSWORD0E:
                 cmp #$03                   ;only codes 0/1/2 are valid
                 bcs handleUnrecognisedOSWORD
-                jsr withTerminalROM
+                jsr withUtilsROM
                 jmp osword0E
                 .endif
 
@@ -11061,7 +11061,7 @@ clearTSTAndResetKeyRepeat:
                 jsr withTSTClear
                 .endif
 resetKeyRepeat:
-                jsr withTerminalROM
+                jsr withUtilsROM
                 .if useTableDrivenConfigure
                 ldx #CMOSBytes.keyboardAutoRepeatDelay+cmosBytesOffset
                 jsr readRTCByte
@@ -11090,7 +11090,7 @@ osbyte12:
                 ror softKeyConsistencyFlag   ;mark soft keys inconsistent
                 lda $F4
                 pha                          ;push selected paged ROM
-                jsr selectTerminalROMAndANDY
+                jsr selectUtilsROMAndANDY
 
                 ; point each soft key at the 0th byte of the strings -
                 ; they all then have length 0.
@@ -11160,7 +11160,7 @@ osword0A:                                    ;f175
                 ldy #$00
                 lda $F4
                 pha
-                jsr selectTerminalROMAndANDY
+                jsr selectUtilsROMAndANDY
 LF180:
                 lda ($DE),y
                 iny
@@ -11268,8 +11268,8 @@ callFSCV:
 ; OSWORD 15 (&0F) Write CMOS clock [MasRef D.3-24]
 ;
                 .if version!=350
-selectTerminalROMAndOSWORD0F:
-                jsr withTerminalROM       ; Page in ROM 15
+selectUtilsROMAndOSWORD0F:
+                jsr withUtilsROM       ; Page in ROM 15
                 jmp osword0F
                 .endif
 
@@ -11331,7 +11331,7 @@ rtsF180:
 ;
                 .if version!=350
 osbyte14:                       ;f21c
-                jsr withTerminalROM
+                jsr withUtilsROM
                 jmp restoreFont32To126
                 .endif
 
@@ -11341,7 +11341,7 @@ osbyte14:                       ;f21c
 ;
 ; MasRef D.2-28
 ;
-selectTerminalROMAndOSBYTE19:                ;f222
+selectUtilsROMAndOSBYTE19:                ;f222
                 .if version>=511||version==350
                 ldx #romServiceCallUnrecognisedOSBYTE
                 jsr makeROMServiceCall
@@ -11352,7 +11352,7 @@ selectTerminalROMAndOSBYTE19:                ;f222
                 .endif
                 ldx originalX
                 .endif
-                jsr withTerminalROM
+                jsr withUtilsROM
                 jmp osbyte19
 
 ;-------------------------------------------------------------------------
@@ -11378,7 +11378,7 @@ osbyte17:                       ;f22c
 LF198:
                 dex
                 bpl LF19E
-                jsr withTerminalROM
+                jsr withUtilsROM
 LF19E:
                 ldx originalX
                 jmp (SEIWKA)
@@ -11822,7 +11822,7 @@ osbyte247EntryPoint:
                 bne rtsF363
                 .if version==350
                 jsr breakVectorByte0
-                jmp selectTerminalROM
+                jmp selectUtilsROM
                 .elsif version<500
                 jmp breakVectorByte0
                 .else
@@ -11895,11 +11895,11 @@ starSHUT:
 
 ;-------------------------------------------------------------------------
 ;
-; Return thunk used by withTerminalROM.
+; Return thunk used by withUtilsROM.
 ;
 ; On entry here, the old value of $f4 is at the top of the stack.
 ;
-withTerminalROMReturnThunk:
+withUtilsROMReturnThunk:
                 php                          ; S=[p; old ROMSEL]
                 pha                          ; S=[a; p; old ROMSEL]
                 phx                          ; S=[x; a; p; old ROMSEL]
@@ -11910,17 +11910,17 @@ withTerminalROMReturnThunk:
 
 ;-------------------------------------------------------------------------
 ;
-; Select the Terminal ROM. Rearrange the stack so that the original
-; ROM is re-selected when withTerminalROM's caller itself returns.
+; Select the Utils ROM. Rearrange the stack so that the original ROM
+; is re-selected when withUtilsROM's caller itself returns.
 ;
-withTerminalROM:
+withUtilsROM:
                 .if version==350
                 jsr initWithRoutineStack
                 lda $f4
                 sta $109,x
-                lda #>(withTerminalROMReturnThunk-1)
+                lda #>(withUtilsROMReturnThunk-1)
                 sta $108,x
-                lda #<(withTerminalROMReturnThunk-1)
+                lda #<(withUtilsROMReturnThunk-1)
                 sta $107,x
                 .else
                 pha                          ; S=[A]
@@ -11938,12 +11938,12 @@ withTerminalROM:
                 sta $0108,x                  ; overwrite RH
 
                 ; put return thunk in the right spot
-                lda #>withTerminalROMReturnThunk-1
+                lda #>withUtilsROMReturnThunk-1
                 sta $0107,x
-                lda #<withTerminalROMReturnThunk-1
+                lda #<withUtilsROMReturnThunk-1
                 sta $0106,x
                 .endif
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 bra plx_pla_plp_rts
 
 ;-------------------------------------------------------------------------
@@ -12073,7 +12073,7 @@ vduChrEntryPoint:
                 jsr withMOSROM
                 ldx $F4
                 phx
-                jsr selectTerminalROMAndANDY
+                jsr selectUtilsROMAndANDY
                 jsr outputToVDU
                 plx
                 jmp selectROMX
@@ -12112,7 +12112,7 @@ starRunBOOT:
 LF416:
                 lda $f4
                 pha
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 jsr LF416Internal
                 plx
                 jmp selectROMX
@@ -12121,7 +12121,7 @@ clearSoundChannelBuffer:
                 phx
                 lda $f4
                 pha
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 jsr clearSoundChannelBufferInternal
                 plx
                 jsr selectROMX
@@ -12968,7 +12968,7 @@ transferBetweenSidewaysRAMAndRAMLoop:
                 bne LF85D
                 inc sramTransferPointers.src+1
                 inc sramTransferPointers.dest+1
-                jsr selectTerminalROM
+                jsr selectUtilsROM
                 jsr L8D0F
                 jsr selectROMA
 LF85D:
@@ -12977,7 +12977,7 @@ LF85D:
                 lda 1,x
                 cmp sramWorkspace.length+1
                 bne transferBetweenSidewaysRAMAndRAMLoop
-                jmp selectTerminalROM
+                jmp selectUtilsROM
                 .endblock
                 .endif
 
@@ -13013,7 +13013,7 @@ LF8BE:
                 dex
                 cpx #4
                 bcs LF8B4
-                jmp selectTerminalROM
+                jmp selectUtilsROM
                 .endif
 
 ;-------------------------------------------------------------------------
@@ -13025,32 +13025,32 @@ LF8BE:
 ;-------------------------------------------------------------------------
 
                 .if version>=400
-selectTerminalROMAndOSBYTE44:
-                jsr withTerminalROM
+selectUtilsROMAndOSBYTE44:
+                jsr withUtilsROM
                 jmp osbyte44
                 .endif
 
 ;-------------------------------------------------------------------------
 
                 .if version>=400
-selectTerminalROMAndOSBYTE45:
-                jsr withTerminalROM
+selectUtilsROMAndOSBYTE45:
+                jsr withUtilsROM
                 jmp osbyte45
                 .endif
 
 ;-------------------------------------------------------------------------
 
                 .if version>=400
-selectTerminalROMAndOSWORD42:
-                jsr withTerminalROM
+selectUtilsROMAndOSWORD42:
+                jsr withUtilsROM
                 jmp osword42
                 .endif
 
 ;-------------------------------------------------------------------------
 
                 .if version>=400
-selectTerminalROMAndOSWORD43:
-                jsr withTerminalROM
+selectUtilsROMAndOSWORD43:
+                jsr withUtilsROM
                 jmp osword43
                 .endif
 

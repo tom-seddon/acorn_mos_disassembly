@@ -1,12 +1,12 @@
 LF8D1:
                 lda sramWorkspace.type
                 cmp #$a0
-                bne jmpSelectTerminalROM
+                bne jmpSelectUtilsROM
                 ldy sramWorkspace.bank
                 tya
                 tax
                 jsr LE389
-                bcc jmpSelectTerminalROM
+                bcc jmpSelectUtilsROM
                 lda $8006
                 sta romInformationTable,x
-                bra jmpSelectTerminalROM
+                bra jmpSelectUtilsROM

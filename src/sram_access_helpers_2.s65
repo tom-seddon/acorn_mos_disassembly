@@ -43,7 +43,7 @@ LF881:
                 sta $8000+(dummyROMHeader.ram_or_rom_char-dummyROMHeader)
 LF894:
                 stx $8001
-                jmp selectTerminalROM
+                jmp selectUtilsROM
 
 ;-------------------------------------------------------------------------
 ;
@@ -57,7 +57,7 @@ LF894:
 ;
 ; C=0 if ROM, C=1 if RAM
 ;
-; Terminal ROM selected
+; Utils ROM selected
 ;
 ; Preserves: X
 ; 
@@ -82,23 +82,23 @@ isBankROM:
 
                 ; Don't do another write if ROM, in case it's EEPROM
                 ; and it'll only make another mess.
-                bne jmpSelectTerminalROM ; taken if ROM
+                bne jmpSelectUtilsROM ; taken if ROM
                 sec                      ; it's RAM
                 sty $8008                ; it's RAM - restore original
                                          ; value
-jmpSelectTerminalROM:
+jmpSelectUtilsROM:
                 cli
-                jmp selectTerminalROM
+                jmp selectUtilsROM
                 
                 .else
                 
                 cmp $8008       ; did it take? Z=1 if RAM
                 sty $8008       ; restore original value
                 cli
-                beq jmpSelectTerminalROM ; taken if RAM
+                beq jmpSelectUtilsROM ; taken if RAM
                 clc
-jmpSelectTerminalROM:
-                jmp selectTerminalROM
+jmpSelectUtilsROM:
+                jmp selectUtilsROM
                 .endif
                 
 

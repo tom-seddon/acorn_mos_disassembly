@@ -116,20 +116,20 @@ osbyteAndOSWORDRoutineTable:
                 .word osbyteUnused
 
                 ;Restore a group of font definitions D.2-28
-                .word selectTerminalROMAndOSBYTE19
+                .word selectUtilsROMAndOSBYTE19
 
                 ; Test RAM presence D.2-28
                 .if version==350
                 .word osbyte44
                 .elsif version>=400
-                .word selectTerminalROMAndOSBYTE44
+                .word selectUtilsROMAndOSBYTE44
                 .endif
 
                 ; Test pseudo/absolute use of bank D.2-29
                 .if version==350
                 .word osbyte45
                 .elsif version>=400
-                .word selectTerminalROMAndOSBYTE45
+                .word selectUtilsROMAndOSBYTE45
                 .endif
 
                 ;Write 1MHz bus selection status D.2-29
@@ -172,7 +172,7 @@ osbyteAndOSWORDRoutineTable:
                 .if version==350
                 .word osbyte77
                 .else
-                .word selectTerminalROMAndOSBYTE77
+                .word selectUtilsROMAndOSBYTE77
                 .endif
 
                 ;Write keys pressed information D.2-33
@@ -411,13 +411,13 @@ oswordRoutineTable:
                 .word osword0D
 
                 ;Read CMOS clock
-                .word selectTerminalROMAndOSWORD0E
+                .word selectUtilsROMAndOSWORD0E
 
                 ;Write CMOS clock
                 .if version==350
                 .word osword0F
                 .else
-                .word selectTerminalROMAndOSWORD0F
+                .word selectUtilsROMAndOSWORD0F
                 .endif
 
                 .if version>=350
@@ -426,14 +426,14 @@ osword42AndAboveRoutineTable:
                 .if version==350
                 .word osword42
                 .elsif version>=400
-                .word selectTerminalROMAndOSWORD42
+                .word selectUtilsROMAndOSWORD42
                 .endif
 
                 ; Sideways RAM Load/Save
                 .if version==350
                 .word osword43
                 .elsif version>=400
-                .word selectTerminalROMAndOSWORD43
+                .word selectUtilsROMAndOSWORD43
                 .endif
                 .endif
                 

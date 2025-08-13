@@ -60,12 +60,14 @@ all:
 	$(_V)$(MAKE) _build_orig VERSION=autocue
 	$(_V)$(MAKE) _build_orig_with_ext VERSION=329
 
-# New versions.
+# NT versions.
 	$(_V)$(MAKE) _build VERSION=320nt
 	$(_V)$(MAKE) _build VERSION=350nt
-	$(_V)$(MAKE) _build VERSION=320r
-	$(_V)$(MAKE) _build VERSION=350r
-	$(_V)$(MAKE) _build VERSION=510r
+
+# New versions.
+	$(_V)$(MAKE) _build_new VERSION=320r
+	$(_V)$(MAKE) _build_new VERSION=350r
+	$(_V)$(MAKE) _build_new VERSION=510r
 	$(_V)$(TASS) src/refresh_version.s65 -o $(BUILD)/refresh_version.dat
 
 # Produce non-relocating ROMs for the updated 3.50 builds.
@@ -119,10 +121,14 @@ _build_orig:
 	$(_V)$(MAKE) _build VERSION=$(VERSION)
 	$(_V)$(MAKE) _check_identical VERSION=$(VERSION)
 
+.PHONY:_build_new
+_build_new:
+	$(_V)$(MAKE) _build VERSION=$(VERSION) TASS_EXTRA_ARGS=--long-branch
+
 .PHONY:_build
 _build:
 	$(_V)$(SHELLCMD) mkdir $(BUILD)/$(VERSION)
-	$(_V)$(TASS) mos$(VERSION).s65 -L$(BUILD)/mos$(VERSION).full.lst --output-section mos -o $(BUILD)/$(VERSION)/mos.rom --output-section utils -o $(BUILD)/$(VERSION)/utils.rom
+	$(_V)$(TASS) $(TASS_EXTRA_ARGS) mos$(VERSION).s65 -L$(BUILD)/mos$(VERSION).full.lst --output-section mos -o $(BUILD)/$(VERSION)/mos.rom --output-section utils -o $(BUILD)/$(VERSION)/utils.rom
 	$(_V)$(PYTHON) "bin/improve_lst.py" -o "$(BUILD)/mos$(VERSION).lst" "$(BUILD)/mos$(VERSION).full.lst"
 
 ##########################################################################

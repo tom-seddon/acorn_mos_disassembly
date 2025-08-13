@@ -7448,7 +7448,7 @@ LE454:
                 bit romInformationTable,x    ; check ROM of interest
                 bpl LE478                    ; taken if no service entry
                 jsr selectROMX               ; select ROM of interest
-                cpx #terminalROM             ; is it the terminal ROM?
+                cpx #utilsROM             ; is it the terminal ROM?
                 bne LE46C                    ; taken if not terminal ROM
 
                 ; SPACE+BREAK = RFS *RUN !BOOT when RFS is the default
@@ -7525,9 +7525,9 @@ LE4A3:
                 .endif
                 bcc LE4C2
                 .if version==350&&!finmos329
-                cmp #$10+terminalROM
+                cmp #$10+utilsROM
                 .else
-                cpx #$10+terminalROM ; 16+UTILS ROM, re-enter Supervisor or Tube CLI
+                cpx #$10+utilsROM ; 16+UTILS ROM, re-enter Supervisor or Tube CLI
                 .endif
                 beq LE509
 LE4BB:
@@ -7696,7 +7696,7 @@ startCommandLineUI:
 ;
 ; Preserves A/Y
 selectTerminalROMAndANDY:   ;e57f
-                ldx #$80|terminalROM
+                ldx #$80|utilsROM
                 ; fall through into selectROMX
 
 ;-------------------------------------------------------------------------
@@ -7729,7 +7729,7 @@ isROMValidThenSelectTerminalROM:
 ;
 ; Preserves X/Y
 selectTerminalROM:            ;e590
-                lda #terminalROM
+                lda #utilsROM
                 ; fall through into selectROMA
 
 ;-------------------------------------------------------------------------
@@ -8598,7 +8598,7 @@ LE833:
                 .endif
                 lda $F4
                 pha          ;S=[old ROMSEL; old ACCCON; ch; y; x; ch]
-                lda #$80|terminalROM
+                lda #$80|utilsROM
                 sta $F4
                 sta ROMSEL                   ;page in ANDY+Terminal
                 txa                          ;A=char to print
@@ -9997,7 +9997,7 @@ osbyte8C8D:
                 jsr selectHAZEL         ; Page Hazel workspace in
                 ldx hazel.activeFS
                 stx hazel.currentFS
-                lda #terminalROM
+                lda #utilsROM
                 sta hazel.currentFSROM
                 pla                          ; Restore ACCON
 selectMOSOrHAZEL:                                       ;edb0
@@ -11291,23 +11291,23 @@ LF1F9:
 ; -------------------------------
 LF1FA:
                 .word osfileTapeOrROM ; FILEV
-                .byte terminalROM
+                .byte utilsROM
                 .word osargsTapeOrROM ; ARGSV
-                .byte terminalROM
+                .byte utilsROM
                 .word bputTapeOrROM ; BPUTV
-                .byte terminalROM
+                .byte utilsROM
                 .if version==400
                 .word badCommandError
                 .else
                 .word bgetTapeOrROM ; BGETV
                 .endif
-                .byte terminalROM
+                .byte utilsROM
                 .word osgbpbTapeOrROM ; GBPBV
-                .byte terminalROM
+                .byte utilsROM
                 .word osfindTapeOrROM ; FINDV
-                .byte terminalROM
+                .byte utilsROM
                 .word fscTapeOrROM  ; FSCV
-                .byte terminalROM
+                .byte utilsROM
 
 ;-------------------------------------------------------------------------
 ;

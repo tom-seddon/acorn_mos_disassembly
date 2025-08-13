@@ -1782,15 +1782,15 @@ terminalHELPWorkspace: .dstruct TerminalHELPWorkspace
 
 ;-------------------------------------------------------------------------
 
-; ROM number containing Terminal
-terminalROM=15
+; ROM number containing utils
+utilsROM=15
 
 ; ROM number containing the extXXXX entry points
                 .if !includeTerminalROM
                 ; If no terminal ROM, the ext part is automatically in
                 ; the utils bank. (Yes, the naming here is bad.
                 ; Sorry.)
-extROM=terminalROM
+extROM=utilsROM
                 .elsif version==320
 extROM=14
                 .elsif version==350

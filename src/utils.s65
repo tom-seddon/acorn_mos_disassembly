@@ -721,7 +721,7 @@ commandLineUI:
                 sta BRKV+0
                 lda #>commandLineUIBRKHandler
                 sta BRKV+1
-                lda #$10|terminalROM         ;????
+                lda #$10|utilsROM            ;????
                 sta currentLanguageROM
 commandLineUILoop:
                 ldx #$FF                     
@@ -3679,7 +3679,7 @@ utilsServiceEntryPoint:
                 .if version==400
                 ; this is the same as the MOS 5.00 code, but I didn't
                 ; get the if arrangement right. This needs improving.
-                cpx #terminalROM
+                cpx #utilsROM
                 beq utilsInCorrectBank
                 rts
 utilsInCorrectBank:
@@ -3753,7 +3753,7 @@ L9DCA:
 
 handleNonTube:
                 .else
-                cpx #terminalROM
+                cpx #utilsROM
                 beq utilsInCorrectBank
                 rts
 utilsInCorrectBank:
@@ -7031,6 +7031,7 @@ LAE0F:
                 .endif
 
                 .if version<400&&includeTerminalROM
+terminalROM=utilsROM
                 .include "terminal_code.s65"
                 .endif
 

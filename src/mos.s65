@@ -7518,16 +7518,16 @@ LE4A3:
                 ldx currentLanguageROM      ; Get current language ROM
                 .if version==350&&!finmos329
                 txa
-                and #~$40
+                and #~noTubeRelocate
                 cmp #$10
                 .else
                 cpx #$10                     ; <16, normal ROM number, use it
                 .endif
                 bcc LE4C2
                 .if version==350&&!finmos329
-                cmp #$10+utilsROM
+                cmp #oscliPrompt|utilsROM
                 .else
-                cpx #$10+utilsROM ; 16+UTILS ROM, re-enter Supervisor or Tube CLI
+                cpx #oscliPrompt|utilsROM ; 16+UTILS ROM, re-enter Supervisor or Tube CLI
                 .endif
                 beq LE509
 LE4BB:
@@ -13758,7 +13758,7 @@ checkForTubeRelocationBitmap:
                 .forcew sta,tubeLanguageParasiteAddr+3 ; parasite address bits 24-31
                 .forcew sty,tubeLanguageParasiteAddr+2 ; parasite address bits 16-23
                 bit $f4
-                bvs setTubeLanguageParasiteAddr00008000 ; taken if don't-relocate bit set
+                bvs setTubeLanguageParasiteAddr00008000 ; taken if noTubeRelocate set
                 lda sidewaysROMType
                 and #~%0010&$0f              ; Z=1 if 6502 code
                 bne noTubeRelocationBitmap                    ; taken if not 6502 code
@@ -13929,7 +13929,7 @@ fetchTubeRelocationBitmapByte2: .block
 
 osbyte8EWithoutRelocation:
                 txa
-                ora #$40                  ; set the don't-relocate bit
+                ora #noTubeRelocate       ; set the don't-relocate bit
                 tax
                 lda #$8E                     ; enter language ROM
                 jmp OSBYTE
@@ -13938,7 +13938,7 @@ osbyte8EWithoutRelocation:
 
 getLanguageParasiteAddrAndAssumeRelocatable:
                 jsr tubeHost.getLanguageParasiteAddr
-                lda #$40
+                lda #noTubeRelocate
                 trb $f4                 ; clear the don't-relocate bit
                 rts
 

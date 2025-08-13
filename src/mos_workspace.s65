@@ -1785,6 +1785,8 @@ utilsHELPWorkspace: .dstruct UtilsHELPWorkspace
 ; ROM number containing utils
 utilsROM=15
 
+;-------------------------------------------------------------------------
+
 ; ROM number containing the extXXXX entry points
                 .if !includeTerminalROM
                 ; If no terminal ROM, the ext part is automatically in
@@ -1798,6 +1800,24 @@ extROM=9
                 .elsif version>=400
 extROM=15
                 .endif
+
+;-------------------------------------------------------------------------
+
+; Additional ROM number bits
+
+; Set if current language is actually the OSCLI/supervisor prompt.
+oscliPrompt=$10
+
+                .if version==350
+; Set if MOS 3.50 Tube relocation should be inhibited.
+noTubeRelocate=$40
+
+                ; This value is tested with BIT - see
+                ; checkForTubeRelocationBitmap. It has to be bit 6.
+                .cerror noTubeRelocate!=$40
+                .endif
+
+;-------------------------------------------------------------------------
 
 ; Base page for VDU routines
 vduRoutinesPage=$c0

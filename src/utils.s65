@@ -721,7 +721,7 @@ commandLineUI:
                 sta BRKV+0
                 lda #>commandLineUIBRKHandler
                 sta BRKV+1
-                lda #$10|utilsROM            ;????
+                lda #oscliPrompt|utilsROM
                 sta currentLanguageROM
 commandLineUILoop:
                 ldx #$FF                     

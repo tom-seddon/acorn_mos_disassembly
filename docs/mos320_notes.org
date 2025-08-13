@@ -929,4 +929,15 @@ ST M29F040B @PLCC32
   ((nil . ((compile-command . "cd ~/beeb/mos320 && make tom_laptop"))))
 #+end_src
 
+* Terminal->Utils rename
+
+LKG SHA1s
+
+- 921bf8f071e48732ef737d9de003c597bc3fdb95 :: build/320r/320r.bin
+- 855cf6b01fe68b75d8d1afc0fbfafce8fb9a12fe :: build/320r/320r_ide.bin
+- 2a570b8032a50e05f4dd7d5157643c195d8d6b1d :: build/350r/350r.bin
+- 082ce3d48f73194581cb7b6c5fe3ca36bc11c14b :: build/350r/350r_ide.bin
+- 7ced39422510fa955058b79f6e779220aae87212 :: build/510r/510r.bin
+
+
 * eof

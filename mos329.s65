@@ -31,7 +31,7 @@ versionString="MOS 3.29"
                 .endsection
 
                 .section utils
-                .include "src/terminal.s65"
+                .include "src/utils.s65"
                 .endsection
 
                 .section mos

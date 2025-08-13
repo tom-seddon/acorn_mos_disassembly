@@ -322,7 +322,14 @@ endif
 tom_laptop:
 	$(ECTAGS) '--exclude=.#*' --langdef=64tass --langmap=64tass:.s65 '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*):/\1/l,label/' '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*)=/\1/k,const/' -e *.s65 src/*.s65
 	$(PYTHON) bin/check7bit.py '*.s65'
-	$(MAKE) all
+	$(MAKE) prebuilt_versions
+	$(_V)$(SHELLCMD) blank-line
+	$(_V)$(SHELLCMD) sha1 "build/320r/320r.bin"
+	$(_V)$(SHELLCMD) sha1 "build/320r/320r_ide.bin"
+	$(_V)$(SHELLCMD) sha1 "build/350r/350r.bin"
+	$(_V)$(SHELLCMD) sha1 "build/350r/350r_ide.bin"
+	$(_V)$(SHELLCMD) sha1 "build/510r/510r.bin"
+	$(_V)$(SHELLCMD) blank-line
 	$(MAKE) tom_reset
 #	$(MAKE) tom_wrchspd
 

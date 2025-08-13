@@ -19,7 +19,7 @@ autocue=true
 ;-------------------------------------------------------------------------
 
                 .section utils
-                .include "src/terminal.s65"
+                .include "src/utils.s65"
                 .endsection
 
                 .section mos

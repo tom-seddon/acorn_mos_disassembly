@@ -336,6 +336,8 @@ tom_laptop:
 	$(_V)$(SHELLCMD) sha1 "build/350r/350r_ide.bin"
 	$(_V)$(SHELLCMD) sha1 "build/510r/510r.bin"
 	$(_V)$(SHELLCMD) blank-line
+	$(_V)$(SHELLCMD) split -b 131072 "orig/multios/multios.bin" "build/multios"
+	$(_V)$(SHELLCMD) concat -o "build/multios.bin" "build/multios0" "build/350r/350r.bin" "build/multios2" "build/multios3"
 	$(MAKE) tom_reset
 #	$(MAKE) tom_wrchspd
 

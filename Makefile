@@ -321,7 +321,8 @@ endif
 
 .PHONY:tom_laptop
 ifeq ($(UNAME),Darwin)
-tom_laptop: ECTAGS:=exuberant-ctags
+# sudo port install universal-ctags
+tom_laptop: ECTAGS:=uctags
 else
 tom_laptop: ECTAGS:=ctags
 endif

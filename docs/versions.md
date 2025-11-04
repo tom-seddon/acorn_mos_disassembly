@@ -14,7 +14,7 @@ The following released versions for Acorn systems are covered:
 
 The following unreleased versions for Acorn systems are covered:
 
-- MOS 3.29 (looks to be a pre-release version of MOS 3.50):  [../dist/mos329.lst](../dist/mos329.lst)
+- MOS 3.29 ([looks to be a pre-release version of MOS 3.50](https://stardot.org.uk/forums/viewtopic.php?t=18510)):  [../dist/mos329.lst](../dist/mos329.lst)
 
 The following non-Acorn systems are also covered:
 

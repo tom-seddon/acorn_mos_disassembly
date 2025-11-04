@@ -41,9 +41,9 @@ Alternatively, you can create them yourself, following
 
 # new versions of the MOS
 
-There some **experimental** new versions of the MOS available anyway,
-for use at your own risk. These can be used in an emulator, or
-programmed into a EPROM (or similar) and used in real hardware.
+There some **experimental** new versions of the MOS available, for use
+at your own risk. These can be used in an emulator, or programmed into
+a EPROM (or similar) and used in real hardware.
 
 **All new versions of the MOS are experimental.** Should you actually
 use your 8-bit 1980s Acorn computer for anything important, please

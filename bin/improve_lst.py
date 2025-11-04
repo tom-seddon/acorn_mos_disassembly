@@ -6,7 +6,9 @@ import sys,os,os.path,argparse,re
 
 def main2(options):
     with open(options.input_path,'rt') as f:
-        lines=[line.rstrip().expandtabs() for line in f.readlines()]
+        lines=[line.rstrip() for line in f.readlines()]
+
+    # 
 
     # Remove uninteresting directive lines.
     boring_re=re.compile(r'''^[0-9]+\s+\.((cerror\s)|(if\s)|else|(elsif\s)|endif).*$''')

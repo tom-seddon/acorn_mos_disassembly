@@ -8277,7 +8277,7 @@ LE7C6:
 LE7DE:
                 bit adcConversionType
                 bpl LE7EA
-                ldy #$B6
+                ldy #<adcResultLSBs
                 ldx #romServiceCallCompactJoystick
                 jmp makeROMServiceCall
 

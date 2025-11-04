@@ -90,13 +90,6 @@ summary form that doesn't spell out the full paths:
 
     python3 submodules/beeb/bin/tube_relocation.py set-multi --bitmap-rom dfs.2.45.rom 14 --begin 0xaf00 --end 0xb800 --rom basic.4r32.rom basic.4r32.relocation.dat --rom edit.1.50r.rom edit.1.50r.relocation.dat --rom rbasiced.rom rbasiced.relocation.dat --set-multi
 
-# Test in emulator
-
-I used b2: https://github.com/tom-seddon/b2/
-
-It doesn't support 128 KByte MegaROM images, but the 16 KByte ROM
-images can be loaded individually.
-
 # Create 128 KByte MegaROM image
 
 See https://mdfs.net/Info/Comp/BBC/SROMs/MegaROM.htm - the files need
@@ -128,6 +121,13 @@ order:
 
 I replaced the 128 KBytes corresponding to OS 2.00 with the 128 KByte
 MegaROM image.
+
+# Test in emulator
+
+I used b2: https://github.com/tom-seddon/b2/
+
+It can be configured to use the 512 KB multi-OS/128 KB MegaROM
+directly, so the full image can be tested before being used.
 
 # Program ROM and test in Master
 

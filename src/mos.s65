@@ -14392,36 +14392,45 @@ osbyte9D:
                 brk
 
 ;-------------------------------------------------------------------------
+
+; Except for the NMI routine in main RAM, MOS entry points have to
+; refer to code in the top 4 KB of the MOS area. HAZEL will probably
+; be paged in, and the utils ROM will probably be paged out.
+entryPoint: .macro instr,dest
+                .cerror (\dest)<$e000
+                \instr \dest
+                .endmacro
+                
 OSWRSC:
-                jmp oswrscEntryPoint ; FFB3
+                .entryPoint jmp,oswrscEntryPoint ; FFB3
                 .byte defaultVectorTable.end-defaultVectorTable ;
                 .word defaultVectorTable ;
 OSRDSC:
-                jmp osrdscEntryPoint ; FFB9
+                .entryPoint jmp,osrdscEntryPoint ; FFB9
 VDUCHR:
-                jmp vduChrEntryPoint ; FFBC
+                .entryPoint jmp,vduChrEntryPoint ; FFBC
 OSEVEN:
-                jmp eventEntryPoint ; FFBF
+                .entryPoint jmp,eventEntryPoint ; FFBF
 GSINIT:
-                jmp gsinitEntryPoint ; FFC2
+                .entryPoint jmp,gsinitEntryPoint ; FFC2
 GSREAD:
-                jmp gsreadEntryPoint ; FFC5
+                .entryPoint jmp,gsreadEntryPoint ; FFC5
 NVRDCH:
-                jmp osrdchEntryPoint                    ; FFC8
+                .entryPoint jmp,osrdchEntryPoint                    ; FFC8
 NVWRCH:
-                jmp oswrchEntryPoint                    ; FFCB
+                .entryPoint jmp,oswrchEntryPoint                    ; FFCB
 OSFIND:
-                jmp osfindEntryPoint                    ; FFCE
+                .entryPoint jmp,osfindEntryPoint                    ; FFCE
 OSGBPB:
-                jmp osgbpbEntryPoint                    ; FFD1
+                .entryPoint jmp,osgbpbEntryPoint                    ; FFD1
 OSBPUT:
-                jmp osbputEntryPoint                    ; FFD4
+                .entryPoint jmp,osbputEntryPoint                    ; FFD4
 OSBGET:
-                jmp osbgetEntryPoint                    ; FFD7
+                .entryPoint jmp,osbgetEntryPoint                    ; FFD7
 OSARGS:
-                jmp osargsEntryPoint ; FFDA
+                .entryPoint jmp,osargsEntryPoint ; FFDA
 OSFILE:
-                jmp osfileEntryPoint ; FFDD
+                .entryPoint jmp,osfileEntryPoint ; FFDD
 OSRDCH:
                 jmp (RDCHV)                  ; FFE0
 OSASCI:
@@ -14446,7 +14455,7 @@ OSCLI:
 LFFFA:                                       ; FFFA NMIV
                 .word nmiEntryPoint
 LFFFC:                                       ; FFFB RESETV
-                .word resetEntryPoint
+                .entryPoint .word,resetEntryPoint
 LFFFE:                                       ; FFFE IRQV
-                .word irqEntryPoint
+                .entryPoint .word,irqEntryPoint
                 

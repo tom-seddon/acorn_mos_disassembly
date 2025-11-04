@@ -87,14 +87,17 @@ a bootable state.
 ## `*ROMS` notes ignored ROMs
 
 `*ROMS` will show a message `ignored` against non-unplugged ROMs that
-being ignored due to having an empty entry in the ROM information
+being ignored due to having an incorrect entry in the ROM information
 table.
 
-You will see this in very safe mode, to indicate that ROMs are being
-ignored.
+Typical cases you'll see this:
 
-You may also see this if you use 3rd-party tools designed for the B/B+
-that disable ROMs by modifying the ROM information table.
+- in very safe mode, which prints this to indicate that all ROMs are
+  being ignored
+- after using `*SRLOAD` to load a ROM in, but before pressing
+  CTRL+BREAK to initialise it
+- after using 3rd party tools designed for the B/B+ that temporarily
+  disable ROMs by modifying the ROM information table
 
 ## Tube power-on boot delay (3.20/3.50 only)
 

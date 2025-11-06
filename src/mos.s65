@@ -8225,24 +8225,25 @@ unk_E78B:       .byte 0
                 .byte $8F       ;
                 .byte $8E       ;
                 .byte $8C       ;
-                .byte $7F       ;
-                .byte $D
-                .byte $8B       ;
-                .byte $8B       ;
-unk_E794:       .byte $96
-                .byte $E6       ;
-                .byte $D6       ;
-                .byte $C6       ;
-                .byte $86       ;
+                .byte $7F       ; ?ASCII delete
+                .byte $D        ; ?ASCII return
+                .byte $8B       ; ?ASCII cursor up
+                .byte $8B       ; ?ASCII cursor up
+unk_E794:       .byte $96       ; INKEY copy
+                .byte $E6       ; INKEY cursor left
+                .byte $D6       ; INKEY cursor down
+                .byte $C6       ; INKEY cursor up
+                .byte $86       ; INKEY cursor right
 
 ;-------------------------------------------------------------------------
 
 handleDigitalJoystick:.block
-                lda maximumADCChannel
-                beq rtsE7B0
-                bit adcConversionType
-                bvc LE7DE
-                lda adcResultLSBs
+                lda maximumADCChannel       ; If the maximum ADC channel is zero
+                beq rtsE7B0                 ; nothing to do, so return
+                bit adcConversionType       ; If bit 6 of adcConversionType is
+                bvc LE7DE                   ; clear then convert joystick to keypress
+
+                lda adcResultLSBs           
                 ldx #0
 
 LE7A8:
@@ -8274,35 +8275,40 @@ LE7C6:
                 beq LE7DE
                 jsr insertCharacterIntoKeyboardBuffer
 
-LE7DE:
-                bit adcConversionType
-                bpl LE7EA
-                ldy #<adcResultLSBs
-                ldx #romServiceCallCompactJoystick
-                jmp makeROMServiceCall
+LE7DE:                                                  ; Convert joystick to keypress
+                bit adcConversionType                   ; If bit 7 of adcConversionType is
+                bpl LE7EA                               ; clear branch to LE7EA, otherwise
+                ldy #<adcResultLSBs                     ; make sideways ROM service call &2C
+                ldx #romServiceCallCompactJoystick      ; with Y = offset into page 2 for
+                jmp makeROMServiceCall                  ; ADVAL results location
 
 ;-------------------------------------------------------------------------
 
 LE7EA:
-                lda #$FF
-                ldx editKeysMode
-                cpx #3
-                bne LE807
-                inx
+                lda #$FF                                ; A = 255
+                ldx editKeysMode                        ; If cursor editing mode (see OSBYTEs 4 and 237)
+                cpx #3                                  ; is not equal to 3 (Master Compact only) then
+                bne LE807                               ; branch to LE807 otherwise,
 
-LE7F4:
-                pha
-                phx
-                lda unk_E794,x
-                tax
-                sec
-                clv
-                jsr LED01
-                plx
-                pla
-                rol a
-                dex
-                bpl LE7F4
+                ; make the cursor and arrow keys have a joystick
+                ; like effect with the copy-key simulating the fire
+                ; button
+
+                inx                                     ; X = 4.   Index into joykeys table
+
+LE7F4:                                                  ; for each joykey
+                pha                                     ; Save the accumulator
+                phx                                     ; Save X
+                lda unk_E794,x                          ; A = INKEY code from the Joykeys table at index X
+                tax                                     ; X = A
+                sec                                     ; Set carry.       | KEYV with C=1, V=0 does 
+                clv                                     ; Clear overflow   | a keyboard scan for INKEY X
+                jsr LED01                               ; Scan the keyboard, ultimately via KEYV
+                plx                                     ; Restore X. ?  How do we get the result of the scan?
+                pla                                     ; Restore A. ?   
+                rol a                                   ; 
+                dex                                     ; Decrement X
+                bpl LE7F4                               ; next joykey
                 eor #$FF
 
 LE807:
@@ -9785,23 +9791,31 @@ LECFF:
                 tay
                 rts
 
-LED01:
-                txa
-                beq LED14
-                eor #$7F
-                tax
-                jsr callKEYV
+LED01:                                    ; On entry X is the INKEY code to scan
+                txa                       ; A = X
+                beq LED14                 ; If A = X = 0 zero Read machine type
+                eor #$7F                  ; ? Convert INKEY to Internal Key number
+                tax                       ; ? Put internal key number in X
+                jsr callKEYV              ; Call KEYV to scan the keyboard
                 rol a
-                ; fall through
+                ; fall through to set X = 0 and Y = 0
 
 ;-------------------------------------------------------------------------
+; OSBYTE 130 (&82) Read machine high order address
+;
+; This call provides a 16 bit high order address for filing system
+; addresses which require 32 bits. As the BBC microcomputer uses 16 bit
+; addresses internally a padding value must be provided which associates
+; a given address to that machine. On exit, X and Y contain the padding
+; address (X–high, Y–low) (This address is &FFFF for the BBC microcomputer
+; I/O processor)
 
 osbyte82:
                 ldx #$FF
                 ldy #$FF
                 bcs LEB13                    ;if OSBYTE $82, done
-                inx
-                iny
+                inx                          ; X = 0
+                iny                          ; Y = 0
 LEB13:
                 rts
 

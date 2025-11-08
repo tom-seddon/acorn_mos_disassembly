@@ -8220,15 +8220,29 @@ rtsE7B0:
                 .if version>=500
 ;-------------------------------------------------------------------------
 
-unk_E78B:       .byte 0
-                .byte $8D       ;
-                .byte $8F       ;
-                .byte $8E       ;
-                .byte $8C       ;
-                .byte $7F       ; ?ASCII delete
-                .byte $D        ; ?ASCII return
-                .byte $8B       ; ?ASCII cursor up
-                .byte $8B       ; ?ASCII cursor up
+; This table is used to enter ASCII key values into the keyboard buffer
+; depending on the contents of ADVAL(0) lo-byte in page 2. (i.e. the contents of
+; the address &0200 + adcResultLSBs). The X register value used to index into
+; this table will represent the bit index according b = 8 - X
+; Why are the values for the edit keys 4 higher than their 'ASCII' values?
+
+                                ;  Switch         X  ADVAL(0)  ASCII  diff from     Key
+                                ;                       bit             ASCII    equivalent
+
+unk_E78B:       .byte 0         ;                 0     n/a
+                .byte $8D       ;  joystick right 1     b7      &89     4        cursor right
+                .byte $8F       ;  joystick up    2     b6      &8B     4        cursor up
+                .byte $8E       ;  joystick down  3     b5      &8A     4        cursor down
+                .byte $8C       ;  joystick left  4     b4      &8C     4        cursor left
+                .byte $7F       ;  mouse right    5     b3      &7F     0        delete key
+                .byte $D        ;  mouse middle   6     b2      &0D     0        return key
+                .byte $8B       ;  mouse left     7     b1      &87     4        copy key
+                .byte $8B       ;  joystick fire  8     b0      &87     4        copy key
+
+; This table is used to define the keys which have joystick-like effects, where
+; the cursor keys move the joystick in the appropriate direction, and the copy
+; key is equivalent to the fire button
+
 unk_E794:       .byte $96       ; INKEY copy
                 .byte $E6       ; INKEY cursor left
                 .byte $D6       ; INKEY cursor down
@@ -8241,26 +8255,26 @@ handleDigitalJoystick:.block
                 lda maximumADCChannel       ; If the maximum ADC channel is zero
                 beq rtsE7B0                 ; nothing to do, so return
                 bit adcConversionType       ; If bit 6 of adcConversionType is
-                bvc LE7DE                   ; clear then convert joystick to keypress
+                bvc LE7DE                   ; clear then delegate to ROM service call or convert keypress to joystick 
 
-                lda adcResultLSBs           
-                ldx #0
+                lda adcResultLSBs           ; A = offset into page 2 of the ADC results 
+                ldx #0                      ; X = 0
 
-LE7A8:
-                inx
-                asl a
-                bcs LE7AF
-                bne LE7A8
-                tax
+LE7A8:                                      ; This loop is processing the ADVAL 0 digital joystick directions / mouse buttons / fire buttons
+                inx                         ; X += 1 : X represents b = 8 - X where b is the bit index into the ADVAL 0 lo-byte
+                asl a                       ; Shift left, bit 7 into carry
+                bcs LE7AF                   ; If bit 7 was set (i.e. bit 8 - X of ADVAL 0) bit branch to LE7AF
+                bne LE7A8                   ; If set bits remain, next iteration of loop LE7A8
+                tax                         ; X = A
 
 LE7AF:
-                ldy unk_E78B,x
-                cpy adcLastChannelRead
-                sty adcLastChannelRead
-                beq LE7C6
-                tya
-                beq LE7C6
-                jsr insertCharacterIntoKeyboardBuffer
+                ldy unk_E78B,x                          ; Y = entry in unk_E78B table at index X
+                cpy adcLastChannelRead                  ; if Y >= adcLastChannelRead set C 
+                sty adcLastChannelRead                  ; adcLastChannelRead = Y
+                beq LE7C6                               ; If C (Y >= adcLastChannelRead ) go LE7C6
+                tya                                     ; A = Y
+                beq LE7C6                               ; If C (Y >= adcLastChannelRead ) go LE7C6 again
+                jsr insertCharacterIntoKeyboardBuffer.  ; On entry this is the A = ASCII code, but why is 4 added to the edit key codes?
                 lda keyboardAutoRepeatDelay
                 sta adcResultMSBs+3
 
@@ -8275,7 +8289,7 @@ LE7C6:
                 beq LE7DE
                 jsr insertCharacterIntoKeyboardBuffer
 
-LE7DE:                                                  ; Convert joystick to keypress
+LE7DE:                                                  ; Convert keypress to joystick
                 bit adcConversionType                   ; If bit 7 of adcConversionType is
                 bpl LE7EA                               ; clear branch to LE7EA, otherwise
                 ldy #<adcResultLSBs                     ; make sideways ROM service call &2C

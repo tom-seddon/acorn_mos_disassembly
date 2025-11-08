@@ -8274,15 +8274,15 @@ LE7AF:
                 beq LE7C6                               ; If C (Y >= adcLastChannelRead ) go LE7C6
                 tya                                     ; A = Y
                 beq LE7C6                               ; If C (Y >= adcLastChannelRead ) go LE7C6 again
-                jsr insertCharacterIntoKeyboardBuffer.  ; On entry this is the A = ASCII code, but why is 4 added to the edit key codes?
-                lda keyboardAutoRepeatDelay
-                sta adcResultMSBs+3
+                jsr insertCharacterIntoKeyboardBuffer   ; On entry this is the A = ASCII code, but why is 4 added to the edit key codes?
+                lda keyboardAutoRepeatDelay             ; A = keyboardAutoRepeatDelay
+                sta adcResultMSBs+3                     ; &02be = keyboardAutoRepeatDelay
 
 LE7C6:
-                lda adcResultMSBs+3
-                beq LE7DE
-                dec adcResultMSBs+3
-                bne LE7DE
+                lda adcResultMSBs+3                     ; A = &02be = keyboardAutoRepeatDelay
+                beq LE7DE                               ; Take if zero (no delay) ?? ROM service call or convert keypress to joystick
+                dec adcResultMSBs+3                     ; &02be -= 1 
+                bne LE7DE                               ; Take if not zero ?? ROM service call or convert keypress to joystick
                 lda keyboardAutoRepeatRate
                 sta adcResultMSBs+3
                 ldy adcLastChannelRead

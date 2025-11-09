@@ -8281,7 +8281,7 @@ advalR     = adcResultLSBs + 7      ; $02bd  also acdResultMSB + 3
 ; The advalR entry of the workspace is (re-)used for several variables
 ; For clarity, we name them here
 keyDelay = advalR
-keyRepeatCounter = advalR
+joystickRepeatCounter = advalR
 
 ; Moreover, the location of adcLastChannelRead is also reused to store joystick
 ; related keypresses, so we introduce another alias
@@ -8325,7 +8325,7 @@ LE7C6:
                 dec keyDelay                            ; Decrement key delay
                 bne LE7DE                               ; If not yet zero, skip forward to ...
                 lda keyboardAutoRepeatRate              ; Delay expired, so load keyboardAutoRepeatRate
-                sta keyRepeatCounter                    ; and store it
+                sta joystickRepeatCounter               ; and store it
                 ldy currentKey                          ; Y = current key ASCII 
                 beq LE7DE                               ; If Y = 0 (no keypress) skip over simulated keypress 
                 jsr insertCharacterIntoKeyboardBuffer   ; On entry Y = ASCII code, but why is 4 added to the edit key codes?
@@ -8368,7 +8368,7 @@ LE7F4:                                                  ; for each joykey
                 bpl LE7F4                               ; next joykey
                 eor #$FF                                ; Invert to give active low A = 0 0 0 ~right ~up ~down ~left ~copy
 
-LE807:                                                  ; Read Joystick port (i.e. User Port) from User VIA port B
+LE807:                                                  ; Read Joystick port (i.e. User Port) from User VIA port B (Input Register B)
                 and userVIA.irb                         ; Combine keypress mask in A with Joystick port (both now active low)
                                                         ; so the result in A is low if either the joystick or key are low (De Morgan)
                 eor #$1F                                ; Invert the five lo bits b4-b1 to make A active high
@@ -8386,56 +8386,60 @@ LE807:                                                  ; Read Joystick port (i.
                 stx adval0LSB                           ; update adval0LSB to reflect joystick/joykey state (including fire state)
                 bvs exitHandleJoystick                  ;   ... set then skip to exit
                 beq LE827                               ; If same state as previous, jump to ?? proportional state evolution ??
-                stz keyRepeatCounter                    ; Clear the key repeat counter
+                stz joystickRepeatCounter               ; Clear the key repeat counter
 
 exitHandleJoystick:
                 rts                                     ; exit
 
 ;-------------------------------------------------------------------------
 
-LE827:
-                lda adcConversionType
-                beq LE832
-                cmp #8
-                bcc LE834
-                lda #4
+LE827:                                                  ; Joystick state is unchanged since previous call
+                lda adcConversionType                   ; A = adcConversionType
+                beq LE832                               ; If zero, skip to use 3 as a default
+                cmp #8                                  ; Compare with 8
+                bcc LE834                               ; If <8, skip forward to use value (1 to 7) unchanged
+                lda #4                                  ; A = 4 (out of range sentinel will convert to 7)
 
 LE832:
-                eor #3
+                eor #3                                  ; Convert 0 to 3 (the mid-range default) or 4 (out of range sentinel) to 7 (max)
 
 LE834:
-                tay
-                dec a
-                tax
-                lda adcResultMSBs+3
-                stz adcResultMSBs+2
+                tay                                     ; Y = emulated one-based analogue joystick rate [1..7] slowest to fastest
+                dec a                                   ; Decrement A
+                tax                                     ; X = emulated zero-based analogue joystick rate [0..6] slowest to fastest
+                lda joystickRepeatCounter               ; A = repeat counter
+                stz advalQ                              ; advalQ = 0
 
 LE83D:
-                dex
-                bmi LE846
-                asl a
-                rol adcResultMSBs+2
-                bra LE83D
+                dex                                     ; Decrement X (zero-based emulated joystick rate)
+                bmi LE846                               ; If X was decremented from zero, skip to ...
+                asl a                                   ; Rotate A (repeat counter) left, b7 into C
+                rol advalQ                              ; C <- advalQ <- C   | Need to figure out what advalQ represents
+                bra LE83D                               ; While X >= 0       | it's a function of the repeat counter and
+                                                        ;                    | compared later with the one-based joystick rate
 
 ;-------------------------------------------------------------------------
 
 LE846:
-                sta adcResultMSBs+1
-                cpy adcResultMSBs+2
-                bcs LE854
-                sty adcResultMSBs+1
-                sty adcResultMSBs+2
+                sta advalP                              ; advalP = A
+                cpy advalQ                              ; Compare Y (emulated one-based joystick rate) with advalQ
+                bcs LE854                               ; If emulated one-based joystick rate > advalQ skip to ...
+                sty advalP                              ; advalP = Y
+                sty advalQ                              ; advalQ = Y
 
 LE854:
-                lda adcConversionType
-                and #$20
-                beq LE86A
-                lda #$FF
-                sta adcResultLSBs+1
-                sta adcResultLSBs+3
-                lsr a
-                sta adcResultLSBs+2
-                sta adcResultMSBs
+                lda adcConversionType                   ; A = adcConversionType
+                and #$20                                ; Mask for b5 : 0 = emulated proportional, 1 = switched
+                beq LE86A                               ; If zero (proportional), skip forward, otherwise switched
+                lda #$FF                                ; A = $FF
+                sta adval1LSB                           ; adval1LSB = A ($FF)
+                sta adval2LSB                           ; adval2LSB = A ($FF)
+                lsr a                                   ; A = $7F
+                sta adval1MSB                           ; adval1MSB = A ($7F)
+                sta adval2MSB                           ; adval2MSB = A ($7F)
+
+                ; ADVAL(1) == $7FFF  - centre joystick position
+                ; ADVAL(2) == $7FFF  - centre joystick position
 
 LE86A:
                 ldx #9

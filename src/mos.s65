@@ -8262,8 +8262,8 @@ joyKeys:        .byte $96       ; INKEY copy
 ; $02b8 - ADVAL channel 1 or 3 MSB
 ; $02b9 - ADVAL channel 2 or 4 LSB
 ; $02ba - ADVAL channel 2 or 4 MSB
-; $02bb - spare?
-; $02bc - spare?
+; $02bb - temporary variables
+; $02bc - temporary variables
 ; $02bd - temporary variables
 
 ; To make this 5.x code more comprehensible, we compute 5.x labels with more appropriate names

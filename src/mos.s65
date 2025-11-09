@@ -8384,11 +8384,11 @@ LE807:                                                  ; Read Joystick port (i.
                 bit adcConversionType                   ;   If bit 6 of adcConversionType is ...
                 and #$F0                                ; A = changed direction bits (b7-b4) (excludes changed fire state) 
                 stx adval0LSB                           ; update adval0LSB to reflect joystick/joykey state (including fire state)
-                bvs locret_E826                         ;   ... set then skip to exit
+                bvs exitHandleJoystick                  ;   ... set then skip to exit
                 beq LE827                               ; If same state as previous, jump to ?? proportional state evolution ??
                 stz keyRepeatCounter                    ; Clear the key repeat counter
 
-locret_E826:
+exitHandleJoystick:
                 rts                                     ; exit
 
 ;-------------------------------------------------------------------------

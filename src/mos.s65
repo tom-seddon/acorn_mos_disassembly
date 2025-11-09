@@ -8229,7 +8229,7 @@ rtsE7B0:
                                 ;  Switch         X  ADVAL(0)  ASCII  diff from     Key
                                 ;                       bit             ASCII    equivalent
 
-unk_E78B:       .byte 0         ;                 0     n/a
+switchToKey:    .byte 0         ;                 0     n/a
                 .byte $8D       ;  joystick right 1     b7      $89     4        cursor right
                 .byte $8F       ;  joystick up    2     b6      $8B     4        cursor up
                 .byte $8E       ;  joystick down  3     b5      $8A     4        cursor down
@@ -8297,7 +8297,7 @@ LE7A8:                                      ; This loop is processing the ADVAL 
                 tax                         ; X = A
 
 LE7AF:
-                ldy unk_E78B,x                          ; Y = entry in unk_E78B table at index X
+                ldy switchToKey,x                          ; Y = entry in switchToKey table at index X
                 cpy adcLastChannelRead                  ; if Y >= adcLastChannelRead set C 
                 sty adcLastChannelRead                  ; adcLastChannelRead = Y
                 beq LE7C6                               ; If C (Y >= adcLastChannelRead ) go LE7C6

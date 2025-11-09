@@ -8243,7 +8243,7 @@ switchToKey:    .byte 0         ;                 0     n/a
 ; the cursor keys move the joystick in the appropriate direction, and the copy
 ; key is equivalent to the fire button
 
-unk_E794:       .byte $96       ; INKEY copy
+joyKeys:        .byte $96       ; INKEY copy
                 .byte $E6       ; INKEY cursor left
                 .byte $D6       ; INKEY cursor down
                 .byte $C6       ; INKEY cursor up
@@ -8342,7 +8342,7 @@ LE7EA:
 LE7F4:                                                  ; for each joykey
                 pha                                     ; Save the accumulator
                 phx                                     ; Save X
-                lda unk_E794,x                          ; A = INKEY code from the Joykeys table at index X
+                lda joyKeys,x                           ; A = INKEY code from the Joykeys table at index X
                 tax                                     ; X = A
                 sec                                     ; Set carry.       | KEYV with C=1, V=0 does 
                 clv                                     ; Clear overflow   | a keyboard scan for INKEY X

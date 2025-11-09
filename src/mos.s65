@@ -8265,18 +8265,27 @@ joyKeys:        .byte $96       ; INKEY copy
 ; $02bb - spare?
 ; $02bc - spare?
 ; $02bd - temporary variables
-;
+
 ; To make this 5.x code more comprehensible, we compute 5.x labels with more appropriate names
 ; from the 3.x labels.
 
-adval0LSB = adcResultLSBs
-adval1LSB = adcResultLSBs + 1
-adval1MSB = adcResultLSBs + 2
-adval2LSB = adcResultLSBs + 3
-adval2MSB = adcResultLSBs + 4
-advalP    = adcResultLSBs + 5
-advalQ    = adcResultLSBs + 6
-advalR    = adcResultLSBs + 7
+adval0LSB  = adcResultLSBs          ; $02b6
+adval1LSB  = adcResultLSBs + 1      ; $02b7
+adval1MSB  = adcResultLSBs + 2      ; $02b8
+adval2LSB  = adcResultLSBs + 3      ; $02b9
+adval2MSB  = adcResultLSBs + 4      ; $02ba  also adcResultMSB
+advalP     = adcResultLSBs + 5      ; $02bb  also adcResultMSB + 1
+advalQ     = adcResultLSBs + 6      ; $02bc  also adcResultMSB + 2
+advalR     = adcResultLSBs + 7      ; $02bd  also acdResultMSB + 3
+
+; The advalR entry of the workspace is (re-)used for several variables
+; For clarity, we name them here
+keyDelay = advalR
+keyRepeatCounter = advalR
+
+; Moreover, the location of adcLastChannelRead is also reused to store joystick
+; related keypresses, so we introduce another alias
+currentKey = adcLastChannelRead
 
 handleDigitalJoystick:.block                ; Joystick centisecond polling 
                 lda maximumADCChannel       ; If the maximum ADC channel is zero
@@ -8286,11 +8295,14 @@ handleDigitalJoystick:.block                ; Joystick centisecond polling
 
                 ; adcConversionType bit 6 is set, so convert switched digital joystick to keypress equivalents
 
-                lda adval0LSB               ; A = offset into page 2 of the ADC results 
+                lda adval0LSB               ; A = adval0LSB (offset in page 2) 
                 ldx #0                      ; X = 0
 
 LE7A8:                                      ; This loop is processing the ADVAL 0 digital joystick directions / mouse buttons / fire buttons
-                inx                         ; X += 1 : X represents b = 8 - X where b is the bit index into the ADVAL 0 lo-byte
+                                            ; As we shift the left-most bits of A into C, X keeps track of the bit number. Note that this
+                                            ; processes the bits in priority order from bit 7 to bit 0, with only the first set bit being
+                                            ; translated to a key through the switchToKey table.   
+                inx                         ; X += 1 : X represents b = 8 - X where b is the bit index into the adval0LSB value
                 asl a                       ; Shift left, bit 7 into carry
                 bcs LE7AF                   ; If bit 7 was set (i.e. bit 8 - X of ADVAL 0) bit branch to LE7AF
                 bne LE7A8                   ; If set bits remain, next iteration of loop LE7A8
@@ -8298,29 +8310,29 @@ LE7A8:                                      ; This loop is processing the ADVAL 
 
 LE7AF:
                 ldy switchToKey,x                       ; Y = entry in switchToKey table at index X
-                cpy adcLastChannelRead                  ; if Y >= adcLastChannelRead set C 
-                sty adcLastChannelRead                  ; adcLastChannelRead = Y
-                beq LE7C6                               ; If C (Y >= adcLastChannelRead ) go LE7C6
+                cpy currentKey                          ; Is the new key (Y) the same as the previous key (currentKey)?
+                sty currentKey                          ; Update the current key (from Y)
+                beq LE7C6                               ; If C (Y >= currentKey ) go LE7C6
                 tya                                     ; A = Y
-                beq LE7C6                               ; If C (Y >= adcLastChannelRead ) go LE7C6 again
-                jsr insertCharacterIntoKeyboardBuffer   ; On entry this is the A = ASCII code, but why is 4 added to the edit key codes?
+                beq LE7C6                               ; If A = 0 (no keypress) skip over simulated keypress
+                jsr insertCharacterIntoKeyboardBuffer   ; On entry Y = ASCII code, but why is 4 added to the edit key codes?
                 lda keyboardAutoRepeatDelay             ; A = keyboardAutoRepeatDelay
-                sta adcResultMSBs+3                     ; &02be = keyboardAutoRepeatDelay
+                sta keyDelay                            ; keyDelay = A
 
 LE7C6:
-                lda adcResultMSBs+3                     ; A = &02be = keyboardAutoRepeatDelay
-                beq LE7DE                               ; Take if zero (no delay) ?? ROM service call or convert keypress to joystick
-                dec adcResultMSBs+3                     ; &02be -= 1 
-                bne LE7DE                               ; Take if not zero ?? ROM service call or convert keypress to joystick
-                lda keyboardAutoRepeatRate
-                sta adcResultMSBs+3
-                ldy adcLastChannelRead
-                beq LE7DE
-                jsr insertCharacterIntoKeyboardBuffer
+                lda keyDelay                            ; A = keyDelay
+                beq LE7DE                               ; If no delay (A = 0) skip forward to ... 
+                dec keyDelay                            ; Decrement key delay
+                bne LE7DE                               ; If not yet zero, skip forward to ...
+                lda keyboardAutoRepeatRate              ; Delay expired, so load keyboardAutoRepeatRate
+                sta keyRepeatCounter                    ; and store it
+                ldy currentKey                          ; Y = current key ASCII 
+                beq LE7DE                               ; If Y = 0 (no keypress) skip over simulated keypress 
+                jsr insertCharacterIntoKeyboardBuffer   ; On entry Y = ASCII code, but why is 4 added to the edit key codes?
 
 LE7DE:                                                  ; Convert keypress to joystick
                 bit adcConversionType                   ; If bit 7 of adcConversionType is
-                bpl LE7EA                               ; clear branch to LE7EA, otherwise
+                bpl LE7EA                               ; clear skip the ROM service call, otherwise
                 ldy #<adval0LSB                         ; make sideways ROM service call &2C
                 ldx #romServiceCallCompactJoystick      ; with Y = offset into page 2 for
                 jmp makeROMServiceCall                  ; ADVAL results location
@@ -8331,11 +8343,13 @@ LE7EA:
                 lda #$FF                                ; A = 255
                 ldx editKeysMode                        ; If cursor editing mode (see OSBYTEs 4 and 237)
                 cpx #3                                  ; is not equal to 3 (Master Compact only) then
-                bne LE807                               ; branch to LE807 otherwise,
+                bne LE807                               ; skip to reading the joystick port
 
-                ; make the cursor and arrow keys have a joystick
-                ; like effect with the copy-key simulating the fire
-                ; button
+                ; Otherwise,
+                ; make the cursor and arrow keys have a joystick- like effect with the copy-key
+                ; simulating the fire button. This routine iterates down through the joyKey table
+                ; of INKEY codes testing each key in turn an shifting the results into the low bits
+                ; of A giving: 1 1 1 right up down left copy 
 
                 inx                                     ; X = 4.   Index into joykeys table
 
@@ -8347,34 +8361,35 @@ LE7F4:                                                  ; for each joykey
                 sec                                     ; Set carry.       | KEYV with C=1, V=0 does 
                 clv                                     ; Clear overflow   | a keyboard scan for INKEY X
                 jsr LED01                               ; Scan the keyboard, ultimately via KEYV
-                plx                                     ; Restore X. ?  How do we get the result of the scan?
-                pla                                     ; Restore A. ?   
-                rol a                                   ; 
+                plx                                     ; Restore X
+                pla                                     ; Restore A  
+                rol a                                   ; Rotate C into A b0 - Why does C contain the result?
                 dex                                     ; Decrement X
                 bpl LE7F4                               ; next joykey
-                eor #$FF
+                eor #$FF                                ; Invert to give active low A = 0 0 0 ~right ~up ~down ~left ~copy
 
-LE807:
-                and userVIA.irb
-                eor #$1F
-                lsr a
-                php
-                asl a
-                asl a
-                asl a
-                plp
-                rol a
-                tax
-                eor adcResultLSBs
-                bit adcConversionType
-                and #$F0
-                stx adcResultLSBs
-                bvs locret_E826
-                beq LE827
-                stz adcResultMSBs+3
+LE807:                                                  ; Read Joystick port (i.e. User Port) from User VIA port B
+                and userVIA.irb                         ; Combine keypress mask in A with Joystick port (both now active low)
+                                                        ; so the result in A is low if either the joystick or key are low (De Morgan)
+                eor #$1F                                ; Invert the five lo bits b4-b1 to make A active high
+                lsr a                                   ; Shift the 'fire' state into status flag C : A = 0 0 0 0 right up down left
+                php                                     ; Save status (including C = fire)
+                asl a                                   ; A = 0 0 0 right up down left 0
+                asl a                                   ; A = 0 0 right up down left 0 0
+                asl a                                   ; A = 0 right up down left 0 0 0
+                plp                                     ; Restore status (including C = fire)
+                rol a                                   ; A = right up down left 0 0 0 fire  - now same pattern as switchToKey table and ADVAL 0 lo-byte
+                tax                                     ; X = A
+                eor adval0LSB                           ; A = changed joystick state bits, by xor with previous state
+                bit adcConversionType                   ;   If bit 6 of adcConversionType is ...
+                and #$F0                                ; A = changed direction bits (b7-b4) (excludes changed fire state) 
+                stx adval0LSB                           ; update adval0LSB to reflect joystick/joykey state (including fire state)
+                bvs locret_E826                         ;   ... set then skip to exit
+                beq LE827                               ; If same state as previous, jump to ?? proportional state evolution ??
+                stz keyRepeatCounter                    ; Clear the key repeat counter
 
 locret_E826:
-                rts
+                rts                                     ; exit
 
 ;-------------------------------------------------------------------------
 

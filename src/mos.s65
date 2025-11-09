@@ -8286,7 +8286,7 @@ handleDigitalJoystick:.block                ; Joystick centisecond polling
 
                 ; adcConversionType bit 6 is set, so convert switched digital joystick to keypress equivalents
 
-                lda adcResultLSBs           ; A = offset into page 2 of the ADC results 
+                lda adval0LSB               ; A = offset into page 2 of the ADC results 
                 ldx #0                      ; X = 0
 
 LE7A8:                                      ; This loop is processing the ADVAL 0 digital joystick directions / mouse buttons / fire buttons
@@ -8297,7 +8297,7 @@ LE7A8:                                      ; This loop is processing the ADVAL 
                 tax                         ; X = A
 
 LE7AF:
-                ldy switchToKey,x                          ; Y = entry in switchToKey table at index X
+                ldy switchToKey,x                       ; Y = entry in switchToKey table at index X
                 cpy adcLastChannelRead                  ; if Y >= adcLastChannelRead set C 
                 sty adcLastChannelRead                  ; adcLastChannelRead = Y
                 beq LE7C6                               ; If C (Y >= adcLastChannelRead ) go LE7C6
@@ -8321,7 +8321,7 @@ LE7C6:
 LE7DE:                                                  ; Convert keypress to joystick
                 bit adcConversionType                   ; If bit 7 of adcConversionType is
                 bpl LE7EA                               ; clear branch to LE7EA, otherwise
-                ldy #<adcResultLSBs                     ; make sideways ROM service call &2C
+                ldy #<adval0LSB                         ; make sideways ROM service call &2C
                 ldx #romServiceCallCompactJoystick      ; with Y = offset into page 2 for
                 jmp makeROMServiceCall                  ; ADVAL results location
 

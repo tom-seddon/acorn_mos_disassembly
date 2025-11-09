@@ -8233,7 +8233,7 @@ unk_E78B:       .byte 0         ;                 0     n/a
                 .byte $8D       ;  joystick right 1     b7      &89     4        cursor right
                 .byte $8F       ;  joystick up    2     b6      &8B     4        cursor up
                 .byte $8E       ;  joystick down  3     b5      &8A     4        cursor down
-                .byte $8C       ;  joystick left  4     b4      &8C     4        cursor left
+                .byte $8C       ;  joystick left  4     b4      &88     4        cursor left
                 .byte $7F       ;  mouse right    5     b3      &7F     0        delete key
                 .byte $D        ;  mouse middle   6     b2      &0D     0        return key
                 .byte $8B       ;  mouse left     7     b1      &87     4        copy key

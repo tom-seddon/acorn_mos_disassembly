@@ -8320,7 +8320,7 @@ LE7AF:
                 beq LE7C6                               ; If C (Y >= currentKey ) go LE7C6
                 tya                                     ; A = Y
                 beq LE7C6                               ; If A = 0 (no keypress) skip over simulated keypress
-                jsr insertCharacterIntoKeyboardBuffer   ; On entry Y = ASCII code, but why is 4 added to the edit key codes?
+                jsr insertCharacterIntoKeyboardBuffer   ; On entry Y = keyboard buffer input value (subject to subsequent translation)
                 lda keyboardAutoRepeatDelay             ; A = keyboardAutoRepeatDelay
                 sta keyDelay                            ; keyDelay = A
 
@@ -8333,7 +8333,7 @@ LE7C6:
                 sta joystickRepeatCounter               ; and store it
                 ldy currentKey                          ; Y = current key ASCII 
                 beq LE7DE                               ; If Y = 0 (no keypress) skip over simulated keypress 
-                jsr insertCharacterIntoKeyboardBuffer   ; On entry Y = ASCII code, but why is 4 added to the edit key codes?
+                jsr insertCharacterIntoKeyboardBuffer   ; On entry Y = keyboard buffer input value (subject to subsequent translation)
 
 LE7DE:                                                  ; Convert keypress to joystick
                 bit adcConversionType                   ; If bit 7 of adcConversionType is
@@ -8363,20 +8363,35 @@ LE7F4:                                                  ; for each joykey
                 phx                                     ; Save X
                 lda joyKeys,x                           ; A = INKEY code from the Joykeys table at index X
                 tax                                     ; X = A
-                sec                                     ; Set carry.       | KEYV with C=1, V=0 does 
-                clv                                     ; Clear overflow   | a keyboard scan for INKEY X
-                jsr LED01                               ; Scan the keyboard, ultimately via KEYV
+                sec                                     ; Set carry.       | KEYV with C=1, V=0 does a keyboard scan for INKEY X and
+                clv                                     ; Clear overflow   | returns key-pressed state in C (1=pressed, 0=not pressed)
+                jsr LED01                               ; Scan the keyboard, ultimately via KEYV 
                 plx                                     ; Restore X
                 pla                                     ; Restore A  
-                rol a                                   ; Rotate C into A b0 - Why does C contain the result?
+                rol a                                   ; Rotate C (key state: 1=pressed, 0=not pressed) into A bit 0
                 dex                                     ; Decrement X
                 bpl LE7F4                               ; next joykey
-                eor #$FF                                ; Invert to give active low A = 0 0 0 ~right ~up ~down ~left ~copy
+                                                        ; At this point A contains active-high key states 1 1 1 right up down left copy
+                                                        ; (top 3 bits are from original $FF, bottom 5 bits from key scans)
+                eor #$FF                                ; Invert to active-low key states 0 0 0 ~right ~up ~down ~left ~copy to match those from the joystick port
 
-LE807:                                                  ; Read Joystick port (i.e. User Port) from User VIA port B (Input Register B)
-                and userVIA.irb                         ; Combine keypress mask in A with Joystick port (both now active low)
-                                                        ; so the result in A is low if either the joystick or key are low (De Morgan)
-                eor #$1F                                ; Invert the five lo bits b4-b1 to make A active high
+LE807:                                                  ; Read Joystick port from User VIA port B (Input Register B)
+
+                                                        ; The Master Compact has a digital Joystick/Mouse port connected 
+                                                        ; to User VIA port B through a 9 way D-type connector
+                                                        ; PB0 - Fire  (active low)     - Pin 6
+                                                        ; PB1 - Left  (active low)     - Pin 3
+                                                        ; PB2 - Down  (active low)     - Pin 2
+                                                        ; PB3 - Up    (active low)     - Pin 1
+                                                        ; PB4 - Right (active low)     - Pin 4
+                                                        ; CB1 - No joystick connection - Pin 5
+                                                        ; CB2 - No joystick connection - Pin 9
+                                                        ; +5V - Power                  - Pin 7
+                                                        ; 0V  - Ground                 - Pin 9
+
+                and userVIA.irb                         ; Combine keyboard (A) with joystick port (both active-low: 0=pressed)
+                                                        ; AND of active-low signals = OR logic (De Morgan): result is 0 if either pressed
+                eor #$1F                                ; Invert the five lo bits b4-b0 to make A active high
                 lsr a                                   ; Shift the 'fire' state into status flag C : A = 0 0 0 0 right up down left
                 php                                     ; Save status (including C = fire)
                 asl a                                   ; A = 0 0 0 right up down left 0

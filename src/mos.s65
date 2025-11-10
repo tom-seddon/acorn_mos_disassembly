@@ -8472,7 +8472,7 @@ joystickDirectionLoop:                      ; Iterate over entries in the joysti
 
 handleProportionalMode:                     ; store proportional mode results. On entry Y encodes channel, C encodes direction
                 lda adval1LSB,y             ; A = current ADVAL(1) LSB if Y = 0, or A = current ADVAL(2) LSB if Y = 2
-                bcs LE89C                   ; If C set (from ASL in joystickDirectionLoop) direction is -ve,
+                bcs subtractAdvalIncrement  ; If C set (from ASL in joystickDirectionLoop) direction is -ve,
                                             ; otherwise direction is +ve
 
                                             ; 16-bit addition of the adval increment to current adval values 
@@ -8487,7 +8487,7 @@ handleProportionalMode:                     ; store proportional mode results. O
 
 ;-------------------------------------------------------------------------
 
-LE89C:                                      ; 16-bit subtraction of the adval increment from current adval values
+subtractAdvalIncrement:                     ; 16-bit subtraction of the adval increment from current adval values
                                             ; On entry A = current ADVAL(channel) LSB, and Y encodes channel
                 sbc advalIncLSB             ; A = ADVAL(channel) LSB - advalIncLSB
                 sta adval1LSB,y             ; Update ADVAL(channel) LSB

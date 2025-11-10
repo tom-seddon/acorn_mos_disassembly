@@ -8516,10 +8516,10 @@ emitAdcEvent:
                 ldy #3                      ; Event 3 is ADC conversion
                 jsr eventEntryPoint         ; Emit ADC conversion event
                 dec currentADCChannel       ; Decrement current ADC channel
-                beq LE8CE                   ; If zero, reset to max ADC channel
+                beq resetToMaxChannel       ; If zero, reset to max ADC channel
                 bpl locret_E8D4             ; If negative, we're done -> exit
 
-LE8CE:
+resetToMaxChannel:
                 lda maximumADCChannel       ; A = maximum ADC channel
                 sta currentADCChannel       ; Update the current ADC channel with the max
 

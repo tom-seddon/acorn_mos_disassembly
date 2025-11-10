@@ -8319,7 +8319,7 @@ lookupSwitchKey:                                        ; Converts switch bit po
                 ldy switchToKey,x                       ; Y = entry in switchToKey table at index X
                 cpy currentKey                          ; Is the new key (Y) the same as the previous key (currentKey)?
                 sty currentKey                          ; Update the current key (from Y)
-                beq handleRepeatDelay                   ; If C (Y >= currentKey ) go handleRepeatDelay
+                beq handleRepeatDelay                   ; If C (Y == currentKey) handleRepeatDelay
                 tya                                     ; A = Y
                 beq handleRepeatDelay                   ; If A = 0 (no keypress) skip over simulated keypress
                 jsr insertCharacterIntoKeyboardBuffer   ; On entry Y = keyboard buffer input value (subject to subsequent translation)
@@ -8530,12 +8530,12 @@ nextDirectionEntry:
                 dec adcResultMSBs+3         ; Decrement joystickRepeatCounter
 
 emitAdcEvent:
-                ldx currentADCChannel       ; A = currentADCChannel
+                ldx currentADCChannel       ; X = currentADCChannel
                 ldy #3                      ; Event 3 is ADC conversion
                 jsr eventEntryPoint         ; Emit ADC conversion event
                 dec currentADCChannel       ; Decrement current ADC channel
                 beq resetToMaxChannel       ; If zero, reset to max ADC channel
-                bpl exitHandleJoystick      ; If negative, we're done -> exit
+                bpl exitHandleJoystick      ; If positive, we're done -> exit
 
 resetToMaxChannel:
                 lda maximumADCChannel       ; A = maximum ADC channel

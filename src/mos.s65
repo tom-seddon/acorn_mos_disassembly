@@ -8303,14 +8303,14 @@ handleDigitalJoystick:.block                ; Joystick centisecond polling
                 lda adval0LSB               ; A = adval0LSB (offset in page 2) 
                 ldx #0                      ; X = 0
 
-LE7A8:                                      ; This loop is processing the ADVAL 0 digital joystick directions / mouse buttons / fire buttons
+scanSwitchBitsLoop:                         ; Process the ADVAL 0 digital joystick directions / mouse buttons / fire buttons
                                             ; As we shift the left-most bits of A into C, X keeps track of the bit number. Note that this
                                             ; processes the bits in priority order from bit 7 to bit 0, with only the first set bit being
                                             ; translated to a key through the switchToKey table.   
                 inx                         ; X += 1 : X represents b = 8 - X where b is the bit index into the adval0LSB value
                 asl a                       ; Shift left, bit 7 into carry
                 bcs LE7AF                   ; If bit 7 was set (i.e. bit 8 - X of ADVAL 0) bit branch to LE7AF
-                bne LE7A8                   ; If set bits remain, next iteration of loop LE7A8
+                bne scanSwitchBitsLoop      ; If set bits remain, next iteration of scanSwitchBitsLoop
                 tax                         ; X = A
 
 LE7AF:

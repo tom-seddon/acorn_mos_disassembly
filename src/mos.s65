@@ -8350,7 +8350,7 @@ checkCursorKeyMode:                                     ; Tests if cursor editin
                 lda #$FF                                ; A = 255
                 ldx editKeysMode                        ; If cursor editing mode (see OSBYTEs 4 and 237)
                 cpx #3                                  ; is not equal to 3 (Master Compact only) then
-                bne LE807                               ; skip to reading the joystick port
+                bne readJoystickPort                    ; skip over reading the joykeys to reading the joystick port
 
                 ; Otherwise,
                 ; make the cursor and arrow keys have a joystick- like effect with the copy-key
@@ -8380,7 +8380,7 @@ scanJoyKeysLoop:                                        ; for each joykey
                 eor #$FF                                ; Invert to active-low key states 0 0 0 ~right ~up ~down ~left ~copy
                                                         ; to match those from the joystick port
 
-LE807:                                                  ; Read Joystick port from User VIA port B (Input Register B)
+readJoystickPort:                                       ; Read Joystick port from User VIA port B (Input Register B)
 
                                                         ; The Master Compact has a digital Joystick/Mouse port connected 
                                                         ; to User VIA port B through a 9 way D-type connector

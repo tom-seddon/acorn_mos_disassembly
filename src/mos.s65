@@ -8390,7 +8390,7 @@ LE807:                                                  ; Read Joystick port (i.
                 and #$F0                                ; A = changed direction bits (b7-b4) (excludes changed fire state) 
                 stx adval0LSB                           ; update adval0LSB to reflect joystick/joykey state (including fire state)
                 bvs exitHandleJoystick                  ;   ... set then skip to exit
-                beq LE827                               ; If same state as previous, jump to ?? proportional state evolution ??
+                beq calculateJoystickIncrement          ; If same state as previous, continue to calculating the joystick increment
                 stz joystickRepeatCounter               ; Clear the key repeat counter
 
 exitHandleJoystick:
@@ -8401,31 +8401,31 @@ exitHandleJoystick:
 ; advalIncMSB:advalIncLSB = joystickRepeatCounter * 2^rate
 ; The effect is to give exponential sensitiviy scaling - higher rate settings produce much faster movement
 
-LE827:                                                  ; Joystick state is unchanged since previous call
+calculateJoystickIncrement:                             ; Joystick state is unchanged since previous call
                 lda adcConversionType                   ; A = adcConversionType
-                beq LE832                               ; If zero, skip to use 3 as a default
+                beq applyDefaultRate                    ; If zero, skip to use 3 as a default
                 cmp #8                                  ; Compare with 8
-                bcc LE834                               ; If <8, skip forward to use value (1 to 7) unchanged
+                bcc setupRateShift                               ; If <8, skip forward to use value (1 to 7) unchanged
                 lda #4                                  ; A = 4 (out of range sentinel will convert to 7)
 
-LE832:
+applyDefaultRate:
                 eor #3                                  ; Convert 0 to 3 (the mid-range default) or 4 (out of range sentinel) to 7 (max)
 
-LE834:
+setupRateShift:
                 tay                                     ; Y = emulated one-based analogue joystick rate [1..7] slowest to fastest
                 dec a                                   ; Decrement A
                 tax                                     ; X = emulated zero-based analogue joystick rate [0..6] slowest to fastest
                 lda joystickRepeatCounter               ; A = repeat counter
                 stz advalIncMSB                         ; advalIncMSB = 0
 
-LE83D:
+rateShiftLoop:
                 dex                                     ; Decrement X (zero-based emulated joystick rate)
-                bmi LE846                               ; If X < 0, exit loop
+                bmi storeIncrement                      ; If X < 0, exit loop
                 asl a                                   ; Shift A (repeat counter) left, b7 into C
                 rol advalIncMSB                         ; Rotate advalIncMSB left, shifting C in b0
-                bra LE83D                               ; loop
+                bra rateShiftLoop                       ; loop
 
-LE846:                                                     
+storeIncrement:                                                     
                 sta advalIncLSB                         ; advalIncLSB = A
                                                         ; advalIncMSB:advalIncLSB now contain joystickRepeatCounter << rate
 
@@ -8433,10 +8433,10 @@ LE846:
 ; Velocity limiting. 
 
                                                              
-                cpy advalIncMSB                              ; Compare Y (emulated one-based joystick rate) with advalIncMSB
-                bcs LE854                                    ; If emulated one-based joystick rate >= advalIncMSB skip limiting
-                sty advalIncLSB                              ; advalIncLSB = Y   Clamp advalIncLSB to the rate
-                sty advalIncMSB                              ; advalIncMSB = Y   Clamp advalIncMSB to the rate
+                cpy advalIncMSB                         ; Compare Y (emulated one-based joystick rate) with advalIncMSB
+                bcs LE854                               ; If emulated one-based joystick rate >= advalIncMSB skip limiting
+                sty advalIncLSB                         ; advalIncLSB = Y   Clamp advalIncLSB to the rate
+                sty advalIncMSB                         ; advalIncMSB = Y   Clamp advalIncMSB to the rate
 
 LE854:
                 lda adcConversionType                   ; A = adcConversionType

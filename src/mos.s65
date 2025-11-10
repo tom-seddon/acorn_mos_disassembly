@@ -8292,16 +8292,17 @@ joystickRepeatCounter = advalTemp
 ; related keypresses, so we introduce another alias
 currentKey = adcLastChannelRead
 
-handleDigitalJoystick:.block                ; Joystick centisecond polling 
-                lda maximumADCChannel       ; If the maximum ADC channel is zero
-                beq rtsE7B0                 ; nothing to do, so return
-                bit adcConversionType       ; If bit 6 of adcConversionType is
-                bvc LE7DE                   ; clear then skip forward to delegate to ROM service call or convert keypress to joystick 
+handleDigitalJoystick:.block                        ; Joystick centisecond polling 
+                lda maximumADCChannel               ; If the maximum ADC channel is zero
+                beq rtsE7B0                         ; nothing to do, so return
+                bit adcConversionType               ; If bit 6 of adcConversionType is
+                bvc dispatchRomServiceCallOrJoykeys ; clear then skip forward to delegate to ROM service call or convert keypress to joystick 
 
-                ; adcConversionType bit 6 is set, so convert switched digital joystick to keypress equivalents
+                                                    ; adcConversionType bit 6 is set, so convert switched
+                                                    ; digital joystick to keypress equivalents
 
-                lda adval0LSB               ; A = adval0LSB (offset in page 2) 
-                ldx #0                      ; X = 0
+                lda adval0LSB                       ; A = adval0LSB (offset in page 2) 
+                ldx #0                              ; X = 0
 
 scanSwitchBitsLoop:                         ; Loop that finds the first set bit in adval0LSB
                                             ; Process the ADVAL 0 digital joystick directions / mouse buttons / fire buttons
@@ -8327,16 +8328,16 @@ lookupSwitchKey:                                        ; Converts switch bit po
 
 handleRepeatDelay:                                      ; Manages keyboard auto-repeat delay countdown
                 lda keyDelay                            ; A = keyDelay
-                beq LE7DE                               ; If no delay (A = 0) skip forward to ... 
+                beq dispatchRomServiceCallOrJoykeys     ; If no delay (A = 0) skip to dispatchRomServiceCallOrJoykeys 
                 dec keyDelay                            ; Decrement key delay
-                bne LE7DE                               ; If not yet zero, skip forward to ...
+                bne dispatchRomServiceCallOrJoykeys     ; If not yet zero, skip forward to dispatchRomServiceCallOrJoykeys
                 lda keyboardAutoRepeatRate              ; Delay expired, so load keyboardAutoRepeatRate
                 sta joystickRepeatCounter               ; and store it
                 ldy currentKey                          ; Y = current key ASCII 
-                beq LE7DE                               ; If Y = 0 (no keypress) skip over simulated keypress 
+                beq dispatchRomServiceCallOrJoykeys     ; If Y = 0 (no keypress) skip over simulated keypress 
                 jsr insertCharacterIntoKeyboardBuffer   ; On entry Y = keyboard buffer input value (subject to subsequent translation)
 
-LE7DE:                                                  ; Convert keypress to joystick
+dispatchRomServiceCallOrJoykeys:                        ; Either delegate to a sideway ROM or check joykeys
                 bit adcConversionType                   ; If bit 7 of adcConversionType is
                 bpl LE7EA                               ; clear skip the ROM service call, otherwise
                 ldy #<adval0LSB                         ; make sideways ROM service call &2C

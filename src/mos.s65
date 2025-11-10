@@ -8309,11 +8309,11 @@ scanSwitchBitsLoop:                         ; Process the ADVAL 0 digital joysti
                                             ; translated to a key through the switchToKey table.   
                 inx                         ; X += 1 : X represents b = 8 - X where b is the bit index into the adval0LSB value
                 asl a                       ; Shift left, bit 7 into carry
-                bcs LE7AF                   ; If bit 7 was set (i.e. bit 8 - X of ADVAL 0) bit branch to LE7AF
+                bcs lookupSwitchKey         ; If bit 7 was set (i.e. bit 8 - X of ADVAL 0), take lookupSwitchKey
                 bne scanSwitchBitsLoop      ; If set bits remain, next iteration of scanSwitchBitsLoop
                 tax                         ; X = A
 
-LE7AF:
+lookupSwitchKey:
                 ldy switchToKey,x                       ; Y = entry in switchToKey table at index X
                 cpy currentKey                          ; Is the new key (Y) the same as the previous key (currentKey)?
                 sty currentKey                          ; Update the current key (from Y)

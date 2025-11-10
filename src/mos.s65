@@ -8481,7 +8481,7 @@ handleProportionalMode:                     ; store proportional mode results. O
                 sta adval1LSB,y             ; Update ADVAL(channel) LSB
                 lda adval1MSB,y             ; A = ADVAL(channel) MSB
                 adc advalIncMSB             ; A = ADVAL(channel) MSB + advalIncMSB
-                bcc LE8AF                   ; Skip clamping if no overflow 
+                bcc storeAdvalChannelMSB    ; Skip clamping if no overflow 
                 lda #$FF                    ; Clamp to max if overflow
                 bra storeAdvalChannelLSB    ; and store it
 
@@ -8493,13 +8493,13 @@ subtractAdvalIncrement:                     ; 16-bit subtraction of the adval in
                 sta adval1LSB,y             ; Update ADVAL(channel) LSB
                 lda adval1MSB,y             ; A = ADVAL(channel) MSB 
                 sbc advalIncMSB             ; A = ADVAL(channel) MSB - advalIncMSB
-                bcs LE8AF                   ; Skip clamping if no underflow
+                bcs storeAdvalChannelMSB    ; Skip clamping if no underflow
                 lda #0                      ; Clamp to min if underflow
 
 storeAdvalChannelLSB:
                 sta adval1LSB,y             ; Update ADVAL(channel) LSB, where Y = 0 -> channel 1; Y = 2 -> channel 2
 
-LE8AF:
+storeAdvalChannelMSB:
                 sta adval1MSB,y             ; Update ADVAL(channel) MSB, where Y = 0 -> channel 1; Y = 2 -> channel 2
 
 LE8B2:

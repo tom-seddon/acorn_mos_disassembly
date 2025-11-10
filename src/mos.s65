@@ -8339,14 +8339,14 @@ handleRepeatDelay:                                      ; Manages keyboard auto-
 
 dispatchRomServiceCallOrJoykeys:                        ; Either delegate to a sideway ROM or check joykeys
                 bit adcConversionType                   ; If bit 7 of adcConversionType is
-                bpl LE7EA                               ; clear skip the ROM service call, otherwise
+                bpl checkCursorKeyMode                               ; clear skip the ROM service call, otherwise
                 ldy #<adval0LSB                         ; make sideways ROM service call &2C
                 ldx #romServiceCallCompactJoystick      ; with Y = offset into page 2 for
                 jmp makeROMServiceCall                  ; ADVAL results location
 
 ;-------------------------------------------------------------------------
 
-LE7EA:
+checkCursorKeyMode:                                     ; Tests if cursor editing mode 3 is active *FX 4, 3
                 lda #$FF                                ; A = 255
                 ldx editKeysMode                        ; If cursor editing mode (see OSBYTEs 4 and 237)
                 cpx #3                                  ; is not equal to 3 (Master Compact only) then

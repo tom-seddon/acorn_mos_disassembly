@@ -8223,7 +8223,7 @@ rtsE7B0:
 ; This table is used to enter ASCII key values into the keyboard buffer
 ; depending on the contents of ADVAL(0) lo-byte in page 2. (i.e. the contents of
 ; the address $0200 + adcResultLSBs). The X register value used to index into
-; this table will represent the bit index according b = 8 - X
+; this table will represent the bit index according to b = 8 - X
 ;
 ; Note that each byte is a keyboard buffer input value, subject to subsequent
 ; translation by the mechanisms of *FX4, OSRDCH/INKEY which is why some of the
@@ -8281,10 +8281,10 @@ adval2LSB   = adcResultLSBs + 3      ; $02b9
 adval2MSB   = adcResultLSBs + 4      ; $02ba  also adcResultMSB
 advalIncLSB = adcResultLSBs + 5      ; $02bb  also adcResultMSB + 1
 advalIncMSB = adcResultLSBs + 6      ; $02bc  also adcResultMSB + 2
-advalTemp   = adcResultLSBs + 7      ; $02bd  also acdResultMSB + 3
+advalTemp   = adcResultLSBs + 7      ; $02bd  also adcResultMSB + 3
 
-; The advalR entry of the workspace is used for several variables at different
-; times. For clarity, we name them here:
+; The advalTemp entry of the workspace is used for several variables
+; at different times. For clarity, we name them here:
 keyDelay = advalTemp
 joystickRepeatCounter = advalTemp
 
@@ -8337,14 +8337,12 @@ handleRepeatDelay:                                      ; Manages keyboard auto-
                 beq dispatchRomServiceCallOrJoykeys     ; If Y = 0 (no keypress) skip over simulated keypress 
                 jsr insertCharacterIntoKeyboardBuffer   ; On entry Y = keyboard buffer input value (subject to subsequent translation)
 
-dispatchRomServiceCallOrJoykeys:                        ; Either delegate to a sideway ROM or check joykeys
+dispatchRomServiceCallOrJoykeys:                        ; Either delegate to a sideway a ROM or check joykeys
                 bit adcConversionType                   ; If bit 7 of adcConversionType is
                 bpl checkCursorKeyMode                               ; clear skip the ROM service call, otherwise
                 ldy #<adval0LSB                         ; make sideways ROM service call &2C
                 ldx #romServiceCallCompactJoystick      ; with Y = offset into page 2 for
                 jmp makeROMServiceCall                  ; ADVAL results location
-
-;-------------------------------------------------------------------------
 
 checkCursorKeyMode:                                     ; Tests if cursor editing mode 3 is active *FX 4, 3
                 lda #$FF                                ; A = 255
@@ -8355,63 +8353,63 @@ checkCursorKeyMode:                                     ; Tests if cursor editin
                 ; Otherwise,
                 ; make the cursor and arrow keys have a joystick- like effect with the copy-key
                 ; simulating the fire button. This routine iterates down through the joyKey table
-                ; of INKEY codes testing each key in turn an shifting the results into the low bits
+                ; of INKEY codes testing each key in turn and shifting the results into the low bits
                 ; of A giving: 1 1 1 right up down left copy 
 
-                inx                                     ; X = 4.   Index into joykeys table
+                inx                     ; X = 4.   Index into joykeys table
 
-scanJoyKeysLoop:                                        ; for each joykey
-                pha                                     ; Save the accumulator
-                phx                                     ; Save X
-                lda joyKeys,x                           ; A = INKEY code from the Joykeys table at index X
-                tax                                     ; X = A
-                sec                                     ; Set carry.       | KEYV with C=1, V=0 does a keyboard scan for INKEY X and
-                clv                                     ; Clear overflow   | returns key-pressed state in C (1=pressed, 0=not pressed)
-                jsr LED01                               ; Scan the keyboard, ultimately via KEYV 
-                plx                                     ; Restore X
-                pla                                     ; Restore A  
-                rol a                                   ; Rotate C (key state: 1=pressed, 0=not pressed) into A bit 0
-                dex                                     ; Decrement X
-                bpl scanJoyKeysLoop                     ; next joykey
+scanJoyKeysLoop:                        ; for each joykey
+                pha                     ; Save the accumulator
+                phx                     ; Save X
+                lda joyKeys,x           ; A = INKEY code from the Joykeys table at index X
+                tax                     ; X = A
+                sec                     ; Set carry.       | KEYV with C=1, V=0 does a keyboard scan for INKEY X and
+                clv                     ; Clear overflow   | returns key-pressed state in C (1=pressed, 0=not pressed)
+                jsr LED01               ; Scan the keyboard, ultimately via KEYV 
+                plx                     ; Restore X
+                pla                     ; Restore A  
+                rol a                   ; Rotate C (key state: 1=pressed, 0=not pressed) into A bit 0
+                dex                     ; Decrement X
+                bpl scanJoyKeysLoop     ; next joykey
 
-                                                        ; At this point A contains active-high key states 1 1 1 right up down left copy
-                                                        ; (top 3 bits are from original $FF, bottom 5 bits from key scans)
+                                        ; At this point A contains active-high key states 1 1 1 right up down left copy
+                                        ; (top 3 bits are from original $FF, bottom 5 bits from key scans)
 
-                eor #$FF                                ; Invert to active-low key states 0 0 0 ~right ~up ~down ~left ~copy
-                                                        ; to match those from the joystick port
+                eor #$FF                        ; Invert to active-low key states 0 0 0 ~right ~up ~down ~left ~copy
+                                                ; to match those from the joystick port
 
-readJoystickPort:                                       ; Read Joystick port from User VIA port B (Input Register B)
+readJoystickPort:   ; Read Joystick port and combine with joykey results
 
-                                                        ; The Master Compact has a digital Joystick/Mouse port connected 
-                                                        ; to User VIA port B through a 9 way D-type connector
-                                                        ; PB0 - Fire  (active low)     - Pin 6
-                                                        ; PB1 - Left  (active low)     - Pin 3
-                                                        ; PB2 - Down  (active low)     - Pin 2
-                                                        ; PB3 - Up    (active low)     - Pin 1
-                                                        ; PB4 - Right (active low)     - Pin 4
-                                                        ; CB1 - No joystick connection - Pin 5
-                                                        ; CB2 - No joystick connection - Pin 9
-                                                        ; +5V - Power                  - Pin 7
-                                                        ; 0V  - Ground                 - Pin 9
+                    ; The Master Compact has a digital Joystick/Mouse port connected 
+                    ; to User VIA port B through a 9 way D-type connector
+                    ; PB0 - Fire  (active low)     - Pin 6
+                    ; PB1 - Left  (active low)     - Pin 3
+                    ; PB2 - Down  (active low)     - Pin 2
+                    ; PB3 - Up    (active low)     - Pin 1
+                    ; PB4 - Right (active low)     - Pin 4
+                    ; CB1 - No joystick connection - Pin 5
+                    ; CB2 - No joystick connection - Pin 9
+                    ; +5V - Power                  - Pin 7
+                    ; 0V  - Ground                 - Pin 9
 
-                and userVIA.irb                         ; Combine keyboard (A) with joystick port (both active-low: 0=pressed)
-                                                        ; AND of active-low signals = OR logic (De Morgan): result is 0 if either pressed
-                eor #$1F                                ; Invert the five lo bits b4-b0 to make A active high
-                lsr a                                   ; Shift the 'fire' state into status flag C : A = 0 0 0 0 right up down left
-                php                                     ; Save status (including C = fire)
-                asl a                                   ; A = 0 0 0 right up down left 0
-                asl a                                   ; A = 0 0 right up down left 0 0
-                asl a                                   ; A = 0 right up down left 0 0 0
-                plp                                     ; Restore status (including C = fire)
-                rol a                                   ; A = right up down left 0 0 0 fire  - now same pattern as switchToKey table and ADVAL 0 lo-byte
-                tax                                     ; X = A
-                eor adval0LSB                           ; A = changed joystick state bits, by xor with previous state
-                bit adcConversionType                   ;   If bit 6 of adcConversionType is ...
-                and #$F0                                ; A = changed direction bits (b7-b4) (excludes changed fire state) 
-                stx adval0LSB                           ; update adval0LSB to reflect joystick/joykey state (including fire state)
-                bvs exitSwitchedMode                    ;   ... set then exitSwitchedMode and the whole routine
-                beq calculateJoystickIncrement          ; If same state as previous, continue to calculating the joystick increment
-                stz joystickRepeatCounter               ; Clear the key repeat counter
+                and userVIA.irb                 ; Combine keyboard (A) with joystick port (User VIA Input Register B) both active-low: 0=pressed
+                                                ; AND of active-low signals = OR logic (De Morgan): result is 0 if either pressed
+                eor #$1F                        ; Invert the five lo bits b4-b0 to make A active high
+                lsr a                           ; Shift the 'fire' state into status flag C : A = 0 0 0 0 right up down left
+                php                             ; Save status (including C = fire)
+                asl a                           ; A = 0 0 0 right up down left 0
+                asl a                           ; A = 0 0 right up down left 0 0
+                asl a                           ; A = 0 right up down left 0 0 0
+                plp                             ; Restore status (including C = fire)
+                rol a                           ; A = right up down left 0 0 0 fire  - now same pattern as switchToKey table and ADVAL 0 lo-byte
+                tax                             ; X = A
+                eor adval0LSB                   ; A = changed joystick state bits, by xor with previous state
+                bit adcConversionType           ;   If bit 6 of adcConversionType is ...
+                and #$F0                        ; A = changed direction bits (b7-b4) (excludes changed fire state) 
+                stx adval0LSB                   ; update adval0LSB to reflect joystick/joykey state (including fire state)
+                bvs exitSwitchedMode            ;   ... set then exitSwitchedMode and the whole routine
+                beq calculateJoystickIncrement  ; If same state as previous, continue to calculating the joystick increment
+                stz joystickRepeatCounter       ; Clear the key repeat counter
 
 exitSwitchedMode:
                 rts                                     ; exit
@@ -8421,63 +8419,63 @@ exitSwitchedMode:
 ; advalIncMSB:advalIncLSB = joystickRepeatCounter * 2^rate
 ; The effect is to give exponential sensitiviy scaling - higher rate settings produce much faster movement
 
-calculateJoystickIncrement:                             ; Joystick state is unchanged since previous call
-                lda adcConversionType                   ; A = adcConversionType
-                beq applyDefaultRate                    ; If zero, skip to use 3 as a default
-                cmp #8                                  ; Compare with 8
-                bcc setupRateShift                      ; If <8, skip forward to use value (1 to 7) unchanged
-                lda #4                                  ; A = 4 (out of range sentinel will convert to 7)
+calculateJoystickIncrement:                 ; Joystick state is unchanged since previous call
+                lda adcConversionType       ; A = adcConversionType
+                beq applyDefaultRate        ; If zero, skip to use 3 as a default
+                cmp #8                      ; Compare with 8
+                bcc setupRateShift          ; If <8, skip forward to use value (1 to 7) unchanged
+                lda #4                      ; A = 4 (out of range sentinel will convert to 7)
 
 applyDefaultRate:
-                eor #3                                  ; Convert 0 to 3 (the mid-range default) or 4 (out of range sentinel) to 7 (max)
+                eor #3                      ; Convert 0 to 3 (the mid-range default) or 4 (out of range sentinel) to 7 (max)
 
 setupRateShift:
-                tay                                     ; Y = emulated one-based analogue joystick rate [1..7] slowest to fastest
-                dec a                                   ; Decrement A
-                tax                                     ; X = emulated zero-based analogue joystick rate [0..6] slowest to fastest
-                lda joystickRepeatCounter               ; A = repeat counter
-                stz advalIncMSB                         ; advalIncMSB = 0
+                tay                         ; Y = emulated one-based analogue joystick rate [1..7] slowest to fastest
+                dec a                       ; Decrement A
+                tax                         ; X = emulated zero-based analogue joystick rate [0..6] slowest to fastest
+                lda joystickRepeatCounter   ; A = repeat counter
+                stz advalIncMSB             ; advalIncMSB = 0
 
 rateShiftLoop:
-                dex                                     ; Decrement X (zero-based emulated joystick rate)
-                bmi storeIncrement                      ; If X < 0, exit loop
-                asl a                                   ; Shift A (repeat counter) left, b7 into C
-                rol advalIncMSB                         ; Rotate advalIncMSB left, shifting C in b0
-                bra rateShiftLoop                       ; loop
+                dex                         ; Decrement X (zero-based emulated joystick rate)
+                bmi storeIncrement          ; If X < 0, exit loop
+                asl a                       ; Shift A (repeat counter) left, b7 into C
+                rol advalIncMSB             ; Rotate advalIncMSB left, shifting C in b0
+                bra rateShiftLoop           ; loop
 
-storeIncrement:                                                     
-                sta advalIncLSB                         ; advalIncLSB = A
-                                                        ; advalIncMSB:advalIncLSB now contain joystickRepeatCounter << rate
+storeIncrement:                                         
+                sta advalIncLSB             ; advalIncLSB = A
+                                            ; advalIncMSB:advalIncLSB now contain joystickRepeatCounter << rate
 
 ;-------------------------------------------------------------------------
 ; Velocity limiting. 
 
                                                              
-                cpy advalIncMSB                         ; Compare Y (emulated one-based joystick rate) with advalIncMSB
-                bcs centerIfSwitchedMode                ; If emulated one-based joystick rate >= advalIncMSB skip limiting
-                sty advalIncLSB                         ; advalIncLSB = Y   Clamp advalIncLSB to the rate
-                sty advalIncMSB                         ; advalIncMSB = Y   Clamp advalIncMSB to the rate
+                cpy advalIncMSB             ; Compare Y (emulated one-based joystick rate) with advalIncMSB
+                bcs centerIfSwitchedMode    ; If emulated one-based joystick rate >= advalIncMSB skip limiting
+                sty advalIncLSB             ; advalIncLSB = Y   Clamp advalIncLSB to the rate
+                sty advalIncMSB             ; advalIncMSB = Y   Clamp advalIncMSB to the rate
 
-centerIfSwitchedMode:
-                lda adcConversionType                   ; A = adcConversionType
-                and #$20                                ; Mask for b5 : 0 = emulated proportional, 1 = switched
-                beq setupDirectionLoop                  ; If zero (proportional) skip over the switched joystick move, otherwise switched
-                lda #$FF                                ; A = $FF              
-                sta adval1LSB                           ; adval1LSB = A ($FF)
-                sta adval2LSB                           ; adval2LSB = A ($FF)
-                lsr a                                   ; A = $7F              
-                sta adval1MSB                           ; adval1MSB = A ($7F)
-                sta adval2MSB                           ; adval2MSB = A ($7F)
+centerIfSwitchedMode:   
+                lda adcConversionType       ; A = adcConversionType
+                and #$20                    ; Mask for b5 : 0 = emulated proportional, 1 = switched
+                beq setupDirectionLoop      ; If zero (proportional) skip over the switched joystick move, otherwise switched
+                lda #$FF                    ; A = $FF              
+                sta adval1LSB               ; adval1LSB = A ($FF)
+                sta adval2LSB               ; adval2LSB = A ($FF)
+                lsr a                       ; A = $7F              
+                sta adval1MSB               ; adval1MSB = A ($7F)
+                sta adval2MSB               ; adval2MSB = A ($7F)
 
-                ; ADVAL(1) == $7FFF  - centre joystick position
-                ; ADVAL(2) == $7FFF  - centre joystick position
+                                            ; ADVAL(1) == $7FFF  - centre joystick position
+                                            ; ADVAL(2) == $7FFF  - centre joystick position
 
 setupDirectionLoop:                         ; There are four, 3-byte entries in the joystickDirections
                 ldx #9                      ; table so the index of the beginning of the last entry is 9
 
 joystickDirectionLoop:                      ; Iterate over entries in the joystickDirections table
                 lda adcResultLSBs           ; A = adcResultLSBs which contains the switch states
-                bit joystickDirections,x    ; Compare the mask in byte 0 of the current entry aginst the switches
+                bit joystickDirections,x    ; Compare the mask in byte 0 of the current entry against the switches
                 beq nextDirectionEntry      ; If no match, next table entry
                 lda joystickDirections+1,x  ; A = byte 1 of the current table entry, channel (b0) and direction (b7)
                 asl a                       ; Shift b0 to b1 and b7 into C
@@ -8574,21 +8572,23 @@ exitHandleJoystick:
 ;
 ; Byte 2: The value to use is switched mode ($00 min, $FF max)
 
-joystickDirections: .byte $40   ; UP joystick switch bit mask
-                    .byte $01   ;   ADVAL(2) +ve
-                    .byte $FF   ;   max switched mode value
+joystickDirections:
 
-                    .byte $20   ; DOWN joystick switch bit mask
-                    .byte $81   ;   ADVAL(2) -ve
-                    .byte $00   ;   min switched mode value
+    .byte $40   ; UP joystick switch bit mask
+    .byte $01   ;   ADVAL(2) +ve
+    .byte $FF   ;   max switched mode value
 
-                    .byte $80   ; RIGHT joystick switch bit mask
-                    .byte $80   ;   ADVAL(1) -ve
-                    .byte $00   ;   min switched mode value
+    .byte $20   ; DOWN joystick switch bit mask
+    .byte $81   ;   ADVAL(2) -ve
+    .byte $00   ;   min switched mode value
 
-                    .byte $10   ; LEFT joystick switch bit mask
-                    .byte $00   ;   ADVAL(1) +ve
-                    .byte $FF   ;   max switched model value
+    .byte $80   ; RIGHT joystick switch bit mask
+    .byte $80   ;   ADVAL(1) -ve
+    .byte $00   ;   min switched mode value
+
+    .byte $10   ; LEFT joystick switch bit mask
+    .byte $00   ;   ADVAL(1) +ve
+    .byte $FF   ;   max switched mode value
 
 .endif ; version>=500
 

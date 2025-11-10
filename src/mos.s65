@@ -8360,7 +8360,7 @@ checkCursorKeyMode:                                     ; Tests if cursor editin
 
                 inx                                     ; X = 4.   Index into joykeys table
 
-LE7F4:                                                  ; for each joykey
+scanJoyKeysLoop:                                        ; for each joykey
                 pha                                     ; Save the accumulator
                 phx                                     ; Save X
                 lda joyKeys,x                           ; A = INKEY code from the Joykeys table at index X
@@ -8372,10 +8372,13 @@ LE7F4:                                                  ; for each joykey
                 pla                                     ; Restore A  
                 rol a                                   ; Rotate C (key state: 1=pressed, 0=not pressed) into A bit 0
                 dex                                     ; Decrement X
-                bpl LE7F4                               ; next joykey
+                bpl scanJoyKeysLoop                     ; next joykey
+
                                                         ; At this point A contains active-high key states 1 1 1 right up down left copy
                                                         ; (top 3 bits are from original $FF, bottom 5 bits from key scans)
-                eor #$FF                                ; Invert to active-low key states 0 0 0 ~right ~up ~down ~left ~copy to match those from the joystick port
+
+                eor #$FF                                ; Invert to active-low key states 0 0 0 ~right ~up ~down ~left ~copy
+                                                        ; to match those from the joystick port
 
 LE807:                                                  ; Read Joystick port from User VIA port B (Input Register B)
 

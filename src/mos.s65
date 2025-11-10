@@ -8405,7 +8405,7 @@ calculateJoystickIncrement:                             ; Joystick state is unch
                 lda adcConversionType                   ; A = adcConversionType
                 beq applyDefaultRate                    ; If zero, skip to use 3 as a default
                 cmp #8                                  ; Compare with 8
-                bcc setupRateShift                               ; If <8, skip forward to use value (1 to 7) unchanged
+                bcc setupRateShift                      ; If <8, skip forward to use value (1 to 7) unchanged
                 lda #4                                  ; A = 4 (out of range sentinel will convert to 7)
 
 applyDefaultRate:
@@ -8441,102 +8441,136 @@ storeIncrement:
 LE854:
                 lda adcConversionType                   ; A = adcConversionType
                 and #$20                                ; Mask for b5 : 0 = emulated proportional, 1 = switched
-                beq LE86A                               ; If zero (proportional), skip forward, otherwise switched
-                lda #$FF                                ; A = $FF
+                beq setupDirectionLoop                  ; If zero (proportional) skip over the switched joystick move, otherwise switched
+                lda #$FF                                ; A = $FF              
                 sta adval1LSB                           ; adval1LSB = A ($FF)
                 sta adval2LSB                           ; adval2LSB = A ($FF)
-                lsr a                                   ; A = $7F
+                lsr a                                   ; A = $7F              
                 sta adval1MSB                           ; adval1MSB = A ($7F)
                 sta adval2MSB                           ; adval2MSB = A ($7F)
 
                 ; ADVAL(1) == $7FFF  - centre joystick position
                 ; ADVAL(2) == $7FFF  - centre joystick position
 
-LE86A:
-                ldx #9
+setupDirectionLoop:                         ; There are four, 3-byte entries in the joystickDirections
+                ldx #9                      ; table so the index of the beginning of the last entry is 9
 
-LE86C:
-                lda adcResultLSBs
-                bit unk_E8D5,x
-                beq LE8B2
-                lda unk_E8D5+1,x
-                asl a
-                tay
-                lda adcConversionType
-                and #$20        ; ' '
-                beq LE885
-                lda unk_E8D5+2,x
-                bra LE8AC
-
-;-------------------------------------------------------------------------
-
-LE885:
-                lda adcResultLSBs+1,y
-                bcs LE89C
-                adc adcResultMSBs+1
-                sta adcResultLSBs+1,y
-                lda adcResultLSBs+2,y
-                adc adcResultMSBs+2
-                bcc LE8AF
-                lda #$FF
-                bra LE8AC
+joystickDirectionLoop:                      ; Iterate over entries in the joystickDirections table
+                lda adcResultLSBs           ; A = adcResultLSBs which contains the switch states
+                bit joystickDirections,x    ; Compare the mask in byte 0 of the current entry aginst the switches
+                beq LE8B2                   ; If no match, next table entry
+                lda joystickDirections+1,x  ; A = byte 1 of the current table entry, channel (b0) and direction (b7)
+                asl a                       ; Shift b0 to b1 and b7 into C
+                tay                         ; Y = A  : 0 -> ADVAL(1), 2 -> ADVAL(2) 
+                lda adcConversionType       ; A = adcConversionType
+                and #$20                    ; Mask for b5 : 0 = emulated proportional, 1 = switched 
+                beq LE885                   ; If zero (proportional) skip to LE885
+                lda joystickDirections+2,x  ; otherwise (switched) A = byte 2 of the current table entry (switch equivalent value)
+                bra LE8AC                   ; jump to LE8AC
 
 ;-------------------------------------------------------------------------
 
-LE89C:
-                sbc adcResultMSBs+1
-                sta adcResultLSBs+1,y
-                lda adcResultLSBs+2,y
-                sbc adcResultMSBs+2
-                bcs LE8AF
-                lda #0
+LE885:                                      ; store proportional mode results. On entry Y encodes channel, C encodes direction
+                lda adval1LSB,y             ; A = current ADVAL(1) LSB if Y = 0, or A = current ADVAL(2) LSB if Y = 2
+                bcs LE89C                   ; If C set (from ASL in joystickDirectionLoop) direction is -ve,
+                                            ; otherwise direction is +ve
+
+                                            ; 16-bit addition of the adval increment to current adval values 
+
+                adc advalIncLSB             ; A = ADVAL(channel) LSB + advalIncLSB  
+                sta adval1LSB,y             ; Update ADVAL(channel) LSB
+                lda adval1MSB,y             ; A = ADVAL(channel) MSB
+                adc advalIncMSB             ; A = ADVAL(channel) MSB + advalIncMSB
+                bcc LE8AF                   ; Skip clamping if no overflow 
+                lda #$FF                    ; Clamp to max if overflow
+                bra LE8AC                   ; Take
+
+;-------------------------------------------------------------------------
+
+LE89C:                                      ; 16-bit subtraction of the adval increment from current adval values
+                                            ; On entry A = current ADVAL(channel) LSB, and Y encodes channel
+                sbc advalIncLSB             ; A = ADVAL(channel) LSB - advalIncLSB
+                sta adval1LSB,y             ; Update ADVAL(channel) LSB
+                lda adval1MSB,y             ; A = ADVAL(channel) MSB 
+                sbc advalIncMSB             ; A = ADVAL(channel) MSB - advalIncMSB
+                bcs LE8AF                   ; Skip clamping if no underflow
+                lda #0                      ; Clamp to min if underflow
 
 LE8AC:
-                sta adcResultLSBs+1,y
+                sta adval1LSB,y             ; Update ADVAL(channel) LSB, where Y = 0 -> channel 1; Y = 2 -> channel 2
 
 LE8AF:
-                sta adcResultLSBs+2,y
+                sta adval1MSB,y             ; Update ADVAL(channel) MSB, where Y = 0 -> channel 1; Y = 2 -> channel 2
 
 LE8B2:
-                dex
-                dex
-                dex
-                bpl LE86C
-                inc adcResultMSBs+3
-                bne LE8BF
-                dec adcResultMSBs+3
+                dex                         ; Each joystickDirections table entry is
+                dex                         ; three bytes, so decrement X three times
+                dex                         ; to point X to the next entry
+                bpl joystickDirectionLoop   ; If still X >= 0 process the entry
+                inc joystickRepeatCounter   ; Increment joystickRepeatCounter
+                bne LE8BF                   ; If joystickRepeatCount > 0, take LE8BF
+                dec adcResultMSBs+3         ; Decrement joystickRepeatCounter
 
 LE8BF:
-                ldx currentADCChannel
-                ldy #3
-                jsr eventEntryPoint
-                dec currentADCChannel
-                beq LE8CE
-                bpl locret_E8D4
+                ldx currentADCChannel       ; A = currentADCChannel
+                ldy #3                      ; Event 3 is ADC conversion
+                jsr eventEntryPoint         ; Emit ADC conversion event
+                dec currentADCChannel       ; Decrement current ADC channel
+                beq LE8CE                   ; If zero, reset to max ADC channel
+                bpl locret_E8D4             ; If negative, we're done -> exit
 
 LE8CE:
-                lda maximumADCChannel
-                sta currentADCChannel
+                lda maximumADCChannel       ; A = maximum ADC channel
+                sta currentADCChannel       ; Update the current ADC channel with the max
 
 locret_E8D4:
-                rts
+                rts                         ; Return
                 .endblock
 
 ;-------------------------------------------------------------------------
+; This table contains four entries of three bytes each, and will be
+; processed in decending order. Each entry contains:
+;
+; Byte 0: Direction but mask to test against the adval0LSB joystick direction bits
+;
+; Byte 1: Encodes two pieces of information, both of which are subject to an ASL
+;         in the code that processes the table. In the b0 it encodes the ADVAL
+;         channel (joystick axis) as,
+;
+;             0 -> ASL -> 0 -> interpreted as ADVAL(1) x-axis
+;             1 -> ASL -> 2 -> interpreted as ADVAL(2) y-axis
+;
+;         Furthermore, b7 encodes the direction and controls whether the magnitude
+;         of the joystick increment is added or subtracted,
+;
+;             0 -> ASL -> C=0 -> ADD (positive change)
+;             1 -> ASL -> C=1 -> SUBTRACT (negative change)
+;
+;         For example,
+;
+;             $01 (0000 0001) -> ASL -> $02 -> carry clear -> ADD mode
+;             $80 (1000 0000) -> ASL -> $00 -> carry set -> SUBTRACT mode
+;             $81 (1000 0001) -> ASL -> $02 -> carry set -> SUBTRACT mode
+;
+; Byte 2: The value to use is switched mode ($00 min, $FF max)
 
-unk_E8D5:       .byte $40; @
-                .byte 1
-                .byte $FF
-                .byte $20
-                .byte $81       ;
-                .byte 0
-                .byte $80       ;
-                .byte $80       ;
-                .byte 0
-                .byte $10
-                .byte 0
-                .byte $FF
-                .endif
+joystickDirections: .byte $40   ; UP joystick switch bit mask
+                    .byte $01   ;   ADVAL(2) +ve
+                    .byte $FF   ;   max switched mode value
+
+                    .byte $20   ; DOWN joystick switch bit mask
+                    .byte $81   ;   ADVAL(2) -ve
+                    .byte $00   ;   min switched mode value
+
+                    .byte $80   ; RIGHT joystick switch bit mask
+                    .byte $80   ;   ADVAL(1) -ve
+                    .byte $00   ;   min switched mode value
+
+                    .byte $10   ; LEFT joystick switch bit mask
+                    .byte $00   ;   ADVAL(1) +ve
+                    .byte $FF   ;   max switched model value
+
+.endif ; version>=500
 
 ;-------------------------------------------------------------------------
 

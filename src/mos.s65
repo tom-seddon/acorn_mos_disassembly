@@ -8517,13 +8517,13 @@ emitAdcEvent:
                 jsr eventEntryPoint         ; Emit ADC conversion event
                 dec currentADCChannel       ; Decrement current ADC channel
                 beq resetToMaxChannel       ; If zero, reset to max ADC channel
-                bpl locret_E8D4             ; If negative, we're done -> exit
+                bpl exitHandleJoystick      ; If negative, we're done -> exit
 
 resetToMaxChannel:
                 lda maximumADCChannel       ; A = maximum ADC channel
                 sta currentADCChannel       ; Update the current ADC channel with the max
 
-locret_E8D4:
+exitHandleJoystick:
                 rts                         ; Return
                 .endblock
 
@@ -8531,7 +8531,7 @@ locret_E8D4:
 ; This table contains four entries of three bytes each, and will be
 ; processed in decending order. Each entry contains:
 ;
-; Byte 0: Direction but mask to test against the adval0LSB joystick direction bits
+; Byte 0: Direction bit mask to test against the adval0LSB joystick direction bits
 ;
 ; Byte 1: Encodes two pieces of information, both of which are subject to an ASL
 ;         in the code that processes the table. In the b0 it encodes the ADVAL

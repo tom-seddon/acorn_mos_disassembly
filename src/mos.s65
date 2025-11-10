@@ -8404,11 +8404,11 @@ LE807:                                                  ; Read Joystick port fro
                 bit adcConversionType                   ;   If bit 6 of adcConversionType is ...
                 and #$F0                                ; A = changed direction bits (b7-b4) (excludes changed fire state) 
                 stx adval0LSB                           ; update adval0LSB to reflect joystick/joykey state (including fire state)
-                bvs exitHandleJoystick                  ;   ... set then skip to exit
+                bvs exitSwitchedMode                    ;   ... set then exitSwitchedMode and the whole routine
                 beq calculateJoystickIncrement          ; If same state as previous, continue to calculating the joystick increment
                 stz joystickRepeatCounter               ; Clear the key repeat counter
 
-exitHandleJoystick:
+exitSwitchedMode:
                 rts                                     ; exit
 
 ;-------------------------------------------------------------------------

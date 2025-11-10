@@ -201,7 +201,7 @@ osbyteAndOSWORDRoutineTable:
 
                 ;Read ADC channel or get buffer status
                 .if version==400
-                .word LED18
+                .word readBufferStatus
                 .else
                 .word osbyte80
                 .endif

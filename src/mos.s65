@@ -8464,13 +8464,13 @@ joystickDirectionLoop:                      ; Iterate over entries in the joysti
                 tay                         ; Y = A  : 0 -> ADVAL(1), 2 -> ADVAL(2) 
                 lda adcConversionType       ; A = adcConversionType
                 and #$20                    ; Mask for b5 : 0 = emulated proportional, 1 = switched 
-                beq LE885                   ; If zero (proportional) skip to LE885
+                beq handleProportionalMode  ; If zero (proportional) skip to handleProportionalMode
                 lda joystickDirections+2,x  ; otherwise (switched) A = byte 2 of the current table entry (switch equivalent value)
                 bra LE8AC                   ; jump to LE8AC
 
 ;-------------------------------------------------------------------------
 
-LE885:                                      ; store proportional mode results. On entry Y encodes channel, C encodes direction
+handleProportionalMode:                     ; store proportional mode results. On entry Y encodes channel, C encodes direction
                 lda adval1LSB,y             ; A = current ADVAL(1) LSB if Y = 0, or A = current ADVAL(2) LSB if Y = 2
                 bcs LE89C                   ; If C set (from ASL in joystickDirectionLoop) direction is -ve,
                                             ; otherwise direction is +ve

@@ -8458,7 +8458,7 @@ setupDirectionLoop:                         ; There are four, 3-byte entries in 
 joystickDirectionLoop:                      ; Iterate over entries in the joystickDirections table
                 lda adcResultLSBs           ; A = adcResultLSBs which contains the switch states
                 bit joystickDirections,x    ; Compare the mask in byte 0 of the current entry aginst the switches
-                beq LE8B2                   ; If no match, next table entry
+                beq nextDirectionEntry      ; If no match, next table entry
                 lda joystickDirections+1,x  ; A = byte 1 of the current table entry, channel (b0) and direction (b7)
                 asl a                       ; Shift b0 to b1 and b7 into C
                 tay                         ; Y = A  : 0 -> ADVAL(1), 2 -> ADVAL(2) 
@@ -8502,16 +8502,16 @@ storeAdvalChannelLSB:
 storeAdvalChannelMSB:
                 sta adval1MSB,y             ; Update ADVAL(channel) MSB, where Y = 0 -> channel 1; Y = 2 -> channel 2
 
-LE8B2:
+nextDirectionEntry:
                 dex                         ; Each joystickDirections table entry is
                 dex                         ; three bytes, so decrement X three times
                 dex                         ; to point X to the next entry
                 bpl joystickDirectionLoop   ; If still X >= 0 process the entry
                 inc joystickRepeatCounter   ; Increment joystickRepeatCounter
-                bne LE8BF                   ; If joystickRepeatCount > 0, take LE8BF
+                bne emitAdcEvent            ; If joystickRepeatCount > 0, take emitAdcEvent
                 dec adcResultMSBs+3         ; Decrement joystickRepeatCounter
 
-LE8BF:
+emitAdcEvent:
                 ldx currentADCChannel       ; A = currentADCChannel
                 ldy #3                      ; Event 3 is ADC conversion
                 jsr eventEntryPoint         ; Emit ADC conversion event

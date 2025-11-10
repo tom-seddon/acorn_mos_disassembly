@@ -478,9 +478,9 @@ L8196:
                 jsr resetACIAThenRewriteControlRegister
                 ldx #$01
                 .elsif version>=500
-                ldx #CMOSBytes.joystick
-                jsr readRTCByte
-                sta adcConversionType
+                ldx #CMOSBytes.joystick     ; The *CONFIGURE PROPORTIONAL/SWITCHED (b5) and STICK rate (b3-b0)
+                jsr readRTCByte             ; settings are copied into adcConversionType (as are b7 and b6 which 
+                sta adcConversionType       ; control ADVAL ROM service call and simulated keypresses)
                 .if olivetti
                 ldx #CMOSBytes.country
                 jsr readRTCByte

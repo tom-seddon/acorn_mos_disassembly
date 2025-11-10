@@ -1914,8 +1914,8 @@ unknown11:
 
                 .if version>=500
 joystick: .block
-stickMask=$f
-isSwitchedMask=32
+stickMask=$0f            ; b3-b0: *CONFIGURE STICK
+isSwitchedMask=$20       ; b5: *CONFIGURE PROPORTIONAL
                 .endblock
                 .endif
                 .fill 1

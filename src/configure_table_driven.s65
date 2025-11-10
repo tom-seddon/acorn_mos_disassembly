@@ -200,13 +200,13 @@ tubeWait: .itemWithMetadata "TubeWait",CMOSBytes.defaults4,CMOSBytes.defaults4.t
                 ; .itemWithAddress "TubeWait",handleTubeDelay
                 .endif
                 .if version>=500
-                .itemWithMetadata "Proportional",CMOSBytes.joystick,CMOSBytes.joystick.isSwitchedMask,0,false
+                .itemWithMetadata "Proportional",CMOSBytes.joystick,CMOSBytes.joystick.isSwitchedMask,0,false   ; Smooth proportional mode (b5=0)
                 .endif
                 .if version>=500
-                .itemWithMetadata "Switched",CMOSBytes.joystick,CMOSBytes.joystick.isSwitchedMask,1,false
+                .itemWithMetadata "Switched",CMOSBytes.joystick,CMOSBytes.joystick.isSwitchedMask,1,false       ; Switched min/center/max mode (b5=1)
                 .endif
                 .if version>=500
-                .itemWithMetadata "Stick",CMOSBytes.joystick,CMOSBytes.joystick.stickMask,0,true
+                .itemWithMetadata "Stick",CMOSBytes.joystick,CMOSBytes.joystick.stickMask,0,true                ; (b0-b3) Proportional rate 0-7. Values 1-7 set acceleration rate Zero means default rate of 3. 
                 .endif
                 .itemWithAddress "TV",handleTV
                 ; Terminator for data-driven table

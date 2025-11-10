@@ -9960,7 +9960,7 @@ LED14:
                 .endif
                 bra LECFD
 
-LED18:
+readBufferStatus:
                 .if version==400
                 bpl LEB13
                 .endif
@@ -9996,26 +9996,72 @@ getRS423InputBufferFreeBytes:
                 .endif
 
 ;-------------------------------------------------------------------------
+;
+; OSBYTE $80
+;
+; Read ADC channel
+;
+; On entry:
+;   X = channel number
+;
+; On exit:
+;
+;   X = 0 : Returns channel status
+;           MOS <=3.x: Y = last channel used, X[1:0] = fire buttons (active-high)
+;           MOS 5.x:  Y = current channel, X = digital joystick/mouse byte
+;                     (b7=right, b6=up, b5=down, b4=left, b3-b1=mouse, b0=fire)
+;
+;   X = 1-4 : Returns ADVAL conversion
+;           MOS <=3.x: Returns ADVAL(X) in X(LSB):Y(MSB), range check X < 5
+;           MOS 5.x:  Odd X → ADVAL(1), Even X → ADVAL(2), no range check 
 
                 .if version!=400
 osbyte80:
-                bmi LED18
-                beq LED45
+
+                bmi readBufferStatus        ; If negative ...
+                beq readAdval0              ; If zero, ADVAL(0)
+
                 .if version<500
-                cpx #$05
-                bcs osbyte82                 ;return with X=$ff Y=$ff
-                ldy adcResultMSBs-1,x
-                lda adcResultLSBs-1,x
+
+                ; The ADC workspace layout is two arrays of the five LSB values
+                ; for ADVAL 0 - 4 followed by the five corresponding MSB values.
+
+                cpx #$05                     
+                bcs osbyte82                ; return with X=$ff Y=$ff
+                ldy adcResultMSBs-1,x       ; Y = ADVAL(X - 1) MSB    
+                lda adcResultLSBs-1,x       ; A = ADVAL(X - 1) LSB
+                tax                         ; X = A
+
+                                            ; LSB in X, MSB in Y 
+
+                .elsif version>=500          
+                
+                ; On the Master Compact the digital joystick port is
+                ; supported by MOS code in handleDigitalJoystick which
+                ; converts switched joystick (or cursor/copy 'joykey'
+                ; presses) into either full deflection or centre ADVAL
+                ; values, or smoothly varying values produced by a time
+                ; dependent integration algorithm which simulates an
+                ; analogue joystick. The layout of the MOS 5.x ADC workspace
+                ; at adcResultLSBs is very different to that of earlier
+                ; MOS versions, and only supports two (simulated) analogue
+                ; channels. MOS 5.x can also delegate to ROM service call $2C
+                ; for alternative or supplementary behaviours such as supporting
+                ; real analogue hardware, but still, only two channels are
+                ; supported by this routine.
+
+                                    ;  X is one of these values (no range check)
+                                    ; Xin   1    2    3    4    5    6    7    8 ...
+                inx                 ; INX   2    3    4    5    6    7    8    9 ...
+                txa                 
+                and #1              ; &1    0    1    0    1    0    1    0    1 ...
+                asl a               ; ASL   0    2    0    2    0    2    0    2 ...
                 tax
-                .elsif version>=500
-                inx
-                txa
-                and #1
-                asl a
-                tax
-                ldy adcResultLSBs+3-1,x
-                lda adcResultLSBs+2-1,x
-                tax
+                ldy adval1MSB,x     ; Y = MSB  (ADVAL(1) at X=0, ADVAL(2) at X=2)
+                lda adval1LSB,x     ; A = LSB  (ADVAL(1) at X=0, ADVAL(2) at X=2)
+                tax                 ; X = LSB
+
+                                    ; LSB in X, MSB in Y
                 .endif
                 rts
                 .endif
@@ -10023,23 +10069,34 @@ osbyte80:
 ;-------------------------------------------------------------------------
 
                 .if version!=400
-LED45:
+readAdval0:
                 .if version<500
-                ; Put joystick buttons in bits 0/1.
-                lda systemVIA.irb
-                ror a
-                ror a
-                ror a
-                ror a
-                eor #$FF
-                and #$03
-                ldy adcLastChannelRead
-                stx adcLastChannelRead
-                tax
+
+                ; Put the current ADC channel into Y and the state of the two
+                ; joystick buttons into b1 and b0 of X.
+
+                lda systemVIA.irb       ; System VIA Input Register B has active-low fire buttons on PB4 and PB5
+                ror a                   ; Rotate pb5 and pb4 
+                ror a                   ; right by four
+                ror a                   ; places to occupy
+                ror a                   ; b1 and b0
+                eor #$FF                ; Invert to active-high 
+                and #$03                ; Mask b1 and b0
+                ldy adcLastChannelRead  ; Y = the old adcLastChannelRead for return
+                stx adcLastChannelRead  ; Update adcLastChannelRead
+                tax                     ; X = fire button statuses
+
                 .elsif version>=500
-                ldy currentADCChannel
-                ldx adcResultLSBs
+
+                ; Put the current ADC channel into Y and the state of the four
+                ; joystick direction buttons, three mouse buttons, and fire button
+                ; into X
+
+                ldy currentADCChannel       ; Y = currentADCChannel
+                ldx adcResultLSBs           ; X = adval0LSB : joystick, mouse and fire switch statuses
+
                 .endif
+
                 rts
                 .endif
 

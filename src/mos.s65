@@ -8281,12 +8281,12 @@ adval2LSB   = adcResultLSBs + 3      ; $02b9
 adval2MSB   = adcResultLSBs + 4      ; $02ba  also adcResultMSB
 advalIncLSB = adcResultLSBs + 5      ; $02bb  also adcResultMSB + 1
 advalIncMSB = adcResultLSBs + 6      ; $02bc  also adcResultMSB + 2
-advalR      = adcResultLSBs + 7      ; $02bd  also acdResultMSB + 3
+advalTemp   = adcResultLSBs + 7      ; $02bd  also acdResultMSB + 3
 
-; The advalR entry of the workspace is (re-)used for several variables
-; For clarity, we name them here
-keyDelay = advalR
-joystickRepeatCounter = advalR
+; The advalR entry of the workspace is used for several variables at different
+; times. For clarity, we name them here:
+keyDelay = advalTemp
+joystickRepeatCounter = advalTemp
 
 ; Moreover, the location of adcLastChannelRead is also reused to store joystick
 ; related keypresses, so we introduce another alias

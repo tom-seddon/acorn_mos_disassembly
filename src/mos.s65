@@ -8454,11 +8454,11 @@ storeIncrement:
 
                                                              
                 cpy advalIncMSB                         ; Compare Y (emulated one-based joystick rate) with advalIncMSB
-                bcs LE854                               ; If emulated one-based joystick rate >= advalIncMSB skip limiting
+                bcs centerIfSwitchedMode                ; If emulated one-based joystick rate >= advalIncMSB skip limiting
                 sty advalIncLSB                         ; advalIncLSB = Y   Clamp advalIncLSB to the rate
                 sty advalIncMSB                         ; advalIncMSB = Y   Clamp advalIncMSB to the rate
 
-LE854:
+centerIfSwitchedMode:
                 lda adcConversionType                   ; A = adcConversionType
                 and #$20                                ; Mask for b5 : 0 = emulated proportional, 1 = switched
                 beq setupDirectionLoop                  ; If zero (proportional) skip over the switched joystick move, otherwise switched

@@ -8224,20 +8224,25 @@ rtsE7B0:
 ; depending on the contents of ADVAL(0) lo-byte in page 2. (i.e. the contents of
 ; the address $0200 + adcResultLSBs). The X register value used to index into
 ; this table will represent the bit index according b = 8 - X
-; Why are the values for the edit keys 4 higher than their 'ASCII' values?
+;
+; Note that each byte is a keyboard buffer input value, subject to subsequent
+; translation by the mechanisms of *FX4, OSRDCH/INKEY which is why some of the
+; values are ASCII (delete and return) whereas others, like the edit keys are
+; are neither their ASCII, INKEY nor internal key codes (though are deceptively
+; close in value!)
 
-                                ;  Switch         X  ADVAL(0)  ASCII  diff from     Key
-                                ;                       bit             ASCII    equivalent
+;                Keyboard buffer   Switch         X  ADVAL(0)       Key
+;                input values                          bit    equivalent
 
 switchToKey:    .byte 0         ;                 0     n/a
-                .byte $8D       ;  joystick right 1     b7      $89     4        cursor right
-                .byte $8F       ;  joystick up    2     b6      $8B     4        cursor up
-                .byte $8E       ;  joystick down  3     b5      $8A     4        cursor down
-                .byte $8C       ;  joystick left  4     b4      $88     4        cursor left
-                .byte $7F       ;  mouse right    5     b3      $7F     0        delete key
-                .byte $D        ;  mouse middle   6     b2      $0D     0        return key
-                .byte $8B       ;  mouse left     7     b1      $87     4        copy key
-                .byte $8B       ;  joystick fire  8     b0      $87     4        copy key
+                .byte $8D       ;  joystick right 1     b7      cursor right
+                .byte $8F       ;  joystick up    2     b6      cursor up
+                .byte $8E       ;  joystick down  3     b5      cursor down
+                .byte $8C       ;  joystick left  4     b4      cursor left
+                .byte $7F       ;  mouse right    5     b3      delete key
+                .byte $D        ;  mouse middle   6     b2      return key
+                .byte $8B       ;  mouse left     7     b1      copy key
+                .byte $8B       ;  joystick fire  8     b0      copy key
 
 ; This table is used to define the keys which have joystick-like effects, where
 ; the cursor keys move the joystick in the appropriate direction, and the copy
@@ -8269,14 +8274,14 @@ joyKeys:        .byte $96       ; INKEY copy
 ; To make this 5.x code more comprehensible, we compute 5.x labels with more appropriate names
 ; from the 3.x labels.
 
-adval0LSB  = adcResultLSBs          ; $02b6
-adval1LSB  = adcResultLSBs + 1      ; $02b7
-adval1MSB  = adcResultLSBs + 2      ; $02b8
-adval2LSB  = adcResultLSBs + 3      ; $02b9
-adval2MSB  = adcResultLSBs + 4      ; $02ba  also adcResultMSB
-advalP     = adcResultLSBs + 5      ; $02bb  also adcResultMSB + 1
-advalQ     = adcResultLSBs + 6      ; $02bc  also adcResultMSB + 2
-advalR     = adcResultLSBs + 7      ; $02bd  also acdResultMSB + 3
+adval0LSB   = adcResultLSBs          ; $02b6
+adval1LSB   = adcResultLSBs + 1      ; $02b7
+adval1MSB   = adcResultLSBs + 2      ; $02b8
+adval2LSB   = adcResultLSBs + 3      ; $02b9
+adval2MSB   = adcResultLSBs + 4      ; $02ba  also adcResultMSB
+advalIncLSB = adcResultLSBs + 5      ; $02bb  also adcResultMSB + 1
+advalIncMSB = adcResultLSBs + 6      ; $02bc  also adcResultMSB + 2
+advalR      = adcResultLSBs + 7      ; $02bd  also acdResultMSB + 3
 
 ; The advalR entry of the workspace is (re-)used for several variables
 ; For clarity, we name them here
@@ -8392,6 +8397,9 @@ exitHandleJoystick:
                 rts                                     ; exit
 
 ;-------------------------------------------------------------------------
+; Rate scaling. Converts adcConversionType to a valid rate (1-7), then calculates the increment in
+; advalIncMSB:advalIncLSB = joystickRepeatCounter * 2^rate
+; The effect is to give exponential sensitiviy scaling - higher rate settings produce much faster movement
 
 LE827:                                                  ; Joystick state is unchanged since previous call
                 lda adcConversionType                   ; A = adcConversionType
@@ -8408,24 +8416,27 @@ LE834:
                 dec a                                   ; Decrement A
                 tax                                     ; X = emulated zero-based analogue joystick rate [0..6] slowest to fastest
                 lda joystickRepeatCounter               ; A = repeat counter
-                stz advalQ                              ; advalQ = 0
+                stz advalIncMSB                         ; advalIncMSB = 0
 
 LE83D:
                 dex                                     ; Decrement X (zero-based emulated joystick rate)
-                bmi LE846                               ; If X was decremented from zero, skip to ...
-                asl a                                   ; Rotate A (repeat counter) left, b7 into C
-                rol advalQ                              ; C <- advalQ <- C   | Need to figure out what advalQ represents
-                bra LE83D                               ; While X >= 0       | it's a function of the repeat counter and
-                                                        ;                    | compared later with the one-based joystick rate
+                bmi LE846                               ; If X < 0, exit loop
+                asl a                                   ; Shift A (repeat counter) left, b7 into C
+                rol advalIncMSB                         ; Rotate advalIncMSB left, shifting C in b0
+                bra LE83D                               ; loop
+
+LE846:                                                     
+                sta advalIncLSB                         ; advalIncLSB = A
+                                                        ; advalIncMSB:advalIncLSB now contain joystickRepeatCounter << rate
 
 ;-------------------------------------------------------------------------
+; Velocity limiting. 
 
-LE846:
-                sta advalP                              ; advalP = A
-                cpy advalQ                              ; Compare Y (emulated one-based joystick rate) with advalQ
-                bcs LE854                               ; If emulated one-based joystick rate > advalQ skip to ...
-                sty advalP                              ; advalP = Y
-                sty advalQ                              ; advalQ = Y
+                                                             
+                cpy advalIncMSB                              ; Compare Y (emulated one-based joystick rate) with advalIncMSB
+                bcs LE854                                    ; If emulated one-based joystick rate >= advalIncMSB skip limiting
+                sty advalIncLSB                              ; advalIncLSB = Y   Clamp advalIncLSB to the rate
+                sty advalIncMSB                              ; advalIncMSB = Y   Clamp advalIncMSB to the rate
 
 LE854:
                 lda adcConversionType                   ; A = adcConversionType

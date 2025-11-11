@@ -8281,6 +8281,33 @@ rtsE7B0:
 ;   Channel <odd> : equivalent to channel 1
 ;   Channel <even> : equivalent to channel 2
 ;
+; ROM SERVICE CALL DELEGATION:
+;   When bit 7 of adcConversionType is set, joystick handling is completely
+;   delegated to sideways ROMs via service call $2C (romServiceCallCompactJoystick).
+;   This is a tail call in dispatchRomServiceCallOrJoykeys bypasses ALL built-in
+;   joystick handling - no keyboard-simulating-joystick, no proportional mode,
+;   no switched mode, and no joystick-simulating-keyboard will run.
+;
+;   This happens REGARDLESS of whether any ROM claims the service call. If no ROM
+;   responds, joystick handling simply doesn't occur (ADVAL values remain unchanged).
+;
+;   To enable ROM delegation: *FX190,128,127 (sets bit 7, preserves other bits)
+;   Default value is loaded from CMOS at boot; no *CONFIGURE setting exists.
+;
+;   ROMs implementing service call $2C receive:
+;   - A register = service call number ($2C)
+;   - Y register = page 2 offset for ADVAL workspace ($B6 = offset to $02B6)
+;   - Should write joystick data to $0200+Y through $0200+Y+4 (5 bytes)
+;   - Return X=0 to claim (stops service call chain)
+;   - Return A unchanged to pass to next lower-priority ROM
+;
+;   Use case: Hardware expansions (real analogue joystick interfaces) can
+;   completely replace the built-in digital joystick support.
+;
+;   This is an either/or choice:
+;   - Bit 7 clear = built-in handling (modes described above)
+;   - Bit 7 set = ROM-only handling (built-in code skipped entirely)
+;
 
 ; This table is used to enter ASCII key values into the keyboard buffer
 ; depending on the contents of ADVAL(0) lo-byte in page 2. (i.e. the contents of

@@ -8437,8 +8437,8 @@ scanJoyKeysLoop:                        ; for each joykey
                                         ; At this point A contains active-high key states 1 1 1 right up down left copy
                                         ; (top 3 bits are from original $FF, bottom 5 bits from key scans)
 
-                eor #$FF                        ; Invert to active-low key states 0 0 0 ~right ~up ~down ~left ~copy
-                                                ; to match those from the joystick port
+                eor #$FF                ; Invert to active-low key states 0 0 0 ~right ~up ~down ~left ~copy
+                                        ; to match those from the joystick port
 
 readJoystickPort:   ; Read Joystick port and combine with joykey results
 

@@ -8309,10 +8309,10 @@ rtsE7B0:
 ;   - Bit 7 set = ROM-only handling (built-in code skipped entirely)
 ;
 
-; This table is used to enter ASCII key values into the keyboard buffer
-; depending on the contents of ADVAL(0) lo-byte in page 2. (i.e. the contents of
-; the address $0200 + adcResultLSBs). The X register value used to index into
-; this table will represent the bit index according to b = 8 - X
+; The switchToKey table is used to enter ASCII key values into the keyboard
+; buffer depending on the contents of ADVAL(0) lo-byte in page 2. (i.e. the
+; contents of the address $0200 + adcResultLSBs). The X register value used to
+; index into this table will represent the bit index according to b = 8 - X
 ;
 ; Note that each byte is a keyboard buffer input value, subject to subsequent
 ; translation by the mechanisms of *FX4, OSRDCH/INKEY which is why some of the
@@ -8333,9 +8333,9 @@ switchToKey:    .byte 0         ;                 0     n/a
                 .byte $8B       ;  mouse left     7     b1      copy key
                 .byte $8B       ;  joystick fire  8     b0      copy key
 
-; This table is used to define the keys which have joystick-like effects, where
-; the cursor keys move the joystick in the appropriate direction, and the copy
-; key is equivalent to the fire button
+; The joyKeys table is used to define the keys which have joystick-like effects,
+; where the cursor keys move the joystick in the appropriate direction, and the
+; copy key is equivalent to the fire button.
 
 joyKeys:        .byte $96       ; INKEY copy
                 .byte $E6       ; INKEY cursor left
@@ -8345,9 +8345,9 @@ joyKeys:        .byte $96       ; INKEY copy
 
 ;-------------------------------------------------------------------------
 
-; One challenge here is that the adcResultLSBs and adcResultMSBs labels are misleading for
-; MOS 5.x because the layout of the ADC workspace is quite different in this version compared
-; to MOS 3.x.
+; One challenge here is that the adcResultLSBs and adcResultMSBs labels are
+; misleading for MOS 5.x because the layout of the ADC workspace is quite
+; different in this version compared to MOS 3.x.
 ;
 ; The MOS 5.x workspace layout is as follows:
 ;
@@ -8360,8 +8360,8 @@ joyKeys:        .byte $96       ; INKEY copy
 ; $02bc - temporary variables
 ; $02bd - temporary variables
 
-; To make this 5.x code more comprehensible, we compute 5.x labels with more appropriate names
-; from the 3.x labels.
+; To make this 5.x code more comprehensible, we compute 5.x labels with more
+; appropriate names from the 3.x labels.
 
 adval0LSB   = adcResultLSBs          ; $02b6
 adval1LSB   = adcResultLSBs + 1      ; $02b7
@@ -8635,8 +8635,8 @@ exitHandleJoystick:
                 .endblock
 
 ;-------------------------------------------------------------------------
-; This table contains four entries of three bytes each, and will be
-; processed in decending order. Each entry contains:
+; The joystickDirections table contains four entries of three bytes each, and
+; will be processed in decending order. Each entry contains:
 ;
 ; Byte 0: Direction bit mask to test against the adval0LSB joystick direction bits
 ;

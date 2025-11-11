@@ -8220,6 +8220,68 @@ rtsE7B0:
                 .if version>=500
 ;-------------------------------------------------------------------------
 
+; Digital joystick input processing
+;
+; The handleDigitalJoystick  routine below is called every centisecond (100Hz)
+; to process digital joystick inputs and simulate analogue ADVAL channels
+; 1 and 2. It supports multiple operating modes configured via *CONFIGURE
+; and *FX commands:
+;
+; PROPORTIONAL MODE (*CONFIGURE PROPORTIONAL or *FX190,<rate 0-7>):
+;   Uses an integration algorithm to convert instantaneous digital switch states
+;   into smoothly varying 16-bit ADVAL channel values that simulate analogue
+;   joystick deflection. The algorithm implements linear acceleration with
+;   velocity limiting:
+;
+;   - Each polling tick increments a counter (joystickRepeatCounter) while a
+;     direction is held
+;   - The channel value increment is calculated as: counter * 2^rate
+;   - This produces quadratic growth: deflection increases as the square of time
+;   - When the increment's MSB exceeds the configured rate value, velocity
+;     limiting activates
+;   - Limited velocity equals rate * 256, producing linear growth thereafter
+;   - When input is released, the joystickRepeatCounter resets and the channel
+;     coasts or holds at its current value, so further joystick input is
+;     required to return to the centre value.
+;
+;   The rate (0-7) is configured via *CONFIGURE STICK <rate> and controls
+;   responsiveness: Rate 7 reaches full deflection in ~0.32 s, Rate 1 in ~2.56 s.
+;   Rate 0 is special, and causes the effective rate to be 3. Rate values above
+;   7 are clamped to 7. Also set by *FX190, <rate 0-7> which implicitly enters
+;   proportional mode.
+;
+; SWITCHED MODE (*CONFIGURE SWITCHED or *FX190,32):
+;   Provides instant positioning without acceleration. When a direction is
+;   pressed, the corresponding ADVAL channel immediately jumps to minimum
+;   ($0000), maximum ($FFFF) depending on the switch state.
+;   When released, channels return immediately to center ($7FFF).
+;
+; Keyboard simulating joystick (*FX4, 3):
+;   The cursor keys (up/down/left/right) and COPY key can be mapped to simulate
+;   digital joystick inputs. The routine scans these keys via KEYV and combines
+;   them with hardware joystick inputs - either joystick or keys can be used
+;   simultaneously. This allows keyboard control of joystick-driven software.
+;
+; Joystick simulating keyboard (*FX190, 64):
+;   When bit 6 of adcConversionType is set, the routine reverses the mapping:
+;   joystick directions are converted to cursor key equivalents and fire buttons
+;   to COPY key. This allows joystick control of keyboard-driven software like
+;   the MOS command line editor. In this mode ADVAL(1) and ADVAL(2) will not
+;   reflect the state of the “joystick” position.
+;
+; INPUT SOURCES:
+;   - Hardware joystick: User VIA Port B ($FE60), bits 0-4, active-low
+;   - Keyboard: KEYV vector for cursor keys and COPY, returns C=1 when pressed
+;
+; ADVAL CHANNEL ASSIGNMENTS:
+;   Channel 0 (adval0LSB): Switch state byte, bits 0-4 encode directions/buttons
+;   Channel 1: Horizontal axis ($0000=left, $7FFF=center, $FFFF=right)
+;   Channel 2: Vertical axis ($0000=down, $7FFF=center, $FFFF=up)
+;   ...
+;   Channel <odd> : equivalent to channel 1
+;   Channel <even> : equivalent to channel 2
+;
+
 ; This table is used to enter ASCII key values into the keyboard buffer
 ; depending on the contents of ADVAL(0) lo-byte in page 2. (i.e. the contents of
 ; the address $0200 + adcResultLSBs). The X register value used to index into

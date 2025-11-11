@@ -846,6 +846,9 @@ editKeysMode: .block
 editKeys=0                      ;edit keys do editing
 asciiKeys=1                     ;edit keys are ASCII 135-139
 functionKeys=2                  ;edit keys are F keys 11-15
+                .if version>=500
+joyKeys=3                       ;cursor keys simulate joystick (MOS 5.x only)
+                .endif
                 .fill 1
                 .endblock
                 

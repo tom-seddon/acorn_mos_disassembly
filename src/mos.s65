@@ -8406,10 +8406,10 @@ dispatchRomServiceCallOrJoykeys:                        ; Either delegate to a s
                 ldx #romServiceCallCompactJoystick      ; with Y = offset into page 2 for
                 jmp makeROMServiceCall                  ; ADVAL results location
 
-checkCursorKeyMode:                                     ; Tests if cursor editing mode 3 is active *FX 4, 3
+checkCursorKeyMode:                                     ; Tests if cursor editing mode joyKeys is active *FX 4, 3
                 lda #$FF                                ; A = 255
                 ldx editKeysMode                        ; If cursor editing mode (see OSBYTEs 4 and 237)
-                cpx #3                                  ; is not equal to 3 (Master Compact only) then
+                cpx #editKeysMode.joyKeys               ; is not equal to joyKeys (Master Compact only) then
                 bne readJoystickPort                    ; skip over reading the joykeys to reading the joystick port
 
                 ; Otherwise,

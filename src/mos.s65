@@ -8275,11 +8275,15 @@ rtsE7B0:
 ;
 ; ADVAL CHANNEL ASSIGNMENTS:
 ;   Channel 0 (adval0LSB): Switch state byte, bits 0-4 encode directions/buttons
-;   Channel 1: Horizontal axis ($0000=left, $7FFF=center, $FFFF=right)
+;   Channel 1: Horizontal axis ($0000=right, $7FFF=center, $FFFF=left) 
 ;   Channel 2: Vertical axis ($0000=down, $7FFF=center, $FFFF=up)
 ;   ...
 ;   Channel <odd> : equivalent to channel 1
 ;   Channel <even> : equivalent to channel 2
+;
+;   NOTE: The horizontal axis sense is INVERTED compared to both screen coordinates
+;   and standard mathematical conventions (where increasing X moves right). Here,
+;   increasing values move LEFT.
 ;
 ; ROM SERVICE CALL DELEGATION:
 ;   When bit 7 of adcConversionType is set, joystick handling is completely

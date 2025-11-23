@@ -60,9 +60,9 @@ creation of new MegaROM images is much simplified.
 Olivetti PC128S, and get a bit more adventurous by including bug
 fixes, performance improvements and new features.
 
-# history
+# history/contributors
 
-The starting point was JGH's MOS 3.20 disassembly here:
+The starting point was J. G. Harston's MOS 3.20 disassembly here:
 http://mdfs.net/Info/Comp/Acorn/Source/MOS.htm - this provided
 comments for several sections, identified many of the tables, and
 convinced me that this sort of project might actually be feasible.
@@ -73,6 +73,10 @@ much) since OS 1.20.
 
 https://tobylobster.github.io/GXR-pages/index.html has provided symbol
 names for some of the bits similar to the the GXR ROM.
+
+Robert Smallshire investigated the Master Compact joystick handling,
+documented here:
+https://blog.smallshire.no/blog/compact-joystick/acorn-bbc-master-compact-joystick/
 
 # the other MOS parts?
 

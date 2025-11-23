@@ -19,39 +19,41 @@ def main2(options):
                     p=os.path.normpath(os.path.join(dirpath,filename))
                     found_paths.add(p)
 
+    good=True
+
     for found_path in found_paths:
         with open(found_path,'rb') as f: data=f.read()
-        n=1
+
+        # must be valid UTF-8.
+        try: text=data.decode('utf-8')
+        except UnicodeDecodeError as exc:
+            sys.stderr.write('%s: %s\n'%(found_path,exc))
+            good=False
+
+        # must have consistent line endings.
+        expected_eol=None
         i=0
-        s=0
-        bad=False
-
-        def eol(possible_other):
-            nonlocal n,i,s,bad
-            
-            e=i
-            i+=1
-            if i<len(data) and data[i]==possible_other: i+=1
-
-            if bad:
-                raw_line=data[s:e]
-                printable_line=''
-                for c in raw_line:
-                    if c<32 or c>=128: printable_line+='\\x%02X'%c
-                    else: printable_line+=chr(c)
-                print('%s:%d: %s'%(found_path,n,printable_line))
-
-            bad=False
-            n+=1
-            s=i
-        
+        line_number=1
         while i<len(data):
-            if data[i]==13: eol(10)
-            elif data[i]==10: eol(13)
-            elif data[i]>128:
-                bad=True
-                i+=1
+            if data[i]==13 or data[i]==10:
+                j=i+1
+                if (i+1<len(data) and
+                    (data[i+1]==13 or data[i+1]==10) and
+                    data[i+1]!=data[i]):
+                    j+=1
+
+                eol=data[i:j]
+                if expected_eol is None: expected_eol=eol
+                elif eol!=expected_eol:
+                    sys.stderr.write('%s:%d: EOL mismatch\n'%(found_path,line_number))
+                    good=False
+                    break   # no point looking for more...
+
+                line_number+=1
+                i=j
             else: i+=1
+
+    if not good: sys.exit(1)
                 
 def main(argv):
     p=argparse.ArgumentParser()

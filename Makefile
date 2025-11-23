@@ -49,6 +49,7 @@ OTHER_350_ROMS_REL_DFS:=$(BUILD)/other_350_roms.rel_dfs
 
 .PHONY:all
 all:
+	$(_V)$(PYTHON) bin/check_text_files.py '*.s65'
 	$(_V)$(MAKE) _build_orig_with_ext VERSION=320
 	$(_V)$(MAKE) _build_orig VERSION=500
 	$(_V)$(MAKE) _build_orig VERSION=510
@@ -328,7 +329,6 @@ tom_laptop: ECTAGS:=ctags
 endif
 tom_laptop:
 	$(ECTAGS) '--exclude=.#*' --langdef=64tass --langmap=64tass:.s65 '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*):/\1/l,label/' '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*)=/\1/k,const/' -e *.s65 src/*.s65
-	$(PYTHON) bin/check7bit.py '*.s65'
 	$(MAKE) prebuilt_versions
 	$(_V)$(SHELLCMD) blank-line
 	$(_V)$(SHELLCMD) sha1 "build/320r/320r.bin"

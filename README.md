@@ -34,7 +34,7 @@ Alternatively, you can create them yourself, following
    same source, ultimately they should be mostly replaced by feature
    flags, each version then choosing its own set
    
-3. Produce a decent-quality modifiable source file, with all label
+3. Produce source files that are actually modifiable, with all label
    references and data-dependent constants located, and current
    assumptions documented with error or warning directives,
    facilitating addition or removal of code

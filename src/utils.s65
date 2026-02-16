@@ -1,7 +1,20 @@
 ; -*- comment-column:45; -*-
 
 utilsROMHeader: .block
-                .if (version==320||version==350)&&includeTerminalROM
+                .if refreshVersion
+                jmp commandLineUI
+                jmp utilsServiceEntryPoint
+                .byte $C2                    ; ROM type=SERV+LANG+6502
+                .byte copyrightText-1-utilsROMHeader
+                .byte $01
+                .text "MOS"
+                .byte 0
+copyrightText:
+                ; sorry Acorn :( - but your name took up a measurable
+                ; number of bytes.
+                .text "(C)"
+                .byte 0
+                .elsif (version==320||version==350)&&includeTerminalROM
                 jmp terminalLanguageEntryPoint ; Language entry point
                 jmp utilsServiceEntryPoint  ; Service entry point
                 .byte $C2                    ; ROM type=SERV+LANG+6502
@@ -18,7 +31,6 @@ copyrightText:
                 .byte 0
 
                 .elsif version==400||!includeTerminalROM
-
                 brk
                 brk
                 brk
@@ -717,6 +729,21 @@ commandLineUIOSWORD0Parameters:
 ;-------------------------------------------------------------------------
 
 commandLineUI:
+                .if refreshVersion&&includeTubeSupport
+                lda #$ea   ; OSBYTE Read flag indicating Tube presence
+                ldx #$00
+                ldy #$ff
+                jsr OSBYTE
+                txa
+                beq hostSideCommandLineUI
+                ; Enter parasite OS's command line UI, like OSCLI GO
+                ; F800. (The host command line UI isn't quite second
+                ; processor-friendly - fixable, but more bytes of code
+                ; to do that. Easiest just to reuse the parasite OS's
+                ; version.)
+                jmp $f800
+hostSideCommandLineUI:
+                .endif
                 lda #<commandLineUIBRKHandler
                 sta BRKV+0
                 lda #>commandLineUIBRKHandler
@@ -724,7 +751,11 @@ commandLineUI:
                 lda #oscliPrompt|utilsROM
                 sta currentLanguageROM
 commandLineUILoop:
+                .if refreshVersion&&includeTubeSupport
+                dex                          ; X=$ff
+                .else
                 ldx #$FF                     
+                .endif
                 txs                          
                 cli                          
                 jsr selectHAZEL          

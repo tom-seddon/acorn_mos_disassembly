@@ -171,6 +171,11 @@ want.)
 * All: fix `*ROMS` displaying spurious `Ignored` (particularly likely
   in Mode 7) for banks corresponding to unoccupied sockets or
   cartridge ports
+* All: add language entry point for ROM 15, now always a non-HI 6502
+  ROM, that will enter the `*` prompt on the host CPU or 6502 second
+  processor. (Mainly relevant if using MOS 3.50G with Z80 second
+  processor: `*CONFIGURE LANG 15` is a viable workaround for its
+  incompatibility with HI ROMs.)
 
 ## F
 

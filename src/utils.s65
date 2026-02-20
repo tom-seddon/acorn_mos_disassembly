@@ -2,7 +2,7 @@
 
 utilsROMHeader: .block
                 .if refreshVersion
-                jmp commandLineUI
+                jmp commandLineUILanguage
                 jmp utilsServiceEntryPoint
                 .byte $C2                    ; ROM type=SERV+LANG+6502
                 .byte copyrightText-1-utilsROMHeader
@@ -728,22 +728,24 @@ commandLineUIOSWORD0Parameters:
 
 ;-------------------------------------------------------------------------
 
-commandLineUI:
-                .if refreshVersion&&includeTubeSupport
+                .if refreshVersion
+commandLineUILanguage:
+                .if includeTubeSupport
                 lda #$ea   ; OSBYTE Read flag indicating Tube presence
                 ldx #$00
                 ldy #$ff
                 jsr OSBYTE
                 txa
-                beq hostSideCommandLineUI
-                ; Enter parasite OS's command line UI, like OSCLI GO
-                ; F800. (The host command line UI isn't quite second
-                ; processor-friendly - fixable, but more bytes of code
-                ; to do that. Easiest just to reuse the parasite OS's
-                ; version.)
+                beq commandLineUI
+                ; Enter 6502 parasite OS's command line UI, like OSCLI
+                ; GO F800. (The host command line UI isn't quite
+                ; second processor-friendly - fixable, but more bytes
+                ; of code to do that. Easiest just to reuse the
+                ; parasite OS's version.)
                 jmp $f800
-hostSideCommandLineUI:
                 .endif
+                .endif
+commandLineUI:
                 lda #<commandLineUIBRKHandler
                 sta BRKV+0
                 lda #>commandLineUIBRKHandler
@@ -751,11 +753,7 @@ hostSideCommandLineUI:
                 lda #oscliPrompt|utilsROM
                 sta currentLanguageROM
 commandLineUILoop:
-                .if refreshVersion&&includeTubeSupport
-                dex                          ; X=$ff
-                .else
                 ldx #$FF                     
-                .endif
                 txs                          
                 cli                          
                 jsr selectHAZEL          

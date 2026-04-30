@@ -589,6 +589,34 @@ Inline the LSRs for 2 bpp text writing = further useful improvements.
 |    6 |  381 | 2624 |
 |    7 |  235 | 4255 |
 
+*** Oops, printer bug...
+
+Before:
+
+| Mode | TIME |  cps |
+|------+------+------|
+|    0 |  368 | 2717 |
+|    1 |  608 | 1644 |
+|    2 |  993 | 1007 |
+|    3 |  371 | 2695 |
+|    4 |  382 | 2617 |
+|    5 |  631 | 1584 |
+|    6 |  383 | 2610 |
+|    7 |  237 | 4219 |
+
+After:
+
+| Mode | TIME |  cps |
+|------+------+------|
+|    0 |  371 | 2695 |
+|    1 |  610 | 1639 |
+|    2 |  996 | 1004 |
+|    3 |  373 | 2680 |
+|    4 |  385 | 2597 |
+|    5 |  634 | 1577 |
+|    6 |  387 | 2583 |
+|    7 |  239 | 4184 |
+
 * Refreshed version release process
 
 Make sure =acorn_mos_disassembly= is looking good.
@@ -953,6 +981,31 @@ OSBYTE 80 addresses: ($2b6 = adcResultLSBs)
 |   3 |   4 |  0 |   0 | 0x2b7 | 0x2b8 |
 |   4 |   5 |  1 |   2 | 0x2b9 | 0x2ba |
 
+* MOS 3.50 vs Z80 second processor
 
+Discussion: https://www.stardot.org.uk/forums/viewtopic.php?t=32471
 
-* eof
+Mini bootstrap ROM idea: https://www.stardot.org.uk/forums/viewtopic.php?p=477687#p477687
+
+Possible mini bootstrap ROM contents
+
+| Address | Bytes          | Instructions                   |
+|---------+----------------+--------------------------------|
+| bf00    | a9 8e          | lda #142                       |
+| bf02    | 4c 0e bf       | jmp $bf0e                      |
+| bf05    | --             | --                             k|
+| bf06    | 42             | 6502 code, language entry only |
+| bf07    | 09             | copyright offset               |
+| bf08    | 00             | version number                 |
+| bf09    | 00 28 43 29 00 | copyright message              |
+| bf0e    | ?? 14 bf       | ldx $bf14                      |
+| bf11    | 4c f4 ff       | jmp $fff4                      |
+| bf14    | --             | OSBYTE 8E argument             |
+
+The OSBYTE 8E argument is last, to simplify transferring the ROM: copy
+the $13 fixed bytes, then do =lda $f4:ora #$20:sta $fee5= to send the
+final one too.
+
+The ROM doesn't need a Tube relocation address. The transfer and
+execution will be handled manually.
+

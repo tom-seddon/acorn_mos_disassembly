@@ -8854,7 +8854,10 @@ LE833:
                 ;
                 ; (The spool disable + spool handle case is treated as
                 ; spool enabled.)
-                lda characterDestinationStatus
+
+                lda STATE
+                and #STATE.isPrinterEnabled
+                ora characterDestinationStatus ; bit 0 = VDU2 OR RS423 (and 
                 and #(~characterDestinationStatus.spool_disable)&$ff
                 ora spoolFileHandle
                 beq LE8A5

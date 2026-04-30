@@ -340,7 +340,7 @@ tom_laptop:
 	$(_V)$(SHELLCMD) split -b 131072 "orig/multios/multios.bin" "build/multios"
 	$(_V)$(SHELLCMD) concat -o "build/multios.bin" "build/multios0" "build/350r/350r.bin" "build/multios2" "build/multios3"
 	$(MAKE) tom_reset
-#	$(MAKE) tom_wrchspd
+	$(MAKE) tom_wrchspd
 
 # /opt/local/bin/ctags --exclude='.#*' --langdef=beebasm --langmap=beebasm:.6502.asm '--regex-beebasm=/^\.(\^|\*)?([A-Za-z0-9_]+)/\2/l,label/' '--regex-beebasm=/^[ \t]*macro[ \t]+([A-Za-z0-9_]+)/\1/m,macro/i' '--regex-beebasm=/^[ \t]*([A-Za-z0-9_]+)[ \t]*=[^=]/\1/v,value/' -eR src lib stnicc-beeb.asm
 
@@ -362,7 +362,7 @@ tom_wordspd: _CURL:=curl --no-progress-meter
 tom_wordspd: _SSD:=build/wordspd.ssd
 tom_wordspd:
 	$(PYTHON) "submodules/beeb/bin/ssd_create.py" -o "$(_SSD)" -b "*BASIC" -b "CHAIN\"WORDSPD\"" "beeb/acorn_mos_disassembly/0/$$.WORDSPD"
-	$(_CURL) --connect-timeout 0.25 -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
+	$(_CURL) --connect-timeout 0.25 -G "http://localhost:48075/reset/b2" --data-urlencode "config=MOS 3.50r + BeebLink"
 	$(_CURL) -H "Content-Type:application/binary" --upload-file "$(_SSD)" "http://localhost:48075/run/b2?name=$(_SSD)"
 
 .PHONY:tom_wrchspd
@@ -370,6 +370,8 @@ tom_wrchspd: _CURL:=curl --no-progress-meter
 tom_wrchspd: _SSD:=build/wrchspd.ssd
 tom_wrchspd:
 	$(PYTHON) "submodules/beeb/bin/ssd_create.py" -o "$(_SSD)" -b "*BASIC" -b "CHAIN\"WRCHSPD\"" "beeb/acorn_mos_disassembly/0/$$.WRCHSPD"
+# $(_CURL)  --fail-with-body --connect-timeout 0.25 -G "http://localhost:48075/api-set-globals/*" --data-urlencode "read_path=$(shell pwd)"
+# $(_CURL)  --fail-with-body --connect-timeout 0.25 -G "http://localhost:48075/api" -H "Content-Type:application/json" --upload-file "tools/config.mos3.50r.json"
 	$(_CURL) --connect-timeout 0.25 -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
 	$(_CURL) -H "Content-Type:application/binary" --upload-file "$(_SSD)" "http://localhost:48075/run/b2?name=$(_SSD)"
 

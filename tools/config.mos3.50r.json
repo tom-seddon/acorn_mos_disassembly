@@ -1,0 +1,16 @@
+{
+    "requests":[
+        {
+            "type":"config",
+            "args":{
+                "base_default_config":"Master 128 (MOS 3.20)",
+		"os_rom":{
+		    "contents":{
+			"path":"build/350r/350r.bin"
+		    },
+		    "os_rom_type":"MegaROM"
+		}
+            }
+        }
+    ]
+}

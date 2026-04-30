@@ -7,21 +7,31 @@ Merge any doc stuff from the under development section of refresh.md
 to somewhere in the main document. The version history for released
 versions is just a summary.
 
+Update =doc/refresh.md= to promote development version to a release
+and add new development version.
+
 Merge into relevant submodule in =acorn_mos_refreshed=.
 
 Update =appveyor.yml= in =acorn_mos_refreshed= as required to include
 any new assets in the release ZIP.
 
-Commit and push =acorn_mos_refreshed=. Release should follow.
+Commit, with comment along these lines:
 
-In separate =acorn_mos_disassembly= working copy: (don't do this in
-the submodule)
+: Update to version X.
 
-- bump version nmuber in =src/refresh.65=
-- update =doc/refresh.md= to promote development version to a release
-  and add new development version
+Then push =acorn_mos_refreshed=. Release should follow.
 
-Commit and push =acorn_mos_disassembly=.
+In the separate =acorn_mos_disassembly= working copy (don't do this in
+the submodule), bump =refreshMinorVersion= in =src/refresh.65=.
+
+Commit, with comment along these lines:
+
+: Update due to release of version X.
+
+Also not a bad time to do a =make dist=. (Commit with comment: =make
+dist.=)
+
+Then push =acorn_mos_disassembly=.
 
 (Pushes to =acorn_mos_disassembly= will generate new releases, but
 whatever... it's just a zip of listing files.)

@@ -1,4 +1,31 @@
 #+STARTUP: overview
+* Refreshed version release process
+
+Make sure =acorn_mos_disassembly= is looking good.
+
+Merge any doc stuff from the under development section of refresh.md
+to somewhere in the main document. The version history for released
+versions is just a summary.
+
+Merge into relevant submodule in =acorn_mos_refreshed=.
+
+Update =appveyor.yml= in =acorn_mos_refreshed= as required to include
+any new assets in the release ZIP.
+
+Commit and push =acorn_mos_refreshed=. Release should follow.
+
+In separate =acorn_mos_disassembly= working copy: (don't do this in
+the submodule)
+
+- bump version nmuber in =src/refresh.65=
+- update =doc/refresh.md= to promote development version to a release
+  and add new development version
+
+Commit and push =acorn_mos_disassembly=.
+
+(Pushes to =acorn_mos_disassembly= will generate new releases, but
+whatever... it's just a zip of listing files.)
+
 * OSBYTEs
 
 ** By number
@@ -617,33 +644,6 @@ After:
 |    6 |  387 | 2583 |
 |    7 |  239 | 4184 |
 
-* Refreshed version release process
-
-Make sure =acorn_mos_disassembly= is looking good.
-
-Merge any doc stuff from the under development section of refresh.md
-to somewhere in the main document. The version history for released
-versions is just a summary.
-
-Merge into relevant submodule in =acorn_mos_refreshed=.
-
-Update =appveyor.yml= in =acorn_mos_refreshed= as required to include
-any new assets in the release ZIP.
-
-Commit and push =acorn_mos_refreshed=. Release should follow.
-
-In separate =acorn_mos_disassembly= working copy: (don't do this in
-the submodule)
-
-- bump version nmuber in =src/refresh.65=
-- update =doc/refresh.md= to promote development version to a release
-  and add new development version
-
-Commit and push =acorn_mos_disassembly=.
-
-(Pushes to =acorn_mos_disassembly= will generate new releases, but
-whatever... it's just a zip of listing files.)
-
 * Reset stuff
 
 1. resetEntryPoint
@@ -666,7 +666,7 @@ Reset sequence:
 
 2. 
 
-* Prebuilds
+P* Prebuilds
 
 ** ADFS patches
 
@@ -946,7 +946,6 @@ MOS 3.50: 664
 MOS 3.20F: 635
 MOS 3.50F: 664
 
-
 * Multi-OS
 
 ST M29F040B @PLCC32
@@ -1009,3 +1008,4 @@ final one too.
 The ROM doesn't need a Tube relocation address. The transfer and
 execution will be handled manually.
 
+* eof.

@@ -1,7 +1,33 @@
-Rebuildable, partially-commented version of Acorn MOS for Acorn's
-8-bit BBC Master series and derivatives. The objective is to produce a
-useful listing file that you can use for reference when debugging or
-writing code.
+Updated versions of Acorn MOS for Acorn's 8-bit Master series and
+derivatives. 
+
+# new versions of the MOS
+
+There some **experimental** new versions of the MOS available, for use
+at your own risk. These can be used in an emulator, or programmed into
+a EPROM (or similar) and used in real hardware.
+
+**All new versions of the MOS are experimental.** Should you actually
+use your 8-bit 1980s Acorn computer for anything important, please
+proceed with appropriate caution.
+
+[Refresh versions of MOS 3.20, MOS 3.50 and MOS
+5.10](./docs/refresh.md), cover Master 128, Master Compact and
+Olivetti PC128S, including bug fixes, performance improvements and new
+features.
+
+[MOS 3.20(NT) and MOS 3.50(NT)](./docs/NT.md), for Master 128 only,
+have had the bare minimum of changes required to remove the Terminal
+ROM, allowing the MOS code to be contained entirely in ROM 15 and the
+OS area. All existing OS behaviour is (hopefully) maintained, but
+creation of new MegaROM images is much simplified.
+
+For any feedback or suggestions, please post in [the stardot
+thread](https://www.stardot.org.uk/forums/viewtopic.php?t=28879) or
+[add a GitHub
+issue](https://github.com/tom-seddon/acorn_mos_disassembly/issues).
+
+# MOS disassembly
 
 **This project is a work in progress.**
 
@@ -23,7 +49,7 @@ Alternatively, you can create them yourself, following
 
 [Some notes about the listing files](./docs/lst.md).
 
-# goals
+The goals of the disassembly are:
 
 1. Produce a useful listing file from the assembler, that's got all
    addresses and bytes listed, and enough comments that you can follow
@@ -38,27 +64,6 @@ Alternatively, you can create them yourself, following
    references and data-dependent constants located, and current
    assumptions documented with error or warning directives,
    facilitating addition or removal of code
-
-# new versions of the MOS
-
-There some **experimental** new versions of the MOS available, for use
-at your own risk. These can be used in an emulator, or programmed into
-a EPROM (or similar) and used in real hardware.
-
-**All new versions of the MOS are experimental.** Should you actually
-use your 8-bit 1980s Acorn computer for anything important, please
-proceed with appropriate caution.
-
-[MOS 3.20(NT) and MOS 3.50(NT)](./docs/NT.md), for Master 128 only,
-have had the bare minimum of changes required to remove the Terminal
-ROM, allowing the MOS code to be contained entirely in ROM 15 and the
-OS area. All existing OS behaviour is (hopefully) maintained, but
-creation of new MegaROM images is much simplified.
-
-[Refresh versions of MOS 3.20, MOS 3.50 and MOS
-5.10](./docs/refresh.md), cover Master 128, Master Compact and
-Olivetti PC128S, and get a bit more adventurous by including bug
-fixes, performance improvements and new features.
 
 # history/contributors
 

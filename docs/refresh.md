@@ -130,6 +130,18 @@ Acorn MOS 3.50 behaviour.
 output) will leave sideways RAM contents alone on a power-on reset -
 the behaviour for other Acorn MOS versions.
 
+## workaround for MOS 3.50r issues with Z80 second processor
+
+(This issue also affected original MOS 3.50.)
+
+If using MOS 3.50r with a Z80 second processor, you'll probably find
+the second processor gets stuck on boot. (MOS 3.20r is not affected.)
+The workaround for this: `*CONFIGURE LANG 15`.
+
+With ROM 15 as the language, and with no second processor or a 6502
+second processor, you'll get the standard OSCLI prompt, allowing you
+to reconfigure things.
+
 # other notes
 
 - The new version number can be seen in the startup banner (if running
@@ -166,7 +178,9 @@ together, so the version numbers for all 3 variants stay in sync.
 but you can build them yourself from the code in the repo if you
 want.)
 
-## G (under development)
+## H (under development)
+
+## G
 
 * All: fix `*ROMS` displaying spurious `Ignored` (particularly likely
   in Mode 7) for banks corresponding to unoccupied sockets or
@@ -176,6 +190,7 @@ want.)
   processor. (Mainly relevant if using MOS 3.50G with Z80 second
   processor: `*CONFIGURE LANG 15` is a viable workaround for its
   incompatibility with HI ROMs)
+* All: fix `VDU2` failing to enable printer
 
 ## F
 

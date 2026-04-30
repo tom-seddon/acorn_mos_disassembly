@@ -7511,7 +7511,7 @@ LE4A3:
                 .if refreshVersion
                 lda hazel.bootModeFlags
                 and #hazel.bootModeFlags.safeMode
-                bne LE509                    ; taken if not *+BREAK
+                bne startTubeLanguageOrCommandLine ; taken if not *+BREAK
                 .endif
                 lda lastBREAKType ; If not Soft Break, select default language
                 bne LE4BB         ; taken if hard break or power on
@@ -7529,7 +7529,7 @@ LE4A3:
                 .else
                 cpx #oscliPrompt|utilsROM ; 16+UTILS ROM, re-enter Supervisor or Tube CLI
                 .endif
-                beq LE509
+                beq startTubeLanguageOrCommandLine
 LE4BB:
                 jsr selectUtilsROM     ; Page in ROM 15 - UTILS ROM
                 .if useTableDrivenConfigure
@@ -7548,28 +7548,34 @@ LE4C2:
 ;
 osbyte8E:
                 .if version==350
+                ; Strip off the flag bits to get the ROM bank.
                 phx
                 txa
                 and #$f
                 tax
                 .endif
-                bit romInformationTable,x ; b6=0, error Not a language
+                bit romInformationTable,x ; N=service entry, V=language entry
                 .if version==350
                 plx
                 .endif
-                bvc thisIsNotALanguageError
-                php
+                bvc thisIsNotALanguageError  ; taken if not a language
+                php       ; save C=1 (OSBYTE $8E)/C=0 (startup)
                 bcc LE4E1 ;taken if not OSBYTE 142 - so skip ROM check
                 jsr selectROMX
                 lda sidewaysROMType
                 and #%00001101
                 beq is6502ROM ;taken if low nybble is 0 (6502 BASIC) or 2 (other 6502 ROM)
+
+                ; not a 6502 ROM. If no Tube present, it can't be run;
+                ; if Tube present, send it over, and maybe it will
+                ; work.
                 .if includeTubeSupport
                 bit tubePresence
                 .else
                 bit tubePresenceUnused
                 .endif
-                bpl iCannotRunThisCodeError  ;taken if no Tube - assume impossible to run
+                bpl iCannotRunThisCodeError ;taken if no Tube - can't run
+
 is6502ROM:
                 phx                          ;save ROM slot
                 ldx #romServiceCallLanguageChange
@@ -7578,31 +7584,36 @@ is6502ROM:
 LE4E1:
                 stx currentLanguageROM
                 jsr selectROMX
+
+                ; Print ROM's name before entry to language.
                 lda #>sidewaysROMName
                 ldy #(<sidewaysROMName)-1
                 jsr print0TerminatedString
                 sty errPtr+0
                 jsr OSNEWL
                 jsr OSNEWL
-                plp
+                
+                plp       ; restore OSBYTE $8E/startup flag
                 .if includeTubeSupport
                 lda #$01               ; A=1 on default language entry
                 bit tubePresence
-                bmi copyLanguageOverTube     ;taken if Tube is present
+                bmi copyLanguageOverTube ;taken with Z=0 if Tube is present
                 .endif
+
+                ; second ROM type check
                 lda sidewaysROMType
                 and #%00001101
                 bne iCannotRunThisCodeError ;taken if low nybble isn't 0 (6502 BASIC) or 2 (other 6502 ROM)
                 inc a                   ;A=1 on default language entry
                 jmp sidewaysROMLanguageEntry
 
-LE509:
-                lda #$00
+startTubeLanguageOrCommandLine:
+                lda #$00                     ; Z=1
                 .if includeTubeSupport
-                bit tubePresence
-                bpl startCommandLineUI
+                bit tubePresence             ; N=1 if Tube present; A=0; Z=1
+                bpl startCommandLineUI       ; taken if Tube not present
 copyLanguageOverTube:
-                jmp tubeHost.copyLanguage
+                jmp tubeHost.copyLanguage    ; taken with Z=1
                 .else
                 bra startCommandLineUI
                 .endif
@@ -14360,6 +14371,7 @@ loop:
 ;
 
                 .if version<500
+
                 .text "(C) 1984 Acorn Computers Ltd."
                 .text "Thanks are due to the following contributors to the BBC Computer (among others too numerous to mention):- "
                 .elsif version>=500

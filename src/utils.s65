@@ -6365,10 +6365,10 @@ transferByte:
 codePage0:
                 .logical tubeHostAddr
 copyLanguage:
-                jmp LAC30
+                jmp handleCopyLanguage
 
 copyEscapeStatus:
-                jmp LADDA
+                jmp handleCopyEscapeStatus
 
 ; Tube transfer/claim/release
 entryPoint:
@@ -6459,7 +6459,7 @@ LABEC:
                 plp
                 rts
 
-LABEE:
+handleReset:
                 ldx lastBREAKType            ;get last BREAK type
                 beq LABDB   ;if soft break, release Tube, send $80 via
                             ;R2, and enter idle loop.
@@ -6552,11 +6552,16 @@ doTube:
                 jmp tubeHost.entryPoint
                 .pend
                 
-LAC30:
+handleCopyLanguage:
                 cli
-                bcs enterNewLanguage
-                bne LABEE
-                bra LAC8F
+
+; C=1 - OSBYTE $8E
+; C=0 Z=0 - boot flow, default language entry
+; C=0 Z=1 - boot flow, OSCLI prompt
+                
+                bcs enterNewLanguage       ; taken if OSBYTE $8E
+                bne handleReset            ; taken if default language
+                bra braSendR27FThenGoIdle  ; visit the OSCLI prompt
 
 getLanguageParasiteAddr: .proc
                 lda #$80
@@ -6667,7 +6672,7 @@ doBPUT:
                 tay             ;Y = file handle
                 jsr recvR2      ;Receive byte
                 jsr OSBPUT      ;Do OSBPUT
-LAC8F:
+braSendR27FThenGoIdle:
                 bra sendR27FThenGoIdle
 
 doBGET:
@@ -6963,7 +6968,7 @@ sendR4:                          ;add1/066c
                 sta tube.data4   ;put byte in FIFO
                 rts
 
-LADDA:
+handleCopyEscapeStatus:
                 lda $FF
                 sec
                 ror a

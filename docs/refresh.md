@@ -175,7 +175,7 @@ want.)
   ROM, that will enter the `*` prompt on the host CPU or 6502 second
   processor. (Mainly relevant if using MOS 3.50G with Z80 second
   processor: `*CONFIGURE LANG 15` is a viable workaround for its
-  incompatibility with HI ROMs.)
+  incompatibility with HI ROMs)
 
 ## F
 

@@ -1,0 +1,18 @@
+{
+    "requests":[
+	{
+	    "type":"load_disk_image",
+	    "args":{
+		"path":"build/wrchspd.ssd"
+	    }
+	},
+	{
+	    "type":"reset",
+	    "args":{
+		"boot":true,
+		"wait_for_osword_0":true,
+		"wait_for_osword_0_timeout_seconds":-1
+	    }
+	}
+    ]
+}

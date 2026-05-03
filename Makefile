@@ -369,11 +369,12 @@ tom_wordspd:
 tom_wrchspd: _CURL:=curl --no-progress-meter
 tom_wrchspd: _SSD:=build/wrchspd.ssd
 tom_wrchspd:
-	$(PYTHON) "submodules/beeb/bin/ssd_create.py" -o "$(_SSD)" -b "*BASIC" -b "CHAIN\"WRCHSPD\"" "beeb/acorn_mos_disassembly/0/$$.WRCHSPD"
-# $(_CURL)  --fail-with-body --connect-timeout 0.25 -G "http://localhost:48075/api-set-globals/*" --data-urlencode "read_path=$(shell pwd)"
-# $(_CURL)  --fail-with-body --connect-timeout 0.25 -G "http://localhost:48075/api" -H "Content-Type:application/json" --upload-file "tools/config.mos3.50r.json"
-	$(_CURL) --connect-timeout 0.25 -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
-	$(_CURL) -H "Content-Type:application/binary" --upload-file "$(_SSD)" "http://localhost:48075/run/b2?name=$(_SSD)"
+	$(PYTHON) "submodules/beeb/bin/ssd_create.py" -o "$(_SSD)" -b "*BASIC" -b "LOAD\"WRCHSPD\"" -b "OSCLI\"EXEC\":RUN" "beeb/acorn_mos_disassembly/0/$$.WRCHSPD"
+	$(_CURL) --fail-with-body --connect-timeout 0.25 -G "http://localhost:48075/api-set-globals/*" --data-urlencode "read_path=$(shell pwd)"
+	$(_CURL) --fail-with-body --connect-timeout 0.25 -G "http://localhost:48075/api" -H "Content-Type:application/json" --upload-file "tools/config.mos3.50r.json"
+	$(_CURL) --fail-with-body --connect-timeout 0.25 -G "http://localhost:48075/api" -H "Content-Type:application/json" --upload-file "tools/boot_disk_image.wrchspd.json"
+#	$(_CURL) --fail-with-body --connect-timeout 0.25 -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
+#	$(_CURL) -H "Content-Type:application/binary" --upload-file "$(_SSD)" "http://localhost:48075/run/b2?name=$(_SSD)"
 
 .PHONY:tom_multios
 tom_multi_os: _MULTIOS_BIN:=../beeb-files/multi_os.bin

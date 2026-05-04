@@ -340,17 +340,18 @@ tom_laptop:
 	$(_V)$(SHELLCMD) split -b 131072 "orig/multios/multios.bin" "build/multios"
 	$(_V)$(SHELLCMD) concat -o "build/multios.bin" "build/multios0" "build/350r/350r.bin" "build/multios2" "build/multios3"
 	$(MAKE) tom_reset
-	$(MAKE) tom_wrchspd
+#	$(MAKE) tom_wrchspd
 
 # /opt/local/bin/ctags --exclude='.#*' --langdef=beebasm --langmap=beebasm:.6502.asm '--regex-beebasm=/^\.(\^|\*)?([A-Za-z0-9_]+)/\2/l,label/' '--regex-beebasm=/^[ \t]*macro[ \t]+([A-Za-z0-9_]+)/\1/m,macro/i' '--regex-beebasm=/^[ \t]*([A-Za-z0-9_]+)[ \t]*=[^=]/\1/v,value/' -eR src lib stnicc-beeb.asm
 
 .PHONY:tom_reset
-tom_reset: _CURL:=curl --no-progress-meter
+tom_reset: _CURL:=curl --no-progress-meter --fail-with-body --connect-timeout 0.25
 tom_reset:
-	-$(_CURL) -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)" --connect-timeout 0.25
+	$(_CURL) -G "http://localhost:48075/api-set-globals/*" --data-urlencode "read_path=$(shell pwd)"
+	$(_CURL) -G "http://localhost:48075/api" -H "Content-Type:application/json" --upload-file "tools/config.mos3.50r.json"
 
 .PHONY:tom_tube_transfer
-tom_tube_transfer: _CURL:=curl --no-progress-meter
+tom_tube_transfer: _CURL:=curl --no-progress-meter --fail-with-body --connect-timeout 0.25
 tom_tube_transfer:
 	$(SHELLCMD) copy-file tools/language_relocate_speed.txt build/language_relocate_speed.dat
 	$(PYTHON) submodules/beeb/bin/text2bbc.py build/language_relocate_speed.dat
@@ -366,13 +367,12 @@ tom_wordspd:
 	$(_CURL) -H "Content-Type:application/binary" --upload-file "$(_SSD)" "http://localhost:48075/run/b2?name=$(_SSD)"
 
 .PHONY:tom_wrchspd
-tom_wrchspd: _CURL:=curl --no-progress-meter
+tom_wrchspd: _CURL:=curl --no-progress-meter --fail-with-body --connect-timeout 0.25
 tom_wrchspd: _SSD:=build/wrchspd.ssd
 tom_wrchspd:
 	$(PYTHON) "submodules/beeb/bin/ssd_create.py" -o "$(_SSD)" -b "*BASIC" -b "LOAD\"WRCHSPD\"" -b "OSCLI\"EXEC\":RUN" "beeb/acorn_mos_disassembly/0/$$.WRCHSPD"
-	$(_CURL) --fail-with-body --connect-timeout 0.25 -G "http://localhost:48075/api-set-globals/*" --data-urlencode "read_path=$(shell pwd)"
-	$(_CURL) --fail-with-body --connect-timeout 0.25 -G "http://localhost:48075/api" -H "Content-Type:application/json" --upload-file "tools/config.mos3.50r.json"
-	$(_CURL) --fail-with-body --connect-timeout 0.25 -G "http://localhost:48075/api" -H "Content-Type:application/json" --upload-file "tools/boot_disk_image.wrchspd.json"
+	$(MAKE) tom_reset
+	$(_CURL) -G "http://localhost:48075/api" -H "Content-Type:application/json" --upload-file "tools/boot_disk_image.wrchspd.json"
 #	$(_CURL) --fail-with-body --connect-timeout 0.25 -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
 #	$(_CURL) -H "Content-Type:application/binary" --upload-file "$(_SSD)" "http://localhost:48075/run/b2?name=$(_SSD)"
 

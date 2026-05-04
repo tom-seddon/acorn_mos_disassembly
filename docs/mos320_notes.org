@@ -654,6 +654,10 @@ After:
 |    6 |  387 | 2583 |
 |    7 |  239 | 4184 |
 
+*** Sigh... printer bug part 2...
+
++2 max for the TIME value.
+
 * Reset stuff
 
 1. resetEntryPoint

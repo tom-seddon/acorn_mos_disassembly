@@ -270,7 +270,7 @@ handlePrintableChar:
                 lda #vduv.cursorFlags.noMoveCursorAfterPrint
                 bit vduv.cursorFlags
                 bne LC0C7                    ; taken if not moving cursor
-                .if fasterOSWRCH
+                .if false;fasterOSWRCH
                 .cerror vduv.cursorFlags.noMoveCursorAfterPrint!=$20
                 jsr LC276withAccumulator20
                 .else
@@ -288,11 +288,10 @@ LC0A9:
 LC0B3:
                 sta vduv.jumpVector+1
 
-                .if !fasterOSWRCH
+                ; set C if byte is 8, 9, 10, 11, 12, or 13
                 tya
                 eor #$F7
                 cmp #$FA
-                .endif
                 
                 tya
                 bit STATE

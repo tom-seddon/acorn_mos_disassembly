@@ -3,9 +3,11 @@
 ifeq ($(OS),Windows_NT)
 PYTHON:=py -3
 TASSCMD:=bin\64tass.exe
+CWD:=%CD%
 else
 PYTHON:=/usr/bin/python3
 TASSCMD:=64tass
+CWD=$(shell pwd)
 endif
 
 ##########################################################################
@@ -347,7 +349,7 @@ tom_laptop:
 .PHONY:tom_reset
 tom_reset: _CURL:=curl --no-progress-meter --fail-with-body --connect-timeout 0.25
 tom_reset:
-	$(_CURL) -G "http://localhost:48075/api-set-globals/*" --data-urlencode "read_path=$(shell pwd)"
+	$(_CURL) -G "http://localhost:48075/api-set-globals/*" --data-urlencode "read_path=$(CWD)"
 	$(_CURL) -G "http://localhost:48075/api" -H "Content-Type:application/json" --upload-file "tools/config.mos3.50r.json"
 
 .PHONY:tom_tube_transfer

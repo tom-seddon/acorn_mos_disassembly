@@ -14292,9 +14292,9 @@ LFB3B:
 ;-------------------------------------------------------------------------
 ;
 ; Delay after a possible EEPROM write, to give the device time to time
-; out out of write mode. Trying to stay reasonably under 10 ms. Don't
-; interfere with the 100 Hz timer, but give the 100 Hz routine at
-; least a bit of time to run.
+; out out of write mode. (Any such writes should be done with
+; interrupts disabled, in case the 100 Hz interrupt ends up calling
+; the written ROM's service entry.)
 ;
 ; 256 times round inner loop=2+256*2+255*3+2=1281 cycles
 ;
@@ -14304,14 +14304,14 @@ LFB3B:
 ;
 ; This can be revisited if required.
 ;
-; Preserves: A/X/P
+; Preserves: A/X/Y/P
 
                 .if version==350&&refreshVersion
 delayAfterPossibleEEPROMWrite: .proc
                 php
                 pha
-                sei
-                ldy #12
+                phy
+                ldy #25
 outerLoop:
                 lda #0
 innerLoop:
@@ -14319,6 +14319,7 @@ innerLoop:
                 bne innerLoop
                 dey
                 bne outerLoop
+                ply
                 pla
                 plp
                 rts

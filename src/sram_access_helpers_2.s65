@@ -79,13 +79,18 @@ isBankROM:
                 jsr delayAfterPossibleEEPROMWrite
                 cmp $8008       ; did it take? Z=1 if RAM
                 clc             ; assume ROM
-
-                ; Don't do another write if ROM, in case it's EEPROM
-                ; and it'll only make another mess.
                 bne jmpSelectUtilsROM ; taken if ROM
-                sec                      ; it's RAM
-                sty $8008                ; it's RAM - restore original
-                                         ; value
+
+                ; It's RAM/EEPROM. Restore original value and do
+                ; another delay.
+                ;
+                ; This will interfere with the 100 Hz interrupt, but I
+                ; don't think there's anything that can be done about
+                ; that.
+                sec                      ; it's RAM/EEPROM
+                sty $8008
+                jsr delayAfterPossibleEEPROMWrite
+                
 jmpSelectUtilsROM:
                 cli
                 jmp selectUtilsROM

@@ -180,6 +180,9 @@ want.)
 
 ## H (under development)
 
+* 3.50H, 5.10H: fix `*ROMS` producing bogus output (of one kind of
+  another) if it encounters an EEPROM
+
 ## G
 
 * All: fix `*ROMS` displaying spurious `Ignored` (particularly likely

@@ -329,7 +329,7 @@ tom_laptop: ECTAGS:=ctags
 endif
 tom_laptop:
 	$(ECTAGS) '--exclude=.#*' --langdef=64tass --langmap=64tass:.s65 '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*):/\1/l,label/' '--regex-64tass=/^([A-Za-z_][A-Za-z0-9_]*)=/\1/k,const/' -e *.s65 src/*.s65
-	$(MAKE) prebuilt_versions
+	$(MAKE) tom_multi_os
 	$(_V)$(SHELLCMD) blank-line
 	$(_V)$(SHELLCMD) sha1 "build/320r/320r.bin"
 	$(_V)$(SHELLCMD) sha1 "build/320r/320r_ide.bin"
@@ -376,12 +376,18 @@ tom_wrchspd:
 #	$(_CURL) --fail-with-body --connect-timeout 0.25 -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.50 refreshed)"
 #	$(_CURL) -H "Content-Type:application/binary" --upload-file "$(_SSD)" "http://localhost:48075/run/b2?name=$(_SSD)"
 
+_MULTIOS_OUTPUT:=$(BUILD)/tom_multi_os.bin
+
 .PHONY:tom_multios
 tom_multi_os: _MULTIOS_BIN:=../beeb-files/multi_os.bin
-tom_multi_os: _OUTPUT:=$(BUILD)/tom_multi_os.bin
 tom_multi_os:
 	$(_V)$(MAKE) prebuilt_versions
 	$(_V)$(SHELLCMD) split -b 131072 "$(_MULTIOS_BIN)" "$(BUILD)/multi_os."
-	$(_V)$(SHELLCMD) concat "$(BUILD)/multi_os.0" "$(BUILD)/350r/350r.bin" "$(BUILD)/multi_os.2" "$(BUILD)/multi_os.3" -o "$(_OUTPUT)"
-	$(_V)$(SHELLCMD) stat "$(_OUTPUT)"
-	$(_V)$(SHELLCMD) realpath "$(_OUTPUT)"
+	$(_V)$(SHELLCMD) concat "$(BUILD)/multi_os.0" "$(BUILD)/350r/350r.bin" "$(BUILD)/multi_os.2" "$(BUILD)/multi_os.3" -o "$(_MULTIOS_OUTPUT)"
+	$(_V)$(SHELLCMD) stat "$(_MULTIOS_OUTPUT)"
+	$(_V)$(SHELLCMD) realpath "$(_MULTIOS_OUTPUT)"
+
+.PHONY:tom_program_t48
+tom_program_t48:
+	$(_V)$(MAKE) tom_multi_os
+	$(_V)minipro --write "$(_MULTIOS_OUTPUT)" --pin_check --device "M29F040B@PLCC32"
